@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Historial de Apuestas Profesional</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  /* Reset y base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; font-family: 'Inter', sans-serif; background-color: #121214; color: #e1e1e6;
+    min-height: 100vh; display: flex; flex-direction: column;
+  }
+  h1, h2 {
+    font-weight: 600; margin-bottom: 0.5rem;
+  }
+  main {
+    flex: 1;
+    padding: 20px 30px;
+    max-width: 1200px;
+    margin: auto;
+  }
+
+  /* Formulario */
+  form {
+    background: #202024;
+    padding: 20px 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgb(0 0 0 / 0.3);
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+    gap: 18px 24px;
+    margin-bottom: 30px;
+  }
+  form label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #c4c4cc;
+    display: block;
+  }
+  form input, form select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: none;
+    background-color: #121214;
+    color: #e1e1e6;
+    box-shadow: inset 0 0 4px rgb(255 255 255 / 0.1);
+    transition: box-shadow 0.2s ease;
+  }
+  form input:focus, form select:focus {
+    outline: none;
+    box-shadow: inset 0 0 5px #8257e6;
+  }
+  form button {
+    grid-column: 1 / -1;
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    background: #8257e6;
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  form button:hover {
+    background-color: #6b45d9;
+  }
+
+  /* Tabla */
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+  }
+  thead th {
+    text-align: left;
+    padding: 12px 15px;
+    background-color: #202024;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #a8a8b3;
+    border-bottom: 2px solid #363636;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+  tbody tr {
+    background: #29292e;
+    transition: background-color 0.3s ease;
+  }
+  tbody tr:hover {
+    background: #3a3a40;
+  }
+  tbody td {
+    padding: 12px 15px;
+    font-size: 0.9rem;
+    vertical-align: middle;
+    color: #d4d4d8;
+  }
+  .acciones button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin: 0 3px;
+    font-size: 1.2rem;
+    color: #c4c4cc;
+    transition: color 0.2s ease;
+  }
+  .acciones button:hover {
+    color: #8257e6;
+  }
+  .status-pendiente {
+    color: #ffba08;
+    font-weight: 600;
+  }
+  .status-ganada {
+    color: #4caf50;
+    font-weight: 600;
+  }
+  .status-perdida {
+    color: #ef4444;
+    font-weight: 600;
+  }
+
+  /* Filtros */
+  .filtros {
+    margin-bottom: 25px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  .filtros input, .filtros select {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: none;
+    background: #121214;
+    color: #e1e1e6;
+    box-shadow: inset 0 0 4px rgb(255 255 255 / 0.1);
+    min-width: 140px;
+  }
+
+  /* Botones utilitarios */
+  .botones-utiles {
+    margin: 15px 0 25px 0;
+    display: flex;
+    gap: 15px;
+  }
+  .botones-utiles button {
+    background: #8257e6;
+    color: white;
+    padding: 10px 18px;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .botones-utiles button:hover {
+    background: #6b45d9;
+  }
+
+  /* Gráficas */
+  #graficas {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+  canvas {
+    background: #202024;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgb(0 0 0 / 0.4);
+    max-width: 100%;
+    height: 280px !important;
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    form {
+      grid-template-columns: 1fr;
+    }
+    .filtros {
+      flex-direction: column;
+    }
+  }
+
+</style>
+</head>
+<body>
+<main>
+  <h1>Historial Profesional de Apuestas</h1>
+
+  <form id="formApuesta" autocomplete="off" novalidate>
+    <div>
+      <label for="liga">Liga *</label>
+      <input type="text" id="liga" name="liga" placeholder="Ej: LaLiga" required />
+    </div>
+    <div>
+      <label for="local">Equipo Local *</label>
+      <input type="text" id="local" name="local" placeholder="Ej: Real Madrid" required />
+    </div>
+    <div>
+      <label for="visita">Equipo Visitante *</label>
+      <input type="text" id="visita" name="visita" placeholder="Ej: Barcelona" required />
+    </div>
+    <div>
+      <label for="mercado">Mercado *</label>
+      <select id="mercado" name="mercado" required>
+        <option value="" disabled selected>Selecciona mercado</option>
+        <option value="1X2">1X2</option>
+        <option value="Over/Under">Over/Under</option>
+        <option value="Ambos Anotan">Ambos Anotan</option>
+        <option value="Doble Oportunidad">Doble Oportunidad</option>
+        <option value="Hándicap">Hándicap</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+    <div>
+      <label for="probabilidad">Probabilidad (%) *</label>
+      <input type="number" id="probabilidad" name="probabilidad" min="0" max="100" step="0.01" placeholder="Ej: 60" required />
+    </div>
+    <div>
+      <label for="cuotaImplicita">Cuota Implícita (opcional)</label>
+      <input type="number" id="cuotaImplicita" name="cuotaImplicita" step="0.01" placeholder="Ej: 1.66" />
+    </div>
+    <div>
+      <label for="cuotaBookie">Cuota Bookie (decimal) *</label>
+      <input type="number" id="cuotaBookie" name="cuotaBookie" step="0.01" placeholder="Ej: 1.80" required />
+    </div>
+    <div>
+      <label for="bankroll">Bankroll *</label>
+      <input type="number" id="bankroll" name="bankroll" value="100" min="0" step="0.01" required />
+    </div>
+    <div>
+      <label for="kellyFrac">Fracción Kelly *</label>
+      <select id="kellyFrac" name="kellyFrac" required>
+        <option value="0.10">10%</option>
+        <option value="0.25" selected>25%</option>
+        <option value="0.33">33%</option>
+        <option value="0.50">50%</option>
+        <option value="1.00">100%</option>
+      </select>
+    </div>
+    <div style="align-self: end;">
+      <button type="submit">Agregar apuesta</button>
+    </div>
+  </form>
+
+  <section class="filtros" aria-label="Filtros para el historial">
+    <input type="text" id="filtroLiga" placeholder="Filtrar por liga..." />
+    <input type="text" id="filtroLocal" placeholder="Filtrar por local..." />
+    <input type="text" id="filtroVisita" placeholder="Filtrar por visita..." />
+    <select id="filtroMercado">
+      <option value="">Todos los mercados</option>
+      <option value="1X2">1X2</option>
+      <option value="Over/Under">Over/Under</option>
+      <option value="Ambos Anotan">Ambos Anotan</option>
+      <option value="Doble Oportunidad">Doble Oportunidad</option>
+      <option value="Hándicap">Hándicap</option>
+      <option value="Otro">Otro</option>
+    </select>
+    <select id="filtroEstado">
+      <option value="">Todos los estados</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="ganada">Ganada</option>
+      <option value="perdida">Perdida</option>
+    </select>
+    <button id="btnLimpiarFiltros" title="Limpiar filtros" aria-label="Limpiar filtros">✖</button>
+  </section>
+
+  <section class="botones-utiles" aria-label="Opciones para exportar e importar historial">
+    <button id="btnExportarCSV" title="Exportar historial a CSV">Exportar CSV</button>
+    <button id="btnImportarJSON" title="Importar historial desde archivo JSON">Importar JSON</button>
+    <input type="file" id="inputImportJSON" accept=".json" style="display:none" />
+  </section>
+
+  <section aria-label="Historial de apuestas">
+    <table role="grid" aria-describedby="tableDescription" id="tablaHistorial">
+      <caption id="tableDescription" style="text-align:left; margin-bottom:8px; font-weight:600; font-size:1.1rem;">
+        Historial de apuestas agregadas
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Fecha</th>
+          <th scope="col">Liga</th>
+          <th scope="col">Local</th>
+          <th scope="col">Visita</th>
+          <th scope="col">Mercado</th>
+          <th scope="col">Prob (%)</th>
+          <th scope="col">Cuota Implícita</th>
+          <th scope="col">Cuota Bookie</th>
+          <th scope="col">EV (%)</th>
+          <th scope="col">Kelly FULL (%)</th>
+          <th scope="col">Stake sugerido</th>
+          <th scope="col">Estado</th>
+          <th scope="col" aria-label="Acciones">⚙</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Contenido generado por JS -->
+      </tbody>
+    </table>
+  </section>
+
+  <section id="graficas" aria-label="Gráficas de evolución">
+    <canvas id="graficaBankroll" aria-label="Gráfica de evolución de bankroll"></canvas>
+    <canvas id="graficaKelly" aria-label="Gráfica de Kelly Full"></canvas>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'historialApuestasProfesional';
+
+  // Elementos DOM
+  const form = document.getElementById('formApuesta');
+  const tablaBody = document.querySelector('#tablaHistorial tbody');
+  const filtroLiga = document.getElementById('filtroLiga');
+  const filtroLocal = document.getElementById('filtroLocal');
+  const filtroVisita = document.getElementById('filtroVisita');
+  const filtroMercado = document.getElementById('filtroMercado');
+  const filtroEstado = document.getElementById('filtroEstado');
+  const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+  const btnExportarCSV = document.getElementById('btnExportarCSV');
+  const btnImportarJSON = document.getElementById('btnImportarJSON');
+  const inputImportJSON = document.getElementById('inputImportJSON');
+
+  // Gráficas
+  const ctxBankroll = document.getElementById('graficaBankroll').getContext('2d');
+  const ctxKelly = document.getElementById('graficaKelly').getContext('2d');
+  let graficaBankroll = null;
+  let graficaKelly = null;
+
+  // Variables
+  let historial = [];
+
+  // Utilidades
+  function calcularKelly(prob, cuotaBookie) {
+    const p = prob / 100;
+    const b = cuotaBookie - 1;
+    const q = 1 - p;
+    if (b <= 0) return null;
+    const kellyFull = (b * p - q) / b;
+    return kellyFull > 0 ? kellyFull : null;
+  }
+
+  function calcularEV(prob, cuotaBookie) {
+    return cuotaBookie * (prob / 100) - 1;
+  }
+
+  function stakeSugerido(bankroll, kellyFull, kellyFrac) {
+    if (!kellyFull) return bankroll * 0.01;
+    const stake = bankroll * kellyFull * kellyFrac;
+    return stake > 0 ? stake : bankroll * 0.01;
+  }
+
+  function formToApuesta(formData) {
+    const prob = parseFloat(formData.get('probabilidad'));
+    const cuotaBookie = parseFloat(formData.get('cuotaBookie'));
+    const cuotaImplicita = parseFloat(formData.get('cuotaImplicita'));
+    const bankroll = parseFloat(formData.get('bankroll'));
+    const kellyFrac = parseFloat(formData.get('kellyFrac'));
+
+    const kellyFull = calcularKelly(prob, cuotaBookie);
+    const ev = calcularEV(prob, cuotaBookie);
+    const stake = stakeSugerido(bankroll, kellyFull, kellyFrac);
+
+    return {
+      id: Date.now(),
+      fecha: new Date().toISOString(),
+      liga: formData.get('liga').trim(),
+      local: formData.get('local').trim(),
+      visita: formData.get('visita').trim(),
+      mercado: formData.get('mercado'),
+      prob,
+      cuotaImplicita: isNaN(cuotaImplicita) ? null : cuotaImplicita,
+      cuotaBookie,
+      ev,
+      kellyFull,
+      stake,
+      estado: 'pendiente'
+    };
+  }
+
+  // Guardar historial
+  function guardarHistorial() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(historial));
+  }
+
+  // Cargar historial
+  function cargarHistorial() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+      try {
+        historial = JSON.parse(data);
+      } catch {
+        historial = [];
+      }
+    } else {
+      historial = [];
+    }
+  }
+
+  // Render tabla
+  function renderTabla(lista) {
+    tablaBody.innerHTML = '';
+    if (!lista.length) {
+      tablaBody.innerHTML = `<tr><td colspan="14" style="text-align:center; padding: 20px; color: #666;">No hay apuestas para mostrar</td></tr>`;
+      return;
+    }
+
+    for (let i = 0; i < lista.length; i++) {
+      const a = lista[i];
+      const tr = document.createElement('tr');
+
+      const evPorc = (a.ev * 100).toFixed(2);
+      const kellyPorc = a.kellyFull !== null ? (a.kellyFull * 100).toFixed(2) : '-';
+
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${new Date(a.fecha).toLocaleString()}</td>
+        <td>${a.liga}</td>
+        <td>${a.local}</td>
+        <td>${a.visita}</td>
+        <td>${a.mercado}</td>
+        <td>${a.prob.toFixed(2)}</td>
+        <td>${a.cuotaImplicita !== null ? a.cuotaImplicita.toFixed(2) : ''}</td>
+        <td>${a.cuotaBookie.toFixed(2)}</td>
+        <td>${evPorc}</td>
+        <td>${kellyPorc}</td>
+        <td>${a.stake.toFixed(2)}</td>
+        <td class="estado ${
+          a.estado === 'pendiente'
+            ? 'status-pendiente'
+            : a.estado === 'ganada'
+            ? 'status-ganada'
+            : 'status-perdida'
+        }">${a.estado.charAt(0).toUpperCase() + a.estado.slice(1)}</td>
+        <td class="acciones">
+          <button title="Marcar como ganada" aria-label="Marcar apuesta ${i+1} como ganada" data-id="${a.id}" data-accion="ganada" tabindex="0">✔️</button>
+          <button title="Marcar como perdida" aria-label="Marcar apuesta ${i+1} como perdida" data-id="${a.id}" data-accion="perdida" tabindex="0">❌</button>
+          <button title="Eliminar apuesta" aria-label="Eliminar apuesta ${i+1}" data-id="${a.id}" data-accion="eliminar" tabindex="0">🗑️</button>
+        </td>
+      `;
+
+      tablaBody.appendChild(tr);
+    }
+  }
+
+  // Filtrar historial según filtros
+  function aplicarFiltros() {
+    const fLiga = filtroLiga.value.trim().toLowerCase();
+    const fLocal = filtroLocal.value.trim().toLowerCase();
+    const fVisita = filtroVisita.value.trim().toLowerCase();
+    const fMercado = filtroMercado.value;
+    const fEstado = filtroEstado.value;
+
+    return historial.filter(a => {
+      const ligaOK = !fLiga || a.liga.toLowerCase().includes(fLiga);
+      const localOK = !fLocal || a.local.toLowerCase().includes(fLocal);
+      const visitaOK = !fVisita || a.visita.toLowerCase().includes(fVisita);
+      const mercadoOK = !fMercado || a.mercado === fMercado;
+      const estadoOK = !fEstado || a.estado === fEstado;
+      return ligaOK && localOK && visitaOK && mercadoOK && estadoOK;
+    });
+  }
+
+  // Actualizar gráficas
+  function actualizarGraficas(lista) {
+    if (graficaBankroll) graficaBankroll.destroy();
+    if (graficaKelly) graficaKelly.destroy();
+
+    const bankrollInicial = lista.length > 0 ? lista[0].stake / (lista[0].kellyFull || 0.25) : 1000;
+    let bankroll = bankrollInicial;
+    const labels = [];
+    const dataBankroll = [];
+    const dataKelly = [];
+
+    lista.forEach((a, i) => {
+      if (a.estado === 'ganada') bankroll += a.stake * (a.cuotaBookie - 1);
+      else if (a.estado === 'perdida') bankroll -= a.stake;
+
+      labels.push(i + 1);
+      dataBankroll.push(bankroll.toFixed(2));
+      dataKelly.push(a.kellyFull !== null ? (a.kellyFull * 100).toFixed(2) : null);
+    });
+
+    graficaBankroll = new Chart(ctxBankroll, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Bankroll',
+          data: dataBankroll,
+          fill: true,
+          borderColor: '#8257e6',
+          backgroundColor: 'rgba(130, 87, 230, 0.3)',
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: false,
+            ticks: { color: '#e1e1e6' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          },
+          x: {
+            ticks: { color: '#e1e1e6' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: '#e1e1e6' } },
+          title: { display: true, text: 'Evolución del Bankroll', color: '#e1e1e6', font: { size: 18 } }
+        }
+      }
+    });
+
+    graficaKelly = new Chart(ctxKelly, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Kelly FULL (%)',
+          data: dataKelly,
+          fill: true,
+          borderColor: '#22d3ee',
+          backgroundColor: 'rgba(34, 211, 238, 0.3)',
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            suggestedMax: 50,
+            ticks: { color: '#e1e1e6' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          },
+          x: {
+            ticks: { color: '#e1e1e6' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: '#e1e1e6' } },
+          title: { display: true, text: 'Kelly FULL (%)', color: '#e1e1e6', font: { size: 18 } }
+        }
+      }
+    });
+  }
+
+  // Actualizar tabla y gráficas desde filtros
+  function actualizarVista() {
+    const filtrados = aplicarFiltros();
+    renderTabla(filtrados);
+    actualizarGraficas(filtrados);
+  }
+
+  // Eventos
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    const formData = new FormData(form);
+    const nuevaApuesta = formToApuesta(formData);
+    historial.push(nuevaApuesta);
+    guardarHistorial();
+    form.reset();
+    actualizarVista();
+  });
+
+  tablaBody.addEventListener('click', e => {
+    if (!e.target.dataset.id) return;
+    const id = Number(e.target.dataset.id);
+    const accion = e.target.dataset.accion;
+
+    const idx = historial.findIndex(a => a.id === id);
+    if (idx === -1) return;
+
+    if (accion === 'ganada' || accion === 'perdida') {
+      historial[idx].estado = accion;
+      guardarHistorial();
+      actualizarVista();
+    }
+    else if (accion === 'eliminar') {
+      if (confirm('¿Seguro quieres eliminar esta apuesta?')) {
+        historial.splice(idx, 1);
+        guardarHistorial();
+        actualizarVista();
+      }
+    }
+  });
+
+  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado].forEach(input => {
+    input.addEventListener('input', actualizarVista);
+  });
+
+  btnLimpiarFiltros.addEventListener('click', () => {
+    filtroLiga.value = '';
+    filtroLocal.value = '';
+    filtroVisita.value = '';
+    filtroMercado.value = '';
+    filtroEstado.value = '';
+    actualizarVista();
+  });
+
+  btnExportarCSV.addEventListener('click', () => {
+    if (!historial.length) {
+      alert('No hay datos para exportar.');
+      return;
+    }
+    const csvHeader = [
+      'Fecha', 'Liga', 'Local', 'Visita', 'Mercado', 'Probabilidad (%)', 'Cuota Implícita',
+      'Cuota Bookie', 'EV (%)', 'Kelly FULL (%)', 'Stake sugerido', 'Estado'
+    ];
+    const csvRows = historial.map(a => [
+      new Date(a.fecha).toISOString(),
+      a.liga,
+      a.local,
+      a.visita,
+      a.mercado,
+      a.prob.toFixed(2),
+      a.cuotaImplicita !== null ? a.cuotaImplicita.toFixed(2) : '',
+      a.cuotaBookie.toFixed(2),
+      (a.ev * 100).toFixed(2),
+      a.kellyFull !== null ? (a.kellyFull * 100).toFixed(2) : '',
+      a.stake.toFixed(2),
+      a.estado
+    ].map(c => `"${c}"`).join(','));
+    const csvContent = [csvHeader.join(','), ...csvRows].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `historial_apuestas_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  });
+
+  btnImportarJSON.addEventListener('click', () => {
+    inputImportJSON.click();
+  });
+
+  inputImportJSON.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data)) throw new Error('Formato JSON inválido.');
+        historial = historial.concat(data.filter(item => item.id && item.fecha));
+        guardarHistorial();
+        actualizarVista();
+        alert('Historial importado correctamente.');
+      } catch (err) {
+        alert('Error importando archivo JSON: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // Inicializar
+  cargarHistorial();
+  actualizarVista();
+
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
