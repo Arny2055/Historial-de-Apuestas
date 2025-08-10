@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional</title>
+<title>Historial de Apuestas Profesional - Responsive</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
   /* Reset y base */
@@ -73,11 +73,17 @@
     background-color: #6b45d9;
   }
 
+  /* Tabla scrollable para móviles */
+  #tablaWrapper {
+    overflow-x: auto;
+  }
+
   /* Tabla */
   table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0 8px;
+    min-width: 700px; /* mínimo ancho para no romper diseño */
   }
   thead th {
     text-align: left;
@@ -90,6 +96,7 @@
     position: sticky;
     top: 0;
     z-index: 1;
+    white-space: nowrap;
   }
   tbody tr {
     background: #29292e;
@@ -103,6 +110,7 @@
     font-size: 0.9rem;
     vertical-align: middle;
     color: #d4d4d8;
+    white-space: nowrap;
   }
   .acciones button {
     background: none;
@@ -184,13 +192,28 @@
   /* Responsive */
   @media (max-width: 700px) {
     form {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr !important;
     }
     .filtros {
-      flex-direction: column;
+      flex-direction: column !important;
+      gap: 12px !important;
+    }
+    .botones-utiles {
+      flex-direction: column !important;
+    }
+    tbody td, thead th {
+      font-size: 0.85rem;
+      padding: 8px 10px;
+    }
+    form button, .botones-utiles button {
+      font-size: 1rem !important;
+      padding: 10px 14px !important;
+    }
+    /* Gráficas ocupan 100% y altura proporcional */
+    #graficas canvas {
+      height: 220px !important;
     }
   }
-
 </style>
 </head>
 <body>
@@ -236,7 +259,7 @@
     </div>
     <div>
       <label for="bankroll">Bankroll *</label>
-      <input type="number" id="bankroll" name="bankroll" value="100" min="0" step="0.01" required />
+      <input type="number" id="bankroll" name="bankroll" value="1000" min="0" step="0.01" required />
     </div>
     <div>
       <label for="kellyFrac">Fracción Kelly *</label>
@@ -282,32 +305,34 @@
   </section>
 
   <section aria-label="Historial de apuestas">
-    <table role="grid" aria-describedby="tableDescription" id="tablaHistorial">
-      <caption id="tableDescription" style="text-align:left; margin-bottom:8px; font-weight:600; font-size:1.1rem;">
-        Historial de apuestas agregadas
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col">#</th>
-          <th scope="col">Fecha</th>
-          <th scope="col">Liga</th>
-          <th scope="col">Local</th>
-          <th scope="col">Visita</th>
-          <th scope="col">Mercado</th>
-          <th scope="col">Prob (%)</th>
-          <th scope="col">Cuota Implícita</th>
-          <th scope="col">Cuota Bookie</th>
-          <th scope="col">EV (%)</th>
-          <th scope="col">Kelly FULL (%)</th>
-          <th scope="col">Stake sugerido</th>
-          <th scope="col">Estado</th>
-          <th scope="col" aria-label="Acciones">⚙</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Contenido generado por JS -->
-      </tbody>
-    </table>
+    <div id="tablaWrapper">
+      <table role="grid" aria-describedby="tableDescription" id="tablaHistorial">
+        <caption id="tableDescription" style="text-align:left; margin-bottom:8px; font-weight:600; font-size:1.1rem;">
+          Historial de apuestas agregadas
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Liga</th>
+            <th scope="col">Local</th>
+            <th scope="col">Visita</th>
+            <th scope="col">Mercado</th>
+            <th scope="col">Prob (%)</th>
+            <th scope="col">Cuota Implícita</th>
+            <th scope="col">Cuota Bookie</th>
+            <th scope="col">EV (%)</th>
+            <th scope="col">Kelly FULL (%)</th>
+            <th scope="col">Stake sugerido</th>
+            <th scope="col">Estado</th>
+            <th scope="col" aria-label="Acciones">⚙</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Contenido generado por JS -->
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section id="graficas" aria-label="Gráficas de evolución">
@@ -447,7 +472,7 @@
             ? 'status-ganada'
             : 'status-perdida'
         }">${a.estado.charAt(0).toUpperCase() + a.estado.slice(1)}</td>
-        <td class="acciones">
+        <td class="acciones" role="gridcell" aria-label="Acciones para apuesta ${i+1}">
           <button title="Marcar como ganada" aria-label="Marcar apuesta ${i+1} como ganada" data-id="${a.id}" data-accion="ganada" tabindex="0">✔️</button>
           <button title="Marcar como perdida" aria-label="Marcar apuesta ${i+1} como perdida" data-id="${a.id}" data-accion="perdida" tabindex="0">❌</button>
           <button title="Eliminar apuesta" aria-label="Eliminar apuesta ${i+1}" data-id="${a.id}" data-accion="eliminar" tabindex="0">🗑️</button>
@@ -481,8 +506,11 @@
     if (graficaBankroll) graficaBankroll.destroy();
     if (graficaKelly) graficaKelly.destroy();
 
-    const bankrollInicial = lista.length > 0 ? lista[0].stake / (lista[0].kellyFull || 0.25) : 1000;
-    let bankroll = bankrollInicial;
+    if (lista.length === 0) return;
+
+    let bankroll = lista[0].stake / (lista[0].kellyFull || 0.25);
+    if (!bankroll || bankroll <= 0) bankroll = 1000;
+
     const labels = [];
     const dataBankroll = [];
     const dataKelly = [];
