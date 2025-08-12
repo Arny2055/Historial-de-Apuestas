@@ -372,7 +372,6 @@
   <section class="botones-utiles" aria-label="Exportar o importar historial de apuestas">
     <button id="btnExportarCSV" title="Exportar historial a CSV">Exportar CSV</button>
     <button id="btnImportarJSON" title="Importar historial desde archivo JSON">Importar JSON</button>
-    <button id="btnToggleMostrarTodas" title="Mostrar últimas 10 / Mostrar todas">Mostrar todas</button>
     <input type="file" id="inputImportJSON" accept=".json" aria-label="Seleccionar archivo JSON para importar" />
   </section>
 
@@ -453,7 +452,6 @@
   const btnExportarCSV = document.getElementById('btnExportarCSV');
   const btnImportarJSON = document.getElementById('btnImportarJSON');
   const inputImportJSON = document.getElementById('inputImportJSON');
-  const btnToggleMostrarTodas = document.getElementById('btnToggleMostrarTodas');
 
   const ctxBankroll = document.getElementById('graficaBankroll').getContext('2d');
   const ctxKelly = document.getElementById('graficaKelly').getContext('2d');
@@ -464,9 +462,6 @@
 
   // Array para guardar apuestas
   let historial = [];
-
-  // Mostrar todas vs últimas 10
-  let mostrarTodas = false; // por defecto sólo últimas 10
 
   // Funciones auxiliares
   function calcularCuotaImplicita(prob) {
@@ -525,17 +520,15 @@
     });
   }
 
-  // Renderizar tabla (muestra últimas 10 por defecto, o todas si mostrarTodas = true)
+  // Renderizar tabla
   function renderizarTabla() {
     const apuestas = filtrarHistorial();
-    const apuestasAMostrar = mostrarTodas ? apuestas : apuestas.slice(-10);
     tablaBody.innerHTML = '';
-    apuestasAMostrar.forEach((a, i) => {
+    apuestas.forEach((a, i) => {
       const tr = document.createElement('tr');
 
       const tdIndex = document.createElement('td');
-      // índice relativo al set filtrado original (para mostrar el número real)
-      tdIndex.textContent = mostrarTodas ? (i + 1) : (apuestas.length - apuestasAMostrar.length + i + 1);
+      tdIndex.textContent = i + 1;
       tr.appendChild(tdIndex);
 
       const tdFecha = document.createElement('td');
@@ -571,12 +564,12 @@
       tr.appendChild(tdCuotaBookie);
 
       const tdEV = document.createElement('td');
-      tdEV.textContent = (a.ev * 100).toFixed(02);
+      tdEV.textContent = (a.ev * 100).toFixed(2);
       tdEV.style.color = a.ev >= 0 ? '#4caf50' : '#ef4444';
       tr.appendChild(tdEV);
 
       const tdKelly = document.createElement('td');
-      tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(02) : '-';
+      tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(2) : '-';
       tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
       tr.appendChild(tdKelly);
 
@@ -596,25 +589,25 @@
       const btnGanada = document.createElement('button');
       btnGanada.title = 'Marcar como ganada';
       btnGanada.innerHTML = '✅';
-      btnGanada.setAttribute('aria-label', `Marcar apuesta ${tdIndex.textContent} como ganada`);
+      btnGanada.setAttribute('aria-label', `Marcar apuesta ${i + 1} como ganada`);
       btnGanada.addEventListener('click', () => cambiarEstado(a.id, 'ganada'));
 
       const btnPerdida = document.createElement('button');
       btnPerdida.title = 'Marcar como perdida';
       btnPerdida.innerHTML = '❌';
-      btnPerdida.setAttribute('aria-label', `Marcar apuesta ${tdIndex.textContent} como perdida`);
+      btnPerdida.setAttribute('aria-label', `Marcar apuesta ${i + 1} como perdida`);
       btnPerdida.addEventListener('click', () => cambiarEstado(a.id, 'perdida'));
 
       const btnPendiente = document.createElement('button');
       btnPendiente.title = 'Marcar como pendiente';
       btnPendiente.innerHTML = '⏳';
-      btnPendiente.setAttribute('aria-label', `Marcar apuesta ${tdIndex.textContent} como pendiente`);
+      btnPendiente.setAttribute('aria-label', `Marcar apuesta ${i + 1} como pendiente`);
       btnPendiente.addEventListener('click', () => cambiarEstado(a.id, 'pendiente'));
 
       const btnBorrar = document.createElement('button');
       btnBorrar.title = 'Eliminar apuesta';
       btnBorrar.innerHTML = '🗑️';
-      btnBorrar.setAttribute('aria-label', `Eliminar apuesta ${tdIndex.textContent}`);
+      btnBorrar.setAttribute('aria-label', `Eliminar apuesta ${i + 1}`);
       btnBorrar.addEventListener('click', () => eliminarApuesta(a.id));
 
       tdAcciones.appendChild(btnGanada);
@@ -810,8 +803,6 @@
     renderizarTabla();
     actualizarResumen();
     actualizarGraficas();
-    // actualizar texto del botón según estado
-    btnToggleMostrarTodas.textContent = mostrarTodas ? 'Mostrar últimas 10' : 'Mostrar todas';
   }
 
   // Manejar envío de formulario
@@ -886,13 +877,6 @@
   btnLimpiarFiltros.addEventListener('click', e => {
     e.preventDefault();
     limpiarFiltros();
-    actualizarVista();
-  });
-
-  // Toggle mostrar todas / últimas 10
-  btnToggleMostrarTodas.addEventListener('click', e => {
-    e.preventDefault();
-    mostrarTodas = !mostrarTodas;
     actualizarVista();
   });
 
