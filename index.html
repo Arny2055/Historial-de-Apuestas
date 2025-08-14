@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional v3.2 (Estable)</title>
+<title>Historial de Apuestas Profesional v4.0 (Estable y con Scroll)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
@@ -64,12 +64,25 @@
   #submitButton { grid-column: 1 / -1; font-size: 1.2rem; }
   .filtros { margin-bottom: 30px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
 
-  /* --- Tabla Original (Funcional) --- */
-  #tablaWrapper {
-    overflow-x: auto;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+  /* --- Tabla (Enfoque Robusto con Scroll) --- */
+  #tablaContenedorConScroll {
+    max-height: 600px; /* ALTURA MÁXIMA PARA ~10 FILAS. AJÚSTALA A TU GUSTO */
+    overflow-y: auto;
+    overflow-x: hidden;
     border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
   }
+  
+  #tablaWrapper {
+    overflow-x: auto; /* Solo para scroll horizontal en pantallas pequeñas */
+  }
+
+  /* Estilos para la barra de scroll */
+  #tablaContenedorConScroll::-webkit-scrollbar { width: 8px; }
+  #tablaContenedorConScroll::-webkit-scrollbar-track { background: var(--color-surface-2); }
+  #tablaContenedorConScroll::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+  #tablaContenedorConScroll::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
+
   table#tablaHistorial {
     width: 100%;
     border-collapse: separate;
@@ -143,28 +156,30 @@
     <button id="btnLimpiarFiltros" title="Limpiar filtros" class="btn btn-danger" style="padding: 8px 14px;">✖</button>
   </section>
   
-  <div id="tablaWrapper">
-    <table id="tablaHistorial">
-      <thead>
-        <tr>
-          <th data-sort="index">#<span class="sort-indicator"></span></th>
-          <th data-sort="fecha">Fecha<span class="sort-indicator"></span></th>
-          <th data-sort="liga">Liga<span class="sort-indicator"></span></th>
-          <th>Local</th>
-          <th>Visita</th>
-          <th>Mercado</th>
-          <th data-sort="probabilidad">Prob (%)<span class="sort-indicator"></span></th>
-          <th>Cuota Impl.</th>
-          <th data-sort="cuotaBookie">Cuota<span class="sort-indicator"></span></th>
-          <th data-sort="ev">EV (%)<span class="sort-indicator"></span></th>
-          <th data-sort="kellyFull">Kelly (%)<span class="sort-indicator"></span></th>
-          <th>Stake</th>
-          <th>Estado</th>
-          <th>⚙</th>
-        </tr>
-      </thead>
-      <tbody><!-- Las filas se generan aquí --></tbody>
-    </table>
+  <div id="tablaContenedorConScroll">
+    <div id="tablaWrapper">
+      <table id="tablaHistorial">
+        <thead>
+          <tr>
+            <th data-sort="index">#<span class="sort-indicator"></span></th>
+            <th data-sort="fecha">Fecha<span class="sort-indicator"></span></th>
+            <th data-sort="liga">Liga<span class="sort-indicator"></span></th>
+            <th>Local</th>
+            <th>Visita</th>
+            <th>Mercado</th>
+            <th data-sort="probabilidad">Prob (%)<span class="sort-indicator"></span></th>
+            <th>Cuota Impl.</th>
+            <th data-sort="cuotaBookie">Cuota<span class="sort-indicator"></span></th>
+            <th data-sort="ev">EV (%)<span class="sort-indicator"></span></th>
+            <th data-sort="kellyFull">Kelly (%)<span class="sort-indicator"></span></th>
+            <th>Stake</th>
+            <th>Estado</th>
+            <th>⚙</th>
+          </tr>
+        </thead>
+        <tbody><!-- Las filas se generan aquí --></tbody>
+      </table>
+    </div>
   </div>
 
   <section id="resumen">
