@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional v3.1 (Corregido)</title>
+<title>Historial de Apuestas Profesional v3.2 (Gráficas Corregidas)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
@@ -348,16 +348,20 @@
         document.getElementById('resumenROI').textContent = `${roiPct.toFixed(2)}%`;
     },
     actualizarGraficas: () => {
-      const apuestas = actions.getVisibleApuestas().slice().reverse(); // Reverse for chronological order
       if (state.graficaBankroll) state.graficaBankroll.destroy();
       if (state.graficaKelly) state.graficaKelly.destroy();
-      if (apuestas.length === 0) return;
 
-      let bankInicial = apuestas[0].bankroll || 100;
+      let apuestasParaGrafica = actions.getVisibleApuestas();
+      // *** CORRECCIÓN CLAVE: Las gráficas SIEMPRE deben ser cronológicas ***
+      apuestasParaGrafica.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+      if (apuestasParaGrafica.length === 0) return;
+
+      let bankInicial = apuestasParaGrafica[0].bankroll || 100;
       let bankData = [bankInicial];
       let labels = ['Inicio'];
 
-      apuestas.forEach((a, i) => {
+      apuestasParaGrafica.forEach((a, i) => {
         const stake = utils.stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
         let ultimoBank = bankData[bankData.length - 1];
         if (a.estado === 'ganada') ultimoBank += stake * (a.cuotaBookie - 1);
@@ -383,7 +387,7 @@
 
       state.graficaKelly = new Chart(DOMElements.graficas.ctxKelly, {
         type: 'bar',
-        data: { labels: labels.slice(1), datasets: [{ label: 'Kelly FULL (%)', data: apuestas.map(a => a.kellyFull * 100), backgroundColor: '#ffba08', borderRadius: 4 }] },
+        data: { labels: labels.slice(1), datasets: [{ label: 'Kelly FULL (%)', data: apuestasParaGrafica.map(a => a.kellyFull * 100), backgroundColor: '#ffba08', borderRadius: 4 }] },
         options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, max: 100, beginAtZero: true } } }
       });
     },
