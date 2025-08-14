@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional v3.3 (Tabla con Scroll)</title>
+<title>Historial de Apuestas Profesional v3.2 (Estable)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
@@ -40,7 +40,7 @@
   .btn-secondary:hover { background-color: #444; }
   .btn-danger { background-color: var(--color-danger); color: #fff; }
 
-  /* --- Notificaciones Toast y Modal (sin cambios) --- */
+  /* --- Notificaciones Toast y Modal --- */
   .toast { position: fixed; top: 20px; right: 20px; z-index: 1001; background-color: var(--color-surface-1); color: var(--color-text-primary); padding: 15px 25px; border-radius: var(--border-radius); border-left: 5px solid var(--color-primary); box-shadow: 0 6px 20px rgba(0,0,0,0.5); opacity: 0; transform: translateX(100%); transition: opacity 0.5s, transform 0.5s; }
   .toast.show { opacity: 1; transform: translateX(0); }
   .toast.success { border-left-color: var(--color-success); }
@@ -54,8 +54,8 @@
   .modal-close { background: none; border: none; font-size: 1.8rem; color: #fff; cursor: pointer; }
   .modal-body p { margin: 0 0 20px; }
   .modal-footer { display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px;}
-  
-  /* --- Formulario y Filtros (sin cambios) --- */
+
+  /* --- Formulario y Filtros --- */
   form { background-color: var(--color-surface-1); padding: 25px 30px; border-radius: var(--border-radius); box-shadow: 0 6px 12px rgba(0,0,0,0.4); display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px 24px; margin-bottom: 40px; }
   form label { display: block; font-weight: 600; font-size: 0.95rem; margin-bottom: 6px; color: var(--color-text-secondary); }
   form input[type="text"], form input[type="number"], form input[type="date"], form select { width: 100%; padding: 10px 14px; font-size: 1rem; border-radius: 8px; border: 1px solid transparent; background-color: var(--color-background); color: var(--color-text-primary); box-shadow: inset 0 0 5px rgb(255 255 255 / 0.1); transition: box-shadow 0.25s ease, border-color 0.25s ease; }
@@ -64,97 +64,55 @@
   #submitButton { grid-column: 1 / -1; font-size: 1.2rem; }
   .filtros { margin-bottom: 30px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
 
-  /* --- Tabla (con cuerpo desplazable) --- */
-  #tablaWrapper { overflow-x: auto; box-shadow: 0 6px 12px rgba(0,0,0,0.4); border-radius: 12px; }
+  /* --- Tabla Original (Funcional) --- */
+  #tablaWrapper {
+    overflow-x: auto;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    border-radius: 12px;
+  }
   table#tablaHistorial {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0; /* Controlamos el espaciado en la fila */
-    min-width: 950px; /* Ajustado ligeramente */
+    border-spacing: 0 10px;
+    min-width: 950px;
     font-size: 0.9rem;
   }
-  
-  thead, tbody {
-    display: block;
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--color-surface-2);
+    color: var(--color-text-muted);
+    font-weight: 700;
+    text-align: left;
+    padding: 14px 18px;
+    white-space: nowrap;
   }
-  
-  tbody {
-    max-height: 550px; /* Altura aprox. para 10 filas. Ajústala si es necesario */
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
-
-  thead tr, tbody tr {
-    display: table;
-    width: 100%;
-    table-layout: fixed; /* Clave para que los anchos fijos funcionen */
-  }
-
+  th[data-sort] { cursor: pointer; user-select: none; }
+  th[data-sort]:hover { color: var(--color-text-primary); }
+  th .sort-indicator { margin-left: 8px; color: var(--color-primary); display: inline-block; width: 1em; }
   tbody tr {
-    margin-bottom: 10px; /* Esto crea el espacio entre filas */
     background-color: var(--color-surface-1);
     transition: background-color 0.3s ease;
   }
   tbody tr:hover {
     background-color: var(--color-surface-3);
   }
-
-  thead {
-    background-color: var(--color-surface-2);
-  }
-  
-  tbody::-webkit-scrollbar { width: 8px; }
-  tbody::-webkit-scrollbar-track { background: var(--color-surface-2); border-radius: 4px; }
-  tbody::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-  tbody::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
-
-  thead th, tbody td {
+  tbody td {
     padding: 14px 18px;
     vertical-align: middle;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis; /* Corta el texto largo con ... */
-    text-align: left;
   }
-  
-  thead th {
-    color: var(--color-text-muted);
-    font-weight: 700;
-  }
-  
-  th[data-sort] { cursor: pointer; user-select: none; }
-  th[data-sort]:hover { color: var(--color-text-primary); }
-  th .sort-indicator { margin-left: 8px; color: var(--color-primary); display: inline-block; width: 1em; }
-
-  /* Anchos fijos para mantener la alineación de columnas */
-  thead th:nth-child(1), tbody td:nth-child(1) { width: 4%; text-align: center; }  /* # */
-  thead th:nth-child(2), tbody td:nth-child(2) { width: 9%; }                     /* Fecha */
-  thead th:nth-child(3), tbody td:nth-child(3) { width: 12%; }                    /* Liga */
-  thead th:nth-child(4), tbody td:nth-child(4) { width: 11%; }                    /* Local */
-  thead th:n-child(5), tbody td:nth-child(5) { width: 11%; }                    /* Visita */
-  thead th:nth-child(6), tbody td:nth-child(6) { width: 10%; }                    /* Mercado */
-  thead th:nth-child(7), tbody td:nth-child(7) { width: 7%; text-align: right; }  /* Prob */
-  thead th:nth-child(8), tbody td:nth-child(8) { width: 7%; text-align: right; }  /* Cuota Impl */
-  thead th:nth-child(9), tbody td:nth-child(9) { width: 6%; text-align: right; }  /* Cuota */
-  thead th:nth-child(10), tbody td:nth-child(10) { width: 6%; text-align: right; }/* EV */
-  thead th:nth-child(11), tbody td:nth-child(11) { width: 7%; text-align: right; }/* Kelly */
-  thead th:nth-child(12), tbody td:nth-child(12) { width: 6%; text-align: right; }/* Stake */
-  thead th:nth-child(13), tbody td:nth-child(13) { width: 7%; text-align: center; }/* Estado */
-  thead th:nth-child(14), tbody td:nth-child(14) { width: 7%; text-align: center; }/* Acciones */
-
-
   .acciones button { background: none; border: none; font-size: 1.2rem; margin: 0 4px; color: #aaa; transition: color 0.2s ease, transform 0.1s ease; }
   .acciones button:hover { color: var(--color-primary); transform: scale(1.1); }
   .no-results-row td { text-align: center; padding: 40px; font-size: 1.1rem; color: var(--color-text-muted); }
   .status-pendiente { color: var(--color-warning); } .status-ganada { color: var(--color-success); } .status-perdida { color: var(--color-danger); }
 
-  /* --- Resumen y Gráficas (sin cambios) --- */
+  /* --- Resumen y Gráficas --- */
   #resumen { margin-top: 40px; background-color: var(--color-surface-2); border-radius: var(--border-radius); padding: 22px 26px; font-weight: 600; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-around; }
   #resumen > div { min-width: 140px; text-align: center; }
   #resumen > div strong { display: block; font-size: 1.1rem; color: var(--color-primary); margin-bottom: 6px; }
   #graficas { margin-top: 45px; display: flex; flex-direction: column; gap: 40px; }
   canvas { background-color: var(--color-surface-1); border-radius: 14px; box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
-
 </style>
 </head>
 <body>
@@ -209,17 +167,49 @@
     </table>
   </div>
 
-  <section id="resumen"><!-- ... sin cambios ... --></section>
-  <section id="graficas"><!-- ... sin cambios ... --></section>
+  <section id="resumen">
+    <div><strong>Apuestas</strong><span id="resumenNumApuestas">0</span></div>
+    <div><strong>Tasa de Acierto</strong><span id="resumenWinRate">0.00%</span></div>
+    <div><strong>Cuota Media</strong><span id="resumenAvgOdds">0.00</span></div>
+    <div><strong>Yield</strong><span id="resumenYield">0.00%</span></div>
+    <div><strong>ROI</strong><span id="resumenROI">0.00%</span></div>
+  </section>
+
+  <section id="graficas">
+    <canvas id="graficaBankroll"></canvas>
+    <canvas id="graficaKelly"></canvas>
+  </section>
 </main>
 
-<div class="modal-overlay" id="editModal"><!-- ... sin cambios ... --></div>
-<div class="modal-overlay" id="confirmModal"><!-- ... sin cambios ... --></div>
+<div class="modal-overlay" id="editModal" aria-hidden="true">
+  <div class="modal-content" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <h2>Editar Apuesta</h2>
+      <button class="modal-close" data-dismiss="modal" aria-label="Cerrar">×</button>
+    </div>
+    <form id="formEditApuesta" autocomplete="off" novalidate style="box-shadow: none; padding: 0; margin: 0; display: contents;">
+        <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmModal" aria-hidden="true">
+  <div class="modal-content" role="alertdialog">
+    <div class="modal-header"><h2 id="confirmModalTitle">Confirmar Acción</h2><button class="modal-close" data-dismiss="modal" aria-label="Cerrar">×</button></div>
+    <div class="modal-body"><p id="confirmModalBody">¿Estás seguro?</p></div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+      <button type="button" id="confirmModalButton" class="btn btn-danger">Confirmar</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// El código JavaScript no necesita cambios para esta funcionalidad.
-// Pega aquí el mismo código JavaScript de la versión anterior (v3.2).
 (() => {
   'use strict';
   
