@@ -31,255 +31,256 @@
     margin-bottom: 0.5rem;
     color: #8257e6;
   }
-/* --- Formulario de apuesta --- */
-form#formApuesta {
-background-color: #202024;
-padding: 25px 30px;
-border-radius: 10px;
-box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-display: grid;
-grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
-gap: 20px 24px;
-margin-bottom: 40px;
-}
-form#formApuesta label {
-display: block;
-font-weight: 600;
-font-size: 0.95rem;
-margin-bottom: 6px;
-color: #c4c4cc;
-}
-form#formApuesta input[type="text"],
-form#formApuesta input[type="number"],
-form#formApuesta select {
-width: 100%;
-padding: 10px 14px;
-font-size: 1rem;
-border-radius: 8px;
-border: none;
-background-color: #121214;
-color: #e1e1e6;
-box-shadow: inset 0 0 5px rgb(255 255 255 / 0.1);
-transition: box-shadow 0.25s ease;
-}
-form#formApuesta input[type="text"]:focus,
-form#formApuesta input[type="number"]:focus,
-form#formApuesta select:focus {
-outline: none;
-box-shadow: inset 0 0 8px #8257e6;
-}
-form#formApuesta input[readonly] {
-background-color: #2a2a30;
-cursor: not-allowed;
-}
-form#formApuesta button[type="submit"] {
-grid-column: 1 / -1;
-background-color: #8257e6;
-color: white;
-font-weight: 700;
-font-size: 1.2rem;
-padding: 14px 20px;
-border: none;
-border-radius: 10px;
-cursor: pointer;
-transition: background-color 0.3s ease;
-box-shadow: 0 6px 10px #6a40d6;
-}
-form#formApuesta button[type="submit"]:hover {
-background-color: #6a40d6;
-}
 
-/* --- Sección filtros --- */
-section.filtros {
-margin-bottom: 30px;
-display: flex;
-flex-wrap: wrap;
-gap: 15px 18px;
-}
-section.filtros input[type="text"],
-section.filtros select {
-min-width: 160px;
-padding: 9px 14px;
-border-radius: 8px;
-border: none;
-background-color: #121214;
-color: #e1e1e6;
-box-shadow: inset 0 0 5px rgb(255 255 255 / 0.1);
-transition: box-shadow 0.25s ease;
-}
-section.filtros input[type="text"]:focus,
-section.filtros select:focus {
-outline: none;
-box-shadow: inset 0 0 8px #8257e6;
-}
-#btnLimpiarFiltros {
-background-color: #ef4444;
-color: white;
-font-weight: 700;
-border: none;
-border-radius: 10px;
-cursor: pointer;
-padding: 8px 14px;
-transition: background-color 0.3s ease;
-}
-#btnLimpiarFiltros:hover {
-background-color: #dc2626;
-}
+  /* --- Formulario de apuesta --- */
+  form#formApuesta {
+    background-color: #202024;
+    padding: 25px 30px;
+    border-radius: 10px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+    gap: 20px 24px;
+    margin-bottom: 40px;
+  }
+  form#formApuesta label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 6px;
+    color: #c4c4cc;
+  }
+  form#formApuesta input[type="text"],
+  form#formApuesta input[type="number"],
+  form#formApuesta select {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: none;
+    background-color: #121214;
+    color: #e1e1e6;
+    box-shadow: inset 0 0 5px rgb(255 255 255 / 0.1);
+    transition: box-shadow 0.25s ease;
+  }
+  form#formApuesta input[type="text"]:focus,
+  form#formApuesta input[type="number"]:focus,
+  form#formApuesta select:focus {
+    outline: none;
+    box-shadow: inset 0 0 8px #8257e6;
+  }
+  form#formApuesta input[readonly] {
+    background-color: #2a2a30;
+    cursor: not-allowed;
+  }
+  form#formApuesta button[type="submit"] {
+    grid-column: 1 / -1;
+    background-color: #8257e6;
+    color: white;
+    font-weight: 700;
+    font-size: 1.2rem;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 6px 10px #6a40d6;
+  }
+  form#formApuesta button[type="submit"]:hover {
+    background-color: #6a40d6;
+  }
 
-/* --- Botones export/import --- */
-.botones-utiles {
-margin-bottom: 35px;
-display: flex;
-gap: 18px;
-}
-.botones-utiles button {
-background-color: #8257e6;
-color: white;
-font-weight: 600;
-border: none;
-border-radius: 10px;
-cursor: pointer;
-padding: 12px 20px;
-box-shadow: 0 4px 8px #6b45d9;
-transition: background-color 0.3s ease;
-}
-.botones-utiles button:hover {
-background-color: #6b45d9;
-}
-input[type="file"] {
-display: none;
-}
+  /* --- Sección filtros --- */
+  section.filtros {
+    margin-bottom: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px 18px;
+  }
+  section.filtros input[type="text"],
+  section.filtros select {
+    min-width: 160px;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: none;
+    background-color: #121214;
+    color: #e1e1e6;
+    box-shadow: inset 0 0 5px rgb(255 255 255 / 0.1);
+    transition: box-shadow 0.25s ease;
+  }
+  section.filtros input[type="text"]:focus,
+  section.filtros select:focus {
+    outline: none;
+    box-shadow: inset 0 0 8px #8257e6;
+  }
+  #btnLimpiarFiltros {
+    background-color: #ef4444;
+    color: white;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 8px 14px;
+    transition: background-color 0.3s ease;
+  }
+  #btnLimpiarFiltros:hover {
+    background-color: #dc2626;
+  }
 
-/* --- Tabla --- /
-#tablaWrapper {
-overflow-x: auto;
-box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-border-radius: 12px;
-}
-table#tablaHistorial {
-width: 100%;
-border-collapse: separate;
-border-spacing: 0 10px;
-min-width: 900px;
-font-size: 0.9rem;
-}
-thead th {
-position: sticky;
-top: 0;
-background-color: #29292e;
-color: #bbb;
-font-weight: 700;
-text-align: left;
-padding: 14px 18px;
-user-select: none;
-white-space: nowrap;
-}
-tbody tr {
-background-color: #202024;
-transition: background-color 0.3s ease;
-}
-tbody tr:hover {
-background-color: #333339;
-}
-tbody td {
-padding: 14px 18px;
-color: #ddd;
-vertical-align: middle;
-white-space: nowrap;
-}
-.acciones button {
-background: none;
-border: none;
-font-size: 1.2rem;
-margin: 0 4px;
-cursor: pointer;
-color: #aaa;
-transition: color 0.2s ease;
-}
-.acciones button:hover {
-color: #8257e6;
-}
-.status-pendiente {
-color: #fbbf24; / Amarillo /
-font-weight: 600;
-}
-.status-ganada {
-color: #4caf50; / Verde /
-font-weight: 600;
-}
-.status-perdida {
-color: #ef4444; / Rojo */
-font-weight: 600;
-}
+  /* --- Botones export/import --- */
+  .botones-utiles {
+    margin-bottom: 35px;
+    display: flex;
+    gap: 18px;
+  }
+  .botones-utiles button {
+    background-color: #8257e6;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    padding: 12px 20px;
+    box-shadow: 0 4px 8px #6b45d9;
+    transition: background-color 0.3s ease;
+  }
+  .botones-utiles button:hover {
+    background-color: #6b45d9;
+  }
+  input[type="file"] {
+    display: none;
+  }
 
-/* --- Resumen estadísticas --- */
-#resumen {
-margin-top: 40px;
-background-color: #29292e;
-border-radius: 10px;
-padding: 22px 26px;
-color: #d4d4d8;
-font-size: 1.05rem;
-font-weight: 600;
-display: flex;
-flex-wrap: wrap;
-gap: 28px;
-justify-content: space-around;
-}
-#resumen > div {
-min-width: 140px;
-}
-#resumen > div strong {
-display: block;
-font-size: 1.15rem;
-color: #8257e6;
-margin-bottom: 6px;
-}
+  /* --- Tabla --- */
+  #tablaWrapper {
+    overflow-x: auto;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    border-radius: 12px;
+  }
+  table#tablaHistorial {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+    min-width: 900px;
+    font-size: 0.9rem;
+  }
+  thead th {
+    position: sticky;
+    top: 0;
+    background-color: #29292e;
+    color: #bbb;
+    font-weight: 700;
+    text-align: left;
+    padding: 14px 18px;
+    user-select: none;
+    white-space: nowrap;
+  }
+  tbody tr {
+    background-color: #202024;
+    transition: background-color 0.3s ease;
+  }
+  tbody tr:hover {
+    background-color: #333339;
+  }
+  tbody td {
+    padding: 14px 18px;
+    color: #ddd;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .acciones button {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    margin: 0 4px;
+    cursor: pointer;
+    color: #aaa;
+    transition: color 0.2s ease;
+  }
+  .acciones button:hover {
+    color: #8257e6;
+  }
+  .status-pendiente {
+    color: #fbbf24; /* Amarillo */
+    font-weight: 600;
+  }
+  .status-ganada {
+    color: #4caf50; /* Verde */
+    font-weight: 600;
+  }
+  .status-perdida {
+    color: #ef4444; /* Rojo */
+    font-weight: 600;
+  }
 
-/* --- Gráficas --- */
-#graficas {
-margin-top: 45px;
-display: flex;
-flex-direction: column;
-gap: 40px;
-}
-canvas {
-background-color: #202024;
-border-radius: 14px;
-box-shadow: 0 6px 18px rgba(0,0,0,0.5);
-max-width: 100%;
-height: 320px !important;
-}
+  /* --- Resumen estadísticas --- */
+  #resumen {
+    margin-top: 40px;
+    background-color: #29292e;
+    border-radius: 10px;
+    padding: 22px 26px;
+    color: #d4d4d8;
+    font-size: 1.05rem;
+    font-weight: 600;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    justify-content: space-around;
+  }
+  #resumen > div {
+    min-width: 140px;
+  }
+  #resumen > div strong {
+    display: block;
+    font-size: 1.15rem;
+    color: #8257e6;
+    margin-bottom: 6px;
+  }
 
-/* --- Responsive --- */
-@media (max-width: 900px) {
-form#formApuesta {
-grid-template-columns: 1fr !important;
-}
-section.filtros {
-flex-direction: column !important;
-gap: 15px !important;
-}
-.botones-utiles {
-flex-direction: column;
-gap: 15px;
-}
-#resumen {
-flex-direction: column;
-gap: 20px;
-text-align: center;
-}
-tbody td, thead th {
-font-size: 0.8rem;
-padding: 10px 12px;
-}
-}
+  /* --- Gráficas --- */
+  #graficas {
+    margin-top: 45px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  canvas {
+    background-color: #202024;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    max-width: 100%;
+    height: 320px !important;
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 900px) {
+    form#formApuesta {
+      grid-template-columns: 1fr !important;
+    }
+    section.filtros {
+      flex-direction: column !important;
+      gap: 15px !important;
+    }
+    .botones-utiles {
+      flex-direction: column;
+      gap: 15px;
+    }
+    #resumen {
+      flex-direction: column;
+      gap: 20px;
+      text-align: center;
+    }
+    tbody td, thead th {
+      font-size: 0.8rem;
+      padding: 10px 12px;
+    }
+  }
 </style>
-
 </head>
 <body>
 <main>
  <h1 style="text-align: center;">Historial Profesional de Apuestas</h1>
+
   <form id="formApuesta" autocomplete="off" novalidate aria-label="Formulario para agregar apuesta">
     <div>
       <label for="liga">Liga *</label>
@@ -297,12 +298,12 @@ padding: 10px 12px;
       <label for="mercado">Mercado *</label>
       <select id="mercado" name="mercado" required aria-required="true">
         <option value="" disabled selected>Selecciona mercado</option>
-        <option value="Over 2.5 FT">Over 2.5 FT</option>
-        <option value="Under 2.5 FT">Under 2.5 FT</option>
+        <option value="1X2">1X2</option>
+        <option value="Over/Under">Over/Under</option>
         <option value="Ambos Anotan">Ambos Anotan</option>
-        <option value="BTTS NO">BTTS NO</option>
+        <option value="Doble Oportunidad">Doble Oportunidad</option>
         <option value="Hándicap">Hándicap</option>
-        <option value="Visitante">Visitante</option>
+        <option value="Otro">Otro</option>
       </select>
     </div>
     <div>
@@ -345,18 +346,19 @@ padding: 10px 12px;
       <button type="submit" aria-label="Agregar apuesta">Agregar apuesta</button>
     </div>
   </form>
+
   <section class="filtros" aria-label="Filtros para el historial de apuestas">
     <input type="text" id="filtroLiga" placeholder="Filtrar por liga..." aria-label="Filtro por liga" />
     <input type="text" id="filtroLocal" placeholder="Filtrar por local..." aria-label="Filtro por equipo local" />
     <input type="text" id="filtroVisita" placeholder="Filtrar por visita..." aria-label="Filtro por equipo visitante" />
     <select id="filtroMercado" aria-label="Filtro por mercado">
       <option value="">Todos los mercados</option>
-      <option value="Over 2.5 FT">Over 2.5 FT</option>
-      <option value="Under 2.5 FT">Under 2.5 FT</option>
+      <option value="1X2">1X2</option>
+      <option value="Over/Under">Over/Under</option>
       <option value="Ambos Anotan">Ambos Anotan</option>
-      <option value="BTTS NO">BTTS NO</option>
+      <option value="Doble Oportunidad">Doble Oportunidad</option>
       <option value="Hándicap">Hándicap</option>
-      <option value="Visitante">Visitante</option>
+      <option value="Otro">Otro</option>
     </select>
     <select id="filtroEstado" aria-label="Filtro por estado de apuesta">
       <option value="">Todos los estados</option>
@@ -366,11 +368,13 @@ padding: 10px 12px;
     </select>
     <button id="btnLimpiarFiltros" title="Limpiar filtros" aria-label="Limpiar filtros">✖</button>
   </section>
+
   <section class="botones-utiles" aria-label="Exportar o importar historial de apuestas">
     <button id="btnExportarCSV" title="Exportar historial a CSV">Exportar CSV</button>
     <button id="btnImportarJSON" title="Importar historial desde archivo JSON">Importar JSON</button>
     <input type="file" id="inputImportJSON" accept=".json" aria-label="Seleccionar archivo JSON para importar" />
   </section>
+
   <section aria-label="Historial de apuestas registradas">
     <div id="tablaWrapper">
       <table role="grid" aria-describedby="tableDescription" id="tablaHistorial" tabindex="0">
@@ -401,6 +405,7 @@ padding: 10px 12px;
       </table>
     </div>
   </section>
+
   <section id="resumen" aria-label="Resumen estadístico de apuestas">
     <div><strong>Bankroll inicial:</strong> <span id="resumenBankroll">-</span></div>
     <div><strong>Número apuestas:</strong> <span id="resumenNumApuestas">0</span></div>
@@ -409,11 +414,13 @@ padding: 10px 12px;
     <div><strong>Yield (%):</strong> <span id="resumenYield">0.00%</span></div>
     <div><strong>ROI (%):</strong> <span id="resumenROI">0.00%</span></div>
   </section>
+
   <section id="graficas" aria-label="Gráficas de evolución del bankroll y Kelly">
     <canvas id="graficaBankroll" aria-label="Gráfica de evolución de bankroll"></canvas>
     <canvas id="graficaKelly" aria-label="Gráfica de Kelly Full"></canvas>
   </section>
 </main>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (() => {
