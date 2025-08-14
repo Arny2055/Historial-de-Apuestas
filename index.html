@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional v3.0</title>
+<title>Historial de Apuestas Profesional v3.1 (Corregido)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
@@ -21,8 +21,6 @@
     --color-warning: #fbbf24;
     --border-radius: 10px;
   }
-
-  /* --- Reset y base --- */
   *, *::before, *::after { box-sizing: border-box; }
   body {
     margin: 0; padding: 0;
@@ -32,14 +30,23 @@
   }
   main { max-width: 1200px; width: 95%; margin: 20px auto 40px auto; }
   h1 { font-weight: 700; text-align: center; color: var(--color-primary); }
+  button { cursor: pointer; }
+
+  /* --- Componentes Reutilizables (Botones, etc.) --- */
+  .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; transition: background-color 0.2s; }
+  .btn-primary { background-color: var(--color-primary); color: #fff; }
+  .btn-primary:hover { background-color: var(--color-primary-dark); }
+  .btn-secondary { background-color: var(--color-surface-3); color: #fff; }
+  .btn-secondary:hover { background-color: #444; }
+  .btn-danger { background-color: var(--color-danger); color: #fff; }
 
   /* --- Notificaciones Toast --- */
   .toast {
-    position: fixed; top: 20px; right: 20px;
+    position: fixed; top: 20px; right: 20px; z-index: 1001;
     background-color: var(--color-surface-1); color: var(--color-text-primary);
     padding: 15px 25px; border-radius: var(--border-radius);
     border-left: 5px solid var(--color-primary); box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-    opacity: 0; transform: translateX(100%); transition: opacity 0.5s, transform 0.5s; z-index: 1001;
+    opacity: 0; transform: translateX(100%); transition: opacity 0.5s, transform 0.5s;
   }
   .toast.show { opacity: 1; transform: translateX(0); }
   .toast.success { border-left-color: var(--color-success); }
@@ -47,15 +54,15 @@
 
   /* --- Modal --- */
   .modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;
     background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
     display: flex; align-items: center; justify-content: center;
-    opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; z-index: 1000;
+    opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
   }
   .modal-overlay.visible { opacity: 1; visibility: visible; }
   .modal-content {
     background: var(--color-surface-2); padding: 30px; border-radius: var(--border-radius);
-    width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    width: 90%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     transform: scale(0.9); transition: transform 0.3s;
   }
   .modal-overlay.visible .modal-content { transform: scale(1); }
@@ -63,16 +70,7 @@
   .modal-header h2 { margin: 0; color: var(--color-primary); }
   .modal-close { background: none; border: none; font-size: 1.8rem; color: #fff; cursor: pointer; }
   .modal-body p { margin: 0 0 20px; }
-  .modal-footer { display: flex; justify-content: flex-end; gap: 15px; }
-  .modal-footer button {
-    padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  .btn-primary { background-color: var(--color-primary); color: #fff; }
-  .btn-primary:hover { background-color: var(--color-primary-dark); }
-  .btn-secondary { background-color: var(--color-surface-3); color: #fff; }
-  .btn-secondary:hover { background-color: #444; }
-  .btn-danger { background-color: var(--color-danger); color: #fff; }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px;}
 
   /* --- Formulario --- */
   form {
@@ -91,26 +89,28 @@
   form input:focus, form select:focus {
     outline: none; box-shadow: inset 0 0 8px var(--color-primary); border-color: var(--color-primary);
   }
-  #submitButton { grid-column: 1 / -1; }
+  form input[readonly] { background-color: #333; cursor: not-allowed; }
+  #submitButton { grid-column: 1 / -1; font-size: 1.2rem; }
 
   /* --- Filtros --- */
   .filtros { margin-bottom: 30px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
-  
+
   /* --- Tabla --- */
   #tablaWrapper { overflow-x: auto; box-shadow: 0 6px 12px rgba(0,0,0,0.4); border-radius: 12px; }
   table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 900px; }
   thead th {
-    position: sticky; top: 0; background-color: var(--color-surface-2); color: var(--color-text-muted);
-    font-weight: 700; text-align: left; padding: 14px 18px; white-space: nowrap; z-index: 10;
+    position: sticky; top: 0; z-index: 10;
+    background-color: var(--color-surface-2); color: var(--color-text-muted);
+    font-weight: 700; text-align: left; padding: 14px 18px; white-space: nowrap;
   }
   th[data-sort] { cursor: pointer; user-select: none; }
   th[data-sort]:hover { color: var(--color-text-primary); }
-  th .sort-indicator { margin-left: 8px; color: var(--color-primary); display: inline-block; }
+  th .sort-indicator { margin-left: 8px; color: var(--color-primary); display: inline-block; width: 1em; }
   tbody tr { background-color: var(--color-surface-1); transition: background-color 0.3s ease; }
   tbody tr:hover { background-color: var(--color-surface-3); }
   tbody td { padding: 14px 18px; vertical-align: middle; }
   .status-pendiente { color: var(--color-warning); } .status-ganada { color: var(--color-success); } .status-perdida { color: var(--color-danger); }
-  .acciones button { background: none; border: none; font-size: 1.2rem; margin: 0 4px; cursor: pointer; color: #aaa; transition: color 0.2s ease, transform 0.1s ease; }
+  .acciones button { background: none; border: none; font-size: 1.2rem; margin: 0 4px; color: #aaa; transition: color 0.2s ease, transform 0.1s ease; }
   .acciones button:hover { color: var(--color-primary); transform: scale(1.1); }
   .no-results-row td { text-align: center; padding: 40px; font-size: 1.1rem; color: var(--color-text-muted); }
 
@@ -133,7 +133,6 @@
  <h1>Historial Profesional de Apuestas</h1>
 
   <form id="formApuesta" autocomplete="off" novalidate>
-    <!-- Campos del formulario principal -->
     <div><label for="liga">Liga *</label><input type="text" id="liga" name="liga" required /></div>
     <div><label for="local">Equipo Local *</label><input type="text" id="local" name="local" required /></div>
     <div><label for="visita">Equipo Visitante *</label><input type="text" id="visita" name="visita" required /></div>
@@ -145,7 +144,7 @@
     <div><label for="kellyFrac">Fracción Kelly *</label><select id="kellyFrac" name="kellyFrac" required>
         <option value="0.10">10%</option><option value="0.25" selected>25%</option><option value="0.33">33%</option><option value="0.50">50%</option><option value="1.00">100%</option>
     </select></div>
-    <button type="submit" id="submitButton" class="btn-primary" style="padding: 14px 20px; font-size: 1.2rem;">Agregar apuesta</button>
+    <button type="submit" id="submitButton" class="btn btn-primary">Agregar apuesta</button>
   </form>
 
   <section class="filtros" aria-label="Filtros">
@@ -154,7 +153,7 @@
     <input type="date" id="filtroFechaHasta" title="Fecha hasta" />
     <select id="filtroMercado"><option value="">Todos los mercados</option></select>
     <select id="filtroEstado"><option value="">Todos los estados</option><option value="pendiente">Pendiente</option><option value="ganada">Ganada</option><option value="perdida">Perdida</option></select>
-    <button id="btnLimpiarFiltros" title="Limpiar filtros" class="btn-danger" style="padding: 8px 14px;">✖</button>
+    <button id="btnLimpiarFiltros" title="Limpiar filtros" class="btn btn-danger" style="padding: 8px 14px;">✖</button>
   </section>
   
   <div id="tablaWrapper">
@@ -166,6 +165,7 @@
           <th data-sort="liga">Liga<span class="sort-indicator"></span></th>
           <th>Local</th><th>Visita</th><th>Mercado</th>
           <th data-sort="probabilidad">Prob (%)<span class="sort-indicator"></span></th>
+          <th>Cuota Impl.</th>
           <th data-sort="cuotaBookie">Cuota<span class="sort-indicator"></span></th>
           <th data-sort="ev">EV (%)<span class="sort-indicator"></span></th>
           <th data-sort="kellyFull">Kelly FULL (%)<span class="sort-indicator"></span></th>
@@ -190,7 +190,6 @@
   </section>
 </main>
 
-<!-- Modal de Edición -->
 <div class="modal-overlay" id="editModal" aria-hidden="true">
   <div class="modal-content" role="dialog" aria-modal="true">
     <div class="modal-header">
@@ -198,41 +197,31 @@
       <button class="modal-close" data-dismiss="modal" aria-label="Cerrar">×</button>
     </div>
     <form id="formEditApuesta" autocomplete="off" novalidate style="box-shadow: none; padding: 0; margin: 0; display: contents;">
-        <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <!-- Contenido del formulario de edición, se rellena con JS -->
-        </div>
+        <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"></div>
         <div class="modal-footer">
-          <button type="button" class="btn-secondary" data-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn-primary">Guardar Cambios</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Cambios</button>
         </div>
     </form>
   </div>
 </div>
 
-<!-- Modal de Confirmación -->
 <div class="modal-overlay" id="confirmModal" aria-hidden="true">
   <div class="modal-content" role="alertdialog">
-    <div class="modal-header">
-      <h2 id="confirmModalTitle">Confirmar Acción</h2>
-      <button class="modal-close" data-dismiss="modal" aria-label="Cerrar">×</button>
-    </div>
-    <div class="modal-body">
-      <p id="confirmModalBody">¿Estás seguro de que quieres continuar?</p>
-    </div>
+    <div class="modal-header"><h2 id="confirmModalTitle">Confirmar Acción</h2><button class="modal-close" data-dismiss="modal" aria-label="Cerrar">×</button></div>
+    <div class="modal-body"><p id="confirmModalBody">¿Estás seguro?</p></div>
     <div class="modal-footer">
-      <button type="button" class="btn-secondary" data-dismiss="modal">Cancelar</button>
-      <button type="button" id="confirmModalButton" class="btn-danger">Confirmar</button>
+      <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+      <button type="button" id="confirmModalButton" class="btn btn-danger">Confirmar</button>
     </div>
   </div>
 </div>
-
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (() => {
   'use strict';
   
-  // --- STATE & CONSTANTS ---
   const CONSTANTS = {
     STORAGE_KEY: 'historialApuestasProfesionalCompleto',
     MERCADOS: ["Over 2.5 FT", "Under 2.5 FT", "Ambos Anotan", "BTTS NO", "Hándicap", "Local", "Visitante", "Empate"],
@@ -246,19 +235,30 @@
     resolveConfirm: null,
   };
   
-  // --- DOM ELEMENTS ---
-  // (Reducido por brevedad, la lógica los obtiene por ID)
   const DOMElements = {
       form: document.getElementById('formApuesta'),
+      probabilidadInput: document.getElementById('probabilidad'),
+      cuotaImplicitaInput: document.getElementById('cuotaImplicita'),
       tablaBody: document.querySelector('#tablaHistorial tbody'),
       thead: document.querySelector('#tablaHistorial thead'),
       editModal: document.getElementById('editModal'),
       editModalBody: document.querySelector('#editModal .modal-body'),
       formEditApuesta: document.getElementById('formEditApuesta'),
       confirmModal: document.getElementById('confirmModal'),
+      graficas: {
+        ctxBankroll: document.getElementById('graficaBankroll').getContext('2d'),
+        ctxKelly: document.getElementById('graficaKelly').getContext('2d'),
+      },
+      filtros: {
+          liga: document.getElementById('filtroLiga'),
+          fechaDesde: document.getElementById('filtroFechaDesde'),
+          fechaHasta: document.getElementById('filtroFechaHasta'),
+          mercado: document.getElementById('filtroMercado'),
+          estado: document.getElementById('filtroEstado'),
+          btnLimpiar: document.getElementById('btnLimpiarFiltros'),
+      }
   };
 
-  // --- UTILS ---
   const utils = {
     generateUUID: () => ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)),
     calcularCuotaImplicita: prob => (!prob||prob<=0)?'':(100/prob).toFixed(2),
@@ -269,8 +269,17 @@
         const stake=bank*kelly*frac;
         return stake>bank?bank:stake;
     },
-    showToast: (message, type='success') => { /* ... (igual que antes) ... */ },
-    formatearFecha: (fechaISO) => new Date(fechaISO).toLocaleDateString('es-ES'),
+    showToast: (message, type='success') => {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.addEventListener('transitionend', () => toast.remove());
+        }, 3000);
+    },
     confirmAction: (title, body) => {
         document.getElementById('confirmModalTitle').textContent = title;
         document.getElementById('confirmModalBody').textContent = body;
@@ -279,29 +288,28 @@
     }
   };
 
-  // --- DATA HANDLING ---
   const dataHandler = {
     guardar: () => localStorage.setItem(CONSTANTS.STORAGE_KEY, JSON.stringify(state.historial)),
     cargar: () => state.historial = JSON.parse(localStorage.getItem(CONSTANTS.STORAGE_KEY) || '[]'),
   };
 
-  // --- UI MODULE ---
   const ui = {
     renderizarTabla: () => {
       const apuestas = actions.getVisibleApuestas();
       if(apuestas.length === 0){
-          DOMElements.tablaBody.innerHTML = `<tr class="no-results-row"><td colspan="13">No hay apuestas que mostrar.</td></tr>`;
+          DOMElements.tablaBody.innerHTML = `<tr class="no-results-row"><td colspan="14">No hay apuestas que mostrar.</td></tr>`;
           return;
       }
       DOMElements.tablaBody.innerHTML = apuestas.map((a, i) => `
         <tr>
           <td>${i+1}</td>
-          <td>${utils.formatearFecha(a.fecha)}</td>
+          <td>${new Date(a.fecha).toLocaleDateString('es-ES')}</td>
           <td>${a.liga}</td>
           <td>${a.local}</td>
           <td>${a.visita}</td>
           <td>${a.mercado}</td>
           <td>${a.probabilidad.toFixed(2)}</td>
+          <td>${a.cuotaImplicita.toFixed(2)}</td>
           <td>${a.cuotaBookie.toFixed(2)}</td>
           <td style="color:${a.ev>=0?'var(--color-success)':'var(--color-danger)'}">${(a.ev*100).toFixed(2)}</td>
           <td style="color:${a.kellyFull>0?'var(--color-success)':'var(--color-text-secondary)'}">${(a.kellyFull*100).toFixed(2)}</td>
@@ -316,18 +324,14 @@
         </tr>`).join('');
       ui.updateSortIndicators();
     },
-
     actualizarResumen: () => {
         const apuestas = actions.getVisibleApuestas();
         const totalApuestas = apuestas.length;
         const bankrollInicial = totalApuestas > 0 ? apuestas[0].bankroll : 0;
-        
         const finalizadas = apuestas.filter(a => a.estado === 'ganada' || a.estado === 'perdida');
         const ganadas = finalizadas.filter(a => a.estado === 'ganada');
-        
         const winRate = finalizadas.length > 0 ? (ganadas.length / finalizadas.length) * 100 : 0;
         const avgOdds = finalizadas.length > 0 ? finalizadas.reduce((acc, a) => acc + a.cuotaBookie, 0) / finalizadas.length : 0;
-
         let totalGanado = 0, totalApostado = 0;
         finalizadas.forEach(a => {
             const stake = utils.stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
@@ -337,33 +341,63 @@
         const neto = totalGanado - totalApostado;
         const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
         const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
-
         document.getElementById('resumenNumApuestas').textContent = totalApuestas;
         document.getElementById('resumenWinRate').textContent = `${winRate.toFixed(2)}%`;
         document.getElementById('resumenAvgOdds').textContent = avgOdds.toFixed(2);
         document.getElementById('resumenYield').textContent = `${yieldPct.toFixed(2)}%`;
         document.getElementById('resumenROI').textContent = `${roiPct.toFixed(2)}%`;
     },
-    
-    // ... actualizarGraficas (sin cambios significativos)
+    actualizarGraficas: () => {
+      const apuestas = actions.getVisibleApuestas().slice().reverse(); // Reverse for chronological order
+      if (state.graficaBankroll) state.graficaBankroll.destroy();
+      if (state.graficaKelly) state.graficaKelly.destroy();
+      if (apuestas.length === 0) return;
 
+      let bankInicial = apuestas[0].bankroll || 100;
+      let bankData = [bankInicial];
+      let labels = ['Inicio'];
+
+      apuestas.forEach((a, i) => {
+        const stake = utils.stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+        let ultimoBank = bankData[bankData.length - 1];
+        if (a.estado === 'ganada') ultimoBank += stake * (a.cuotaBookie - 1);
+        else if (a.estado === 'perdida') ultimoBank -= stake;
+        bankData.push(ultimoBank);
+        labels.push(`Ap. ${i + 1}`);
+      });
+      
+      const chartOptions = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#ddd' } } },
+        scales: {
+          y: { beginAtZero: false, ticks: { color: '#ddd' }, grid: { color: '#444' } },
+          x: { ticks: { color: '#ddd' }, grid: { color: '#444' } }
+        }
+      };
+
+      state.graficaBankroll = new Chart(DOMElements.graficas.ctxBankroll, {
+        type: 'line',
+        data: { labels, datasets: [{ label: 'Bankroll', data: bankData, borderColor: '#8257e6', backgroundColor: 'rgba(130, 87, 230, 0.3)', fill: true, tension: 0.3 }] },
+        options: chartOptions
+      });
+
+      state.graficaKelly = new Chart(DOMElements.graficas.ctxKelly, {
+        type: 'bar',
+        data: { labels: labels.slice(1), datasets: [{ label: 'Kelly FULL (%)', data: apuestas.map(a => a.kellyFull * 100), backgroundColor: '#ffba08', borderRadius: 4 }] },
+        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, max: 100, beginAtZero: true } } }
+      });
+    },
     poblarSelects: () => {
         const optionsHTML = CONSTANTS.MERCADOS.map(m => `<option value="${m}">${m}</option>`).join('');
         document.getElementById('mercado').insertAdjacentHTML('beforeend', optionsHTML);
         document.getElementById('filtroMercado').insertAdjacentHTML('beforeend', optionsHTML);
     },
-
     updateSortIndicators: () => {
         DOMElements.thead.querySelectorAll('th[data-sort]').forEach(th => {
             const indicator = th.querySelector('.sort-indicator');
-            if (th.dataset.sort === state.sortColumn) {
-                indicator.textContent = state.sortDirection === 'asc' ? '▲' : '▼';
-            } else {
-                indicator.textContent = '';
-            }
+            indicator.textContent = (th.dataset.sort === state.sortColumn) ? (state.sortDirection === 'asc' ? '▲' : '▼') : '';
         });
     },
-
     openEditModal: (apuesta) => {
         DOMElements.formEditApuesta.dataset.editingId = apuesta.id;
         DOMElements.editModalBody.innerHTML = `
@@ -371,86 +405,77 @@
             <div><label>Local</label><input type="text" name="local" value="${apuesta.local}"></div>
             <div><label>Visita</label><input type="text" name="visita" value="${apuesta.visita}"></div>
             <div><label>Mercado</label><select name="mercado">${CONSTANTS.MERCADOS.map(m => `<option value="${m}" ${m === apuesta.mercado ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
-            <div><label>Probabilidad (%)</label><input type="number" name="probabilidad" value="${apuesta.probabilidad}"></div>
-            <div><label>Cuota Bookie</label><input type="number" name="cuotaBookie" value="${apuesta.cuotaBookie}"></div>
-            <div><label>Bankroll</label><input type="number" name="bankroll" value="${apuesta.bankroll}"></div>
+            <div><label>Probabilidad (%)</label><input type="number" name="probabilidad" value="${apuesta.probabilidad}" step="0.01"></div>
+            <div><label>Cuota Bookie</label><input type="number" name="cuotaBookie" value="${apuesta.cuotaBookie}" step="0.01"></div>
+            <div><label>Bankroll</label><input type="number" name="bankroll" value="${apuesta.bankroll}" step="0.01"></div>
+            <div><label>Fecha</label><input type="date" name="fecha" value="${apuesta.fecha.slice(0,10)}"></div>
         `;
         DOMElements.editModal.classList.add('visible');
     },
-
-    closeAllModals: () => {
-        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('visible'));
-    },
-    
+    closeAllModals: () => document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('visible')),
     actualizarVistaCompleta: () => {
       ui.renderizarTabla();
       ui.actualizarResumen();
-      // ui.actualizarGraficas(); // Descomentar si se usa
+      ui.actualizarGraficas();
     },
   };
 
-  // --- ACTIONS ---
   const actions = {
     getVisibleApuestas: () => {
-        const filtroLiga = document.getElementById('filtroLiga').value.toLowerCase();
-        const filtroDesde = document.getElementById('filtroFechaDesde').value;
-        const filtroHasta = document.getElementById('filtroFechaHasta').value;
-        const filtroMercado = document.getElementById('filtroMercado').value;
-        const filtroEstado = document.getElementById('filtroEstado').value;
-
+        const { liga, fechaDesde, fechaHasta, mercado, estado } = DOMElements.filtros;
         const filtered = state.historial.filter(a => {
             const fechaApuesta = a.fecha.slice(0, 10);
-            return (!filtroLiga || a.liga.toLowerCase().includes(filtroLiga)) &&
-                   (!filtroDesde || fechaApuesta >= filtroDesde) &&
-                   (!filtroHasta || fechaApuesta <= filtroHasta) &&
-                   (!filtroMercado || a.mercado === filtroMercado) &&
-                   (!filtroEstado || a.estado === filtroEstado);
+            return (!liga.value || a.liga.toLowerCase().includes(liga.value.toLowerCase())) &&
+                   (!fechaDesde.value || fechaApuesta >= fechaDesde.value) &&
+                   (!fechaHasta.value || fechaApuesta <= fechaHasta.value) &&
+                   (!mercado.value || a.mercado === mercado.value) &&
+                   (!estado.value || a.estado === estado.value);
         });
-        
         return filtered.sort((a, b) => {
-            let valA = a[state.sortColumn];
-            let valB = b[state.sortColumn];
-            
-            if (state.sortColumn === 'fecha') {
-                valA = new Date(valA);
-                valB = new Date(valB);
-            }
-
+            let valA = a[state.sortColumn], valB = b[state.sortColumn];
+            if (state.sortColumn === 'fecha') { valA = new Date(valA); valB = new Date(valB); }
             if (valA < valB) return state.sortDirection === 'asc' ? -1 : 1;
             if (valA > valB) return state.sortDirection === 'asc' ? 1 : -1;
             return 0;
         });
     },
-    
+    agregarApuesta: (formData) => {
+        const prob = parseFloat(formData.get('probabilidad'));
+        const cuotaBookie = parseFloat(formData.get('cuotaBookie'));
+        const apuesta = {
+            id: utils.generateUUID(),
+            fecha: new Date().toISOString(),
+            liga: formData.get('liga'), local: formData.get('local'), visita: formData.get('visita'),
+            mercado: formData.get('mercado'), probabilidad: prob, cuotaBookie: cuotaBookie,
+            bankroll: parseFloat(formData.get('bankroll')), kellyFrac: parseFloat(formData.get('kellyFrac')),
+            cuotaImplicita: parseFloat(utils.calcularCuotaImplicita(prob)),
+            ev: utils.calcularEV(prob, cuotaBookie), kellyFull: utils.calcularKelly(prob, cuotaBookie),
+            estado: 'pendiente'
+        };
+        state.historial.push(apuesta);
+        dataHandler.guardar();
+        utils.showToast('Apuesta agregada');
+    },
     updateApuesta: (id, formData) => {
         const index = state.historial.findIndex(a => a.id === id);
         if (index === -1) return;
-
         const prob = parseFloat(formData.get('probabilidad'));
         const cuota = parseFloat(formData.get('cuotaBookie'));
-
+        const fecha = new Date(formData.get('fecha')).toISOString();
         Object.assign(state.historial[index], {
-            liga: formData.get('liga'),
-            local: formData.get('local'),
-            visita: formData.get('visita'),
-            mercado: formData.get('mercado'),
-            probabilidad: prob,
-            cuotaBookie: cuota,
-            bankroll: parseFloat(formData.get('bankroll')),
-            // Recalculate derived values
+            liga: formData.get('liga'), local: formData.get('local'), visita: formData.get('visita'),
+            mercado: formData.get('mercado'), probabilidad: prob, cuotaBookie: cuota,
+            bankroll: parseFloat(formData.get('bankroll')), fecha: fecha,
             cuotaImplicita: parseFloat(utils.calcularCuotaImplicita(prob)),
-            ev: utils.calcularEV(prob, cuota),
-            kellyFull: utils.calcularKelly(prob, cuota),
+            ev: utils.calcularEV(prob, cuota), kellyFull: utils.calcularKelly(prob, cuota),
         });
-        
         dataHandler.guardar();
+        utils.showToast('Apuesta actualizada');
         ui.actualizarVistaCompleta();
         ui.closeAllModals();
-        // utils.showToast('Apuesta actualizada');
     }
   };
   
-  // --- EVENT LISTENERS ---
   const events = {
     init: () => {
       document.addEventListener('DOMContentLoaded', () => {
@@ -460,9 +485,9 @@
         events.attachAll();
       });
     },
-
     attachAll: () => {
       DOMElements.form.addEventListener('submit', events.handleFormSubmit);
+      DOMElements.probabilidadInput.addEventListener('input', events.handleProbabilidadInput);
       DOMElements.tablaBody.addEventListener('click', events.handleTablaClick);
       DOMElements.thead.addEventListener('click', events.handleSortClick);
       DOMElements.formEditApuesta.addEventListener('submit', events.handleEditFormSubmit);
@@ -472,20 +497,27 @@
           if (state.resolveConfirm) state.resolveConfirm(true);
           ui.closeAllModals();
       });
-
-      document.getElementById('btnLimpiarFiltros').addEventListener('click', events.handleLimpiarFiltros);
-      document.querySelectorAll('.filtros input, .filtros select').forEach(el => el.addEventListener('input', ui.actualizarVistaCompleta));
+      DOMElements.filtros.btnLimpiar.addEventListener('click', events.handleLimpiarFiltros);
+      Object.values(DOMElements.filtros).forEach(el => el.addEventListener('input', ui.actualizarVistaCompleta));
     },
-    
-    handleFormSubmit: e => { /* ... (igual que antes) ... */ },
-    
+    handleFormSubmit: e => {
+        e.preventDefault();
+        const formData = new FormData(DOMElements.form);
+        const lastBankroll = formData.get('bankroll');
+        actions.agregarApuesta(formData);
+        DOMElements.form.reset();
+        DOMElements.form.bankroll.value = lastBankroll;
+        DOMElements.cuotaImplicitaInput.value = '';
+        ui.actualizarVistaCompleta();
+    },
+    handleProbabilidadInput: e => {
+      DOMElements.cuotaImplicitaInput.value = utils.calcularCuotaImplicita(parseFloat(e.target.value));
+    },
     handleTablaClick: async e => {
       const button = e.target.closest('button[data-action]');
       if (!button) return;
-      
       const { id, action } = button.dataset;
       const apuesta = state.historial.find(a => a.id === id);
-
       if (action === 'edit') ui.openEditModal(apuesta);
       if (action === 'ganada' || action === 'perdida') {
         apuesta.estado = action;
@@ -498,37 +530,33 @@
             state.historial = state.historial.filter(a => a.id !== id);
             dataHandler.guardar();
             ui.actualizarVistaCompleta();
+            utils.showToast('Apuesta eliminada');
         }
       }
     },
-
     handleSortClick: e => {
         const header = e.target.closest('th[data-sort]');
         if (!header) return;
-
         const column = header.dataset.sort;
         if (state.sortColumn === column) {
             state.sortDirection = state.sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
             state.sortColumn = column;
-            state.sortDirection = 'desc';
+            state.sortDirection = column === 'fecha' ? 'desc' : 'asc';
         }
         ui.actualizarVistaCompleta();
     },
-
     handleEditFormSubmit: e => {
         e.preventDefault();
         const id = e.target.dataset.editingId;
         const formData = new FormData(e.target);
         actions.updateApuesta(id, formData);
     },
-
     handleLimpiarFiltros: () => {
-        document.querySelectorAll('.filtros input, .filtros select').forEach(el => el.value = '');
+        Object.values(DOMElements.filtros).forEach(el => { if(el.tagName !== 'BUTTON') el.value = ''; });
         ui.actualizarVistaCompleta();
     }
   };
-
   events.init();
 })();
 </script>
