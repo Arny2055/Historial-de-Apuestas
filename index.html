@@ -524,7 +524,7 @@
 
   // Renderizar tabla
   function renderizarTabla() {
-    const apuestas = filtrarHistorial();
+    const apuestas = filtrarHistorial().slice().reverse();
     tablaBody.innerHTML = '';
     apuestas.forEach((a, i) => {
       const tr = document.createElement('tr');
