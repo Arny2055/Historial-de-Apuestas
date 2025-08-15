@@ -25,10 +25,23 @@
   th, td {
     padding: 12px;
     text-align: left;
+    cursor: pointer;
   }
   th {
     background-color: #29292e;
     color: #bbb;
+    position: relative;
+    user-select: none;
+  }
+  th.asc::after {
+    content: " ▲";
+    position: absolute;
+    right: 8px;
+  }
+  th.desc::after {
+    content: " ▼";
+    position: absolute;
+    right: 8px;
   }
   tr:nth-child(even) {
     background-color: #202024;
@@ -71,20 +84,18 @@
   <select id="filtroLiga"></select>
 </div>
 
-<table>
+<table id="tablaMain">
   <thead>
     <tr>
-      <th>Liga</th>
-      <th>Apuestas</th>
-      <th>Ganadas</th>
-      <th>Perdidas</th>
-      <th>Yield (%)</th>
-      <th>ROI (%)</th>
+      <th data-col="liga">Liga</th>
+      <th data-col="apuestas">Apuestas</th>
+      <th data-col="ganadas">Ganadas</th>
+      <th data-col="perdidas">Perdidas</th>
+      <th data-col="yield">Yield (%)</th>
+      <th data-col="roi">ROI (%)</th>
     </tr>
   </thead>
-  <tbody id="tablaDatos">
-    <!-- Datos generados por JS -->
-  </tbody>
+  <tbody id="tablaDatos"></tbody>
 </table>
 
 <script>
@@ -93,6 +104,10 @@
   const tablaDatos = document.getElementById('tablaDatos');
   const filtroMercado = document.getElementById('filtroMercado');
   const filtroLiga = document.getElementById('filtroLiga');
+  const tablaMain = document.getElementById('tablaMain');
+
+  let resumenActual = [];  // Guardamos lo que se muestra para poder ordenar
+  let orden = { col: null, dir: 'asc' };
 
   function stakeSugerido(bankroll, kellyFull, kellyFrac) {
     if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
@@ -107,7 +122,6 @@
 
   function agruparPorLiga(apuestas, filtroMercadoSel, filtroLigaSel) {
     const resumen = {};
-
     apuestas.forEach(a => {
       if (filtroMercadoSel && a.mercado !== filtroMercadoSel) return;
       if (filtroLigaSel && a.liga !== filtroLigaSel) return;
@@ -135,7 +149,6 @@
         resumen[a.liga].perdidas++;
       }
     });
-
     return Object.values(resumen);
   }
 
@@ -160,10 +173,44 @@
     const historial = cargarHistorial();
     const mercadoSel = filtroMercado.value;
     const ligaSel = filtroLiga.value;
-    const resumen = agruparPorLiga(historial, mercadoSel, ligaSel);
+    resumenActual = agruparPorLiga(historial, mercadoSel, ligaSel);
 
+    aplicarOrden();
+  }
+
+  function aplicarOrden() {
+    if (orden.col) {
+      resumenActual.sort((a, b) => {
+        let valA, valB;
+
+        if (orden.col === 'yield') {
+          valA = a.totalApostado > 0 ? (a.totalGanado - a.totalApostado) / a.totalApostado * 100 : 0;
+          valB = b.totalApostado > 0 ? (b.totalGanado - b.totalApostado) / b.totalApostado * 100 : 0;
+        } else if (orden.col === 'roi') {
+          valA = a.bankrollInicial > 0 ? (a.totalGanado - a.totalApostado) / a.bankrollInicial * 100 : 0;
+          valB = b.bankrollInicial > 0 ? (b.totalGanado - b.totalApostado) / b.bankrollInicial * 100 : 0;
+        } else {
+          valA = a[orden.col];
+          valB = b[orden.col];
+        }
+
+        if (typeof valA === "string") {
+          valA = valA.toLowerCase();
+          valB = valB.toLowerCase();
+        }
+
+        if (valA < valB) return orden.dir === 'asc' ? -1 : 1;
+        if (valA > valB) return orden.dir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    pintarTabla();
+  }
+
+  function pintarTabla() {
     tablaDatos.innerHTML = '';
-    resumen.forEach(l => {
+    resumenActual.forEach(l => {
       const neto = l.totalGanado - l.totalApostado;
       const yieldPct = l.totalApostado > 0 ? (neto / l.totalApostado) * 100 : 0;
       const roiPct = l.bankrollInicial > 0 ? (neto / l.bankrollInicial) * 100 : 0;
@@ -181,18 +228,37 @@
     });
   }
 
+  // Eventos
+  filtroMercado.addEventListener('change', () => {
+    const historial = cargarHistorial();
+    llenarSelectLigas(historial, filtroMercado.value);
+    renderizarTabla();
+  });
+  filtroLiga.addEventListener('change', renderizarTabla);
+
+  // Orden al hacer clic en encabezados
+  tablaMain.querySelectorAll('th').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (orden.col === col) {
+        orden.dir = orden.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        orden.col = col;
+        orden.dir = 'asc';
+      }
+
+      tablaMain.querySelectorAll('th').forEach(h => h.classList.remove('asc', 'desc'));
+      th.classList.add(orden.dir);
+
+      aplicarOrden();
+    });
+  });
+
   // Inicialización
   const historial = cargarHistorial();
   llenarSelectMercados(historial);
   llenarSelectLigas(historial, '');
   renderizarTabla();
-
-  filtroMercado.addEventListener('change', () => {
-    llenarSelectLigas(historial, filtroMercado.value);
-    renderizarTabla();
-  });
-
-  filtroLiga.addEventListener('change', renderizarTabla);
 })();
 </script>
 
