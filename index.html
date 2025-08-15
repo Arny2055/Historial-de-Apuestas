@@ -760,8 +760,20 @@
       }
     });
 
-    // Datos para gráfica Kelly Full
-    let kellyData = apuestasFiltradas.map(a => a.kellyFull ? a.kellyFull * 100 : 0);
+
+    // Datos para gráfica Kelly Full acumulada
+    let kellyData = [];
+    let lastBank = bankData[0]; // toma el bankroll inicial
+    apuestasFiltradas.forEach(a => {
+      const stake = stakeSugerido(lastBank, a.kellyFull, a.kellyFrac);
+      if (a.estado === 'ganada') {
+        lastBank += stake * (a.cuotaBookie - 1);
+      } else if (a.estado === 'perdida') {
+        lastBank -= stake;
+      }
+      // Guardamos el porcentaje de Kelly Full respecto al bankroll actual
+      kellyData.push(a.kellyFull ? a.kellyFull * 100 : 0);
+    });
 
     graficaKelly = new Chart(ctxKelly, {
       type: 'bar',
