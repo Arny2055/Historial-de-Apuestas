@@ -760,66 +760,45 @@
       }
     });
 
-   // --- Gráfica Kelly Full acumulada ---
-let kellyBankData = [bankInicial];
-let kellyLabels = ['Inicio'];
+    // Datos para gráfica Kelly Full
+    let kellyData = apuestasFiltradas.map(a => a.kellyFull ? a.kellyFull * 100 : 0);
 
-apuestasFiltradas.forEach((a, i) => {
-  let lastBank = kellyBankData[kellyBankData.length - 1];
-  let stake = lastBank * Math.max(0, a.kellyFull || 0); // Kelly full al 100%, no apuesta si <=0
-  let nuevoBank = lastBank;
-
-  if (a.estado === 'ganada') {
-    nuevoBank += stake * (a.cuotaBookie - 1);
-  } else if (a.estado === 'perdida') {
-    nuevoBank -= stake;
-  }
-  kellyBankData.push(nuevoBank);
-  kellyLabels.push(`Apuesta ${i + 1}`);
-});
-
-graficaKelly = new Chart(ctxKelly, {
-  type: 'line',
-  data: {
-    labels: kellyLabels,
-    datasets: [{
-      label: 'Evolución con Kelly Full',
-      data: kellyBankData,
-      borderColor: '#ffba08',
-      backgroundColor: 'rgba(255, 186, 8, 0.3)',
-      fill: true,
-      tension: 0.3,
-      pointRadius: 3,
-      pointHoverRadius: 6,
-      borderWidth: 3,
-    }]
-  },
-  options: {
-    responsive: true,
-    interaction: { mode: 'nearest', intersect: false },
-    plugins: {
-      legend: {
-        labels: { color: '#ddd', font: { size: 14, weight: '600' } }
+    graficaKelly = new Chart(ctxKelly, {
+      type: 'bar',
+      data: {
+        labels: labels.slice(1), // omitimos el 'Inicio'
+        datasets: [{
+          label: 'Kelly FULL (%)',
+          data: kellyData,
+          backgroundColor: '#ffba08',
+          borderRadius: 4,
+        }]
       },
-      tooltip: {
-        callbacks: {
-          label: ctx => `Bankroll: ${ctx.parsed.y.toFixed(2)}`
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { color: '#ddd' },
+            grid: { color: '#444' }
+          },
+          x: {
+            ticks: { color: '#ddd' },
+            grid: { color: '#444' }
+          }
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: '#ddd',
+              font: { size: 14, weight: '600' }
+            }
+          }
         }
       }
-    },
-    scales: {
-      y: {
-        beginAtZero: false,
-        ticks: { color: '#ddd' },
-        grid: { color: '#444' }
-      },
-      x: {
-        ticks: { color: '#ddd' },
-        grid: { color: '#444' }
-      }
-    }
+    });
   }
-});
 
   // Actualizar toda la vista
   function actualizarVista() {
