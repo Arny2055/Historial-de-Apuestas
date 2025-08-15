@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Historial por Ligas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #121214;
+    color: #e1e1e6;
+    padding: 20px;
+  }
+  h1 {
+    color: #8257e6;
+    text-align: center;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 25px;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 12px;
+    text-align: left;
+  }
+  th {
+    background-color: #29292e;
+    color: #bbb;
+  }
+  tr:nth-child(even) {
+    background-color: #202024;
+  }
+  tr:hover {
+    background-color: #333339;
+  }
+  .positivo { color: #4caf50; }
+  .negativo { color: #ef4444; }
+  button {
+    background-color: #8257e6;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 10px 18px;
+    margin-top: 15px;
+    display: inline-block;
+  }
+  button:hover {
+    background-color: #6b45d9;
+  }
+</style>
+</head>
+<body>
+
+<h1>Historial por Ligas</h1>
+<button onclick="location.href='index.html'">⬅ Volver al Historial</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>Liga</th>
+      <th>Apuestas</th>
+      <th>Ganadas</th>
+      <th>Perdidas</th>
+      <th>Yield (%)</th>
+      <th>ROI (%)</th>
+    </tr>
+  </thead>
+  <tbody id="tablaLigas">
+    <!-- Datos generados por JS -->
+  </tbody>
+</table>
+
+<script>
+(() => {
+  const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
+  const tablaLigas = document.getElementById('tablaLigas');
+
+  // Función para calcular stake sugerido (igual que en la página principal)
+  function stakeSugerido(bankroll, kellyFull, kellyFrac) {
+    if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
+    const stake = bankroll * kellyFull * kellyFrac;
+    return stake > bankroll ? bankroll : stake;
+  }
+
+  function cargarHistorial() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  }
+
+  function agruparPorLiga(apuestas) {
+    const resumen = {};
+
+    apuestas.forEach(a => {
+      if (!resumen[a.liga]) {
+        resumen[a.liga] = {
+          liga: a.liga,
+          apuestas: 0,
+          ganadas: 0,
+          perdidas: 0,
+          totalApostado: 0,
+          totalGanado: 0,
+          bankrollInicial: a.bankroll || 0
+        };
+      }
+
+      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+
+      resumen[a.liga].apuestas++;
+      resumen[a.liga].totalApostado += stake;
+
+      if (a.estado === 'ganada') {
+        resumen[a.liga].ganadas++;
+        resumen[a.liga].totalGanado += stake * a.cuotaBookie;
+      } else if (a.estado === 'perdida') {
+        resumen[a.liga].perdidas++;
+      }
+    });
+
+    return Object.values(resumen);
+  }
+
+  function renderizarTabla() {
+    const historial = cargarHistorial();
+    const resumenLigas = agruparPorLiga(historial);
+
+    tablaLigas.innerHTML = '';
+    resumenLigas.forEach(liga => {
+      const neto = liga.totalGanado - liga.totalApostado;
+      const yieldPct = liga.totalApostado > 0 ? (neto / liga.totalApostado) * 100 : 0;
+      const roiPct = liga.bankrollInicial > 0 ? (neto / liga.bankrollInicial) * 100 : 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${liga.liga}</td>
+        <td>${liga.apuestas}</td>
+        <td>${liga.ganadas}</td>
+        <td>${liga.perdidas}</td>
+        <td class="${yieldPct >= 0 ? 'positivo' : 'negativo'}">${yieldPct.toFixed(2)}%</td>
+        <td class="${roiPct >= 0 ? 'positivo' : 'negativo'}">${roiPct.toFixed(2)}%</td>
+      `;
+      tablaLigas.appendChild(tr);
+    });
+  }
+
+  renderizarTabla();
+})();
+</script>
+
+</body>
+</html>
