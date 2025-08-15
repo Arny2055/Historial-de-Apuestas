@@ -761,44 +761,68 @@
     });
 
     // Datos para gráfica Kelly Full
-    let kellyData = apuestasFiltradas.map(a => a.kellyFull ? a.kellyFull * 100 : 0);
+let kellyBankData = [bankInicial];
+apuestasFiltradas.forEach(a => {
+  const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+  let lastBank = kellyBankData[kellyBankData.length - 1];
+  let nuevoBank = lastBank;
 
+  if (a.estado === 'ganada') {
+    nuevoBank += stake * (a.cuotaBookie - 1);
+  } else if (a.estado === 'perdida') {
+    nuevoBank -= stake;
+  }
+  kellyBankData.push(nuevoBank);
+});
+    
     graficaKelly = new Chart(ctxKelly, {
-      type: 'bar',
-      data: {
-        labels: labels.slice(1), // omitimos el 'Inicio'
-        datasets: [{
-          label: 'Kelly FULL (%)',
-          data: kellyData,
-          backgroundColor: '#ffba08',
-          borderRadius: 4,
-        }]
+  type: 'line',
+  data: {
+    labels: labels, // puedes dejarlo igual que la de bankroll
+    datasets: [{
+      label: 'Evolución por Kelly',
+      data: kellyBankData,
+      borderColor: '#ffba08',
+      backgroundColor: 'rgba(255, 186, 8, 0.3)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 6,
+      borderWidth: 3,
+    }]
+  },
+  options: {
+    responsive: true,
+    interaction: {
+      mode: 'nearest',
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        labels: {
+          color: '#ddd',
+          font: { size: 14, weight: '600' }
+        }
       },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true,
-            max: 100,
-            ticks: { color: '#ddd' },
-            grid: { color: '#444' }
-          },
-          x: {
-            ticks: { color: '#ddd' },
-            grid: { color: '#444' }
-          }
-        },
-        plugins: {
-          legend: {
-            labels: {
-              color: '#ddd',
-              font: { size: 14, weight: '600' }
-            }
-          }
+      tooltip: {
+        callbacks: {
+          label: ctx => `Bankroll: ${ctx.parsed.y.toFixed(2)}`
         }
       }
-    });
+    },
+    scales: {
+      y: {
+        beginAtZero: false,
+        ticks: { color: '#ddd' },
+        grid: { color: '#444' }
+      },
+      x: {
+        ticks: { color: '#ddd' },
+        grid: { color: '#444' }
+      }
+    }
   }
+});
 
   // Actualizar toda la vista
   function actualizarVista() {
