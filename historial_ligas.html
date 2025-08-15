@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial por Mercados</title>
+<title>Historial por Mercados y Ligas</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
   body {
@@ -60,16 +60,21 @@
 </head>
 <body>
 
-<h1>Historial por Mercados</h1>
+<h1>Historial por Mercados y Ligas</h1>
 <button onclick="location.href='index.html'">⬅ Volver al Historial</button>
 
-<label for="filtroMercado">Filtrar por Mercado:</label>
-<select id="filtroMercado"></select>
+<div>
+  <label for="filtroMercado">Mercado:</label>
+  <select id="filtroMercado"></select>
+
+  <label for="filtroLiga">Liga:</label>
+  <select id="filtroLiga"></select>
+</div>
 
 <table>
   <thead>
     <tr>
-      <th>Mercado</th>
+      <th>Liga</th>
       <th>Apuestas</th>
       <th>Ganadas</th>
       <th>Perdidas</th>
@@ -77,7 +82,7 @@
       <th>ROI (%)</th>
     </tr>
   </thead>
-  <tbody id="tablaMercados">
+  <tbody id="tablaDatos">
     <!-- Datos generados por JS -->
   </tbody>
 </table>
@@ -85,8 +90,9 @@
 <script>
 (() => {
   const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
-  const tablaMercados = document.getElementById('tablaMercados');
+  const tablaDatos = document.getElementById('tablaDatos');
   const filtroMercado = document.getElementById('filtroMercado');
+  const filtroLiga = document.getElementById('filtroLiga');
 
   function stakeSugerido(bankroll, kellyFull, kellyFrac) {
     if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
@@ -99,15 +105,16 @@
     return data ? JSON.parse(data) : [];
   }
 
-  function agruparPorMercado(apuestas, filtro) {
+  function agruparPorLiga(apuestas, filtroMercadoSel, filtroLigaSel) {
     const resumen = {};
 
     apuestas.forEach(a => {
-      if (filtro && a.mercado !== filtro) return; // Filtrado por mercado
+      if (filtroMercadoSel && a.mercado !== filtroMercadoSel) return;
+      if (filtroLigaSel && a.liga !== filtroLigaSel) return;
 
-      if (!resumen[a.mercado]) {
-        resumen[a.mercado] = {
-          mercado: a.mercado,
+      if (!resumen[a.liga]) {
+        resumen[a.liga] = {
+          liga: a.liga,
           apuestas: 0,
           ganadas: 0,
           perdidas: 0,
@@ -118,15 +125,14 @@
       }
 
       const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-
-      resumen[a.mercado].apuestas++;
-      resumen[a.mercado].totalApostado += stake;
+      resumen[a.liga].apuestas++;
+      resumen[a.liga].totalApostado += stake;
 
       if (a.estado === 'ganada') {
-        resumen[a.mercado].ganadas++;
-        resumen[a.mercado].totalGanado += stake * a.cuotaBookie;
+        resumen[a.liga].ganadas++;
+        resumen[a.liga].totalGanado += stake * a.cuotaBookie;
       } else if (a.estado === 'perdida') {
-        resumen[a.mercado].perdidas++;
+        resumen[a.liga].perdidas++;
       }
     });
 
@@ -141,37 +147,52 @@
     });
   }
 
-  function renderizarTabla(filtro = '') {
-    const historial = cargarHistorial();
-    const resumenMercados = agruparPorMercado(historial, filtro);
+  function llenarSelectLigas(apuestas, mercadoSel) {
+    const filtradas = mercadoSel ? apuestas.filter(a => a.mercado === mercadoSel) : apuestas;
+    const ligasUnicas = [...new Set(filtradas.map(a => a.liga))].sort();
+    filtroLiga.innerHTML = `<option value="">Todas</option>`;
+    ligasUnicas.forEach(l => {
+      filtroLiga.innerHTML += `<option value="${l}">${l}</option>`;
+    });
+  }
 
-    tablaMercados.innerHTML = '';
-    resumenMercados.forEach(m => {
-      const neto = m.totalGanado - m.totalApostado;
-      const yieldPct = m.totalApostado > 0 ? (neto / m.totalApostado) * 100 : 0;
-      const roiPct = m.bankrollInicial > 0 ? (neto / m.bankrollInicial) * 100 : 0;
+  function renderizarTabla() {
+    const historial = cargarHistorial();
+    const mercadoSel = filtroMercado.value;
+    const ligaSel = filtroLiga.value;
+    const resumen = agruparPorLiga(historial, mercadoSel, ligaSel);
+
+    tablaDatos.innerHTML = '';
+    resumen.forEach(l => {
+      const neto = l.totalGanado - l.totalApostado;
+      const yieldPct = l.totalApostado > 0 ? (neto / l.totalApostado) * 100 : 0;
+      const roiPct = l.bankrollInicial > 0 ? (neto / l.bankrollInicial) * 100 : 0;
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${m.mercado}</td>
-        <td>${m.apuestas}</td>
-        <td>${m.ganadas}</td>
-        <td>${m.perdidas}</td>
+        <td>${l.liga}</td>
+        <td>${l.apuestas}</td>
+        <td>${l.ganadas}</td>
+        <td>${l.perdidas}</td>
         <td class="${yieldPct >= 0 ? 'positivo' : 'negativo'}">${yieldPct.toFixed(2)}%</td>
         <td class="${roiPct >= 0 ? 'positivo' : 'negativo'}">${roiPct.toFixed(2)}%</td>
       `;
-      tablaMercados.appendChild(tr);
+      tablaDatos.appendChild(tr);
     });
   }
 
   // Inicialización
   const historial = cargarHistorial();
   llenarSelectMercados(historial);
+  llenarSelectLigas(historial, '');
   renderizarTabla();
 
   filtroMercado.addEventListener('change', () => {
-    renderizarTabla(filtroMercado.value);
+    llenarSelectLigas(historial, filtroMercado.value);
+    renderizarTabla();
   });
+
+  filtroLiga.addEventListener('change', renderizarTabla);
 })();
 </script>
 
