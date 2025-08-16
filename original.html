@@ -344,6 +344,10 @@
         <option value="1.00">100%</option>
       </select>
     </div>
+    <div>
+  <label for="stakePreview">Stake sugerido (preview)</label>
+  <input type="number" id="stakePreview" readonly placeholder="0.00" />
+</div>
     <div style="align-self: end;">
       <button type="submit" aria-label="Agregar apuesta">Agregar apuesta</button>
     </div>
@@ -897,6 +901,36 @@ function renderizarTabla() {
     const valorProb = parseFloat(e.target.value);
     cuotaImplicitaInput.value = calcularCuotaImplicita(valorProb);
   });
+  
+  // --- Preview de stake sugerido en el formulario ---
+const cuotaBookieInput = document.getElementById('cuotaBookie');
+const bankrollInput = document.getElementById('bankroll');
+const kellyFracInput = document.getElementById('kellyFrac');
+const stakePreviewInput = document.getElementById('stakePreview');
+
+function actualizarStakePreview() {
+  const prob = parseFloat(document.getElementById('probabilidad').value);
+  const cuotaBookie = parseFloat(cuotaBookieInput.value);
+  const bankroll = parseFloat(bankrollInput.value);
+  const kellyFrac = parseFloat(kellyFracInput.value);
+
+  if (!(prob > 0 && cuotaBookie > 1 && bankroll > 0 && kellyFrac > 0)) {
+    stakePreviewInput.value = "";
+    return;
+  }
+
+  const kellyFull = calcularKelly(prob, cuotaBookie);
+  const stake = stakeSugerido(bankroll, kellyFull, kellyFrac);
+  stakePreviewInput.value = stake.toFixed(2);
+}
+
+// Escuchar cambios en los inputs relevantes
+['input','change'].forEach(evt => {
+  document.getElementById('probabilidad').addEventListener(evt, actualizarStakePreview);
+  cuotaBookieInput.addEventListener(evt, actualizarStakePreview);
+  bankrollInput.addEventListener(evt, actualizarStakePreview);
+  kellyFracInput.addEventListener(evt, actualizarStakePreview);
+});
 
   // Filtros
   [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado].forEach(el => {
