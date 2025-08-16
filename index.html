@@ -417,6 +417,7 @@
     <div><strong>Yield (%):</strong> <span id="resumenYield">0.00%</span></div>
     <div><strong>ROI (%):</strong> <span id="resumenROI">0.00%</span></div>
     <div><strong>Tasa de éxito (%):</strong> <span id="resumenTasaExito">0.00%</span></div>
+    <div><strong>Unidades ganadas:</strong> <span id="resumenUnidades">0.00</span></div>
   </section>
 
   <section id="graficas" aria-label="Gráficas de evolución del bankroll y Kelly">
@@ -453,6 +454,7 @@
   const resumenYield = document.getElementById('resumenYield');
   const resumenROI = document.getElementById('resumenROI');
   const resumenTasaExito = document.getElementById('resumenTasaExito');
+  const resumenUnidades = document.getElementById('resumenUnidades');
 
   const btnExportarCSV = document.getElementById('btnExportarCSV');
   const btnImportarJSON = document.getElementById('btnImportarJSON');
@@ -705,6 +707,7 @@ function renderizarTabla() {
     // ROI: (Ganancia neta / bankroll inicial) * 100
     const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
     resumenROI.textContent = roiPct.toFixed(2) + '%';
+    resumenUnidades.textContent = neto.toFixed(2);
   }
 
   // Actualizar gráficas
