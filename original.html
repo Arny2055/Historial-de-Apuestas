@@ -523,105 +523,123 @@
     });
   }
 
-  // Renderizar tabla
-  function renderizarTabla() {
-    const apuestas = filtrarHistorial().slice().reverse();
-    tablaBody.innerHTML = '';
-    apuestas.forEach((a, i) => {
-      const tr = document.createElement('tr');
+ // Renderizar tabla
+function renderizarTabla() {
+  const apuestas = filtrarHistorial().slice().reverse();
+  tablaBody.innerHTML = '';
+  apuestas.forEach((a, i) => {
+    const tr = document.createElement('tr');
 
-      const tdIndex = document.createElement('td');
-      tdIndex.textContent = i + 1;
-      tr.appendChild(tdIndex);
+    const tdIndex = document.createElement('td');
+    tdIndex.textContent = i + 1;
+    tr.appendChild(tdIndex);
 
-      const tdFecha = document.createElement('td');
-      tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
-      tr.appendChild(tdFecha);
+    const tdFecha = document.createElement('td');
+    tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
+    tr.appendChild(tdFecha);
 
-      const tdLiga = document.createElement('td');
-      tdLiga.textContent = a.liga;
-      tr.appendChild(tdLiga);
+    // ---- Celda LIGA editable ----
+    const tdLiga = document.createElement('td');
+    tdLiga.textContent = a.liga;
+    tdLiga.addEventListener('dblclick', () => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = a.liga;
+      input.style.width = "100%";
+      tdLiga.textContent = '';
+      tdLiga.appendChild(input);
+      input.focus();
 
-      const tdLocal = document.createElement('td');
-      tdLocal.textContent = a.local;
-      tr.appendChild(tdLocal);
-
-      const tdVisita = document.createElement('td');
-      tdVisita.textContent = a.visita;
-      tr.appendChild(tdVisita);
-
-      const tdMercado = document.createElement('td');
-      tdMercado.textContent = a.mercado;
-      tr.appendChild(tdMercado);
-
-      const tdProb = document.createElement('td');
-      tdProb.textContent = a.probabilidad.toFixed(2);
-      tr.appendChild(tdProb);
-
-      const tdCuotaImpl = document.createElement('td');
-      tdCuotaImpl.textContent = a.cuotaImplicita ? a.cuotaImplicita.toFixed(2) : calcularCuotaImplicita(a.probabilidad);
-      tr.appendChild(tdCuotaImpl);
-
-      const tdCuotaBookie = document.createElement('td');
-      tdCuotaBookie.textContent = a.cuotaBookie.toFixed(2);
-      tr.appendChild(tdCuotaBookie);
-
-      const tdEV = document.createElement('td');
-      tdEV.textContent = (a.ev * 100).toFixed(2);
-      tdEV.style.color = a.ev >= 0 ? '#4caf50' : '#ef4444';
-      tr.appendChild(tdEV);
-
-      const tdKelly = document.createElement('td');
-      tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(2) : '-';
-      tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
-      tr.appendChild(tdKelly);
-
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      const tdStake = document.createElement('td');
-      tdStake.textContent = stake.toFixed(2);
-      tr.appendChild(tdStake);
-
-      const tdEstado = document.createElement('td');
-      tdEstado.textContent = a.estado;
-      tdEstado.className = `status-${a.estado}`;
-      tr.appendChild(tdEstado);
-
-      const tdAcciones = document.createElement('td');
-      tdAcciones.className = 'acciones';
-
-      const btnGanada = document.createElement('button');
-      btnGanada.title = 'Marcar como ganada';
-      btnGanada.innerHTML = '✅';
-      btnGanada.setAttribute('aria-label', `Marcar apuesta ${i + 1} como ganada`);
-      btnGanada.addEventListener('click', () => cambiarEstado(a.id, 'ganada'));
-
-      const btnPerdida = document.createElement('button');
-      btnPerdida.title = 'Marcar como perdida';
-      btnPerdida.innerHTML = '❌';
-      btnPerdida.setAttribute('aria-label', `Marcar apuesta ${i + 1} como perdida`);
-      btnPerdida.addEventListener('click', () => cambiarEstado(a.id, 'perdida'));
-
-      const btnPendiente = document.createElement('button');
-      btnPendiente.title = 'Marcar como pendiente';
-      btnPendiente.innerHTML = '⏳';
-      btnPendiente.setAttribute('aria-label', `Marcar apuesta ${i + 1} como pendiente`);
-      btnPendiente.addEventListener('click', () => cambiarEstado(a.id, 'pendiente'));
-
-      const btnBorrar = document.createElement('button');
-      btnBorrar.title = 'Eliminar apuesta';
-      btnBorrar.innerHTML = '🗑️';
-      btnBorrar.setAttribute('aria-label', `Eliminar apuesta ${i + 1}`);
-      btnBorrar.addEventListener('click', () => eliminarApuesta(a.id));
-
-      tdAcciones.appendChild(btnGanada);
-      tdAcciones.appendChild(btnPerdida);
-      tdAcciones.appendChild(btnPendiente);
-      tdAcciones.appendChild(btnBorrar);
-      tr.appendChild(tdAcciones);
-
-      tablaBody.appendChild(tr);
+      input.addEventListener('blur', () => {
+        a.liga = input.value.trim() || a.liga; // guarda el nuevo valor
+        guardarHistorial();
+        actualizarVista();
+      });
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          input.blur();
+        }
+      });
     });
-  }
+    tr.appendChild(tdLiga);
+    // ---- Fin editable ----
+
+    const tdLocal = document.createElement('td');
+    tdLocal.textContent = a.local;
+    tr.appendChild(tdLocal);
+
+    const tdVisita = document.createElement('td');
+    tdVisita.textContent = a.visita;
+    tr.appendChild(tdVisita);
+
+    const tdMercado = document.createElement('td');
+    tdMercado.textContent = a.mercado;
+    tr.appendChild(tdMercado);
+
+    const tdProb = document.createElement('td');
+    tdProb.textContent = a.probabilidad.toFixed(2);
+    tr.appendChild(tdProb);
+
+    const tdCuotaImpl = document.createElement('td');
+    tdCuotaImpl.textContent = a.cuotaImplicita ? a.cuotaImplicita.toFixed(2) : calcularCuotaImplicita(a.probabilidad);
+    tr.appendChild(tdCuotaImpl);
+
+    const tdCuotaBookie = document.createElement('td');
+    tdCuotaBookie.textContent = a.cuotaBookie.toFixed(2);
+    tr.appendChild(tdCuotaBookie);
+
+    const tdEV = document.createElement('td');
+    tdEV.textContent = (a.ev * 100).toFixed(2);
+    tdEV.style.color = a.ev >= 0 ? '#4caf50' : '#ef4444';
+    tr.appendChild(tdEV);
+
+    const tdKelly = document.createElement('td');
+    tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(2) : '-';
+    tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
+    tr.appendChild(tdKelly);
+
+    const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+    const tdStake = document.createElement('td');
+    tdStake.textContent = stake.toFixed(2);
+    tr.appendChild(tdStake);
+
+    const tdEstado = document.createElement('td');
+    tdEstado.textContent = a.estado;
+    tdEstado.className = `status-${a.estado}`;
+    tr.appendChild(tdEstado);
+
+    const tdAcciones = document.createElement('td');
+    tdAcciones.className = 'acciones';
+
+    const btnGanada = document.createElement('button');
+    btnGanada.title = 'Marcar como ganada';
+    btnGanada.innerHTML = '✅';
+    btnGanada.addEventListener('click', () => cambiarEstado(a.id, 'ganada'));
+
+    const btnPerdida = document.createElement('button');
+    btnPerdida.title = 'Marcar como perdida';
+    btnPerdida.innerHTML = '❌';
+    btnPerdida.addEventListener('click', () => cambiarEstado(a.id, 'perdida'));
+
+    const btnPendiente = document.createElement('button');
+    btnPendiente.title = 'Marcar como pendiente';
+    btnPendiente.innerHTML = '⏳';
+    btnPendiente.addEventListener('click', () => cambiarEstado(a.id, 'pendiente'));
+
+    const btnBorrar = document.createElement('button');
+    btnBorrar.title = 'Eliminar apuesta';
+    btnBorrar.innerHTML = '🗑️';
+    btnBorrar.addEventListener('click', () => eliminarApuesta(a.id));
+
+    tdAcciones.appendChild(btnGanada);
+    tdAcciones.appendChild(btnPerdida);
+    tdAcciones.appendChild(btnPendiente);
+    tdAcciones.appendChild(btnBorrar);
+    tr.appendChild(tdAcciones);
+
+    tablaBody.appendChild(tr);
+  });
+}
 
   // Cambiar estado apuesta
   function cambiarEstado(id, nuevoEstado) {
