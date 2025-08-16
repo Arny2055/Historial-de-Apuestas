@@ -522,6 +522,8 @@
     filtroVisita.value = '';
     filtroMercado.value = '';
     filtroEstado.value = '';
+    filtroFechaInicio.value = '';
+    filtroFechaFin.value = '';
   }
 
   // Filtrar apuestas
@@ -947,10 +949,10 @@ function actualizarStakePreview() {
 });
 
   // Filtros
-  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado].forEach(el => {
-    el.addEventListener('input', actualizarVista);
-    el.addEventListener('change', actualizarVista);
-  });
+  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado, filtroFechaInicio, filtroFechaFin].forEach(el => {
+  el.addEventListener('input', actualizarVista);
+  el.addEventListener('change', actualizarVista);
+});
   btnLimpiarFiltros.addEventListener('click', e => {
     e.preventDefault();
     limpiarFiltros();
