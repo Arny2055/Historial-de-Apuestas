@@ -416,6 +416,8 @@
     <div><strong>Apuestas perdidas:</strong> <span id="resumenPerdidas">0</span></div>
     <div><strong>Yield (%):</strong> <span id="resumenYield">0.00%</span></div>
     <div><strong>ROI (%):</strong> <span id="resumenROI">0.00%</span></div>
+    <div><strong>Tasa de éxito (%):</strong> <span id="resumenTasaExito">0.00%</span></div>
+    <div><strong>Unidades ganadas:</strong> <span id="resumenUnidades">0.00</span>
   </section>
 
   <section id="graficas" aria-label="Gráficas de evolución del bankroll y Kelly">
@@ -451,6 +453,8 @@
   const resumenPerdidas = document.getElementById('resumenPerdidas');
   const resumenYield = document.getElementById('resumenYield');
   const resumenROI = document.getElementById('resumenROI');
+  const resumenTasaExito = document.getElementById('resumenTasaExito');
+  const resumenUnidades = document.getElementById('resumenUnidades');
 
   const btnExportarCSV = document.getElementById('btnExportarCSV');
   const btnImportarJSON = document.getElementById('btnImportarJSON');
@@ -684,6 +688,9 @@ function renderizarTabla() {
 
     const perdidas = apuestasFiltradas.filter(a => a.estado === 'perdida').length;
     resumenPerdidas.textContent = perdidas;
+    
+    const tasaExito = numApuestas > 0 ? (ganadas / numApuestas) * 100 : 0;
+    resumenTasaExito.textContent = tasaExito.toFixed(2) + '%';
 
     // Yield: (Ganancias netas / total apostado) * 100
     let totalGanado = 0;
@@ -700,6 +707,7 @@ function renderizarTabla() {
     // ROI: (Ganancia neta / bankroll inicial) * 100
     const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
     resumenROI.textContent = roiPct.toFixed(2) + '%';
+    resumenUnidades.textContent = neto.toFixed(2);
   }
 
   // Actualizar gráficas
