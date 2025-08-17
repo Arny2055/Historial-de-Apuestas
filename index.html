@@ -1003,34 +1003,49 @@ btnExportarCSV.addEventListener('click', () => {
   document.body.removeChild(link);
 });
 
-  // Importar JSON
-// Abrir selector de archivo al dar clic en "Importar JSON"
+// Importar JSON
 btnImportarJSON.addEventListener('click', () => {
-  inputImportJSON.click();
-});
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
 
-// Procesar archivo seleccionado
-inputImportJSON.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
+  input.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = event => {
-    try {
-      const data = JSON.parse(event.target.result);
-      if (Array.isArray(data)) {
-        historial = data;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!Array.isArray(data)) {
+          alert('El archivo no contiene un historial válido');
+          return;
+        }
+
+        // Validar y normalizar las apuestas importadas
+        data.forEach(apuesta => {
+          if (!apuesta.id) apuesta.id = Date.now() + Math.random();
+          if (!apuesta.estado) apuesta.estado = 'pendiente';
+          if (!apuesta.fecha) apuesta.fecha = new Date().toISOString().split('T')[0];
+        });
+
+        historial = [...historial, ...data]; // añadir sin borrar lo que ya tienes
         guardarHistorial();
-        actualizarVista();
-        alert('Historial importado correctamente');
-      } else {
-        alert('El archivo no contiene un historial válido');
+        renderTabla(historial);
+        actualizarStats();
+        renderGraficas();
+
+        alert('Importación exitosa ✅');
+      } catch (err) {
+        console.error(err);
+        alert('Error al importar el archivo JSON');
       }
-    } catch (err) {
-      alert('Error al importar JSON: ' + err.message);
-    }
-  };
-  reader.readAsText(file);
+    };
+
+    reader.readAsText(file);
+  });
+
+  input.click();
 });
 
   // Inicialización
