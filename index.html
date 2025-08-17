@@ -959,32 +959,49 @@ function actualizarStakePreview() {
     actualizarVista();
   });
 
-  // Exportar CSV
-  btnExportarCSV.addEventListener('click', () => {
-    if (historial.length === 0) {
-      alert('No hay datos para exportar');
-      return;
-    }
-    const csvRows = [];
-    const headers = [
-      'id','fecha','liga','local','visita','mercado','probabilidad','cuotaImplicita',
-      'cuotaBookie','ev','kellyFull','bankroll','kellyFrac','estado'
-    ];
-    csvRows.push(headers.join(','));
-    historial.forEach(a => {
-      csvRows.push([
-        a.id, a.fecha, `"${a.liga}"`, `"${a.local}"`, `"${a.visita}"`, a.mercado,
-        a.probabilidad, a.cuotaImplicita, a.cuotaBookie, a.ev, a.kellyFull,
-        a.bankroll, a.kellyFrac, a.estado
-      ].join(','));
-    });
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], {type: 'text/csv;charset=utf-8;'});
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `historial_apuestas_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
+// Exportar CSV
+btnExportarCSV.addEventListener('click', () => {
+  if (historial.length === 0) {
+    alert('No hay datos para exportar');
+    return;
+  }
+  const csvRows = [];
+  const headers = [
+    'id','fecha','liga','local','visita','mercado',
+    'probabilidad','cuotaImplicita','cuotaBookie',
+    'ev','kellyFull','bankroll','kellyFrac','estado'
+  ];
+  csvRows.push(headers.join(','));
+
+  historial.forEach(a => {
+    csvRows.push([
+      a.id,
+      a.fecha,
+      `"${a.liga}"`,
+      `"${a.local}"`,
+      `"${a.visita}"`,
+      a.mercado,
+      a.probabilidad,
+      a.cuotaImplicita,
+      a.cuotaBookie,
+      a.ev,
+      a.kellyFull,
+      a.bankroll,
+      a.kellyFrac,
+      a.estado
+    ].join(','));
   });
+
+  const csvString = csvRows.join('\n');
+  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'historial_apuestas.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
 
   // Importar JSON
 // Abrir selector de archivo al dar clic en "Importar JSON"
