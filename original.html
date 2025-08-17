@@ -371,6 +371,8 @@
       <option value="pendiente">Pendiente</option>
       <option value="ganada">Ganada</option>
       <option value="perdida">Perdida</option>
+      <input type="date" id="filtroFechaInicio" aria-label="Filtro por fecha inicio" />
+      <input type="date" id="filtroFechaFin" aria-label="Filtro por fecha fin" />
     </select>
     <button id="btnLimpiarFiltros" title="Limpiar filtros" aria-label="Limpiar filtros">✖</button>
   </section>
@@ -466,6 +468,9 @@
 
   const ctxBankroll = document.getElementById('graficaBankroll').getContext('2d');
   const ctxKelly = document.getElementById('graficaKelly').getContext('2d');
+  
+  const filtroFechaInicio = document.getElementById('filtroFechaInicio');
+  const filtroFechaFin = document.getElementById('filtroFechaFin');
 
   // Variables para gráficos
   let graficaBankroll = null;
@@ -517,6 +522,8 @@
     filtroVisita.value = '';
     filtroMercado.value = '';
     filtroEstado.value = '';
+    filtroFechaInicio.value = '';
+    filtroFechaFin.value = '';
   }
 
   // Filtrar apuestas
@@ -527,6 +534,15 @@
       if (filtroVisita.value && !a.visita.toLowerCase().includes(filtroVisita.value.toLowerCase())) return false;
       if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
       if (filtroEstado.value && a.estado !== filtroEstado.value) return false;
+      if (filtroFechaInicio.value) {
+      const fechaIni = new Date(filtroFechaInicio.value);
+      if (new Date(a.fecha) < fechaIni) return false;
+      }
+      if (filtroFechaFin.value) {
+      const fechaFin = new Date(filtroFechaFin.value);
+      fechaFin.setHours(23, 59, 59, 999); // incluye todo el día
+      if (new Date(a.fecha) > fechaFin) return false;
+      }
       return true;
     });
   }
@@ -933,10 +949,10 @@ function actualizarStakePreview() {
 });
 
   // Filtros
-  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado].forEach(el => {
-    el.addEventListener('input', actualizarVista);
-    el.addEventListener('change', actualizarVista);
-  });
+  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado, filtroFechaInicio, filtroFechaFin].forEach(el => {
+  el.addEventListener('input', actualizarVista);
+  el.addEventListener('change', actualizarVista);
+});
   btnLimpiarFiltros.addEventListener('click', e => {
     e.preventDefault();
     limpiarFiltros();
