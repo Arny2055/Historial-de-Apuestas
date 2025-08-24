@@ -7,282 +7,118 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
   /* --- Reset y base --- */
-  *, *::before, *::after {
-    box-sizing: border-box;
-  }
+  *, *::before, *::after { box-sizing: border-box; }
   body {
     margin: 0; padding: 0;
     font-family: 'Inter', sans-serif;
-    background-color: #121214;
-    color: #e1e1e6;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    background-color: #121214; color: #e1e1e6;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
   }
-  main {
-    max-width: 1200px;
-    width: 95%;
-    margin: 20px auto 40px auto;
-    flex-grow: 1;
-  }
-  h1, h2 {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #8257e6;
-  }
+  main { max-width: 1200px; width: 95%; margin: 20px auto 40px auto; flex-grow: 1; }
+  h1, h2 { font-weight: 600; margin-bottom: 0.5rem; color: #8257e6; }
 
   /* --- Formulario de apuesta --- */
-  form#formApuesta {
-    background-color: #202024;
-    padding: 25px 30px;
-    border-radius: 10px;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
-    gap: 20px 24px;
-    margin-bottom: 40px;
+  form#formApuesta{
+    background-color:#202024; padding:25px 30px; border-radius:10px;
+    box-shadow:0 6px 12px rgba(0,0,0,0.4);
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:20px 24px; margin-bottom:40px;
   }
-  form#formApuesta label {
-    display: block;
-    font-weight: 600;
-    font-size: 0.95rem;
-    margin-bottom: 6px;
-    color: #c4c4cc;
-  }
+  form#formApuesta label{display:block;font-weight:600;font-size:0.95rem;margin-bottom:6px;color:#c4c4cc;}
   form#formApuesta input[type="text"],
   form#formApuesta input[type="number"],
-  form#formApuesta select {
-    width: 100%;
-    padding: 10px 14px;
-    font-size: 1rem;
-    border-radius: 8px;
-    border: none;
-    background-color: #121214;
-    color: #e1e1e6;
-    box-shadow: inset 0 0 5px rgb(255 255 255 / 0.1);
+  form#formApuesta select{
+    width:100%; padding:10px 14px; font-size:1rem; border-radius:8px; border:none;
+    background-color:#121214; color:#e1e1e6; box-shadow:inset 0 0 5px rgb(255 255 255 / 0.1);
     transition: box-shadow 0.25s ease;
   }
   form#formApuesta input[type="text"]:focus,
   form#formApuesta input[type="number"]:focus,
-  form#formApuesta select:focus {
-    outline: none;
-    box-shadow: inset 0 0 8px #8257e6;
+  form#formApuesta select:focus{outline:none; box-shadow:inset 0 0 8px #8257e6;}
+  form#formApuesta input[readonly]{background-color:#2a2a30; cursor:not-allowed;}
+  form#formApuesta button[type="submit"]{
+    grid-column:1 / -1; background-color:#8257e6; color:#fff; font-weight:700; font-size:1.2rem;
+    padding:14px 20px; border:none; border-radius:10px; cursor:pointer; transition:background-color 0.3s ease;
+    box-shadow:0 6px 10px #6a40d6;
   }
-  form#formApuesta input[readonly] {
-    background-color: #2a2a30;
-    cursor: not-allowed;
-  }
-  form#formApuesta button[type="submit"] {
-    grid-column: 1 / -1;
-    background-color: #8257e6;
-    color: white;
-    font-weight: 700;
-    font-size: 1.2rem;
-    padding: 14px 20px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    box-shadow: 0 6px 10px #6a40d6;
-  }
-  form#formApuesta button[type="submit"]:hover {
-    background-color: #6a40d6;
-  }
+  form#formApuesta button[type="submit"]:hover{background-color:#6a40d6;}
 
   /* --- Sección filtros --- */
-  section.filtros {
-    margin-bottom: 30px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px 18px;
+  section.filtros{
+    margin-bottom:30px; display:flex; flex-wrap:wrap; gap:15px 18px;
+    align-items: center;
   }
   section.filtros input[type="text"],
-  section.filtros select {
-    min-width: 160px;
-    padding: 9px 14px;
-    border-radius: 8px;
-    border: none;
-    background-color: #121214;
-    color: #e1e1e6;
-    box-shadow: inset 0 0 5px rgb(255 255 255 / 0.1);
+  section.filtros input[type="number"],
+  section.filtros input[type="date"],
+  section.filtros select{
+    min-width:160px; padding:9px 14px; border-radius:8px; border:none;
+    background-color:#121214; color:#e1e1e6; box-shadow:inset 0 0 5px rgb(255 255 255 / 0.1);
     transition: box-shadow 0.25s ease;
   }
-  section.filtros input[type="text"]:focus,
-  section.filtros select:focus {
-    outline: none;
-    box-shadow: inset 0 0 8px #8257e6;
+  section.filtros input:focus,
+  section.filtros select:focus{outline:none; box-shadow:inset 0 0 8px #8257e6;}
+  #btnLimpiarFiltros{
+    background-color:#ef4444; color:#fff; font-weight:700; border:none; border-radius:10px;
+    cursor:pointer; padding:8px 14px; transition:background-color 0.3s ease;
   }
-  #btnLimpiarFiltros {
-    background-color: #ef4444;
-    color: white;
-    font-weight: 700;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    padding: 8px 14px;
-    transition: background-color 0.3s ease;
-  }
-  #btnLimpiarFiltros:hover {
-    background-color: #dc2626;
-  }
+  #btnLimpiarFiltros:hover{background-color:#dc2626;}
 
   /* --- Botones export/import --- */
-  .botones-utiles {
-    margin-bottom: 35px;
-    display: flex;
-    gap: 18px;
+  .botones-utiles{margin-bottom:35px; display:flex; gap:18px;}
+  .botones-utiles button{
+    background-color:#8257e6; color:#fff; font-weight:600; border:none; border-radius:10px;
+    cursor:pointer; padding:12px 20px; box-shadow:0 4px 8px #6b45d9; transition:background-color 0.3s ease;
   }
-  .botones-utiles button {
-    background-color: #8257e6;
-    color: white;
-    font-weight: 600;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    padding: 12px 20px;
-    box-shadow: 0 4px 8px #6b45d9;
-    transition: background-color 0.3s ease;
-  }
-  .botones-utiles button:hover {
-    background-color: #6b45d9;
-  }
-  input[type="file"] {
-    display: none;
-  }
+  .botones-utiles button:hover{background-color:#6b45d9;}
+  input[type="file"]{display:none;}
 
   /* --- Tabla --- */
-#tablaWrapper {
-  overflow-x: auto;
-  overflow-y: auto; /* permite scroll vertical */
-  max-height: 580px; /* límite de altura */
-  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-  border-radius: 12px;
-}
-  table#tablaHistorial {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 5px;
-    min-width: 900px;
-    font-size: 0.9rem;
+  #tablaWrapper{
+    overflow-x:auto; overflow-y:auto; max-height:580px;
+    box-shadow:0 6px 12px rgba(0,0,0,0.4); border-radius:12px;
   }
-  thead th {
-    position: sticky;
-    top: 0;
-    background-color: #29292e;
-    color: #bbb;
-    font-weight: 700;
-    text-align: left;
-    padding: 14px 18px;
-    user-select: none;
-    white-space: nowrap;
+  table#tablaHistorial{width:100%; border-collapse:separate; border-spacing:0 5px; min-width:900px; font-size:0.9rem;}
+  thead th{
+    position:sticky; top:0; background-color:#29292e; color:#bbb; font-weight:700; text-align:left;
+    padding:14px 18px; user-select:none; white-space:nowrap;
   }
-  tbody tr {
-    background-color: #202024;
-    transition: background-color 0.3s ease;
-  }
-  tbody tr:hover {
-    background-color: #333339;
-  }
-  tbody td {
-    padding: 14px 18px;
-    color: #ddd;
-    vertical-align: middle;
-    white-space: nowrap;
-  }
-  .acciones button {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    margin: 0 4px;
-    cursor: pointer;
-    color: #aaa;
-    transition: color 0.2s ease;
-  }
-  .acciones button:hover {
-    color: #8257e6;
-  }
-  .status-pendiente {
-    color: #fbbf24; /* Amarillo */
-    font-weight: 600;
-  }
-  .status-ganada {
-    color: #4caf50; /* Verde */
-    font-weight: 600;
-  }
-  .status-perdida {
-    color: #ef4444; /* Rojo */
-    font-weight: 600;
-  }
+  tbody tr{background-color:#202024; transition:background-color 0.3s ease;}
+  tbody tr:hover{background-color:#333339;}
+  tbody td{padding:14px 18px; color:#ddd; vertical-align:middle; white-space:nowrap;}
+  .acciones button{background:none; border:none; font-size:1.2rem; margin:0 4px; cursor:pointer; color:#aaa; transition:color 0.2s ease;}
+  .acciones button:hover{color:#8257e6;}
+  .status-pendiente{color:#fbbf24; font-weight:600;}
+  .status-ganada{color:#4caf50; font-weight:600;}
+  .status-perdida{color:#ef4444; font-weight:600;}
 
   /* --- Resumen estadísticas --- */
-  #resumen {
-    margin-top: 40px;
-    background-color: #29292e;
-    border-radius: 10px;
-    padding: 22px 26px;
-    color: #d4d4d8;
-    font-size: 1.05rem;
-    font-weight: 600;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 28px;
-    justify-content: space-around;
+  #resumen{
+    margin-top:40px; background-color:#29292e; border-radius:10px; padding:22px 26px; color:#d4d4d8;
+    font-size:1.05rem; font-weight:600; display:flex; flex-wrap:wrap; gap:28px; justify-content:space-around;
   }
-  #resumen > div {
-    min-width: 140px;
-  }
-  #resumen > div strong {
-    display: block;
-    font-size: 1.15rem;
-    color: #8257e6;
-    margin-bottom: 6px;
-  }
+  #resumen > div{min-width:140px;}
+  #resumen > div strong{display:block; font-size:1.15rem; color:#8257e6; margin-bottom:6px;}
 
   /* --- Gráficas --- */
-  #graficas {
-    margin-top: 45px;
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-  }
-  canvas {
-    background-color: #202024;
-    border-radius: 14px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
-    max-width: 100%;
-    height: 320px !important;
-  }
+  #graficas{margin-top:45px; display:flex; flex-direction:column; gap:40px;}
+  canvas{background-color:#202024; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,0.5); max-width:100%; height:320px !important;}
 
   /* --- Responsive --- */
-  @media (max-width: 900px) {
-    form#formApuesta {
-      grid-template-columns: 1fr !important;
-    }
-    section.filtros {
-      flex-direction: column !important;
-      gap: 15px !important;
-    }
-    .botones-utiles {
-      flex-direction: column;
-      gap: 15px;
-    }
-    #resumen {
-      flex-direction: column;
-      gap: 20px;
-      text-align: center;
-    }
-    tbody td, thead th {
-      font-size: 0.8rem;
-      padding: 10px 12px;
-    }
+  @media (max-width: 900px){
+    form#formApuesta{grid-template-columns:1fr !important;}
+    section.filtros{flex-direction:column !important; gap:15px !important;}
+    .botones-utiles{flex-direction:column; gap:15px;}
+    #resumen{flex-direction:column; gap:20px; text-align:center;}
+    tbody td, thead th{font-size:0.8rem; padding:10px 12px;}
   }
 </style>
 </head>
 <body>
 <main>
- <h1 style="text-align: center;">Historial Profesional de Apuestas</h1>
+  <h1 style="text-align:center;">Historial Profesional de Apuestas</h1>
 
+  <!-- FORMULARIO -->
   <form id="formApuesta" autocomplete="off" novalidate aria-label="Formulario para agregar apuesta">
     <div>
       <label for="liga">Liga *</label>
@@ -310,10 +146,7 @@
     </div>
     <div>
       <label for="probabilidad">Probabilidad (%) *</label>
-      <input
-        type="number" id="probabilidad" name="probabilidad" min="0.01" max="100" step="0.01"
-        placeholder="Ej: 60" required aria-required="true" aria-describedby="descProbabilidad"
-      />
+      <input type="number" id="probabilidad" name="probabilidad" min="0.01" max="100" step="0.01" placeholder="Ej: 60" required aria-required="true" aria-describedby="descProbabilidad" />
       <small id="descProbabilidad" style="color:#c4c4cc; font-size:0.8rem;">Ingresa probabilidad estimada entre 0 y 100</small>
     </div>
     <div>
@@ -322,17 +155,11 @@
     </div>
     <div>
       <label for="cuotaBookie">Cuota Bookie (decimal) *</label>
-      <input
-        type="number" id="cuotaBookie" name="cuotaBookie" min="1.01" step="0.01"
-        placeholder="Ej: 1.80" required aria-required="true"
-      />
+      <input type="number" id="cuotaBookie" name="cuotaBookie" min="1.01" step="0.01" placeholder="Ej: 1.80" required aria-required="true" />
     </div>
     <div>
       <label for="bankroll">Bankroll *</label>
-      <input
-        type="number" id="bankroll" name="bankroll" min="0.01" step="0.01"
-        placeholder="Ej: 100" value="100" required aria-required="true"
-      />
+      <input type="number" id="bankroll" name="bankroll" min="0.01" step="0.01" placeholder="Ej: 100" value="100" required aria-required="true" />
     </div>
     <div>
       <label for="kellyFrac">Fracción Kelly *</label>
@@ -345,18 +172,20 @@
       </select>
     </div>
     <div>
-  <label for="stakePreview">Stake sugerido (preview)</label>
-  <input type="number" id="stakePreview" readonly placeholder="0.00" />
-</div>
-    <div style="align-self: end;">
+      <label for="stakePreview">Stake sugerido (preview)</label>
+      <input type="number" id="stakePreview" readonly placeholder="0.00" />
+    </div>
+    <div style="align-self:end;">
       <button type="submit" aria-label="Agregar apuesta">Agregar apuesta</button>
     </div>
   </form>
 
+  <!-- FILTROS -->
   <section class="filtros" aria-label="Filtros para el historial de apuestas">
     <input type="text" id="filtroLiga" placeholder="Filtrar por liga..." aria-label="Filtro por liga" />
     <input type="text" id="filtroLocal" placeholder="Filtrar por local..." aria-label="Filtro por equipo local" />
     <input type="text" id="filtroVisita" placeholder="Filtrar por visita..." aria-label="Filtro por equipo visitante" />
+
     <select id="filtroMercado" aria-label="Filtro por mercado">
       <option value="">Todos los mercados</option>
       <option value="Over 2.5 FT">Over 2.5 FT</option>
@@ -366,17 +195,26 @@
       <option value="Hándicap">Hándicap</option>
       <option value=""></option>
     </select>
+
     <select id="filtroEstado" aria-label="Filtro por estado de apuesta">
       <option value="">Todos los estados</option>
       <option value="pendiente">Pendiente</option>
       <option value="ganada">Ganada</option>
       <option value="perdida">Perdida</option>
-      <input type="date" id="filtroFechaInicio" aria-label="Filtro por fecha inicio" />
-      <input type="date" id="filtroFechaFin" aria-label="Filtro por fecha fin" />
     </select>
+
+    <!-- NUEVOS: filtros por probabilidad -->
+    <input type="number" id="filtroProbMin" placeholder="Prob. mín (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad mínima" />
+    <input type="number" id="filtroProbMax" placeholder="Prob. máx (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad máxima" />
+
+    <!-- Filtros por fecha -->
+    <input type="date" id="filtroFechaInicio" aria-label="Filtro por fecha inicio" />
+    <input type="date" id="filtroFechaFin" aria-label="Filtro por fecha fin" />
+
     <button id="btnLimpiarFiltros" title="Limpiar filtros" aria-label="Limpiar filtros">✖</button>
   </section>
 
+  <!-- BOTONES UTILES -->
   <section class="botones-utiles" aria-label="Exportar o importar historial de apuestas">
     <button id="btnExportarCSV" title="Exportar historial a CSV">Exportar CSV</button>
     <button id="btnImportarJSON" title="Importar historial desde archivo JSON">Importar JSON</button>
@@ -384,6 +222,7 @@
     <button onclick="location.href='historial_ligas.html'" title="Ver historial por ligas">Historial por Ligas</button>
   </section>
 
+  <!-- TABLA -->
   <section aria-label="Historial de apuestas registradas">
     <div id="tablaWrapper">
       <table role="grid" aria-describedby="tableDescription" id="tablaHistorial" tabindex="0">
@@ -408,13 +247,12 @@
             <th scope="col" aria-label="Acciones">⚙</th>
           </tr>
         </thead>
-        <tbody>
-          <!-- Contenido generado por JS -->
-        </tbody>
+        <tbody><!-- Contenido generado por JS --></tbody>
       </table>
     </div>
   </section>
 
+  <!-- RESUMEN -->
   <section id="resumen" aria-label="Resumen estadístico de apuestas">
     <div><strong>Bankroll inicial:</strong> <span id="resumenBankroll">-</span></div>
     <div><strong>Número apuestas:</strong> <span id="resumenNumApuestas">0</span></div>
@@ -423,9 +261,10 @@
     <div><strong>Yield (%):</strong> <span id="resumenYield">0.00%</span></div>
     <div><strong>ROI (%):</strong> <span id="resumenROI">0.00%</span></div>
     <div><strong>Tasa de éxito (%):</strong> <span id="resumenTasaExito">0.00%</span></div>
-    <div><strong>Unidades ganadas:</strong> <span id="resumenUnidades">0.00</span>
+    <div><strong>Unidades ganadas:</strong> <span id="resumenUnidades">0.00</span></div>
   </section>
 
+  <!-- GRAFICAS -->
   <section id="graficas" aria-label="Gráficas de evolución del bankroll y Kelly">
     <canvas id="graficaBankroll" aria-label="Gráfica de evolución de bankroll"></canvas>
     <canvas id="graficaKelly" aria-label="Gráfica de Kelly Full"></canvas>
@@ -449,6 +288,10 @@
   const filtroVisita = document.getElementById('filtroVisita');
   const filtroMercado = document.getElementById('filtroMercado');
   const filtroEstado = document.getElementById('filtroEstado');
+  const filtroProbMin = document.getElementById('filtroProbMin'); // NUEVO
+  const filtroProbMax = document.getElementById('filtroProbMax'); // NUEVO
+  const filtroFechaInicio = document.getElementById('filtroFechaInicio');
+  const filtroFechaFin = document.getElementById('filtroFechaFin');
   const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
 
   const tablaBody = document.querySelector('#tablaHistorial tbody');
@@ -468,9 +311,6 @@
 
   const ctxBankroll = document.getElementById('graficaBankroll').getContext('2d');
   const ctxKelly = document.getElementById('graficaKelly').getContext('2d');
-  
-  const filtroFechaInicio = document.getElementById('filtroFechaInicio');
-  const filtroFechaFin = document.getElementById('filtroFechaFin');
 
   // Variables para gráficos
   let graficaBankroll = null;
@@ -507,26 +347,24 @@
   function cargarHistorial() {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
-      try {
-        historial = JSON.parse(data);
-      } catch {
-        historial = [];
-      }
+      try { historial = JSON.parse(data); } catch { historial = []; }
     }
   }
 
-  // Limpiar filtros
+  // Limpiar filtros (incluye probabilidad)
   function limpiarFiltros() {
     filtroLiga.value = '';
     filtroLocal.value = '';
     filtroVisita.value = '';
     filtroMercado.value = '';
     filtroEstado.value = '';
+    filtroProbMin.value = '';
+    filtroProbMax.value = '';
     filtroFechaInicio.value = '';
     filtroFechaFin.value = '';
   }
 
-  // Filtrar apuestas
+  // Filtrar apuestas (se agregó rango de probabilidad)
   function filtrarHistorial() {
     return historial.filter(a => {
       if (filtroLiga.value && !a.liga.toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
@@ -534,136 +372,96 @@
       if (filtroVisita.value && !a.visita.toLowerCase().includes(filtroVisita.value.toLowerCase())) return false;
       if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
       if (filtroEstado.value && a.estado !== filtroEstado.value) return false;
+
+      // Rango de probabilidad
+      const p = Number(a.probabilidad) || 0;
+      const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
+      const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
+      if (min !== null && p < min) return false;
+      if (max !== null && p > max) return false;
+
+      // Rango de fechas
       if (filtroFechaInicio.value) {
-      const fechaIni = new Date(filtroFechaInicio.value);
-      if (new Date(a.fecha) < fechaIni) return false;
+        const fechaIni = new Date(filtroFechaInicio.value);
+        if (new Date(a.fecha) < fechaIni) return false;
       }
       if (filtroFechaFin.value) {
-      const fechaFin = new Date(filtroFechaFin.value);
-      fechaFin.setHours(23, 59, 59, 999); // incluye todo el día
-      if (new Date(a.fecha) > fechaFin) return false;
+        const fechaFin = new Date(filtroFechaFin.value);
+        fechaFin.setHours(23, 59, 59, 999);
+        if (new Date(a.fecha) > fechaFin) return false;
       }
       return true;
     });
   }
 
- // Renderizar tabla
-function renderizarTabla() {
-  const apuestas = filtrarHistorial().slice().reverse();
-  tablaBody.innerHTML = '';
-  apuestas.forEach((a, i) => {
-    const tr = document.createElement('tr');
+  // Renderizar tabla
+  function renderizarTabla() {
+    const apuestas = filtrarHistorial().slice().reverse();
+    tablaBody.innerHTML = '';
+    apuestas.forEach((a, i) => {
+      const tr = document.createElement('tr');
 
-    const tdIndex = document.createElement('td');
-    tdIndex.textContent = i + 1;
-    tr.appendChild(tdIndex);
+      const tdIndex = document.createElement('td'); tdIndex.textContent = i + 1; tr.appendChild(tdIndex);
 
-    const tdFecha = document.createElement('td');
-    tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
-    tr.appendChild(tdFecha);
+      const tdFecha = document.createElement('td');
+      tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
+      tr.appendChild(tdFecha);
 
-    // ---- Celda LIGA editable ----
-    const tdLiga = document.createElement('td');
-    tdLiga.textContent = a.liga;
-    tdLiga.addEventListener('dblclick', () => {
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = a.liga;
-      input.style.width = "100%";
-      tdLiga.textContent = '';
-      tdLiga.appendChild(input);
-      input.focus();
-
-      input.addEventListener('blur', () => {
-        a.liga = input.value.trim() || a.liga; // guarda el nuevo valor
-        guardarHistorial();
-        actualizarVista();
+      // LIGA editable con doble clic
+      const tdLiga = document.createElement('td');
+      tdLiga.textContent = a.liga;
+      tdLiga.addEventListener('dblclick', () => {
+        const input = document.createElement('input');
+        input.type = 'text'; input.value = a.liga; input.style.width = "100%";
+        tdLiga.textContent = ''; tdLiga.appendChild(input); input.focus();
+        input.addEventListener('blur', () => { a.liga = input.value.trim() || a.liga; guardarHistorial(); actualizarVista(); });
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
       });
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          input.blur();
-        }
-      });
+      tr.appendChild(tdLiga);
+
+      const tdLocal = document.createElement('td'); tdLocal.textContent = a.local; tr.appendChild(tdLocal);
+      const tdVisita = document.createElement('td'); tdVisita.textContent = a.visita; tr.appendChild(tdVisita);
+      const tdMercado = document.createElement('td'); tdMercado.textContent = a.mercado; tr.appendChild(tdMercado);
+
+      const tdProb = document.createElement('td'); tdProb.textContent = a.probabilidad.toFixed(2); tr.appendChild(tdProb);
+
+      const tdCuotaImpl = document.createElement('td');
+      tdCuotaImpl.textContent = a.cuotaImplicita ? a.cuotaImplicita.toFixed(2) : calcularCuotaImplicita(a.probabilidad);
+      tr.appendChild(tdCuotaImpl);
+
+      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = a.cuotaBookie.toFixed(2); tr.appendChild(tdCuotaBookie);
+
+      const tdEV = document.createElement('td');
+      tdEV.textContent = (a.ev * 100).toFixed(2);
+      tdEV.style.color = a.ev >= 0 ? '#4caf50' : '#ef4444';
+      tr.appendChild(tdEV);
+
+      const tdKelly = document.createElement('td');
+      tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(2) : '-';
+      tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
+      tr.appendChild(tdKelly);
+
+      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+      const tdStake = document.createElement('td'); tdStake.textContent = stake.toFixed(2); tr.appendChild(tdStake);
+
+      const tdEstado = document.createElement('td');
+      tdEstado.textContent = a.estado; tdEstado.className = `status-${a.estado}`; tr.appendChild(tdEstado);
+
+      const tdAcciones = document.createElement('td'); tdAcciones.className = 'acciones';
+      const btnGanada = document.createElement('button'); btnGanada.title='Marcar como ganada'; btnGanada.innerHTML='✅';
+      btnGanada.addEventListener('click', () => cambiarEstado(a.id, 'ganada'));
+      const btnPerdida = document.createElement('button'); btnPerdida.title='Marcar como perdida'; btnPerdida.innerHTML='❌';
+      btnPerdida.addEventListener('click', () => cambiarEstado(a.id, 'perdida'));
+      const btnPendiente = document.createElement('button'); btnPendiente.title='Marcar como pendiente'; btnPendiente.innerHTML='⏳';
+      btnPendiente.addEventListener('click', () => cambiarEstado(a.id, 'pendiente'));
+      const btnBorrar = document.createElement('button'); btnBorrar.title='Eliminar apuesta'; btnBorrar.innerHTML='🗑️';
+      btnBorrar.addEventListener('click', () => eliminarApuesta(a.id));
+      tdAcciones.append(btnGanada, btnPerdida, btnPendiente, btnBorrar);
+      tr.appendChild(tdAcciones);
+
+      tablaBody.appendChild(tr);
     });
-    tr.appendChild(tdLiga);
-    // ---- Fin editable ----
-
-    const tdLocal = document.createElement('td');
-    tdLocal.textContent = a.local;
-    tr.appendChild(tdLocal);
-
-    const tdVisita = document.createElement('td');
-    tdVisita.textContent = a.visita;
-    tr.appendChild(tdVisita);
-
-    const tdMercado = document.createElement('td');
-    tdMercado.textContent = a.mercado;
-    tr.appendChild(tdMercado);
-
-    const tdProb = document.createElement('td');
-    tdProb.textContent = a.probabilidad.toFixed(2);
-    tr.appendChild(tdProb);
-
-    const tdCuotaImpl = document.createElement('td');
-    tdCuotaImpl.textContent = a.cuotaImplicita ? a.cuotaImplicita.toFixed(2) : calcularCuotaImplicita(a.probabilidad);
-    tr.appendChild(tdCuotaImpl);
-
-    const tdCuotaBookie = document.createElement('td');
-    tdCuotaBookie.textContent = a.cuotaBookie.toFixed(2);
-    tr.appendChild(tdCuotaBookie);
-
-    const tdEV = document.createElement('td');
-    tdEV.textContent = (a.ev * 100).toFixed(2);
-    tdEV.style.color = a.ev >= 0 ? '#4caf50' : '#ef4444';
-    tr.appendChild(tdEV);
-
-    const tdKelly = document.createElement('td');
-    tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(2) : '-';
-    tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
-    tr.appendChild(tdKelly);
-
-    const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-    const tdStake = document.createElement('td');
-    tdStake.textContent = stake.toFixed(2);
-    tr.appendChild(tdStake);
-
-    const tdEstado = document.createElement('td');
-    tdEstado.textContent = a.estado;
-    tdEstado.className = `status-${a.estado}`;
-    tr.appendChild(tdEstado);
-
-    const tdAcciones = document.createElement('td');
-    tdAcciones.className = 'acciones';
-
-    const btnGanada = document.createElement('button');
-    btnGanada.title = 'Marcar como ganada';
-    btnGanada.innerHTML = '✅';
-    btnGanada.addEventListener('click', () => cambiarEstado(a.id, 'ganada'));
-
-    const btnPerdida = document.createElement('button');
-    btnPerdida.title = 'Marcar como perdida';
-    btnPerdida.innerHTML = '❌';
-    btnPerdida.addEventListener('click', () => cambiarEstado(a.id, 'perdida'));
-
-    const btnPendiente = document.createElement('button');
-    btnPendiente.title = 'Marcar como pendiente';
-    btnPendiente.innerHTML = '⏳';
-    btnPendiente.addEventListener('click', () => cambiarEstado(a.id, 'pendiente'));
-
-    const btnBorrar = document.createElement('button');
-    btnBorrar.title = 'Eliminar apuesta';
-    btnBorrar.innerHTML = '🗑️';
-    btnBorrar.addEventListener('click', () => eliminarApuesta(a.id));
-
-    tdAcciones.appendChild(btnGanada);
-    tdAcciones.appendChild(btnPerdida);
-    tdAcciones.appendChild(btnPendiente);
-    tdAcciones.appendChild(btnBorrar);
-    tr.appendChild(tdAcciones);
-
-    tablaBody.appendChild(tr);
-  });
-}
+  }
 
   // Cambiar estado apuesta
   function cambiarEstado(id, nuevoEstado) {
@@ -693,10 +491,11 @@ function renderizarTabla() {
       resumenPerdidas.textContent = '0';
       resumenYield.textContent = '0.00%';
       resumenROI.textContent = '0.00%';
+      resumenTasaExito.textContent = '0.00%';
+      resumenUnidades.textContent = '0.00';
       return;
     }
 
-    // Bankroll inicial promedio (o el primer bankroll de la lista)
     const bankrollInicial = apuestasFiltradas[0].bankroll || 0;
     resumenBankroll.textContent = bankrollInicial.toFixed(2);
 
@@ -704,11 +503,10 @@ function renderizarTabla() {
     resumenNumApuestas.textContent = numApuestas;
 
     const ganadas = apuestasFiltradas.filter(a => a.estado === 'ganada').length;
-    resumenGanadas.textContent = ganadas;
-
     const perdidas = apuestasFiltradas.filter(a => a.estado === 'perdida').length;
+    resumenGanadas.textContent = ganadas;
     resumenPerdidas.textContent = perdidas;
-    
+
     const tasaExito = numApuestas > 0 ? (ganadas / numApuestas) * 100 : 0;
     resumenTasaExito.textContent = tasaExito.toFixed(2) + '%';
 
@@ -757,7 +555,6 @@ function renderizarTabla() {
       labels.push(`Apuesta ${i + 1}`);
     });
 
-    // Gráfica bankroll
     graficaBankroll = new Chart(ctxBankroll, {
       type: 'line',
       data: {
@@ -776,33 +573,14 @@ function renderizarTabla() {
       },
       options: {
         responsive: true,
-        interaction: {
-          mode: 'nearest',
-          intersect: false,
-        },
+        interaction: { mode: 'nearest', intersect: false },
         plugins: {
-          legend: {
-            labels: {
-              color: '#ddd',
-              font: { size: 14, weight: '600' }
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => `Bankroll: ${ctx.parsed.y.toFixed(2)}`
-            }
-          }
+          legend: { labels: { color: '#ddd', font: { size: 14, weight: '600' } } },
+          tooltip: { callbacks: { label: ctx => `Bankroll: ${ctx.parsed.y.toFixed(2)}` } }
         },
         scales: {
-          y: {
-            beginAtZero: false,
-            ticks: { color: '#ddd' },
-            grid: { color: '#444' }
-          },
-          x: {
-            ticks: { color: '#ddd' },
-            grid: { color: '#444' }
-          }
+          y: { beginAtZero: false, ticks: { color: '#ddd' }, grid: { color: '#444' } },
+          x: { ticks: { color: '#ddd' }, grid: { color: '#444' } }
         }
       }
     });
@@ -813,36 +591,16 @@ function renderizarTabla() {
     graficaKelly = new Chart(ctxKelly, {
       type: 'bar',
       data: {
-        labels: labels.slice(1), // omitimos el 'Inicio'
-        datasets: [{
-          label: 'Kelly FULL (%)',
-          data: kellyData,
-          backgroundColor: '#ffba08',
-          borderRadius: 4,
-        }]
+        labels: labels.slice(1),
+        datasets: [{ label: 'Kelly FULL (%)', data: kellyData, backgroundColor: '#ffba08', borderRadius: 4 }]
       },
       options: {
         responsive: true,
         scales: {
-          y: {
-            beginAtZero: true,
-            max: 100,
-            ticks: { color: '#ddd' },
-            grid: { color: '#444' }
-          },
-          x: {
-            ticks: { color: '#ddd' },
-            grid: { color: '#444' }
-          }
+          y: { beginAtZero: true, max: 100, ticks: { color: '#ddd' }, grid: { color: '#444' } },
+          x: { ticks: { color: '#ddd' }, grid: { color: '#444' } }
         },
-        plugins: {
-          legend: {
-            labels: {
-              color: '#ddd',
-              font: { size: 14, weight: '600' }
-            }
-          }
-        }
+        plugins: { legend: { labels: { color: '#ddd', font: { size: 14, weight: '600' } } } }
       }
     });
   }
@@ -854,10 +612,9 @@ function renderizarTabla() {
     actualizarGraficas();
   }
 
-  // Manejar envío de formulario
+  // Envío de formulario
   form.addEventListener('submit', e => {
     e.preventDefault();
-
     const formData = new FormData(form);
     try {
       // Validaciones
@@ -880,24 +637,17 @@ function renderizarTabla() {
       if (!(kellyFrac > 0 && kellyFrac <= 1)) throw new Error('Fracción Kelly inválida');
 
       const cuotaImplicitaCalc = parseFloat(calcularCuotaImplicita(prob));
-
       const ev = calcularEV(prob, cuotaBookie);
       const kellyFull = calcularKelly(prob, cuotaBookie);
 
       const apuesta = {
         id: Date.now(),
         fecha: new Date().toISOString(),
-        liga,
-        local,
-        visita,
-        mercado,
+        liga, local, visita, mercado,
         probabilidad: prob,
         cuotaImplicita: cuotaImplicitaCalc,
-        cuotaBookie,
-        ev,
-        kellyFull,
-        bankroll,
-        kellyFrac,
+        cuotaBookie, ev, kellyFull,
+        bankroll, kellyFrac,
         estado: 'pendiente'
       };
 
@@ -917,143 +667,113 @@ function renderizarTabla() {
     const valorProb = parseFloat(e.target.value);
     cuotaImplicitaInput.value = calcularCuotaImplicita(valorProb);
   });
-  
-  // --- Preview de stake sugerido en el formulario ---
-const cuotaBookieInput = document.getElementById('cuotaBookie');
-const bankrollInput = document.getElementById('bankroll');
-const kellyFracInput = document.getElementById('kellyFrac');
-const stakePreviewInput = document.getElementById('stakePreview');
 
-function actualizarStakePreview() {
-  const prob = parseFloat(document.getElementById('probabilidad').value);
-  const cuotaBookie = parseFloat(cuotaBookieInput.value);
-  const bankroll = parseFloat(bankrollInput.value);
-  const kellyFrac = parseFloat(kellyFracInput.value);
+  // Preview de stake sugerido
+  const cuotaBookieInput = document.getElementById('cuotaBookie');
+  const bankrollInput = document.getElementById('bankroll');
+  const kellyFracInput = document.getElementById('kellyFrac');
+  const stakePreviewInput = document.getElementById('stakePreview');
 
-  if (!(prob > 0 && cuotaBookie > 1 && bankroll > 0 && kellyFrac > 0)) {
-    stakePreviewInput.value = "";
-    return;
+  function actualizarStakePreview() {
+    const prob = parseFloat(document.getElementById('probabilidad').value);
+    const cuotaBookie = parseFloat(cuotaBookieInput.value);
+    const bankroll = parseFloat(bankrollInput.value);
+    const kellyFrac = parseFloat(kellyFracInput.value);
+    if (!(prob > 0 && cuotaBookie > 1 && bankroll > 0 && kellyFrac > 0)) { stakePreviewInput.value = ""; return; }
+    const kellyFull = calcularKelly(prob, cuotaBookie);
+    const stake = stakeSugerido(bankroll, kellyFull, kellyFrac);
+    stakePreviewInput.value = stake.toFixed(2);
   }
 
-  const kellyFull = calcularKelly(prob, cuotaBookie);
-  const stake = stakeSugerido(bankroll, kellyFull, kellyFrac);
-  stakePreviewInput.value = stake.toFixed(2);
-}
+  ['input','change'].forEach(evt => {
+    document.getElementById('probabilidad').addEventListener(evt, actualizarStakePreview);
+    cuotaBookieInput.addEventListener(evt, actualizarStakePreview);
+    bankrollInput.addEventListener(evt, actualizarStakePreview);
+    kellyFracInput.addEventListener(evt, actualizarStakePreview);
+  });
 
-// Escuchar cambios en los inputs relevantes
-['input','change'].forEach(evt => {
-  document.getElementById('probabilidad').addEventListener(evt, actualizarStakePreview);
-  cuotaBookieInput.addEventListener(evt, actualizarStakePreview);
-  bankrollInput.addEventListener(evt, actualizarStakePreview);
-  kellyFracInput.addEventListener(evt, actualizarStakePreview);
-});
+  // Filtros (incluye probabilidad y fechas)
+  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado,
+   filtroProbMin, filtroProbMax, filtroFechaInicio, filtroFechaFin].forEach(el => {
+    el.addEventListener('input', actualizarVista);
+    el.addEventListener('change', actualizarVista);
+  });
 
-  // Filtros
-  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado, filtroFechaInicio, filtroFechaFin].forEach(el => {
-  el.addEventListener('input', actualizarVista);
-  el.addEventListener('change', actualizarVista);
-});
   btnLimpiarFiltros.addEventListener('click', e => {
     e.preventDefault();
     limpiarFiltros();
     actualizarVista();
   });
 
-// Exportar CSV
-btnExportarCSV.addEventListener('click', () => {
-  if (historial.length === 0) {
-    alert('No hay datos para exportar');
-    return;
-  }
-  const csvRows = [];
-  const headers = [
-    'id','fecha','liga','local','visita','mercado',
-    'probabilidad','cuotaImplicita','cuotaBookie',
-    'ev','kellyFull','bankroll','kellyFrac','estado'
-  ];
-  csvRows.push(headers.join(','));
+  // Exportar CSV
+  btnExportarCSV.addEventListener('click', () => {
+    if (historial.length === 0) { alert('No hay datos para exportar'); return; }
+    const csvRows = [];
+    const headers = [
+      'id','fecha','liga','local','visita','mercado',
+      'probabilidad','cuotaImplicita','cuotaBookie','ev','kellyFull','bankroll','kellyFrac','estado'
+    ];
+    csvRows.push(headers.join(','));
 
-  historial.forEach(a => {
-    csvRows.push([
-      a.id,
-      a.fecha,
-      `"${a.liga}"`,
-      `"${a.local}"`,
-      `"${a.visita}"`,
-      a.mercado,
-      a.probabilidad,
-      a.cuotaImplicita,
-      a.cuotaBookie,
-      a.ev,
-      a.kellyFull,
-      a.bankroll,
-      a.kellyFrac,
-      a.estado
-    ].join(','));
+    historial.forEach(a => {
+      csvRows.push([
+        a.id, a.fecha,
+        `"${a.liga}"`, `"${a.local}"`, `"${a.visita}"`,
+        a.mercado, a.probabilidad, a.cuotaImplicita, a.cuotaBookie,
+        a.ev, a.kellyFull, a.bankroll, a.kellyFrac, a.estado
+      ].join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'historial_apuestas.csv';
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
   });
 
-  const csvString = csvRows.join('\n');
-  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'historial_apuestas.csv';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-});
+  // Importar JSON (arreglado para usar actualizarVista)
+  btnImportarJSON.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = '.json';
 
-// Importar JSON
-btnImportarJSON.addEventListener('click', () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
+    input.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-  input.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (!Array.isArray(data)) { alert('El archivo no contiene un historial válido'); return; }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target.result);
-        if (!Array.isArray(data)) {
-          alert('El archivo no contiene un historial válido');
-          return;
+          // Validar y normalizar
+          data.forEach(apuesta => {
+            if (!apuesta.id) apuesta.id = Date.now() + Math.random();
+            if (!apuesta.estado) apuesta.estado = 'pendiente';
+            if (!apuesta.fecha) apuesta.fecha = new Date().toISOString();
+          });
+
+          historial = [...historial, ...data];
+          guardarHistorial();
+          actualizarVista(); // <-- fix
+          alert('Importación exitosa ✅');
+        } catch (err) {
+          console.error(err);
+          alert('Error al importar el archivo JSON');
         }
+      };
+      reader.readAsText(file);
+    });
 
-        // Validar y normalizar las apuestas importadas
-        data.forEach(apuesta => {
-          if (!apuesta.id) apuesta.id = Date.now() + Math.random();
-          if (!apuesta.estado) apuesta.estado = 'pendiente';
-          if (!apuesta.fecha) apuesta.fecha = new Date().toISOString().split('T')[0];
-        });
-
-        historial = [...historial, ...data]; // añadir sin borrar lo que ya tienes
-        guardarHistorial();
-        renderTabla(historial);
-        actualizarStats();
-        renderGraficas();
-
-        alert('Importación exitosa ✅');
-      } catch (err) {
-        console.error(err);
-        alert('Error al importar el archivo JSON');
-      }
-    };
-
-    reader.readAsText(file);
+    input.click();
   });
-
-  input.click();
-});
 
   // Inicialización
   function init() {
     cargarHistorial();
     actualizarVista();
   }
-
   init();
 
 })();
