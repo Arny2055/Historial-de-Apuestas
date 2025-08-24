@@ -43,6 +43,9 @@
   .pos { color:#4caf50; font-weight:600; }
   .neg { color:#ef4444; font-weight:600; }
   .muted { color:#a1a1aa; }
+  .empty {
+    margin-top:18px; text-align:center; color:#a1a1aa;
+  }
 </style>
 </head>
 <body>
@@ -55,7 +58,10 @@
   </div>
 
   <div id="tablaWrapper" role="region" aria-label="Tabla de probabilidades">
-    <table id="tablaProb">
+    <table id="tablaProb" aria-describedby="tbldesc">
+      <caption id="tbldesc" style="text-align:left; margin:10px 0; color:#a1a1aa">
+        Estadísticas agrupadas por el valor exacto de probabilidad ingresado (2 decimales)
+      </caption>
       <thead>
         <tr>
           <th>Probabilidad (%)</th>
@@ -79,6 +85,10 @@
       </tfoot>
     </table>
   </div>
+
+  <p id="msgVacio" class="empty" hidden>
+    No hay datos en el historial. Vuelve a la página principal y agrega apuestas.
+  </p>
 </main>
 
 <script>
@@ -87,14 +97,21 @@
 
   const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
 
-  // --- Utilidades (mismas fórmulas que tu página principal) ---
+  // --- Helpers numéricos robustos ---
+  const toNum = v => typeof v === 'number' ? v : parseFloat(v);
+  const safe = v => Number.isFinite(v) ? v : 0;
+
+  // --- Fórmulas (idénticas a la página principal) ---
   function stakeSugerido(bankroll, kellyFull, kellyFrac) {
+    bankroll  = safe(toNum(bankroll));
+    kellyFull = safe(toNum(kellyFull));
+    kellyFrac = safe(toNum(kellyFrac));
     if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
     const stake = bankroll * kellyFull * kellyFrac;
     return stake > bankroll ? bankroll : stake;
   }
 
-  // Carga historial
+  // Cargar historial desde localStorage
   function cargar() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -104,55 +121,52 @@
     } catch { return []; }
   }
 
-  // Agrupa EXACTAMENTE por probabilidad ingresada (formato 2 decimales)
+  // Agrupa EXACTAMENTE por probabilidad (2 decimales)
   function agruparPorProb(historial) {
     const grupos = new Map();
     historial.forEach(a => {
-      const key = Number(a.probabilidad).toFixed(2); // EXACTO a 2 decimales
+      const p = safe(toNum(a.probabilidad));
+      const key = p.toFixed(2); // exacto a 2 decimales
       if (!grupos.has(key)) grupos.set(key, []);
       grupos.get(key).push(a);
     });
     return grupos;
   }
 
-  // Calcula métricas por grupo (yield y ROI solo con liquidadas)
+  // Métricas por grupo:
+  // - totalApostado incluye ganadas, perdidas y PENDIENTES (igual que la página principal)
+  // - yield = neto / totalApostado
+  // - roi (del grupo) = neto / bankroll inicial del grupo (primer registro del grupo)
   function calcularGrupo(apuestas) {
     const totalApuestas = apuestas.length;
     const ganadas = apuestas.filter(a => a.estado === 'ganada').length;
     const perdidas = apuestas.filter(a => a.estado === 'perdida').length;
 
-    let totalApostado = 0;   // solo liquidadas
+    let totalApostado = 0;
     let totalGanadoBruto = 0;
 
-    // Para ROI: tomamos el primer bankroll del grupo (consistente con tu página)
-    const bankrollInicial = apuestas.length ? (apuestas[0].bankroll || 0) : 0;
+    const bankrollInicialGrupo = apuestas.length ? safe(toNum(apuestas[0].bankroll)) : 0;
 
     apuestas.forEach(a => {
-      if (a.estado !== 'ganada' && a.estado !== 'perdida') return; // ignorar pendientes
       const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      totalApostado += stake;
+      totalApostado += stake; // incluye pendientes
       if (a.estado === 'ganada') {
-        totalGanadoBruto += stake * a.cuotaBookie;
-      } else if (a.estado === 'perdida') {
-        // no suma al bruto, solo resta vía neto
+        totalGanadoBruto += stake * safe(toNum(a.cuotaBookie));
       }
     });
 
     const neto = totalGanadoBruto - totalApostado;
     const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
-    const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
+    const roiPct = bankrollInicialGrupo > 0 ? (neto / bankrollInicialGrupo) * 100 : 0;
 
     return {
       totalApuestas, ganadas, perdidas,
       yieldPct, roiPct,
-      // para totales globales:
       _totalApostado: totalApostado,
-      _neto: neto,
-      _bankrollInicial: bankrollInicial
+      _neto: neto
     };
   }
 
-  // Render
   function render() {
     const tbody = document.querySelector('#tablaProb tbody');
     const tApuestas = document.getElementById('tApuestas');
@@ -160,18 +174,37 @@
     const tPerdidas = document.getElementById('tPerdidas');
     const tYield = document.getElementById('tYield');
     const tROI = document.getElementById('tROI');
+    const msgVacio = document.getElementById('msgVacio');
 
     const historial = cargar();
-    const grupos = agruparPorProb(historial);
 
-    // ordenar por prob asc
+    // Mostrar mensaje si no hay datos
+    if (!historial.length) {
+      tbody.innerHTML = '';
+      tApuestas.textContent = '0';
+      tGanadas.textContent  = '0';
+      tPerdidas.textContent = '0';
+      tYield.textContent    = '0.00%';
+      tROI.textContent      = '0.00%';
+      msgVacio.hidden = false;
+      return;
+    } else {
+      msgVacio.hidden = true;
+    }
+
+    // --- Bankroll inicial GLOBAL para el ROI TOTAL ---
+    // Para igualar la página principal, usamos el PRIMER registro tal como está en el arreglo,
+    // que es lo que la principal toma cuando no hay filtros: apuestasFiltradas[0].bankroll
+    const bankrollInicialGlobal = safe(toNum(historial[0]?.bankroll));
+
+    const grupos = agruparPorProb(historial);
     const keys = Array.from(grupos.keys()).sort((a,b) => parseFloat(a) - parseFloat(b));
 
     tbody.innerHTML = '';
 
     // acumuladores globales
     let gApuestas = 0, gGanadas = 0, gPerdidas = 0;
-    let gTotalApostado = 0, gNeto = 0, gBankrollBase = 0;
+    let gTotalApostado = 0, gNeto = 0;
 
     keys.forEach(k => {
       const stats = calcularGrupo(grupos.get(k));
@@ -180,7 +213,6 @@
       gPerdidas += stats.perdidas;
       gTotalApostado += stats._totalApostado;
       gNeto += stats._neto;
-      gBankrollBase += stats._bankrollInicial; // suma simple para global (aprox.)
 
       const tr = document.createElement('tr');
 
@@ -206,19 +238,21 @@
       tbody.appendChild(tr);
     });
 
-    // Totales globales
+    // Totales globales (idéntica lógica a la principal)
     tApuestas.textContent = gApuestas;
     tGanadas.textContent  = gGanadas;
     tPerdidas.textContent = gPerdidas;
+
     const gYield = gTotalApostado > 0 ? (gNeto / gTotalApostado) * 100 : 0;
-    const gROI   = gBankrollBase > 0 ? (gNeto / gBankrollBase) * 100 : 0;
+    const gROI   = bankrollInicialGlobal > 0 ? (gNeto / bankrollInicialGlobal) * 100 : 0;
+
     tYield.textContent = gYield.toFixed(2) + '%';
     tYield.className = 'num ' + (gYield >= 0 ? 'pos' : 'neg');
     tROI.textContent = gROI.toFixed(2) + '%';
     tROI.className = 'num ' + (gROI >= 0 ? 'pos' : 'neg');
   }
 
-  // Export CSV
+  // Export CSV de toda la tabla (incluye totales)
   function exportarCSV() {
     const tabla = document.getElementById('tablaProb');
     const filas = [...tabla.querySelectorAll('thead tr, tbody tr, tfoot tr')];
