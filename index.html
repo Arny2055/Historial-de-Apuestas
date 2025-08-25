@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Analizador Liga MX (estable y móvil)</title>
+<title>Analizador (JSON robusto + móvil)</title>
 <style>
   :root{
     --bg:#0e1020; --panel:#161a2e; --panel2:#1d2240; --muted:#a7acc8; --text:#e8eaf2;
@@ -16,13 +16,15 @@
     background:linear-gradient(180deg, rgba(14,16,32,.98), rgba(14,16,32,.92))}
   header h1{margin:0 0 4px;font-size:18px}
   header .sub{color:var(--muted);font-size:12px}
+
   .wrap{max-width:1100px;margin:0 auto;padding:14px 12px 40px}
   .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   .btn{background:var(--accent2);color:#0c1122;border:0;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer;touch-action:manipulation}
   .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
-  .btn.alt{background:var(--chip);color:var(--text);border:1px solid var(--border)}
+  .btn.alt{background:var(--chip);color:#fff;border:1px solid var(--border)}
   input[type=file]{display:none}
   .file-label{background:var(--accent2);color:#0c1122;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer;touch-action:manipulation}
+
   .grid{display:grid;gap:12px;grid-template-columns: repeat(12,1fr)}
   .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
   .card h3{margin:0 0 10px;font-size:13px;color:var(--muted);letter-spacing:.02em;text-transform:uppercase}
@@ -38,8 +40,7 @@
     color:var(--muted);font-size:12px;text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);white-space:nowrap}
   tbody td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
   tbody tr:hover{background:#1a1f3a}
-  .right{text-align:right}.center{text-align:center}
-  .good{color:var(--accent)} .bad{color:var(--danger)}
+  .right{text-align:right}.good{color:var(--accent)} .bad{color:var(--danger)}
   .chip{background:var(--chip);border:1px solid var(--border);padding:6px 8px;border-radius:999px;font-size:12px}
   .scroll-x{overflow:auto;-webkit-overflow-scrolling:touch}
   .tag{display:inline-block;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);font-size:11px;color:var(--muted)}
@@ -47,6 +48,10 @@
   .range{appearance:none;width:100%;height:6px;border-radius:6px;background:#2a2f55;outline:none}
   .range::-webkit-slider-thumb{appearance:none;width:20px;height:20px;border-radius:50%;background:#7aa2ff;border:2px solid #2a2f55}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  /* Modal pegar JSON */
+  dialog#pasteDlg{border:1px solid var(--border);border-radius:12px;background:var(--panel);color:var(--text);max-width:800px;width:92%}
+  #pasteDlg textarea{width:100%;min-height:45vh;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:14px}
 
   @media (max-width:700px){
     .grid{grid-template-columns: repeat(1,1fr)}
@@ -63,18 +68,31 @@
 </head>
 <body>
   <header>
-    <h1>Analizador (Poisson + estadísticas avanzadas)</h1>
-    <div class="sub">1) Carga JSON • 2) Elige liga(s) • 3) Selecciona Local/Visitante • 4) Ajusta pesos • 5) Analiza</div>
+    <h1>Analizador (JSON estable + móvil)</h1>
+    <div class="sub">Carga JSON • Elige liga(s) • Local/Visitante • Analizar</div>
     <div class="bar" style="margin-top:10px">
       <label class="file-label" for="fileInput">📂 Cargar JSON</label>
-      <input type="file" id="fileInput" accept=".json,application/json">
+      <input type="file" id="fileInput" accept=".json,application/json" aria-label="Cargar JSON">
       <button class="btn alt" id="btnPaste">Pegar JSON</button>
+      <button class="btn ghost" id="btnDemo">Cargar demo</button>
       <button class="btn ghost" id="btnReset">Limpiar</button>
-      <span class="pill" id="pillCount">0 filas</span>
+      <span class="pill" id="pillStatus">Sin datos</span>
       <span class="pill" id="pillTeams">Equipos: 0</span>
       <span class="pill" id="pillRecs">Mercados: 0</span>
     </div>
   </header>
+
+  <!-- Modal de pegado -->
+  <dialog id="pasteDlg">
+    <form method="dialog" style="margin:0">
+      <h3 style="margin:10px 0;color:#a7acc8">Pega aquí tu JSON</h3>
+      <textarea id="pasteTxt" placeholder='[{"League":"Liga MX",...}, ...]'></textarea>
+      <div class="bar" style="margin:10px 0">
+        <button class="btn" id="pasteOk">Cargar</button>
+        <button class="btn ghost" onclick="document.getElementById('pasteDlg').close()">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
 
   <div class="wrap">
     <div class="grid">
@@ -91,14 +109,14 @@
             <label>Local (filtrado por liga)</label>
             <select id="selHome"></select>
           </div>
-          <div class="field" style="grid-column: span 4;">
+          <div class="field" style="grid-column: span 4%;">
             <label>Visitante (filtrado por liga)</label>
             <select id="selAway"></select>
           </div>
 
           <div class="field" style="grid-column: span 12;">
             <div class="bar" style="gap:8px; margin-bottom:6px">
-              <div class="pill">Cuotas opcionales → para EV</div>
+              <div class="pill">Cuotas opcionales → EV</div>
             </div>
             <div class="grid" style="gap:10px;margin-top:4px">
               <div class="field" style="grid-column: span 2;"><label>Odd 1</label><input id="odd1" type="number" step="0.01" inputmode="decimal" placeholder="2.10"></div>
@@ -123,27 +141,27 @@
         <div class="grid" style="gap:10px">
           <div class="field" style="grid-column: span 6;">
             <label>Partidos recientes (N)</label>
-            <input id="paramN" type="number" min="3" max="30" step="1" value="10" inputmode="numeric">
+            <input id="paramN" type="number" min="3" max="30" step="1" value="10">
           </div>
           <div class="field" style="grid-column: span 6;">
             <label>Peso recency (α 0–1)</label>
-            <input id="paramAlpha" type="number" min="0" max="1" step="0.05" value="0.30" inputmode="decimal">
+            <input id="paramAlpha" type="number" min="0" max="1" step="0.05" value="0.30">
           </div>
           <div class="field" style="grid-column: span 6;">
             <label>Máx. goles (gmax)</label>
-            <input id="paramGMax" type="number" min="4" max="12" step="1" value="8" inputmode="numeric">
+            <input id="paramGMax" type="number" min="4" max="12" step="1" value="8">
           </div>
           <div class="field" style="grid-column: span 6;">
             <label>Ventana rachas (M)</label>
-            <input id="paramStreak" type="number" min="3" max="15" step="1" value="5" inputmode="numeric">
+            <input id="paramStreak" type="number" min="3" max="15" step="1" value="5">
           </div>
           <div class="field" style="grid-column: span 6;">
             <label>Prob. mínima</label>
-            <input id="paramPMin" type="number" step="0.01" value="0.45" inputmode="decimal">
+            <input id="paramPMin" type="number" step="0.01" value="0.45">
           </div>
-          <div class="field" style="grid-column: span 6;">
+          <div class="field" style="grid-column: span 6%;">
             <label>EV mínimo</label>
-            <input id="paramEVMin" type="number" step="0.01" value="0.02" inputmode="decimal">
+            <input id="paramEVMin" type="number" step="0.01" value="0.02">
           </div>
           <div class="field" style="grid-column: span 6;">
             <label>Mercados</label>
@@ -193,9 +211,7 @@
             <input id="wH2H" class="range" type="range" min="0" max="1" step="0.05" value="0.10">
           </div>
         </div>
-        <div class="small muted" style="margin-top:6px">
-          Si una estadística no quieres que influya, pon su peso en 0.
-        </div>
+        <div class="small muted" style="margin-top:6px">Si no quieres que influya una estadística, pon su peso en 0.</div>
       </div>
 
       <!-- Resultado del análisis -->
@@ -213,7 +229,7 @@
       </div>
 
       <!-- Tabla base -->
-      <div class="card" style="grid-column: span 12%;">
+      <div class="card" style="grid-column: span 12;">
         <h3>Partidos del JSON</h3>
         <div class="bar small muted">Búsqueda: <input id="q" type="search" placeholder="Equipo, marcador, etiqueta…" style="margin-left:6px; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--panel2); color:var(--text)"></div>
         <div class="scroll-x">
@@ -228,94 +244,115 @@
 
 <script>
 (()=>{
-
-// ===== Utilidades =====
+// ====== utilidades UI ======
 const $ = s=>document.querySelector(s);
 const $$ = s=>Array.from(document.querySelectorAll(s));
-const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep":8,"sep.":8,"oct.":9,"nov":10,"nov.":10,"dic.":11};
-const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
-
-// Mostrar valores de sliders
+const setStatus = (t)=> $("#pillStatus").textContent = t;
 ["wShots","wPoss","wCorn","wRank","wForm","wH2H"].forEach(id=>{
-  const el = document.getElementById(id);
-  const v = document.getElementById(id+"V");
+  const el = document.getElementById(id), v = document.getElementById(id+"V");
   el.addEventListener("input", ()=> v.textContent = Number(el.value).toFixed(2));
 });
 
-// Parseos
-function parseSpanishDate(s){
-  if(!s) return null;
-  try{
-    let str = String(s).trim().toLowerCase();
-    for(const w of WDAYS){ if(str.startsWith(w)){ str = str.replace(w,"").replace(",","").trim(); break; } }
-    const parts = str.split(/\s+/);
-    if(parts.length>=3 && MONTH_MAP[parts[1]]!==undefined){
-      const d = Number(parts[0]), m = MONTH_MAP[parts[1]], y = Number(parts[2]);
-      let hh=0, mm=0; if(parts[3]){ [hh,mm] = parts[3].split(":").map(Number); }
-      return new Date(y,m,d,hh||0,mm||0);
-    }
-    const dt = new Date(s);
-    return isNaN(dt)? null: dt;
-  }catch(e){ return null; }
-}
-const toNum = v => {
-  if(v==null) return null;
-  const s = String(v).replace("%","").replace(",",".").trim();
-  if(s==="") return null;
-  const n = Number(s);
-  return Number.isFinite(n)? n : null;
-}
-const fmtProb = p=> (p==null? "—" : (p*100).toFixed(1)+"%");
-const fmt2 = n=> n==null? "—" : Number(n).toFixed(2);
-const csvEscape = s=>{
-  if(s==null) return "";
-  s = String(s);
-  return (s.includes('"')||s.includes(",")||s.includes("\n"))? `"${s.replace(/"/g,'""')}"` : s;
-}
-function download(name, content, mime="text/csv;charset=utf-8"){
-  const blob = new Blob([content],{type:mime});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-// ===== Estado =====
+// ====== Estado ======
 let DATA=[], PAST=[];
 let sortBase = {key:"Date",dir:1};
 
-// ===== Carga JSON =====
-$("#fileInput").addEventListener("change", async (e)=>{
-  try{
-    const f = e.target.files?.[0]; if(!f) return;
-    const txt = await f.text(); loadFromText(txt);
-  }catch(err){ alert("Error leyendo archivo: "+err.message); }
-});
-$("#btnPaste").addEventListener("click", ()=>{
-  const txt = prompt("Pega aquí el JSON (array de objetos):");
-  if(!txt) return; loadFromText(txt);
-});
-$("#btnReset").addEventListener("click", ()=>{
-  DATA=[]; PAST=[];
-  $("#league").innerHTML="";
-  $("#selHome").innerHTML=""; $("#selAway").innerHTML="";
-  $("#tbodyBase").innerHTML=""; $("#tblRecs tbody").innerHTML="";
-  $("#resumen").textContent="";
-  $("#pillCount").textContent="0 filas"; $("#pillTeams").textContent="Equipos: 0"; $("#pillRecs").textContent="Mercados: 0";
-  $("#q").value="";
+// ====== Lectura JSON (compat iOS) ======
+const fileInput = $("#fileInput");
+fileInput.addEventListener("change", (e)=>{
+  const f = e.target.files && e.target.files[0];
+  if(!f){ return; }
+  setStatus("Leyendo archivo…");
+  const reader = new FileReader();
+  reader.onerror = ()=> alert("No se pudo leer el archivo.");
+  reader.onload = ()=> {
+    const txt = normalizeText(reader.result || "");
+    try{
+      loadFromText(txt);
+      setStatus("Cargado: "+(f.name||"archivo"));
+    }catch(err){
+      console.error(err);
+      alert("Error cargando JSON: "+err.message);
+      setStatus("Error al cargar");
+    }finally{
+      // Permite volver a seleccionar el mismo archivo
+      fileInput.value = "";
+    }
+  };
+  // Leer como texto UTF-8 (maneja BOM)
+  reader.readAsText(f, "utf-8");
 });
 
-function loadFromText(txt){
+// Modal pegar
+$("#btnPaste").addEventListener("click", ()=>{
+  $("#pasteTxt").value="";
+  $("#pasteDlg").showModal();
+});
+$("#pasteOk").addEventListener("click", (ev)=>{
+  ev.preventDefault();
+  const txt = $("#pasteTxt").value.trim();
+  if(!txt){ return; }
   try{
-    const raw = JSON.parse(txt);
-    DATA = raw.map(augmentRow).filter(Boolean);
-    PAST = DATA.filter(r=> r._FT_H!=null && r._FT_A!=null);
-    populateLeagues();
-    refreshTeamLists();
-    buildBaseTable(); renderBase();
-    $("#pillCount").textContent = DATA.length+" filas";
-  }catch(err){ alert("No se pudo parsear el JSON: "+err.message); }
+    loadFromText(normalizeText(txt));
+    setStatus("Cargado (pegado)");
+    $("#pasteDlg").close();
+  }catch(err){
+    alert("No se pudo parsear el JSON pegado: "+err.message);
+  }
+});
+
+// Demo mínima para probar
+$("#btnDemo").addEventListener("click", ()=>{
+  const demo = JSON.stringify([
+    {"Date":"1/5/2025 20:00","League":"México Liga MX","Match":"América - Tigres","Result HT":"1 - 0","Result FT":"2 - 1",
+     "Home Total Shots at FT":14,"Away Total Shots at FT":9,"Home Ball Possession at FT":58,"Away Ball Possession at FT":42,"Home Corners at FT":6,"Away Corners at FT":4,
+     "Home Position":2,"Away Position":5,"Odd 1 PreMatch":1.95,"Odd X PreMatch":3.3,"Odd 2 PreMatch":3.8,"Result":"Winning"},
+    {"Date":"1/12/2025 20:00","League":"México Liga MX","Match":"Tigres - América","Result HT":"0 - 0","Result FT":"1 - 1",
+     "Home Total Shots at FT":11,"Away Total Shots at FT":12,"Home Ball Possession at FT":49,"Away Ball Possession at FT":51,"Home Corners at FT":5,"Away Corners at FT":7,
+     "Home Position":5,"Away Position":2,"Odd 1 PreMatch":2.5,"Odd X PreMatch":3.1,"Odd 2 PreMatch":2.7,"Result":"Draw"}
+  ]);
+  loadFromText(demo);
+  setStatus("Cargado: DEMO");
+});
+
+// Normaliza texto: quita BOM y espacios extra
+function normalizeText(t){
+  if(!t) return "";
+  return String(t).replace(/^\uFEFF/,"").trim();
+}
+
+// ====== Parseo y construcción ======
+const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago":7,"ago.":7,"sept.":8,"sep":8,"sep.":8,"oct.":9,"nov":10,"nov.":10,"dic.":11};
+const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
+
+function loadFromText(txt){
+  // Acepta JSON array, objeto con propiedad conocida o NDJSON (línea por línea)
+  let raw;
+  try{
+    raw = JSON.parse(txt);
+  }catch(_){
+    // NDJSON
+    const lines = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    if(lines.length){
+      raw = lines.map(l=>JSON.parse(l));
+    }else{
+      throw new Error("Formato no reconocido");
+    }
+  }
+  if(!Array.isArray(raw)){
+    // intenta usar alguna propiedad contenedora común
+    const key = ["data","rows","matches","items"].find(k=>Array.isArray(raw[k]));
+    if(key) raw = raw[key];
+  }
+  if(!Array.isArray(raw)) throw new Error("Se esperaba un arreglo de objetos");
+
+  DATA = raw.map(augmentRow).filter(Boolean);
+  PAST = DATA.filter(r=> r._FT_H!=null && r._FT_A!=null);
+
+  populateLeagues();
+  refreshTeamLists();
+  buildBaseTable(); renderBase();
+  $("#pillStatus").textContent = DATA.length+" filas";
 }
 
 function augmentRow(r){
@@ -337,27 +374,47 @@ function augmentRow(r){
   row["Overall ROI"]  = row["Overall ROI"]??"";
   return row;
 }
+function parseSpanishDate(s){
+  if(!s) return null;
+  try{
+    let str=String(s).trim().toLowerCase();
+    for(const w of WDAYS){ if(str.startsWith(w)){ str=str.replace(w,"").replace(",","").trim(); break; } }
+    const parts=str.split(/\s+/);
+    if(parts.length>=3 && MONTH_MAP[parts[1]]!==undefined){
+      const d=Number(parts[0]), m=MONTH_MAP[parts[1]], y=Number(parts[2]);
+      let hh=0,mm=0; if(parts[3]){ [hh,mm]=(parts[3]||"0:0").split(":").map(Number); }
+      return new Date(y,m,d,hh||0,mm||0);
+    }
+    const dt=new Date(s); return isNaN(dt)? null: dt;
+  }catch(e){ return null; }
+}
 function parseScore(s){
   if(!s) return [null,null];
-  const m = String(s).trim().match(/^(\d+)\s*-\s*(\d+)$/);
+  const m=String(s).trim().match(/^(\d+)\s*-\s*(\d+)$/);
   return m? [Number(m[1]),Number(m[2])] : [null,null];
 }
+const toNum = v => {
+  if(v==null) return null;
+  const s=String(v).replace("%","").replace(",",".").trim();
+  if(s==="") return null;
+  const n=Number(s);
+  return Number.isFinite(n)? n : null;
+};
 
-// ===== Ligas → Equipos dependientes =====
+// ====== Ligas → equipos ======
 function populateLeagues(){
   const leagues = Array.from(new Set(DATA.map(x=>x.League).filter(Boolean)))
-    .sort((a,b)=> String(a).localeCompare(String(b),'es'));
+  .sort((a,b)=> String(a).localeCompare(String(b),'es'));
   fillSelect($("#league"), leagues);
 }
-function fillSelect(select, arr){
-  select.innerHTML="";
-  for(const v of arr){ const opt=document.createElement("option"); opt.value=v; opt.textContent=v; select.appendChild(opt); }
+function fillSelect(sel, arr){
+  sel.innerHTML="";
+  for(const v of arr){ const o=document.createElement("option"); o.value=v; o.textContent=v; sel.appendChild(o); }
 }
 function getTeamsForLeagues(leaguesSel){
   const pool = (leaguesSel.length? DATA.filter(r=> leaguesSel.includes(r.League)) : DATA);
-  const teams = Array.from(new Set(pool.flatMap(x=>[x.Home,x.Away]).filter(Boolean)))
+  return Array.from(new Set(pool.flatMap(x=>[x.Home,x.Away]).filter(Boolean)))
     .sort((a,b)=> String(a).localeCompare(String(b),'es'));
-  return teams;
 }
 function refreshTeamLists(){
   const leaguesSel = Array.from($("#league").selectedOptions).map(o=>o.value);
@@ -368,15 +425,15 @@ function refreshTeamLists(){
   fillSelect($("#selHome"), teams);
   fillSelect($("#selAway"), teams);
 
-  if(prevHome && teams.includes(prevHome)) $("#selHome")..value = prevHome;
+  if(prevHome && teams.includes(prevHome)) $("#selHome").value = prevHome;   // <- corregido (sin doble punto)
   if(prevAway && teams.includes(prevAway)) $("#selAway").value = prevAway;
 
   $("#pillTeams").textContent = "Equipos: "+teams.length;
   renderBase();
 }
-$("#league").addEventListener("change", ()=>{ refreshTeamLists(); });
+$("#league").addEventListener("change", refreshTeamLists);
 
-// ===== Tabla base =====
+// ====== Tabla base ======
 const BASE_COLS = [
   {key:"Date",label:"Fecha"},
   {key:"League",label:"Liga"},
@@ -404,20 +461,17 @@ function buildBaseTable(){
 }
 $("#q").addEventListener("input", renderBase);
 function renderBase(){
-  const q = $("#q").value?.trim().toLowerCase() || "";
+  const q=$("#q").value?.trim().toLowerCase()||"";
   const leaguesSel = Array.from($("#league").selectedOptions).map(o=>o.value);
   let arr = DATA.filter(r=>{
     if(leaguesSel.length && !leaguesSel.includes(r.League)) return false;
-    if(q){
-      const blob = JSON.stringify(r).toLowerCase();
-      if(!blob.includes(q)) return false;
-    }
+    if(q){ const blob = JSON.stringify(r).toLowerCase(); if(!blob.includes(q)) return false; }
     return true;
   });
   if(sortBase.key){
     const k=sortBase.key, dir=sortBase.dir;
     arr.sort((a,b)=>{
-      const va = norm(a[k]); const vb = norm(b[k]);
+      const va=norm(a[k]), vb=norm(b[k]);
       if(va<vb) return -1*dir; if(va>vb) return 1*dir; return 0;
     });
   }
@@ -426,7 +480,7 @@ function renderBase(){
     const tr=document.createElement("tr");
     for(const c of BASE_COLS){
       const td=document.createElement("td");
-      let v = r[c.key]; if(c.key==="Date" && r._dt) v = r._dt.toLocaleString();
+      let v=r[c.key]; if(c.key==="Date" && r._dt) v=r._dt.toLocaleString();
       td.textContent = v==null? "" : v;
       if(c.align) td.classList.add(c.align);
       tr.appendChild(td);
@@ -437,10 +491,10 @@ function renderBase(){
 function norm(v){
   if(v==null) return -Infinity;
   if(v instanceof Date) return v.getTime();
-  const n = toNum(v); return n!=null? n : String(v).toLowerCase();
+  const n=toNum(v); return n!=null? n : String(v).toLowerCase();
 }
 
-// ===== Motor estadístico =====
+// ====== Motor estadístico ======
 function buildTeamIndex(pastRows){
   const idx = {};
   for(const r of pastRows){
@@ -459,10 +513,9 @@ function weightedGoalRates(rows, side, N, alpha){
   let arr = side==="H"? rows.home : side==="A"? rows.away : rows.all;
   if(!arr || !arr.length) return {gf:0.9, ga:0.9, n:0};
   arr = arr.slice(-N);
-  const m = arr.length;
   let wsum=0, gf=0, ga=0;
-  for(let i=0;i<m;i++){
-    const r = arr[m-1-i];
+  for(let i=0;i<arr.length;i++){
+    const r = arr[arr.length-1-i];
     const w = Math.pow(1-alpha, i);
     const gfor  = r._side==="A"? r._FT_A : r._FT_H;
     const gagen = r._side==="A"? r._FT_H : r._FT_A;
@@ -482,7 +535,7 @@ function leagueAverages(pastRows){
   return {muH, muA};
 }
 function poissonPmf(k, lambda){ return Math.exp(-lambda) * Math.pow(lambda, k) / factorial(k); }
-const FACTS = [1];
+const FACTS=[1];
 function factorial(n){ for(let i=FACTS.length;i<=n;i++) FACTS[i]=FACTS[i-1]*i; return FACTS[n]; }
 function matchDistribution(lh, la, gmax){
   const PX = Array.from({length:gmax+1},(_,x)=>poissonPmf(x,lh));
@@ -501,17 +554,27 @@ function probFromMatrix(M, fn){
   return Math.min(Math.max(p,0),1);
 }
 function probsFromLambdas(lh, la, gmax){
-  const M = matchDistribution(lh,la,gmax);
-  const pH = probFromMatrix(M,(x,y)=>x>y);
-  const pD = probFromMatrix(M,(x,y)=>x===y);
-  const pA = probFromMatrix(M,(x,y)=>x<y);
-  const pO25 = probFromMatrix(M,(x,y)=>x+y>=3);
-  const pU25 = 1-pO25;
-  const pBTTS = probFromMatrix(M,(x,y)=>x>0 && y>0);
+  const M=matchDistribution(lh,la,gmax);
+  const pH=probFromMatrix(M,(x,y)=>x>y);
+  const pD=probFromMatrix(M,(x,y)=>x===y);
+  const pA=probFromMatrix(M,(x,y)=>x<y);
+  const pO25=probFromMatrix(M,(x,y)=>x+y>=3);
+  const pU25=1-pO25;
+  const pBTTS=probFromMatrix(M,(x,y)=>x>0 && y>0);
   return {pH,pD,pA,pO25,pU25,pBTTS};
 }
+function streakStats(rowsAll, team, M){
+  const arr=rowsAll.slice(-M);
+  let over=0,btts=0;
+  for(const r of arr){
+    const tg=(r._FT_H??0)+(r._FT_A??0);
+    if(tg>=3) over++;
+    if((r._FT_H??0)>0 && (r._FT_A??0)>0) btts++;
+  }
+  return {overRate:arr.length?over/arr.length:0, bttsRate:arr.length?btts/arr.length:0};
+}
 
-// ===== Estadísticas avanzadas =====
+// ====== Avanzadas ======
 function avgRecent(arr, keyFor, keyAg, N, alpha){
   if(!arr || !arr.length) return {for:0, ag:0, n:0};
   arr = arr.slice(-N);
@@ -535,231 +598,166 @@ function formPoints(arr, N, alpha){
     const w = Math.pow(1-alpha, i);
     const isH = r._side==="H";
     const gh = r._FT_H??0, ga=r._FT_A??0;
-    let p=0;
-    if((isH && gh>ga) || (!isH && ga>gh)) p=3;
-    else if(gh===ga) p=1;
+    let p=0; if((isH && gh>ga) || (!isH && ga>gh)) p=3; else if(gh===ga) p=1;
     pts += w*p; wsum += w;
   }
   return {ppg: wsum? (pts/wsum) : 1.0, n:arr.length};
 }
-function zScore(diff, mean, std){ return std>0? (diff-mean)/std : 0; }
-function average(arr){ if(!arr.length) return 0; return arr.reduce((a,b)=>a+(b??0),0)/arr.length; }
-function stdev(arr, mean){ if(!arr.length) return 0; let s=0,c=0; for(const v of arr){ if(v==null) continue; s+=(v-mean)*(v-mean); c++; } return c? Math.sqrt(s/c):0; }
-function lastNonNull(arr){ for(let i=arr.length-1;i>=0;i--){ if(arr[i]!=null) return arr[i]; } return null; }
+function zScore(d, m, s){ return s>0? (d-m)/s : 0; }
+function average(a){ return a.length? a.reduce((x,y)=>x+(y??0),0)/a.length : 0; }
+function stdev(a,m){ if(!a.length) return 0; let s=0,c=0; for(const v of a){ if(v==null) continue; s+=(v-m)*(v-m); c++; } return c? Math.sqrt(s/c):0; }
+function lastNonNull(a){ for(let i=a.length-1;i>=0;i--){ if(a[i]!=null) return a[i]; } return null; }
 function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
 function detailModel(lh,la,bh,ba,W){
   return `λ ajustadas: H=${lh.toFixed(2)} A=${la.toFixed(2)} | boosts H=${bh.toFixed(2)} A=${ba.toFixed(2)} | pesos (shots=${W.shots}, poss=${W.poss}, corners=${W.corn}, rank=${W.rank}, form=${W.form}, h2h=${W.h2h})`;
 }
 
-// ===== Analizar partido =====
-$("#btnRun").addEventListener("click", ()=> {
+// ====== Analizar ======
+$("#btnRun").addEventListener("click", ()=>{
   try{ analyzeSelectedMatch(); }
-  catch(err){
-    console.error(err);
-    alert("Ocurrió un error al analizar: "+(err?.message||err));
-  }
+  catch(err){ console.error(err); alert("Error al analizar: "+(err?.message||err)); }
 });
-
 function analyzeSelectedMatch(){
-  const home = $("#selHome").value;
-  const away = $("#selAway").value;
+  const home=$("#selHome").value, away=$("#selAway").value;
   if(!home || !away){ alert("Selecciona Local y Visitante."); return; }
-  if(home===away){ alert("Local y Visitante no pueden ser el mismo equipo."); return; }
+  if(home===away){ alert("Local y Visitante no pueden ser iguales."); return; }
 
-  const N = Number($("#paramN").value)||10;
-  const alpha = Number($("#paramAlpha").value)||0.3;
-  const gmax = Math.max(5, Math.min(12, Number($("#paramGMax").value)||8));
-  const Mstreak = Number($("#paramStreak").value)||5;
-  const pMin = Number($("#paramPMin").value)||0.45;
-  const evMin = Number($("#paramEVMin").value)||0.02;
-  const useHA = $("#paramHomeAway").value==="1";
-  const markets = Array.from($("#paramMarkets").selectedOptions).map(o=>o.value);
+  const N=Number($("#paramN").value)||10;
+  const alpha=Number($("#paramAlpha").value)||0.3;
+  const gmax=Math.max(5, Math.min(12, Number($("#paramGMax").value)||8));
+  const Mstreak=Number($("#paramStreak").value)||5;
+  const pMin=Number($("#paramPMin").value)||0.45;
+  const evMin=Number($("#paramEVMin").value)||0.02;
+  const useHA=$("#paramHomeAway").value==="1";
+  const markets=Array.from($("#paramMarkets").selectedOptions).map(o=>o.value);
+  const W={shots:Number($("#wShots").value||0), poss:Number($("#wPoss").value||0),
+           corn:Number($("#wCorn").value||0), rank:Number($("#wRank").value||0),
+           form:Number($("#wForm").value||0), h2h:Number($("#wH2H").value||0)};
 
-  const W = {
-    shots: Number($("#wShots").value||0),
-    poss:  Number($("#wPoss").value||0),
-    corn:  Number($("#wCorn").value||0),
-    rank:  Number($("#wRank").value||0),
-    form:  Number($("#wForm").value||0),
-    h2h:   Number($("#wH2H").value||0),
-  };
-
-  // Historial: si la liga seleccionada casi no tiene datos, caemos a TODO el historial
   const leaguesSel = Array.from($("#league").selectedOptions).map(o=>o.value);
   let past = leaguesSel.length? PAST.filter(r=>leaguesSel.includes(r.League)) : PAST;
-  if(!past.length) past = PAST.slice(); // Fallback seguro
+  if(!past.length) past = PAST.slice();
+  if(!past.length){ alert("No hay historial en el JSON."); return; }
 
-  if(!past.length){ alert("No hay historial en el JSON cargado."); return; }
+  const idx=buildTeamIndex(past);
+  const H=idx[home], A=idx[away];
+  if(!H || !A){ alert("No hay historial suficiente para alguno de los equipos."); return; }
 
-  const idx = buildTeamIndex(past);
-  const H = idx[home], A = idx[away];
-  if(!H || !A){ alert("No hay historial suficiente para alguno de los equipos en esas ligas."); return; }
+  const lg=leagueAverages(past);
+  const sideH=useHA?"H":"ALL", sideA=useHA?"A":"ALL";
+  const hFor=weightedGoalRates(H, sideH, N, alpha);
+  const aFor=weightedGoalRates(A, sideA, N, alpha);
+  let lambdaH=Math.max(hFor.gf,0.05)*Math.max(aFor.ga,0.05)/(lg.muA||1.0);
+  let lambdaA=Math.max(aFor.gf,0.05)*Math.max(hFor.ga,0.05)/(lg.muH||1.0);
 
-  const lg = leagueAverages(past);
+  // Avanzadas
+  const pool=(team,which)=> (which==="H"?team.home:which==="A"?team.away:team.all);
+  const hs=avgRecent(pool(H,sideH),"Home Total Shots at FT","Away Total Shots at FT",N,alpha);
+  const as=avgRecent(pool(A,sideA),"Away Total Shots at FT","Home Total Shots at FT",N,alpha);
+  const diffsShots=past.slice(-Math.min(past.length,1000)).map(r=>(toNum(r["Home Total Shots at FT"])??0)-(toNum(r["Away Total Shots at FT"])??0));
+  const zSH=zScore((hs.for-hs.ag), average(diffsShots), stdev(diffsShots, average(diffsShots)));
+  const zSA=zScore((as.for-as.ag)*-1, -average(diffsShots), stdev(diffsShots, average(diffsShots)));
 
-  // Poisson base
-  const sideH = useHA?"H":"ALL", sideA = useHA?"A":"ALL";
-  const hFor = weightedGoalRates(H, sideH, N, alpha);
-  const aFor = weightedGoalRates(A, sideA, N, alpha);
+  const hp=avgRecent(pool(H,sideH),"Home Ball Possession at FT","Away Ball Possession at FT",N,alpha);
+  const ap=avgRecent(pool(A,sideA),"Away Ball Possession at FT","Home Ball Possession at FT",N,alpha);
+  const diffsPoss=past.slice(-Math.min(past.length,1000)).map(r=>(toNum(r["Home Ball Possession at FT"])??0)-(toNum(r["Away Ball Possession at FT"])??0));
+  const zPH=zScore((hp.for-hp.ag), average(diffsPoss), stdev(diffsPoss, average(diffsPoss)));
+  const zPA=zScore((ap.for-ap.ag)*-1, -average(diffsPoss), stdev(diffsPoss, average(diffsPoss)));
 
-  let lambdaH = Math.max(hFor.gf, 0.05) * Math.max(aFor.ga, 0.05) / (lg.muA || 1.0);
-  let lambdaA = Math.max(aFor.gf, 0.05) * Math.max(hFor.ga, 0.05) / (lg.muH || 1.0);
+  const hc=avgRecent(pool(H,sideH),"Home Corners at FT","Away Corners at FT",N,alpha);
+  const ac=avgRecent(pool(A,sideA),"Away Corners at FT","Home Corners at FT",N,alpha);
+  const diffsCorn=past.slice(-Math.min(past.length,1000)).map(r=>(toNum(r["Home Corners at FT"])??0)-(toNum(r["Away Corners at FT"])??0));
+  const zCH=zScore((hc.for-hc.ag), average(diffsCorn), stdev(diffsCorn, average(diffsCorn)));
+  const zCA=zScore((ac.for-ac.ag)*-1, -average(diffsCorn), stdev(diffsCorn, average(diffsCorn)));
 
-  // ===== Ajustes por estadísticas avanzadas =====
-  const pool = (team, which)=> (which==="H"? team.home : which==="A"? team.away : team.all);
+  const posH=toNum(lastNonNull(pool(H,"ALL").map(r=>r["Home Position"]))) ?? 10;
+  const posA=toNum(lastNonNull(pool(A,"ALL").map(r=>r["Away Position"]))) ?? 10;
+  const zRH=zScore((posA-posH), 0, 6), zRA=-zRH;
 
-  // 1) Tiros
-  const hs = avgRecent(pool(H, sideH), "Home Total Shots at FT","Away Total Shots at FT", N, alpha);
-  const as = avgRecent(pool(A, sideA), "Away Total Shots at FT","Home Total Shots at FT", N, alpha);
-  const diffsShots = past.slice(-Math.min(past.length, 1000)).map(r=> (toNum(r["Home Total Shots at FT"])??0) - (toNum(r["Away Total Shots at FT"])??0) );
-  const meanShots = average(diffsShots), stdShots = stdev(diffsShots, meanShots);
-  const dShotsH = (hs.for - hs.ag), dShotsA = (as.for - as.ag) * -1;
-  const zSH = zScore(dShotsH, meanShots, stdShots), zSA = zScore(dShotsA, -meanShots, stdShots);
+  const fH=formPoints(pool(H,"ALL"),N,alpha).ppg;
+  const fA=formPoints(pool(A,"ALL"),N,alpha).ppg;
+  const zFH=zScore(fH-fA, 0, 1.0);
 
-  // 2) Posesión
-  const hp = avgRecent(pool(H, sideH), "Home Ball Possession at FT","Away Ball Possession at FT", N, alpha);
-  const ap = avgRecent(pool(A, sideA), "Away Ball Possession at FT","Home Ball Possession at FT", N, alpha);
-  const diffsPoss = past.slice(-Math.min(past.length, 1000)).map(r=> (toNum(r["Home Ball Possession at FT"])??0) - (toNum(r["Away Ball Possession at FT"])??0) );
-  const meanPoss = average(diffsPoss), stdPoss = stdev(diffsPoss, meanPoss);
-  const zPH = zScore((hp.for-hp.ag), meanPoss, stdPoss);
-  const zPA = zScore((ap.for-ap.ag)*-1, -meanPoss, stdPoss);
+  const H2Hrows=past.filter(r=> (r.Home===home&&r.Away===away)||(r.Home===away&&r.Away===home)).slice(-5);
+  let h2hDiff=0; H2Hrows.forEach(r=>{ if(r.Home===home){ h2hDiff+=(r._FT_H??0)-(r._FT_A??0);} else { h2hDiff+=(r._FT_A??0)-(r._FT_H??0);} });
+  const zHH=zScore(h2hDiff, 0, 2.0);
 
-  // 3) Corners
-  const hc = avgRecent(pool(H, sideH), "Home Corners at FT","Away Corners at FT", N, alpha);
-  const ac = avgRecent(pool(A, sideA), "Away Corners at FT","Home Corners at FT", N, alpha);
-  const diffsCorn = past.slice(-Math.min(past.length, 1000)).map(r=> (toNum(r["Home Corners at FT"])??0) - (toNum(r["Away Corners at FT"])??0) );
-  const meanCorn = average(diffsCorn), stdCorn = stdev(diffsCorn, meanCorn);
-  const zCH = zScore((hc.for-hc.ag), meanCorn, stdCorn);
-  const zCA = zScore((ac.for-ac.ag)*-1, -meanCorn, stdCorn);
+  const boostH=Math.exp((W.shots*zSH + W.poss*zPH + W.corn*zCH + W.rank*zRH + W.form*zFH + W.h2h*zHH) || 0);
+  const boostA=Math.exp((W.shots*zSA + W.poss*zPA + W.corn*zCA + W.rank*zRA - W.form*zFH - W.h2h*zHH) || 0);
+  lambdaH*=clamp(boostH,0.6,1.6); lambdaA*=clamp(boostA,0.6,1.6);
 
-  // 4) Ranking
-  const posH = toNum(lastNonNull(pool(H,"ALL").map(r=>r["Home Position"]))) ?? 10;
-  const posA = toNum(lastNonNull(pool(A,"ALL").map(r=>r["Away Position"]))) ?? 10;
-  const rankDiff = (posA - posH);
-  const zRH = zScore(rankDiff, 0, 6);
-  const zRA = -zRH;
+  const probs=probsFromLambdas(lambdaH,lambdaA,gmax);
+  const stH=streakStats(H.all,home,Mstreak);
+  const stA=streakStats(A.all,away,Mstreak);
 
-  // 5) Forma
-  const fH = formPoints(pool(H,"ALL"), N, alpha).ppg;
-  const fA = formPoints(pool(A,"ALL"), N, alpha).ppg;
-  const zFH = zScore(fH - fA, 0, 1.0);
+  const o1=toNum($("#odd1").value), ox=toNum($("#oddx").value), o2=toNum($("#odd2").value);
+  const oO25=toNum($("#oddo25").value), oU25=toNum($("#oddu25").value), oBTTS=toNum($("#oddbtts").value);
 
-  // 6) H2H
-  const H2Hrows = past.filter(r=> (r.Home===home && r.Away===away) || (r.Home===away && r.Away===home)).slice(-5);
-  let h2hDiff=0; H2Hrows.forEach(r=>{ if(r.Home===home){ h2hDiff += (r._FT_H??0) - (r._FT_A??0); } else { h2hDiff += (r._FT_A??0) - (r._FT_H??0); } });
-  const zHH = zScore(h2hDiff, 0, 2.0);
-
-  const boostH = Math.exp( Number(W.shots*zSH + W.poss*zPH + W.corn*zCH + W.rank*zRH + W.form*zFH + W.h2h*zHH) || 0 );
-  const boostA = Math.exp( Number(W.shots*zSA + W.poss*zPA + W.corn*zCA + W.rank*zRA - W.form*zFH - W.h2h*zHH) || 0 );
-
-  lambdaH *= clamp(boostH, 0.6, 1.6);
-  lambdaA *= clamp(boostA, 0.6, 1.6);
-
-  // ===== Probabilidades y rachas =====
-  const probs = probsFromLambdas(lambdaH, lambdaA, gmax);
-  const stH = streakStats(H.all, home, Mstreak);
-  const stA = streakStats(A.all, away, Mstreak);
-
-  // cuotas manuales
-  const o1 = toNum($("#odd1").value);
-  const ox = toNum($("#oddx").value);
-  const o2 = toNum($("#odd2").value);
-  const oO25 = toNum($("#oddo25").value);
-  const oU25 = toNum($("#oddu25").value);
-  const oBTTS = toNum($("#oddbtts").value);
-
-  const cand = [];
-  const note = detailModel(lambdaH,lambdaA,boostH,boostA,W);
+  const note=detailModel(lambdaH,lambdaA,boostH,boostA,W);
+  const cand=[];
   if(markets.includes("1X2")){
     pushEV(cand, home+" gana (1)", o1, probs.pH, pMin, evMin, note);
-    pushEV(cand, "Empate (X)",   ox, probs.pD, pMin, evMin, note);
+    pushEV(cand, "Empate (X)", ox, probs.pD, pMin, evMin, note);
     pushEV(cand, away+" gana (2)", o2, probs.pA, pMin, evMin, note);
   }
-  if(markets.includes("O2.5")) pushEV(cand, "Over 2.5", oO25, probs.pO25, pMin, evMin, `TG≈${(lambdaH+lambdaA).toFixed(2)}`);
-  if(markets.includes("U2.5")) pushEV(cand, "Under 2.5", oU25, probs.pU25, pMin, evMin, `TG≈${(lambdaH+lambdaA).toFixed(2)}`);
-  if(markets.includes("BTTS")) pushEV(cand, "BTTS Sí", oBTTS, probs.pBTTS, pMin, evMin, `λH=${lambdaH.toFixed(2)}, λA=${lambdaA.toFixed(2)}`);
+  if(markets.includes("O2.5")) pushEV(cand,"Over 2.5",oO25,probs.pO25,pMin,evMin,`TG≈${(lambdaH+lambdaA).toFixed(2)}`);
+  if(markets.includes("U2.5")) pushEV(cand,"Under 2.5",oU25,probs.pU25,pMin,evMin,`TG≈${(lambdaH+lambdaA).toFixed(2)}`);
+  if(markets.includes("BTTS")) pushEV(cand,"BTTS Sí",oBTTS,probs.pBTTS,pMin,evMin,`λH=${lambdaH.toFixed(2)}, λA=${lambdaA.toFixed(2)}`);
 
   for(const c of cand){
-    const reasons = [];
-    reasons.push(`Rachas ${Mstreak}: ${home} Over≥3 ${(stH.overRate*100).toFixed(0)}%, BTTS ${(stH.bttsRate*100).toFixed(0)}%`);
-    reasons.push(`Rachas ${Mstreak}: ${away} Over≥3 ${(stA.overRate*100).toFixed(0)}%, BTTS ${(stA.bttsRate*100).toFixed(0)}%`);
-    if(lambdaH>lambdaA+0.2) reasons.push("Modelo favorece al local (λH>λA)");
-    if(lambdaA>lambdaH+0.2) reasons.push("Modelo favorece al visitante (λA>λH)");
-    c.reasons = reasons;
-    c.match = `${home} vs ${away}`;
-    c.model = `Poisson gmax=${gmax}, N=${N}, α=${alpha}`;
+    c.match=`${home} vs ${away}`;
+    c.model=`Poisson gmax=${gmax}, N=${N}, α=${alpha}`;
+    c.reasons=[`Rachas ${Mstreak}: ${home} Over≥3 ${(stH.overRate*100).toFixed(0)}%, BTTS ${(stH.bttsRate*100).toFixed(0)}%`,
+               `Rachas ${Mstreak}: ${away} Over≥3 ${(stA.overRate*100).toFixed(0)}%, BTTS ${(stA.bttsRate*100).toFixed(0)}%`,
+               ...(lambdaH>lambdaA+0.2?["Modelo favorece al local (λH>λA)"]:[]),
+               ...(lambdaA>lambdaH+0.2?["Modelo favorece al visitante (λA>λH)"]:[])];
   }
+  cand.sort((a,b)=> (b.EV??-1)-(a.EV??-1));
 
-  cand.sort((a,b)=> (b.EV??-1) - (a.EV??-1));
-
-  // Resumen SIEMPRE visible
   $("#resumen").innerHTML = `
     <span class="chip">λH=${lambdaH.toFixed(2)}</span>
     <span class="chip">λA=${lambdaA.toFixed(2)}</span>
-    <span class="chip">P(1) ${fmtProb(probs.pH)}</span>
-    <span class="chip">P(X) ${fmtProb(probs.pD)}</span>
-    <span class="chip">P(2) ${fmtProb(probs.pA)}</span>
-    <span class="chip">P(O2.5) ${fmtProb(probs.pO25)}</span>
-    <span class="chip">P(BTTS) ${fmtProb(probs.pBTTS)}</span>
+    <span class="chip">P(1) ${(probs.pH*100).toFixed(1)}%</span>
+    <span class="chip">P(X) ${(probs.pD*100).toFixed(1)}%</span>
+    <span class="chip">P(2) ${(probs.pA*100).toFixed(1)}%</span>
+    <span class="chip">P(O2.5) ${(probs.pO25*100).toFixed(1)}%</span>
+    <span class="chip">P(BTTS) ${(probs.pBTTS*100).toFixed(1)}%</span>
   `;
-
   renderRecs(cand);
 }
-
 function pushEV(list, market, odd, p, pMin, evMin, note){
   if(p==null || isNaN(p)) return;
   if(p < pMin) return;
   let EV=null;
   if(odd && odd>1) EV = p*odd - 1;
-  if(odd==null){
-    list.push({Market:market, Odd:"—", P:p, EV:null, Note:note});
-    return;
-  }
+  if(odd==null){ list.push({Market:market, Odd:"—", P:p, EV:null, Note:note}); return; }
   if(EV>=evMin) list.push({Market:market, Odd:odd, P:p, EV:EV, Note:note});
 }
-
 function renderRecs(recs){
-  const tbody = $("#tblRecs tbody"); tbody.innerHTML="";
+  const tbody=$("#tblRecs tbody"); tbody.innerHTML="";
   if(!recs.length){
-    const tr = document.createElement("tr");
-    const td = document.createElement("td");
-    td.colSpan = 7;
-    td.className = "small muted";
-    td.textContent = "No hay recomendaciones que cumplan los filtros. Baja Prob. mínima o EV mínimo, o ingresa cuotas.";
-    tr.appendChild(td); tbody.appendChild(tr);
-    $("#pillRecs").textContent = "Mercados: 0";
-    return;
+    const tr=document.createElement("tr"); const td=document.createElement("td");
+    td.colSpan=7; td.className="small muted";
+    td.textContent="No hay recomendaciones que cumplan los filtros. Ajusta Prob. mínima / EV o ingresa cuotas.";
+    tr.appendChild(td); tbody.appendChild(tr); $("#pillRecs").textContent="Mercados: 0"; return;
   }
   let count=0;
   for(const r of recs){
-    const tr = document.createElement("tr"); tr.className="rec-row";
-    tr.innerHTML = `
+    const tr=document.createElement("tr"); tr.className="rec-row";
+    tr.innerHTML=`
       <td><strong>${r.match||"—"}</strong></td>
       <td><span class="tag">${r.Market}</span></td>
-      <td class="right">${r.Odd=="—"?"—":fmt2(r.Odd)}</td>
-      <td class="right">${fmtProb(r.P)}</td>
-      <td class="right ${r.EV!=null && r.EV>=0? "good":"bad"}">${r.EV==null?"—":fmt2(r.EV)}</td>
+      <td class="right">${r.Odd=="—"?"—":Number(r.Odd).toFixed(2)}</td>
+      <td class="right">${(r.P*100).toFixed(1)}%</td>
+      <td class="right ${(r.EV!=null && r.EV>=0)?"good":"bad"}">${r.EV==null?"—":r.EV.toFixed(2)}</td>
       <td class="small muted">${r.model||""}</td>
       <td class="small">${r.Note? `<em>${r.Note}</em><br>`:""}${(r.reasons||[]).map(x=>`• ${x}`).join("<br>")}</td>
     `;
     tbody.appendChild(tr); count++;
   }
-  $("#pillRecs").textContent = "Mercados: "+count;
+  $("#pillRecs").textContent="Mercados: "+count;
 }
 
-// ===== Exportar mercados =====
+// ====== Exportar ======
 $("#btnExportRecs").addEventListener("click", ()=>{
-  const rows = Array.from($("#tblRecs tbody").children).map(tr=>{
-    const tds = Array.from(tr.children).map(td=>td.innerText);
-    return tds;
-  });
-  if(!rows.length){ alert("No hay mercados para exportar."); return; }
-  const headers = ["Partido","Mercado","Cuota","Prob.","EV","Modelo","Razonamiento"];
-  const lines = [headers.map(csvEscape).join(",")];
-  for(const r of rows) lines.push(r.map(csvEscape).join(","));
-  download("mercados_partido.csv", lines.join("\n"));
-});
-
-})();</script>
-</body>
-</html>
+  const rows = Array.from($("#tblRecs tbody").children).map(tr
