@@ -3,23 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Liga MX – Modo Móvil 📱</title>
+<title>Analizador Liga MX (encabezados sin sticky)</title>
 <style>
   :root{
     --bg:#0e1020; --panel:#161a2e; --panel2:#1d2240; --muted:#a7acc8; --text:#e8eaf2;
     --border:#2a2e4a; --accent:#5dd4a4; --accent2:#7aa2ff; --warn:#ffb84d; --danger:#ff6b6b;
     --chip:#2a2f55; --table:#13172b;
-    --sticky-top: 0px; /* offset para sticky (solo desktop) */
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
-  /* Header: sticky solo en pantallas grandes */
+
+  /* Header: NO sticky (para evitar solapamientos en cualquier dispositivo) */
   header{
-    position:sticky; top:0; z-index:50; padding:14px 16px; border-bottom:1px solid var(--border);
+    position:static; padding:14px 16px; border-bottom:1px solid var(--border);
     background:linear-gradient(180deg, rgba(14,16,32,.98), rgba(14,16,32,.92))
   }
   header h1{margin:0 0 4px;font-size:18px}
   header .sub{color:var(--muted);font-size:12px}
+
   .wrap{max-width:1100px;margin:0 auto;padding:14px 12px 40px}
   .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   .btn{background:var(--accent2);color:#0c1122;border:0;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer;touch-action:manipulation}
@@ -38,13 +39,14 @@
   }
   .pill{font-weight:700;padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:12px}
   .muted{color:var(--muted)} .small{font-size:12px}
+
   table{width:100%;border-collapse:separate;border-spacing:0;background:var(--table);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-  /* Encabezados sticky solo en pantallas grandes */
+  /* Encabezados de tabla: SIN sticky y con fondo sólido para legibilidad */
   thead th{
-    position:sticky; top:var(--sticky-top); z-index:200;
+    position:static;                  /* <- clave: NO sticky */
     background:linear-gradient(180deg,#1a1f3a,#161b33);
     color:var(--muted);font-size:12px;text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);
-    cursor:pointer;white-space:nowrap; box-shadow:0 1px 0 rgba(0,0,0,.35)
+    white-space:nowrap
   }
   tbody td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
   tbody tr:hover{background:#1a1f3a}
@@ -55,30 +57,25 @@
   .tag{display:inline-block;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);font-size:11px;color:var(--muted)}
   .rec-row strong{font-weight:800}
 
-  /* ====== MODO MÓVIL (≤700px) ====== */
+  /* Móvil: todo en una columna y controles accesibles */
   @media (max-width:700px){
-    header{position:static}               /* header deja de ser sticky */
-    thead th{position:static}             /* encabezados de tabla NO sticky */
-    .grid{grid-template-columns: repeat(1,1fr)} /* todo en 1 columna */
-    .btn, .file-label{width:100%}         /* botones grandes y a todo ancho */
+    .grid{grid-template-columns: repeat(1,1fr)}
+    .btn, .file-label{width:100%}
     .bar{gap:8px}
     .wrap{padding:12px 10px 24px}
     .card{padding:10px}
     .field input,.field select{padding:12px 12px;font-size:16px}
-    /* tabla legible en móvil */
     table{font-size:14px}
     tbody td, thead th{padding:10px 10px}
   }
-
-  /* ====== TABLET / DESKTOP (≥701px) ====== */
   @media (min-width:701px){
     .grid{grid-template-columns: repeat(12,1fr)}
   }
 </style>
 </head>
 <body>
-  <header id="pageHeader">
-    <h1>Analizador Liga MX (Optimizado para celular)</h1>
+  <header>
+    <h1>Analizador Liga MX (encabezados corregidos)</h1>
     <div class="sub">1) Carga el JSON • 2) Elige liga(s) • 3) Selecciona Local/Visitante • 4) Analiza</div>
     <div class="bar" style="margin-top:10px">
       <label class="file-label" for="fileInput">📂 Cargar JSON</label>
@@ -153,7 +150,7 @@
             <input id="paramStreak" type="number" min="3" max="15" step="1" value="5" inputmode="numeric">
           </div>
 
-          <div class="field" style="grid-column: span 6;">
+          <div class="field" style="grid-column: span 6%;">
             <label>Prob. mínima</label>
             <input id="paramPMin" type="number" step="0.01" value="0.45" inputmode="decimal">
           </div>
@@ -217,19 +214,6 @@ const $$ = s=>Array.from(document.querySelectorAll(s));
 const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep":8,"sep.":8,"oct.":9,"nov":10,"nov.":10,"dic.":11};
 const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
 
-// Sticky offset (solo hace efecto en desktop; en mobile los encabezados no son sticky)
-function updateStickyOffset(){
-  const w = window.innerWidth || document.documentElement.clientWidth;
-  if(w <= 700){
-    document.documentElement.style.setProperty('--sticky-top', '0px');
-    return;
-  }
-  const h = document.getElementById('pageHeader')?.offsetHeight || 0;
-  document.documentElement.style.setProperty('--sticky-top', h + 'px');
-}
-window.addEventListener('load', updateStickyOffset, {passive:true});
-window.addEventListener('resize', ()=>{ requestAnimationFrame(updateStickyOffset); }, {passive:true});
-
 // Parseos y helpers
 function parseSpanishDate(s){
   if(!s) return null;
@@ -290,7 +274,6 @@ $("#btnReset").addEventListener("click", ()=>{
   $("#resumen").textContent="";
   $("#pillCount").textContent="0 filas"; $("#pillTeams").textContent="Equipos: 0"; $("#pillRecs").textContent="Mercados: 0";
   $("#q").value="";
-  updateStickyOffset();
 });
 
 function loadFromText(txt){
@@ -302,7 +285,6 @@ function loadFromText(txt){
     refreshTeamLists();
     buildBaseTable(); renderBase();
     $("#pillCount").textContent = DATA.length+" filas";
-    updateStickyOffset();
   }catch(err){ alert("No se pudo parsear el JSON: "+err.message); }
 }
 
@@ -361,7 +343,6 @@ function refreshTeamLists(){
 
   $("#pillTeams").textContent = "Equipos: "+teams.length;
   renderBase();
-  updateStickyOffset();
 }
 $("#league").addEventListener("change", ()=>{ refreshTeamLists(); });
 
@@ -422,7 +403,6 @@ function renderBase(){
     }
     tbody.appendChild(tr);
   }
-  updateStickyOffset();
 }
 function norm(v){
   if(v==null) return -Infinity;
@@ -641,7 +621,6 @@ function renderRecs(recs){
     tbody.appendChild(tr); count++;
   }
   $("#pillRecs").textContent = "Mercados: "+count;
-  updateStickyOffset();
 }
 
 // ===== Exportar mercados =====
