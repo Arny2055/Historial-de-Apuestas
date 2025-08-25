@@ -2,68 +2,84 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Liga MX – Ligas → Equipos (sticky arreglado)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Liga MX – Modo Móvil 📱</title>
 <style>
   :root{
     --bg:#0e1020; --panel:#161a2e; --panel2:#1d2240; --muted:#a7acc8; --text:#e8eaf2;
     --border:#2a2e4a; --accent:#5dd4a4; --accent2:#7aa2ff; --warn:#ffb84d; --danger:#ff6b6b;
     --chip:#2a2f55; --table:#13172b;
-    /* Offset dinámico del header para todos los thead sticky */
-    --sticky-top: 0px;
+    --sticky-top: 0px; /* offset para sticky (solo desktop) */
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
+  /* Header: sticky solo en pantallas grandes */
   header{
-    position:sticky; top:0; z-index:50; padding:16px; border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:50; padding:14px 16px; border-bottom:1px solid var(--border);
     background:linear-gradient(180deg, rgba(14,16,32,.98), rgba(14,16,32,.92))
   }
-  header h1{margin:0 0 6px;font-size:20px}
+  header h1{margin:0 0 4px;font-size:18px}
   header .sub{color:var(--muted);font-size:12px}
-  .wrap{max-width:1300px;margin:0 auto;padding:18px 16px 40px}
+  .wrap{max-width:1100px;margin:0 auto;padding:14px 12px 40px}
   .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  .btn{background:var(--accent2);color:#0c1122;border:0;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
+  .btn{background:var(--accent2);color:#0c1122;border:0;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer;touch-action:manipulation}
   .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
   .btn.alt{background:var(--chip);color:var(--text);border:1px solid var(--border)}
   input[type=file]{display:none}
-  .file-label{background:var(--accent2);color:#0c1122;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
+  .file-label{background:var(--accent2);color:#0c1122;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer;touch-action:manipulation}
   .grid{display:grid;gap:12px;grid-template-columns: repeat(12,1fr)}
-  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px}
-  .card h3{margin:0 0 10px;font-size:14px;color:var(--muted);letter-spacing:.02em;text-transform:uppercase}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px}
+  .card h3{margin:0 0 10px;font-size:13px;color:var(--muted);letter-spacing:.02em;text-transform:uppercase}
   .field{display:flex;flex-direction:column;gap:6px}
   .field label{font-size:12px;color:var(--muted)}
-  .field input,.field select{background:var(--panel2);color:var(--text);border:1px solid var(--border);
-    border-radius:8px;padding:8px 9px}
-  .pill{font-weight:700;padding:4px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:12px}
+  .field input,.field select{
+    background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    border-radius:10px;padding:12px 11px;font-size:16px
+  }
+  .pill{font-weight:700;padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:12px}
   .muted{color:var(--muted)} .small{font-size:12px}
   table{width:100%;border-collapse:separate;border-spacing:0;background:var(--table);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-  /* Encabezados sticky: ahora con offset dinámico y z-index alto */
+  /* Encabezados sticky solo en pantallas grandes */
   thead th{
-    position:sticky;
-    top:var(--sticky-top);            /* se ajusta vía JS */
-    z-index:200;                      /* por encima de las filas */
+    position:sticky; top:var(--sticky-top); z-index:200;
     background:linear-gradient(180deg,#1a1f3a,#161b33);
     color:var(--muted);font-size:12px;text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);
-    cursor:pointer;white-space:nowrap;
-    box-shadow: 0 1px 0 rgba(0,0,0,.35); /* línea de separación */
+    cursor:pointer;white-space:nowrap; box-shadow:0 1px 0 rgba(0,0,0,.35)
   }
   tbody td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
   tbody tr:hover{background:#1a1f3a}
   .right{text-align:right}.center{text-align:center}
   .good{color:var(--accent)} .bad{color:var(--danger)}
-  .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip{background:var(--chip);border:1px solid var(--border);padding:6px 8px;border-radius:999px;font-size:12px}
-  .scroll-x{overflow:auto}
+  .scroll-x{overflow:auto;-webkit-overflow-scrolling:touch}
   .tag{display:inline-block;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);font-size:11px;color:var(--muted)}
   .rec-row strong{font-weight:800}
-  @media (max-width:1100px){ .grid{grid-template-columns: repeat(6,1fr)} }
-  @media (max-width:700px){ .grid{grid-template-columns: repeat(2,1fr)} }
+
+  /* ====== MODO MÓVIL (≤700px) ====== */
+  @media (max-width:700px){
+    header{position:static}               /* header deja de ser sticky */
+    thead th{position:static}             /* encabezados de tabla NO sticky */
+    .grid{grid-template-columns: repeat(1,1fr)} /* todo en 1 columna */
+    .btn, .file-label{width:100%}         /* botones grandes y a todo ancho */
+    .bar{gap:8px}
+    .wrap{padding:12px 10px 24px}
+    .card{padding:10px}
+    .field input,.field select{padding:12px 12px;font-size:16px}
+    /* tabla legible en móvil */
+    table{font-size:14px}
+    tbody td, thead th{padding:10px 10px}
+  }
+
+  /* ====== TABLET / DESKTOP (≥701px) ====== */
+  @media (min-width:701px){
+    .grid{grid-template-columns: repeat(12,1fr)}
+  }
 </style>
 </head>
 <body>
   <header id="pageHeader">
-    <h1>Análisis por Partido – Ligas → Equipos</h1>
-    <div class="sub">Selecciona liga(s). Los equipos de Local y Visitante se filtran automáticamente por esas ligas.</div>
+    <h1>Analizador Liga MX (Optimizado para celular)</h1>
+    <div class="sub">1) Carga el JSON • 2) Elige liga(s) • 3) Selecciona Local/Visitante • 4) Analiza</div>
     <div class="bar" style="margin-top:10px">
       <label class="file-label" for="fileInput">📂 Cargar JSON</label>
       <input type="file" id="fileInput" accept=".json,application/json">
@@ -79,40 +95,40 @@
     <div class="grid">
       <!-- Selección de LIGA y PARTIDO -->
       <div class="card" style="grid-column: span 8;">
-        <h3>Selecciona liga(s) y el partido a analizar</h3>
+        <h3>Selecciona liga(s) y partido</h3>
         <div class="grid" style="gap:10px">
           <div class="field" style="grid-column: span 4;">
             <label>Liga(s)</label>
-            <select id="league" multiple size="10"></select>
-            <span class="small muted">Las listas de equipos se filtran según estas ligas.</span>
+            <select id="league" multiple></select>
+            <span class="small muted">→ Local/Visitante se filtran por estas ligas</span>
           </div>
           <div class="field" style="grid-column: span 4;">
             <label>Local (filtrado por liga)</label>
-            <select id="selHome" size="10"></select>
+            <select id="selHome"></select>
           </div>
           <div class="field" style="grid-column: span 4;">
             <label>Visitante (filtrado por liga)</label>
-            <select id="selAway" size="10"></select>
+            <select id="selAway"></select>
           </div>
 
           <div class="field" style="grid-column: span 12;">
-            <div class="bar">
-              <div class="pill">Cuotas (opcional) → se usan para EV</div>
+            <div class="bar" style="gap:8px; margin-bottom:6px">
+              <div class="pill">Cuotas opcionales → para EV</div>
             </div>
-            <div class="grid" style="gap:10px;margin-top:6px">
-              <div class="field" style="grid-column: span 2;"><label>Odd 1</label><input id="odd1" type="number" step="0.01" placeholder="ej. 2.10"></div>
-              <div class="field" style="grid-column: span 2;"><label>Odd X</label><input id="oddx" type="number" step="0.01" placeholder="ej. 3.20"></div>
-              <div class="field" style="grid-column: span 2;"><label>Odd 2</label><input id="odd2" type="number" step="0.01" placeholder="ej. 3.50"></div>
-              <div class="field" style="grid-column: span 2;"><label>Odd Over 2.5</label><input id="oddo25" type="number" step="0.01" placeholder="ej. 1.95"></div>
-              <div class="field" style="grid-column: span 2;"><label>Odd Under 2.5</label><input id="oddu25" type="number" step="0.01" placeholder="ej. 1.85"></div>
-              <div class="field" style="grid-column: span 2;"><label>Odd BTTS Sí</label><input id="oddbtts" type="number" step="0.01" placeholder="ej. 1.90"></div>
+            <div class="grid" style="gap:10px;margin-top:4px">
+              <div class="field" style="grid-column: span 2;"><label>Odd 1</label><input id="odd1" type="number" step="0.01" inputmode="decimal" placeholder="2.10"></div>
+              <div class="field" style="grid-column: span 2;"><label>Odd X</label><input id="oddx" type="number" step="0.01" inputmode="decimal" placeholder="3.20"></div>
+              <div class="field" style="grid-column: span 2;"><label>Odd 2</label><input id="odd2" type="number" step="0.01" inputmode="decimal" placeholder="3.50"></div>
+              <div class="field" style="grid-column: span 2;"><label>Over 2.5</label><input id="oddo25" type="number" step="0.01" inputmode="decimal" placeholder="1.95"></div>
+              <div class="field" style="grid-column: span 2;"><label>Under 2.5</label><input id="oddu25" type="number" step="0.01" inputmode="decimal" placeholder="1.85"></div>
+              <div class="field" style="grid-column: span 2;"><label>BTTS Sí</label><input id="oddbtts" type="number" step="0.01" inputmode="decimal" placeholder="1.90"></div>
             </div>
           </div>
         </div>
         <div class="bar" style="margin-top:10px">
-          <button class="btn" id="btnRun">Analizar partido</button>
-          <button class="btn ghost" id="btnExportRecs">Exportar mercados CSV</button>
-          <span class="muted small">Tip: si no ingresas cuotas, verás probabilidades (EV = —).</span>
+          <button class="btn" id="btnRun">🔍 Analizar partido</button>
+          <button class="btn ghost" id="btnExportRecs">⬇️ Exportar mercados CSV</button>
+          <span class="muted small">Si no ingresas cuotas, verás probabilidades (EV = —).</span>
         </div>
       </div>
 
@@ -122,31 +138,31 @@
         <div class="grid" style="gap:10px">
           <div class="field" style="grid-column: span 6;">
             <label>Partidos recientes (N)</label>
-            <input id="paramN" type="number" min="3" max="30" step="1" value="10">
+            <input id="paramN" type="number" min="3" max="30" step="1" value="10" inputmode="numeric">
           </div>
           <div class="field" style="grid-column: span 6;">
-            <label>Peso recency (0–1) — exponencial</label>
-            <input id="paramAlpha" type="number" min="0" max="1" step="0.05" value="0.30">
+            <label>Peso recency (0–1)</label>
+            <input id="paramAlpha" type="number" min="0" max="1" step="0.05" value="0.30" inputmode="decimal">
           </div>
           <div class="field" style="grid-column: span 6;">
-            <label>Máx. goles en matriz Poisson</label>
-            <input id="paramGMax" type="number" min="4" max="12" step="1" value="8">
+            <label>Máx. goles (gmax)</label>
+            <input id="paramGMax" type="number" min="4" max="12" step="1" value="8" inputmode="numeric">
           </div>
           <div class="field" style="grid-column: span 6;">
-            <label>Ventana rachas (últimos M)</label>
-            <input id="paramStreak" type="number" min="3" max="15" step="1" value="5">
+            <label>Ventana rachas (M)</label>
+            <input id="paramStreak" type="number" min="3" max="15" step="1" value="5" inputmode="numeric">
           </div>
 
           <div class="field" style="grid-column: span 6;">
-            <label>Prob. mínima para mostrar</label>
-            <input id="paramPMin" type="number" step="0.01" value="0.45">
+            <label>Prob. mínima</label>
+            <input id="paramPMin" type="number" step="0.01" value="0.45" inputmode="decimal">
           </div>
           <div class="field" style="grid-column: span 6;">
-            <label>EV mínimo (si hay cuotas)</label>
-            <input id="paramEVMin" type="number" step="0.01" value="0.02">
+            <label>EV mínimo</label>
+            <input id="paramEVMin" type="number" step="0.01" value="0.02" inputmode="decimal">
           </div>
           <div class="field" style="grid-column: span 6;">
-            <label>Mercados a considerar</label>
+            <label>Mercados</label>
             <select id="paramMarkets" multiple size="5">
               <option selected value="1X2">1X2</option>
               <option selected value="O2.5">Over 2.5</option>
@@ -155,9 +171,9 @@
             </select>
           </div>
           <div class="field" style="grid-column: span 6;">
-            <label>Usar medias H/A (más realista)</label>
+            <label>Medias H/A</label>
             <select id="paramHomeAway">
-              <option value="1" selected>Sí</option>
+              <option value="1" selected>Sí (recomendado)</option>
               <option value="0">No (global)</option>
             </select>
           </div>
@@ -166,7 +182,7 @@
 
       <!-- Resultado del análisis -->
       <div class="card" style="grid-column: span 12;">
-        <h3>Resultados para el partido seleccionado</h3>
+        <h3>Resultados del partido</h3>
         <div id="resumen" class="small muted" style="margin-bottom:8px"></div>
         <div class="scroll-x">
           <table id="tblRecs">
@@ -181,7 +197,7 @@
       <!-- Tabla base -->
       <div class="card" style="grid-column: span 12;">
         <h3>Partidos del JSON</h3>
-        <div class="bar small muted">Búsqueda: <input id="q" type="search" placeholder="Equipo, marcador, etiqueta…" style="margin-left:6px;"></div>
+        <div class="bar small muted">Búsqueda: <input id="q" type="search" placeholder="Equipo, marcador, etiqueta…" style="margin-left:6px; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--panel2); color:var(--text)"></div>
         <div class="scroll-x">
           <table id="tblBase">
             <thead id="theadBase"></thead>
@@ -201,15 +217,20 @@ const $$ = s=>Array.from(document.querySelectorAll(s));
 const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep":8,"sep.":8,"oct.":9,"nov":10,"nov.":10,"dic.":11};
 const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
 
-// ===== Sticky OFFSET dinámico (siempre debajo del header) =====
+// Sticky offset (solo hace efecto en desktop; en mobile los encabezados no son sticky)
 function updateStickyOffset(){
+  const w = window.innerWidth || document.documentElement.clientWidth;
+  if(w <= 700){
+    document.documentElement.style.setProperty('--sticky-top', '0px');
+    return;
+  }
   const h = document.getElementById('pageHeader')?.offsetHeight || 0;
   document.documentElement.style.setProperty('--sticky-top', h + 'px');
 }
-window.addEventListener('load', updateStickyOffset);
-window.addEventListener('resize', ()=>{ requestAnimationFrame(updateStickyOffset); });
+window.addEventListener('load', updateStickyOffset, {passive:true});
+window.addEventListener('resize', ()=>{ requestAnimationFrame(updateStickyOffset); }, {passive:true});
 
-// utilidades varias
+// Parseos y helpers
 function parseSpanishDate(s){
   if(!s) return null;
   try{
@@ -620,7 +641,7 @@ function renderRecs(recs){
     tbody.appendChild(tr); count++;
   }
   $("#pillRecs").textContent = "Mercados: "+count;
-  updateStickyOffset(); // asegura que el encabezado quede bien colocado
+  updateStickyOffset();
 }
 
 // ===== Exportar mercados =====
