@@ -1,795 +1,856 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
+<meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+<title>Liga MX — Filtros avanzados para JSON</title>
 <style>
-  /* --- Reset y base --- */
-  *, *::before, *::after { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 0;
-    font-family: 'Inter', sans-serif;
-    background-color: #121214; color: #e1e1e6;
-    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  :root{
+    --bg:#0f1220; --panel:#171a2b; --panel-2:#1f2340; --text:#e8eaf1;
+    --muted:#a8adcb; --accent:#5dd4a4; --accent-2:#79a6ff; --warn:#ffb84d; --danger:#ff6b6b;
+    --chip:#2b2f52; --border:#2a2e4a; --table:#14172a;
   }
-  main { max-width: 1200px; width: 95%; margin: 20px auto 40px auto; flex-grow: 1; }
-  h1, h2 { font-weight: 600; margin-bottom: 0.5rem; color: #8257e6; }
-
-  /* --- Formulario de apuesta --- */
-  form#formApuesta{
-    background-color:#202024; padding:25px 30px; border-radius:10px;
-    box-shadow:0 6px 12px rgba(0,0,0,0.4);
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-    gap:20px 24px; margin-bottom:40px;
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol"}
+  header{padding:18px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:linear-gradient(180deg, rgba(15,18,32,.97), rgba(15,18,32,.90))}
+  header h1{margin:0 0 6px;font-size:20px}
+  header .sub{color:var(--muted);font-size:12px}
+  .wrap{max-width:1400px;margin:0 auto;padding:18px 16px 28px}
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 18px}
+  .btn, .file-label{background:var(--accent-2);color:#0b0e1a;border:0;border-radius:8px;padding:9px 12px;font-weight:600;cursor:pointer}
+  .btn.secondary{background:var(--chip);color:var(--text);border:1px solid var(--border)}
+  .btn.warn{background:var(--warn);color:#1a1305}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  input[type="file"]{display:none}
+  .file-label{display:inline-flex;align-items:center;gap:8px}
+  .grid{display:grid;gap:12px;grid-template-columns: repeat(12,1fr)}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px}
+  .card h3{margin:0 0 10px;font-size:14px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;color:var(--muted)}
+  .field input, .field select, .field textarea{
+    background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;
+    padding:8px 9px;outline:none
   }
-  form#formApuesta label{display:block;font-weight:600;font-size:0.95rem;margin-bottom:6px;color:#c4c4cc;}
-  form#formApuesta input[type="text"],
-  form#formApuesta input[type="number"],
-  form#formApuesta select{
-    width:100%; padding:10px 14px; font-size:1rem; border-radius:8px; border:none;
-    background-color:#121214; color:#e1e1e6; box-shadow:inset 0 0 5px rgb(255 255 255 / 0.1);
-    transition: box-shadow 0.25s ease;
+  .muted{color:var(--muted)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:var(--chip);border:1px solid var(--border);padding:6px 8px;border-radius:999px;font-size:12px}
+  table{width:100%;border-collapse:separate;border-spacing:0;background:var(--table);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  thead th{position:sticky;top:64px;background:linear-gradient(180deg,#1b1f38,#181b31);text-align:left;padding:10px 8px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
+  tbody td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+  tbody tr:hover{background:#1a1f3a}
+  .right{text-align:right}
+  .center{text-align:center}
+  .good{color:var(--accent)}
+  .bad{color:var(--danger)}
+  .sticky-actions{position:sticky;bottom:0;display:flex;gap:8px;justify-content:flex-end;margin-top:10px;padding-top:12px;background:linear-gradient(0deg, rgba(15,18,32,1), rgba(15,18,32,0));}
+  .pill{font-weight:700;padding:4px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:12px}
+  .nowrap{white-space:nowrap}
+  .scroll-x{overflow:auto}
+  .small{font-size:12px}
+  .hidden{display:none !important}
+  @media (max-width:980px){
+    .grid{grid-template-columns: repeat(6,1fr)}
+    thead th{top:96px}
   }
-  form#formApuesta input[type="text"]:focus,
-  form#formApuesta input[type="number"]:focus,
-  form#formApuesta select:focus{outline:none; box-shadow:inset 0 0 8px #8257e6;}
-  form#formApuesta input[readonly]{background-color:#2a2a30; cursor:not-allowed;}
-  form#formApuesta button[type="submit"]{
-    grid-column:1 / -1; background-color:#8257e6; color:#fff; font-weight:700; font-size:1.2rem;
-    padding:14px 20px; border:none; border-radius:10px; cursor:pointer; transition:background-color 0.3s ease;
-    box-shadow:0 6px 10px #6a40d6;
-  }
-  form#formApuesta button[type="submit"]:hover{background-color:#6a40d6;}
-
-  /* --- Sección filtros --- */
-  section.filtros{
-    margin-bottom:30px; display:flex; flex-wrap:wrap; gap:15px 18px;
-    align-items: center;
-  }
-  section.filtros input[type="text"],
-  section.filtros input[type="number"],
-  section.filtros input[type="date"],
-  section.filtros select{
-    min-width:160px; padding:9px 14px; border-radius:8px; border:none;
-    background-color:#121214; color:#e1e1e6; box-shadow:inset 0 0 5px rgb(255 255 255 / 0.1);
-    transition: box-shadow 0.25s ease;
-  }
-  section.filtros input:focus,
-  section.filtros select:focus{outline:none; box-shadow:inset 0 0 8px #8257e6;}
-  #btnLimpiarFiltros{
-    background-color:#ef4444; color:#fff; font-weight:700; border:none; border-radius:10px;
-    cursor:pointer; padding:8px 14px; transition:background-color 0.3s ease;
-  }
-  #btnLimpiarFiltros:hover{background-color:#dc2626;}
-
-  /* --- Botones export/import --- */
-  .botones-utiles{margin-bottom:35px; display:flex; gap:18px; flex-wrap:wrap;}
-  .botones-utiles button{
-    background-color:#8257e6; color:#fff; font-weight:600; border:none; border-radius:10px;
-    cursor:pointer; padding:12px 20px; box-shadow:0 4px 8px #6b45d9; transition:background-color 0.3s ease;
-  }
-  .botones-utiles button:hover{background-color:#6b45d9;}
-  .botones-utiles .btn-danger{background-color:#ef4444; box-shadow:0 4px 8px rgba(239,68,68,.4);}
-  .botones-utiles .btn-danger:hover{background-color:#dc2626;}
-  input[type="file"]{display:none;}
-
-  /* --- Tabla --- */
-  #tablaWrapper{
-    overflow-x:auto; overflow-y:auto; max-height:580px;
-    box-shadow:0 6px 12px rgba(0,0,0,0.4); border-radius:12px;
-  }
-  table#tablaHistorial{width:100%; border-collapse:separate; border-spacing:0 5px; min-width:900px; font-size:0.9rem;}
-  thead th{
-    position:sticky; top:0; background-color:#29292e; color:#bbb; font-weight:700; text-align:left;
-    padding:14px 18px; user-select:none; white-space:nowrap;
-  }
-  tbody tr{background-color:#202024; transition:background-color 0.3s ease;}
-  tbody tr:hover{background-color:#333339;}
-  tbody td{padding:14px 18px; color:#ddd; vertical-align:middle; white-space:nowrap;}
-  .acciones button{background:none; border:none; font-size:1.2rem; margin:0 4px; cursor:pointer; color:#aaa; transition:color 0.2s ease;}
-  .acciones button:hover{color:#8257e6;}
-  .status-pendiente{color:#fbbf24; font-weight:600;}
-  .status-ganada{color:#4caf50; font-weight:600;}
-  .status-perdida{color:#ef4444; font-weight:600;}
-
-  /* --- Resumen estadísticas --- */
-  #resumen{
-    margin-top:40px; background-color:#29292e; border-radius:10px; padding:22px 26px; color:#d4d4d8;
-    font-size:1.05rem; font-weight:600; display:flex; flex-wrap:wrap; gap:28px; justify-content:space-around;
-  }
-  #resumen > div{min-width:140px;}
-  #resumen > div strong{display:block; font-size:1.15rem; color:#8257e6; margin-bottom:6px;}
-
-  /* --- Gráficas --- */
-  #graficas{margin-top:45px; display:flex; flex-direction:column; gap:40px;}
-  canvas{background-color:#202024; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,0.5); max-width:100%; height:320px !important;}
-
-  /* --- Responsive --- */
-  @media (max-width: 900px){
-    form#formApuesta{grid-template-columns:1fr !important;}
-    section.filtros{flex-direction:column !important; gap:15px !important;}
-    .botones-utiles{flex-direction:column; gap:15px;}
-    #resumen{flex-direction:column; gap:20px; text-align:center;}
-    tbody td, thead th{font-size:0.8rem; padding:10px 12px;}
+  @media (max-width:640px){
+    .grid{grid-template-columns: repeat(2,1fr)}
+    thead th{top:144px}
   }
 </style>
 </head>
 <body>
-<main>
-  <h1 style="text-align:center;">Historial Profesional de Apuestas</h1>
+  <header>
+    <h1>Explorador JSON — México Liga MX</h1>
+    <div class="sub">Carga tu archivo JSON, aplica filtros avanzados, ordena columnas y exporta a CSV.</div>
+    <div class="bar">
+      <label class="file-label" for="fileInput">📂 Cargar JSON</label>
+      <input type="file" id="fileInput" accept=".json,application/json" />
+      <button class="btn secondary" id="btnPaste">Pegar JSON</button>
+      <button class="btn ghost" id="btnReset">Limpiar filtros</button>
+      <span class="pill" id="pillCount">0 filas</span>
+      <span class="pill" id="pillAgg">ROI medio: — | Éxito: —</span>
+      <span class="muted small">Consejo: clic en encabezados para ordenar.</span>
+    </div>
+  </header>
 
-  <!-- FORMULARIO -->
-  <form id="formApuesta" autocomplete="off" novalidate aria-label="Formulario para agregar apuesta">
-    <div>
-      <label for="liga">Liga *</label>
-      <input type="text" id="liga" name="liga" placeholder="Ej: LaLiga" required aria-required="true" />
-    </div>
-    <div>
-      <label for="local">Equipo Local *</label>
-      <input type="text" id="local" name="local" placeholder="Ej: Real Madrid" required aria-required="true" />
-    </div>
-    <div>
-      <label for="visita">Equipo Visitante *</label>
-      <input type="text" id="visita" name="visita" placeholder="Ej: Barcelona" required aria-required="true" />
-    </div>
-    <div>
-      <label for="mercado">Mercado *</label>
-      <select id="mercado" name="mercado" required aria-required="true">
-        <option value="" disabled selected>Selecciona mercado</option>
-        <option value="Over 2.5 FT">Over 2.5 FT</option>
-        <option value="Under 2.5 FT">Under 2.5 FT</option>
-        <option value="Ambos Anotan">Ambos Anotan</option>
-        <option value="BTTS NO">BTTS NO</option>
-        <option value="Hándicap">Hándicap</option>
-        <option value=""></option>
-      </select>
-    </div>
-    <div>
-      <label for="probabilidad">Probabilidad (%) *</label>
-      <input type="number" id="probabilidad" name="probabilidad" min="0.01" max="100" step="0.01" placeholder="Ej: 60" required aria-required="true" aria-describedby="descProbabilidad" />
-      <small id="descProbabilidad" style="color:#c4c4cc; font-size:0.8rem;">Ingresa probabilidad estimada entre 0 y 100</small>
-    </div>
-    <div>
-      <label for="cuotaImplicita">Cuota Implícita (calculada automáticamente)</label>
-      <input type="number" id="cuotaImplicita" name="cuotaImplicita" step="0.01" readonly aria-readonly="true" placeholder="Ej: 1.66" />
-    </div>
-    <div>
-      <label for="cuotaBookie">Cuota Bookie (decimal) *</label>
-      <input type="number" id="cuotaBookie" name="cuotaBookie" min="1.01" step="0.01" placeholder="Ej: 1.80" required aria-required="true" />
-    </div>
-    <div>
-      <label for="bankroll">Bankroll *</label>
-      <input type="number" id="bankroll" name="bankroll" min="0.01" step="0.01" placeholder="Ej: 100" value="100" required aria-required="true" />
-    </div>
-    <div>
-      <label for="kellyFrac">Fracción Kelly *</label>
-      <select id="kellyFrac" name="kellyFrac" required aria-required="true">
-        <option value="0.10">10%</option>
-        <option value="0.25" selected>25%</option>
-        <option value="0.33">33%</option>
-        <option value="0.50">50%</option>
-        <option value="1.00">100%</option>
-      </select>
-    </div>
-    <div>
-      <label for="stakePreview">Stake sugerido (preview)</label>
-      <input type="number" id="stakePreview" readonly placeholder="0.00" />
-    </div>
-    <div style="align-self:end;">
-      <button type="submit" aria-label="Agregar apuesta">Agregar apuesta</button>
-    </div>
-  </form>
+  <div class="wrap">
+    <!-- FILTROS -->
+    <div class="grid">
+      <div class="card" style="grid-column: span 12;">
+        <h3>Búsqueda global</h3>
+        <div class="field">
+          <input id="q" type="search" placeholder="Busca en cualquier campo (equipos, liga, marcador, etc.)…" />
+        </div>
+        <div class="chips" id="activeChips"></div>
+      </div>
 
-  <!-- FILTROS -->
-  <section class="filtros" aria-label="Filtros para el historial de apuestas">
-    <input type="text" id="filtroLiga" placeholder="Filtrar por liga..." aria-label="Filtro por liga" />
-    <input type="text" id="filtroLocal" placeholder="Filtrar por local..." aria-label="Filtro por equipo local" />
-    <input type="text" id="filtroVisita" placeholder="Filtrar por visita..." aria-label="Filtro por equipo visitante" />
+      <div class="card" style="grid-column: span 6;">
+        <h3>Fecha y liga</h3>
+        <div class="grid" style="gap:10px">
+          <div class="field" style="grid-column: span 6;">
+            <label>Desde (fecha y hora)</label>
+            <input id="from" type="datetime-local" />
+          </div>
+          <div class="field" style="grid-column: span 6;">
+            <label>Hasta (fecha y hora)</label>
+            <input id="to" type="datetime-local" />
+          </div>
+          <div class="field" style="grid-column: span 6;">
+            <label>Liga</label>
+            <select id="league" multiple size="4"></select>
+          </div>
+          <div class="field" style="grid-column: span 6;">
+            <label>Outcome deseado</label>
+            <select id="desired" multiple size="4"></select>
+          </div>
+        </div>
+      </div>
 
-    <select id="filtroMercado" aria-label="Filtro por mercado">
-      <option value="">Todos los mercados</option>
-      <option value="Over 2.5 FT">Over 2.5 FT</option>
-      <option value="Under 2.5 FT">Under 2.5 FT</option>
-      <option value="Ambos Anotan">Ambos Anotan</option>
-      <option value="BTTS NO">BTTS NO</option>
-      <option value="Hándicap">Hándicap</option>
-      <option value=""></option>
-    </select>
+      <div class="card" style="grid-column: span 6;">
+        <h3>Equipos</h3>
+        <div class="grid" style="gap:10px">
+          <div class="field" style="grid-column: span 6;">
+            <label>Local</label>
+            <select id="homeTeam" multiple size="6"></select>
+          </div>
+          <div class="field" style="grid-column: span 6;">
+            <label>Visitante</label>
+            <select id="awayTeam" multiple size="6"></select>
+          </div>
+          <div class="field" style="grid-column: span 6;">
+            <label>Posición local (min–max)</label>
+            <div class="bar">
+              <input id="homePosMin" type="number" min="1" max="20" placeholder="min" style="width:90px">
+              <input id="homePosMax" type="number" min="1" max="20" placeholder="max" style="width:90px">
+            </div>
+          </div>
+          <div class="field" style="grid-column: span 6;">
+            <label>Posición visitante (min–max)</label>
+            <div class="bar">
+              <input id="awayPosMin" type="number" min="1" max="20" placeholder="min" style="width:90px">
+              <input id="awayPosMax" type="number" min="1" max="20" placeholder="max" style="width:90px">
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <select id="filtroEstado" aria-label="Filtro por estado de apuesta">
-      <option value="">Todos los estados</option>
-      <option value="pendiente">Pendiente</option>
-      <option value="ganada">Ganada</option>
-      <option value="perdida">Perdida</option>
-    </select>
+      <div class="card" style="grid-column: span 12;">
+        <h3>Cuotas & desempeño</h3>
+        <div class="grid" style="gap:10px">
+          <div class="field" style="grid-column: span 3;">
+            <label>Odd (min–max)</label>
+            <div class="bar">
+              <input id="oddMin" type="number" step="0.01" placeholder="min">
+              <input id="oddMax" type="number" step="0.01" placeholder="max">
+            </div>
+          </div>
+          <div class="field" style="grid-column: span 3;">
+            <label>Odd 1 (min–max)</label>
+            <div class="bar">
+              <input id="odd1Min" type="number" step="0.01" placeholder="min">
+              <input id="odd1Max" type="number" step="0.01" placeholder="max">
+            </div>
+          </div>
+          <div class="field" style="grid-column: span 3;">
+            <label>Odd X (min–max)</label>
+            <div class="bar">
+              <input id="oddxMin" type="number" step="0.01" placeholder="min">
+              <input id="oddxMax" type="number" step="0.01" placeholder="max">
+            </div>
+          </div>
+          <div class="field" style="grid-column: span 3;">
+            <label>Odd 2 (min–max)</label>
+            <div class="bar">
+              <input id="odd2Min" type="number" step="0.01" placeholder="min">
+              <input id="odd2Max" type="number" step="0.01" placeholder="max">
+            </div>
+          </div>
 
-    <!-- NUEVOS: filtros por probabilidad -->
-    <input type="number" id="filtroProbMin" placeholder="Prob. mín (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad mínima" />
-    <input type="number" id="filtroProbMax" placeholder="Prob. máx (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad máxima" />
+          <div class="field" style="grid-column: span 3;">
+            <label>% Éxito (min–max)</label>
+            <div class="bar">
+              <input id="srMin" type="number" step="0.01" placeholder="min %">
+              <input id="srMax" type="number" step="0.01" placeholder="max %">
+            </div>
+          </div>
+          <div class="field" style="grid-column: span 3;">
+            <label>ROI (min–max)</label>
+            <div class="bar">
+              <input id="roiMin" type="number" step="0.01" placeholder="min %">
+              <input id="roiMax" type="number" step="0.01" placeholder="max %">
+            </div>
+          </div>
+          <div class="field" style="grid-column: span 3;">
+            <label>Resultado etiqueta</label>
+            <select id="resultTag" multiple size="3">
+              <option value="Winning">Winning</option>
+              <option value="Losing">Losing</option>
+              <option value="">(vacío)</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column: span 3;">
+            <label>Condiciones rápidas</label>
+            <div class="bar" style="gap:12px;flex-wrap:wrap">
+              <label class="small"><input type="checkbox" id="onlyGG"> Ambos anotan (GG)</label>
+              <label class="small"><input type="checkbox" id="noGG"> No GG</label>
+              <label class="small"><input type="checkbox" id="htGoals"> Goles al HT</label>
+              <label class="small"><input type="checkbox" id="ftGoals"> Goles al FT</label>
+              <label class="small"><input type="checkbox" id="hasRed"> Con rojas</label>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <!-- Filtros por fecha -->
-    <input type="date" id="filtroFechaInicio" aria-label="Filtro por fecha inicio" />
-    <input type="date" id="filtroFechaFin" aria-label="Filtro por fecha fin" />
+      <div class="card" style="grid-column: span 12;">
+        <h3>Estadísticas (min–max)</h3>
+        <div class="grid" style="gap:10px">
+          <!-- Una selección representativa; puedes añadir más si quieres -->
+          <div class="field" style="grid-column: span 2;">
+            <label>Attacks Local</label>
+            <div class="bar"><input id="haMin" type="number" placeholder="min"><input id="haMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>Attacks Visitante</label>
+            <div class="bar"><input id="aaMin" type="number" placeholder="min"><input id="aaMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>Danger Local</label>
+            <div class="bar"><input id="hdMin" type="number" placeholder="min"><input id="hdMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>Danger Visitante</label>
+            <div class="bar"><input id="adMin" type="number" placeholder="min"><input id="adMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>On Target Local</label>
+            <div class="bar"><input id="hogMin" type="number" placeholder="min"><input id="hogMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>On Target Visitante</label>
+            <div class="bar"><input id="aogMin" type="number" placeholder="min"><input id="aogMax" type="number" placeholder="max"></div>
+          </div>
 
-    <button id="btnLimpiarFiltros" title="Limpiar filtros" aria-label="Limpiar filtros">✖</button>
-  </section>
+          <div class="field" style="grid-column: span 2;">
+            <label>Tiros Local</label>
+            <div class="bar"><input id="htsMin" type="number" placeholder="min"><input id="htsMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>Tiros Visitante</label>
+            <div class="bar"><input id="atsMin" type="number" placeholder="min"><input id="atsMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>Posesión Local %</label>
+            <div class="bar"><input id="hpMin" type="number" placeholder="min"><input id="hpMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>Posesión Visitante %</label>
+            <div class="bar"><input id="apMin" type="number" placeholder="min"><input id="apMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>Corners Local</label>
+            <div class="bar"><input id="hcMin" type="number" placeholder="min"><input id="hcMax" type="number" placeholder="max"></div>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>Corners Visitante</label>
+            <div class="bar"><input id="acMin" type="number" placeholder="min"><input id="acMax" type="number" placeholder="max"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-  <!-- BOTONES UTILES -->
-  <section class="botones-utiles" aria-label="Exportar o importar historial de apuestas">
-    <button id="btnExportarCSV" title="Exportar historial a CSV">Exportar CSV</button>
-    <button id="btnImportarJSON" title="Importar historial desde archivo JSON">Importar JSON</button>
-    <input type="file" id="inputImportJSON" accept=".json" aria-label="Seleccionar archivo JSON para importar" />
-    <button onclick="location.href='historial_ligas.html'" title="Ver historial por ligas">Historial por Ligas</button>
-    <button onclick="location.href='probabilidades.html'" title="Ver estadísticas por probabilidad">Probabilidades</button>
-    <!-- NUEVO: borrar todo -->
-    <button id="btnEliminarTodo" class="btn-danger" title="Eliminar todo el historial">Eliminar todo</button>
-  </section>
-
-  <!-- TABLA -->
-  <section aria-label="Historial de apuestas registradas">
-    <div id="tablaWrapper">
-      <table role="grid" aria-describedby="tableDescription" id="tablaHistorial" tabindex="0">
-        <caption id="tableDescription" style="text-align:left; margin-bottom:12px; font-weight:700; font-size:1.2rem;">
-          Historial de apuestas agregadas
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Fecha</th>
-            <th scope="col">Liga</th>
-            <th scope="col">Local</th>
-            <th scope="col">Visita</th>
-            <th scope="col">Mercado</th>
-            <th scope="col">Prob (%)</th>
-            <th scope="col">Cuota Implícita</th>
-            <th scope="col">Cuota Bookie</th>
-            <th scope="col">EV (%)</th>
-            <th scope="col">Kelly FULL (%)</th>
-            <th scope="col">Stake sugerido</th>
-            <th scope="col">Estado</th>
-            <th scope="col" aria-label="Acciones">⚙</th>
-          </tr>
-        </thead>
-        <tbody><!-- Contenido generado por JS --></tbody>
+    <!-- TABLA -->
+    <div class="scroll-x">
+      <table id="tbl">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
       </table>
     </div>
-  </section>
+    <div class="sticky-actions">
+      <button class="btn" id="btnExport">Exportar CSV</button>
+      <button class="btn warn" id="btnSaveState">Guardar estado</button>
+      <button class="btn ghost" id="btnLoadState">Cargar estado</button>
+    </div>
+  </div>
 
-  <!-- RESUMEN -->
-  <section id="resumen" aria-label="Resumen estadístico de apuestas">
-    <div><strong>Bankroll inicial:</strong> <span id="resumenBankroll">-</span></div>
-    <div><strong>Número apuestas:</strong> <span id="resumenNumApuestas">0</span></div>
-    <div><strong>Apuestas ganadas:</strong> <span id="resumenGanadas">0</span></div>
-    <div><strong>Apuestas perdidas:</strong> <span id="resumenPerdidas">0</span></div>
-    <div><strong>Yield (%):</strong> <span id="resumenYield">0.00%</span></div>
-    <div><strong>ROI (%):</strong> <span id="resumenROI">0.00%</span></div>
-    <div><strong>Tasa de éxito (%):</strong> <span id="resumenTasaExito">0.00%</span></div>
-    <div><strong>Unidades ganadas:</strong> <span id="resumenUnidades">0.00</span></div>
-  </section>
-
-  <!-- GRAFICAS -->
-  <section id="graficas" aria-label="Gráficas de evolución del bankroll y Kelly">
-    <canvas id="graficaBankroll" aria-label="Gráfica de evolución de bankroll"></canvas>
-    <canvas id="graficaKelly" aria-label="Gráfica de Kelly Full"></canvas>
-  </section>
-</main>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (() => {
-  'use strict';
+  // ======= Utilidades =======
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
 
-  // Constantes y variables
-  const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
+  const MONTH_MAP = {
+    "ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep.":8,"oct.":9,"nov.":10,"dic.":11
+  };
+  const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
 
-  // Elementos DOM
-  const form = document.getElementById('formApuesta');
-  const cuotaImplicitaInput = document.getElementById('cuotaImplicita');
-
-  const filtroLiga = document.getElementById('filtroLiga');
-  const filtroLocal = document.getElementById('filtroLocal');
-  const filtroVisita = document.getElementById('filtroVisita');
-  const filtroMercado = document.getElementById('filtroMercado');
-  const filtroEstado = document.getElementById('filtroEstado');
-  const filtroProbMin = document.getElementById('filtroProbMin'); // NUEVO
-  const filtroProbMax = document.getElementById('filtroProbMax'); // NUEVO
-  const filtroFechaInicio = document.getElementById('filtroFechaInicio');
-  const filtroFechaFin = document.getElementById('filtroFechaFin');
-  const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
-
-  const tablaBody = document.querySelector('#tablaHistorial tbody');
-
-  const resumenBankroll = document.getElementById('resumenBankroll');
-  const resumenNumApuestas = document.getElementById('resumenNumApuestas');
-  const resumenGanadas = document.getElementById('resumenGanadas');
-  const resumenPerdidas = document.getElementById('resumenPerdidas');
-  const resumenYield = document.getElementById('resumenYield');
-  const resumenROI = document.getElementById('resumenROI');
-  const resumenTasaExito = document.getElementById('resumenTasaExito');
-  const resumenUnidades = document.getElementById('resumenUnidades');
-
-  const btnExportarCSV = document.getElementById('btnExportarCSV');
-  const btnImportarJSON = document.getElementById('btnImportarJSON');
-  const inputImportJSON = document.getElementById('inputImportJSON');
-  const btnEliminarTodo = document.getElementById('btnEliminarTodo'); // NUEVO
-
-  const ctxBankroll = document.getElementById('graficaBankroll').getContext('2d');
-  const ctxKelly = document.getElementById('graficaKelly').getContext('2d');
-
-  // Variables para gráficos
-  let graficaBankroll = null;
-  let graficaKelly = null;
-
-  // Array para guardar apuestas
-  let historial = [];
-
-  // Funciones auxiliares
-  function calcularCuotaImplicita(prob) {
-    if (!prob || prob <= 0) return '';
-    return (100 / prob).toFixed(2);
-  }
-  function calcularEV(prob, cuotaBookie) {
-    if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const probDec = prob / 100;
-    return probDec * cuotaBookie - 1;
-  }
-  function calcularKelly(prob, cuotaBookie) {
-    if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const p = prob / 100;
-    return (p * (cuotaBookie - 1) - (1 - p)) / (cuotaBookie - 1);
-  }
-  function stakeSugerido(bankroll, kellyFull, kellyFrac) {
-    if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
-    const stake = bankroll * kellyFull * kellyFrac;
-    return stake > bankroll ? bankroll : stake;
+  function parseSpanishDate(s){
+    // Ej: "vie., 25 jul. 2025 19:00"
+    if(!s) return null;
+    try{
+      let str = String(s).trim().toLowerCase();
+      // quitar día de la semana si está
+      for(const w of WDAYS){ if(str.startsWith(w)) { str = str.replace(w,"").replace(",","").trim(); break; } }
+      // separar partes "25 jul. 2025 19:00"
+      const [dia, mesRaw, anio, hora] = str.split(/\s+/);
+      const m = MONTH_MAP[mesRaw];
+      if(m===undefined) return new Date(s); // fallback
+      const [hh="00", mm="00"] = (hora||"00:00").split(":");
+      return new Date(Number(anio), m, Number(dia), Number(hh), Number(mm));
+    }catch(e){ return new Date(s); }
   }
 
-  // Guardar y cargar localStorage
-  function guardarHistorial() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(historial));
+  function toNumberSafe(x){
+    if(x === null || x === undefined) return null;
+    const str = String(x).trim().replace("%","").replace(",",".");
+    if(str==="") return null;
+    const n = Number(str);
+    return Number.isFinite(n) ? n : null;
   }
-  function cargarHistorial() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-      try { historial = JSON.parse(data); } catch { historial = []; }
+
+  function percent(n){ return (n==null || isNaN(n)) ? "" : (n.toFixed(2)+" %"); }
+
+  function csvEscape(v){
+    if(v==null) return "";
+    const s = String(v);
+    if(s.includes('"') || s.includes(",") || s.includes("\n")) return `"${s.replace(/"/g,'""')}"`;
+    return s;
+  }
+
+  function download(filename, content, mime="text/plain"){
+    const blob = new Blob([content], {type:mime});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function addChip(text, onRemove){
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = text+" ✕";
+    chip.style.cursor = "pointer";
+    chip.title = "Quitar filtro";
+    chip.onclick = onRemove;
+    $("#activeChips").appendChild(chip);
+  }
+
+  // ======= Estado global =======
+  let rawData = [];      // original
+  let data = [];         // normalizada + campos calculados
+  let filtered = [];     // resultado de filtros
+  let sort = { key:null, dir:1 };
+
+  // ======= Campos y columnas =======
+  // Columnas visibles (puedes modificar el orden)
+  const COLUMNS = [
+    {key:"Date", label:"Fecha", fmt:(v,row)=> row._dateObj ? row._dateObj.toLocaleString() : v, align:"left"},
+    {key:"League", label:"Liga"},
+    {key:"Home", label:"Local"},
+    {key:"Away", label:"Visitante"},
+    {key:"Desired Outcome", label:"Outcome"},
+    {key:"Odd", label:"Odd", align:"right"},
+    {key:"Odd 1 PreMatch", label:"Odd 1", align:"right"},
+    {key:"Odd X PreMatch", label:"Odd X", align:"right"},
+    {key:"Odd 2 PreMatch", label:"Odd 2", align:"right"},
+    {key:"Result HT", label:"HT"},
+    {key:"Result FT", label:"FT"},
+    {key:"GG", label:"GG", fmt:(v)=> v ? "Sí":"No", cls:(v)=> v?"good":"bad", align:"center"},
+    {key:"Home Position", label:"Pos L", align:"right"},
+    {key:"Away Position", label:"Pos V", align:"right"},
+    {key:"Success Rate", label:"Éxito", align:"right"},
+    {key:"Overall ROI", label:"ROI", align:"right"},
+    {key:"Home Attacks at FT", label:"Atk L", align:"right"},
+    {key:"Away Attacks at FT", label:"Atk V", align:"right"},
+    {key:"Home Dangerous Attacks at FT", label:"Dang L", align:"right"},
+    {key:"Away Dangerous Attacks at FT", label:"Dang V", align:"right"},
+    {key:"Home OnGoal Shots at FT", label:"OT L", align:"right"},
+    {key:"Away OnGoal Shots at FT", label:"OT V", align:"right"},
+    {key:"Home Total Shots at FT", label:"Tiros L", align:"right"},
+    {key:"Away Total Shots at FT", label:"Tiros V", align:"right"},
+    {key:"Home Ball Possession at FT", label:"Pos L %", align:"right"},
+    {key:"Away Ball Possession at FT", label:"Pos V %", align:"right"},
+    {key:"Home Corners at FT", label:"Cor L", align:"right"},
+    {key:"Away Corners at FT", label:"Cor V", align:"right"},
+    {key:"Home YellowCards at FT", label:"Amar L", align:"right"},
+    {key:"Away YellowCards at FT", label:"Amar V", align:"right"},
+    {key:"Home RedCards at FT", label:"Roja L", align:"right"},
+    {key:"Away RedCards at FT", label:"Roja V", align:"right"},
+    {key:"Result", label:"Etiqueta"}
+  ];
+
+  function buildThead(){
+    const thead = $("#thead"); thead.innerHTML="";
+    const tr = document.createElement("tr");
+    COLUMNS.forEach(col=>{
+      const th = document.createElement("th");
+      th.textContent = col.label;
+      th.className = col.align ? (col.align==="right"?"right":col.align==="center"?"center":"") : "";
+      th.onclick = () => toggleSort(col.key);
+      tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+  }
+
+  function toggleSort(key){
+    if(sort.key===key){ sort.dir *= -1 } else { sort.key = key; sort.dir = 1 }
+    render();
+  }
+
+  function render(){
+    let arr = [...filtered];
+    if(sort.key){
+      const k = sort.key, dir = sort.dir;
+      arr.sort((a,b)=>{
+        const va = normForSort(a[k]), vb = normForSort(b[k]);
+        if(va<vb) return -1*dir;
+        if(va>vb) return 1*dir;
+        return 0;
+      });
+    }
+    const tbody = $("#tbody"); tbody.innerHTML="";
+    const fmt = (col, val, row)=>{
+      let txt = val;
+      if(col.fmt) txt = col.fmt(val,row);
+      if(txt==null) txt = "";
+      const td = document.createElement("td");
+      td.innerHTML = escapeHtml(String(txt));
+      if(col.align) td.classList.add(col.align);
+      if(col.cls){
+        const cls = typeof col.cls==="function" ? col.cls(row[col.key], row) : col.cls;
+        if(cls) td.classList.add(cls);
+      }
+      return td;
+    }
+    for(const row of arr){
+      const tr = document.createElement("tr");
+      for(const col of COLUMNS){
+        tr.appendChild( fmt(col, row[col.key], row) );
+      }
+      tbody.appendChild(tr);
+    }
+    // Badges
+    $("#pillCount").textContent = `${arr.length} filas`;
+    // Agregados simples: ROI y Éxito promedio (ignorando vacíos)
+    const rois = arr.map(r=> toNumberSafe(r["Overall ROI"]) ).filter(v=>v!=null);
+    const srs  = arr.map(r=> toNumberSafe(r["Success Rate"]) ).filter(v=>v!=null);
+    const roiAvg = rois.length ? (rois.reduce((a,b)=>a+b,0)/rois.length) : null;
+    const srAvg  = srs.length ? (srs.reduce((a,b)=>a+b,0)/srs.length) : null;
+    $("#pillAgg").textContent = `ROI medio: ${roiAvg==null?"—":roiAvg.toFixed(2)+" %"} | Éxito: ${srAvg==null?"—":srAvg.toFixed(2)+" %"}`;
+    // Chips
+    $("#activeChips").innerHTML="";
+    buildChipsFromFilters();
+  }
+
+  function normForSort(v){
+    if(v==null) return -Infinity;
+    if(typeof v==="number") return v;
+    if(v instanceof Date) return v.getTime();
+    const s = String(v).trim();
+    const num = toNumberSafe(s.replace("%",""));
+    return num!=null ? num : s.toLowerCase();
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // ======= Carga de datos =======
+  $("#fileInput").addEventListener("change", async (e)=>{
+    const file = e.target.files?.[0];
+    if(!file) return;
+    const txt = await file.text();
+    loadFromText(txt);
+  });
+
+  $("#btnPaste").addEventListener("click", async ()=>{
+    const txt = prompt("Pega aquí el JSON (array de objetos) y acepta:");
+    if(!txt) return;
+    loadFromText(txt);
+  });
+
+  function loadFromText(txt){
+    try{
+      rawData = JSON.parse(txt);
+      data = rawData.map(augmentRow);
+      populateFilterOptions();
+      applyFilters();
+      buildThead();
+      render();
+    }catch(err){
+      alert("No se pudo parsear el JSON. Asegúrate de pegar/cargar un array de objetos válido.\n\n"+err.message);
     }
   }
 
-  // Limpiar filtros (incluye probabilidad)
-  function limpiarFiltros() {
-    filtroLiga.value = '';
-    filtroLocal.value = '';
-    filtroVisita.value = '';
-    filtroMercado.value = '';
-    filtroEstado.value = '';
-    filtroProbMin.value = '';
-    filtroProbMax.value = '';
-    filtroFechaInicio.value = '';
-    filtroFechaFin.value = '';
+  function augmentRow(r){
+    const row = {...r};
+    // Split equipos desde "Match": "Puebla - Santos Laguna"
+    if(row.Match && typeof row.Match==="string" && row.Match.includes(" - ")){
+      const [home, away] = row.Match.split(" - ").map(s=>s.trim());
+      row.Home = home; row.Away = away;
+    }else{
+      row.Home = row.Home || ""; row.Away = row.Away || "";
+    }
+    // Fechas
+    row._dateObj = parseSpanishDate(row.Date);
+    // Parse marcadores
+    const [hth,hta] = parseScore(row["Result HT"]);
+    const [fth,fta] = parseScore(row["Result FT"]);
+    row._HT_H = hth; row._HT_A = hta; row._FT_H = fth; row._FT_A = fta;
+    row.GG = (fth!=null && fta!=null) ? (fth>0 && fta>0) : null;
+
+    // Normalizaciones numéricas
+    const numFields = [
+      "Odd","Odd 1 PreMatch","Odd X PreMatch","Odd 2 PreMatch",
+      "Home Position","Away Position",
+      "Home Attacks at FT","Away Attacks at FT",
+      "Home Dangerous Attacks at FT","Away Dangerous Attacks at FT",
+      "Home OnGoal Shots at FT","Away OnGoal Shots at FT",
+      "Home Total Shots at FT","Away Total Shots at FT",
+      "Home Ball Possession at FT","Away Ball Possession at FT",
+      "Home Corners at FT","Away Corners at FT",
+      "Home YellowCards at FT","Away YellowCards at FT",
+      "Home RedCards at FT","Away RedCards at FT"
+    ];
+    for(const k of numFields){
+      const v = row[k];
+      row[k] = toNumberSafe(v);
+    }
+    // Porcentajes: Success Rate / Overall ROI — mantener cadena con %
+    row["Success Rate"] = row["Success Rate"] ?? "";
+    row["Overall ROI"] = row["Overall ROI"] ?? "";
+    return row;
   }
 
-  // Filtrar apuestas (se agregó rango de probabilidad)
-  function filtrarHistorial() {
-    return historial.filter(a => {
-      if (filtroLiga.value && !a.liga.toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
-      if (filtroLocal.value && !a.local.toLowerCase().includes(filtroLocal.value.toLowerCase())) return false;
-      if (filtroVisita.value && !a.visita.toLowerCase().includes(filtroVisita.value.toLowerCase())) return false;
-      if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
-      if (filtroEstado.value && a.estado !== filtroEstado.value) return false;
+  function parseScore(s){
+    if(!s) return [null,null];
+    const m = String(s).trim().match(/^(\d+)\s*-\s*(\d+)$/);
+    if(!m) return [null,null];
+    return [Number(m[1]), Number(m[2])];
+  }
 
-      // Rango de probabilidad
-      const p = Number(a.probabilidad) || 0;
-      const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
-      const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
-      if (min !== null && p < min) return false;
-      if (max !== null && p > max) return false;
+  function populateFilterOptions(){
+    fillMulti($("#league"), unique(data.map(x=>x.League).filter(Boolean)));
+    fillMulti($("#desired"), unique(data.map(x=>x["Desired Outcome"]).filter(Boolean)));
+    fillMulti($("#homeTeam"), unique(data.map(x=>x.Home).filter(Boolean)));
+    fillMulti($("#awayTeam"), unique(data.map(x=>x.Away).filter(Boolean)));
+  }
 
-      // Rango de fechas
-      if (filtroFechaInicio.value) {
-        const fechaIni = new Date(filtroFechaInicio.value);
-        if (new Date(a.fecha) < fechaIni) return false;
+  function fillMulti(select, values){
+    select.innerHTML="";
+    values.sort((a,b)=> String(a).localeCompare(String(b),'es',{sensitivity:'base'}));
+    for(const v of values){
+      const opt = document.createElement("option");
+      opt.value = v; opt.textContent = v;
+      select.appendChild(opt);
+    }
+  }
+
+  const unique = arr => Array.from(new Set(arr));
+
+  // ======= Filtros =======
+  const filterInputs = [
+    "#q","#from","#to",
+    "#league","#desired","#homeTeam","#awayTeam",
+    "#homePosMin","#homePosMax","#awayPosMin","#awayPosMax",
+    "#oddMin","#oddMax","#odd1Min","#odd1Max","#oddxMin","#oddxMax","#odd2Min","#odd2Max",
+    "#srMin","#srMax","#roiMin","#roiMax",
+    "#onlyGG","#noGG","#htGoals","#ftGoals","#hasRed",
+    "#haMin","#haMax","#aaMin","#aaMax",
+    "#hdMin","#hdMax","#adMin","#adMax",
+    "#hogMin","#hogMax","#aogMin","#aogMax",
+    "#htsMin","#htsMax","#atsMin","#atsMax",
+    "#hpMin","#hpMax","#apMin","#apMax",
+    "#hcMin","#hcMax","#acMin","#acMax",
+    "#resultTag"
+  ];
+  filterInputs.forEach(sel=>{
+    const el = $(sel);
+    const evt = (el.tagName==="SELECT" || el.type==="checkbox") ? "change" : "input";
+    el.addEventListener(evt, ()=>{ applyFilters(); render(); });
+  });
+
+  $("#btnReset").addEventListener("click", ()=>{
+    filterInputs.forEach(sel=>{
+      const el = $(sel);
+      if(el.tagName==="SELECT"){ Array.from(el.options).forEach(o=>o.selected=false); }
+      else if(el.type==="checkbox"){ el.checked=false; }
+      else el.value="";
+    });
+    sort = {key:null, dir:1};
+    applyFilters(); render();
+  });
+
+  function inRange(val, min, max){
+    if(val==null || isNaN(val)) return false;
+    if(min!=null && val < min) return false;
+    if(max!=null && val > max) return false;
+    return true;
+  }
+
+  function inRangeOptional(val, min, max){
+    if(min==null && max==null) return true;
+    return inRange(val, min, max);
+  }
+
+  function multiSelOk(val, selectEl){
+    const picks = Array.from(selectEl.selectedOptions).map(o=>o.value);
+    if(picks.length===0) return true;
+    return picks.includes(val);
+  }
+
+  function applyFilters(){
+    const q = $("#q").value.trim().toLowerCase();
+    const from = $("#from").value ? new Date($("#from").value) : null;
+    const to   = $("#to").value   ? new Date($("#to").value)   : null;
+
+    const pos = {
+      hMin: toNumberSafe($("#homePosMin").value),
+      hMax: toNumberSafe($("#homePosMax").value),
+      aMin: toNumberSafe($("#awayPosMin").value),
+      aMax: toNumberSafe($("#awayPosMax").value),
+    };
+
+    const odds = {
+      oMin: toNumberSafe($("#oddMin").value),
+      oMax: toNumberSafe($("#oddMax").value),
+      o1Min: toNumberSafe($("#odd1Min").value),
+      o1Max: toNumberSafe($("#odd1Max").value),
+      oxMin: toNumberSafe($("#oddxMin").value),
+      oxMax: toNumberSafe($("#oddxMax").value),
+      o2Min: toNumberSafe($("#odd2Min").value),
+      o2Max: toNumberSafe($("#odd2Max").value),
+    };
+
+    const perf = {
+      srMin: toNumberSafe($("#srMin").value),
+      srMax: toNumberSafe($("#srMax").value),
+      roiMin: toNumberSafe($("#roiMin").value),
+      roiMax: toNumberSafe($("#roiMax").value),
+    };
+
+    const quick = {
+      onlyGG: $("#onlyGG").checked,
+      noGG: $("#noGG").checked,
+      htGoals: $("#htGoals").checked,
+      ftGoals: $("#ftGoals").checked,
+      hasRed: $("#hasRed").checked,
+    };
+
+    const stats = {
+      haMin: toNumberSafe($("#haMin").value), haMax: toNumberSafe($("#haMax").value),
+      aaMin: toNumberSafe($("#aaMin").value), aaMax: toNumberSafe($("#aaMax").value),
+      hdMin: toNumberSafe($("#hdMin").value), hdMax: toNumberSafe($("#hdMax").value),
+      adMin: toNumberSafe($("#adMin").value), adMax: toNumberSafe($("#adMax").value),
+      hogMin: toNumberSafe($("#hogMin").value), hogMax: toNumberSafe($("#hogMax").value),
+      aogMin: toNumberSafe($("#aogMin").value), aogMax: toNumberSafe($("#aogMax").value),
+      htsMin: toNumberSafe($("#htsMin").value), htsMax: toNumberSafe($("#htsMax").value),
+      atsMin: toNumberSafe($("#atsMin").value), atsMax: toNumberSafe($("#atsMax").value),
+      hpMin: toNumberSafe($("#hpMin").value), hpMax: toNumberSafe($("#hpMax").value),
+      apMin: toNumberSafe($("#apMin").value), apMax: toNumberSafe($("#apMax").value),
+      hcMin: toNumberSafe($("#hcMin").value), hcMax: toNumberSafe($("#hcMax").value),
+      acMin: toNumberSafe($("#acMin").value), acMax: toNumberSafe($("#acMax").value),
+    };
+
+    filtered = data.filter(r=>{
+      // texto global
+      if(q){
+        const blob = JSON.stringify(r).toLowerCase();
+        if(!blob.includes(q)) return false;
       }
-      if (filtroFechaFin.value) {
-        const fechaFin = new Date(filtroFechaFin.value);
-        fechaFin.setHours(23, 59, 59, 999);
-        if (new Date(a.fecha) > fechaFin) return false;
+      // fecha
+      if(from && r._dateObj && r._dateObj < from) return false;
+      if(to && r._dateObj && r._dateObj > to) return false;
+
+      // selects
+      if(!multiSelOk(r.League, $("#league"))) return false;
+      if(!multiSelOk(r["Desired Outcome"], $("#desired"))) return false;
+      if(!multiSelOk(r.Home, $("#homeTeam"))) return false;
+      if(!multiSelOk(r.Away, $("#awayTeam"))) return false;
+      if(!multiSelOk(r.Result, $("#resultTag"))) return false;
+
+      // posiciones
+      if(!inRangeOptional(toNumberSafe(r["Home Position"]), pos.hMin, pos.hMax)) return false;
+      if(!inRangeOptional(toNumberSafe(r["Away Position"]), pos.aMin, pos.aMax)) return false;
+
+      // odds
+      if(!inRangeOptional(r.Odd, odds.oMin, odds.oMax)) return false;
+      if(!inRangeOptional(r["Odd 1 PreMatch"], odds.o1Min, odds.o1Max)) return false;
+      if(!inRangeOptional(r["Odd X PreMatch"], odds.oxMin, odds.oxMax)) return false;
+      if(!inRangeOptional(r["Odd 2 PreMatch"], odds.o2Min, odds.o2Max)) return false;
+
+      // performance
+      const sr = toNumberSafe(r["Success Rate"]);
+      const roi = toNumberSafe(r["Overall ROI"]);
+      if((perf.srMin!=null && (sr==null || sr < perf.srMin)) || (perf.srMax!=null && (sr==null || sr > perf.srMax))) return false;
+      if((perf.roiMin!=null && (roi==null || roi < perf.roiMin)) || (perf.roiMax!=null && (roi==null || roi > perf.roiMax))) return false;
+
+      // checks rápidos
+      if(quick.onlyGG && !r.GG) return false;
+      if(quick.noGG && (r.GG===true)) return false;
+      if(quick.htGoals && !((r._HT_H??0)+(r._HT_A??0) > 0)) return false;
+      if(quick.ftGoals && !((r._FT_H??0)+(r._FT_A??0) > 0)) return false;
+      if(quick.hasRed){
+        const rl = toNumberSafe(r["Home RedCards at FT"])||0;
+        const ra = toNumberSafe(r["Away RedCards at FT"])||0;
+        if((rl+ra)<=0) return false;
       }
+
+      // stats
+      if(!inRangeOptional(r["Home Attacks at FT"], stats.haMin, stats.haMax)) return false;
+      if(!inRangeOptional(r["Away Attacks at FT"], stats.aaMin, stats.aaMax)) return false;
+      if(!inRangeOptional(r["Home Dangerous Attacks at FT"], stats.hdMin, stats.hdMax)) return false;
+      if(!inRangeOptional(r["Away Dangerous Attacks at FT"], stats.adMin, stats.adMax)) return false;
+      if(!inRangeOptional(r["Home OnGoal Shots at FT"], stats.hogMin, stats.hogMax)) return false;
+      if(!inRangeOptional(r["Away OnGoal Shots at FT"], stats.aogMin, stats.aogMax)) return false;
+      if(!inRangeOptional(r["Home Total Shots at FT"], stats.htsMin, stats.htsMax)) return false;
+      if(!inRangeOptional(r["Away Total Shots at FT"], stats.atsMin, stats.atsMax)) return false;
+      if(!inRangeOptional(r["Home Ball Possession at FT"], stats.hpMin, stats.hpMax)) return false;
+      if(!inRangeOptional(r["Away Ball Possession at FT"], stats.apMin, stats.apMax)) return false;
+      if(!inRangeOptional(r["Home Corners at FT"], stats.hcMin, stats.hcMax)) return false;
+      if(!inRangeOptional(r["Away Corners at FT"], stats.acMin, stats.acMax)) return false;
+
       return true;
     });
   }
 
-  // Renderizar tabla
-  function renderizarTabla() {
-    const apuestas = filtrarHistorial().slice().reverse();
-    tablaBody.innerHTML = '';
-    apuestas.forEach((a, i) => {
-      const tr = document.createElement('tr');
+  function buildChipsFromFilters(){
+    const chips = [];
 
-      const tdIndex = document.createElement('td'); tdIndex.textContent = i + 1; tr.appendChild(tdIndex);
+    function selToChips(id,label){
+      const el = $(id);
+      const opts = Array.from(el.selectedOptions).map(o=>o.value);
+      if(opts.length){
+        chips.push([`${label}: ${opts.join(", ")}`, ()=>{ Array.from(el.options).forEach(o=>o.selected=false); applyFilters(); render(); }]);
+      }
+    }
 
-      const tdFecha = document.createElement('td');
-      tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
-      tr.appendChild(tdFecha);
+    function valChip(id,label){
+      const el = $(id);
+      if(el.value){
+        chips.push([`${label}: ${el.value}`, ()=>{ el.value=""; applyFilters(); render(); }]);
+      }
+    }
 
-      // LIGA editable con doble clic
-      const tdLiga = document.createElement('td');
-      tdLiga.textContent = a.liga;
-      tdLiga.addEventListener('dblclick', () => {
-        const input = document.createElement('input');
-        input.type = 'text'; input.value = a.liga; input.style.width = "100%";
-        tdLiga.textContent = ''; tdLiga.appendChild(input); input.focus();
-        input.addEventListener('blur', () => { a.liga = input.value.trim() || a.liga; guardarHistorial(); actualizarVista(); });
-        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+    function rangeChip(minId,maxId,label){
+      const min = $(minId).value, max = $(maxId).value;
+      if(min || max){
+        chips.push([`${label}: ${min||"−∞"}..${max||"∞"}`, ()=>{ $(minId).value=""; $(maxId).value=""; applyFilters(); render(); }]);
+      }
+    }
+
+    selToChips("#league","Liga");
+    selToChips("#desired","Outcome");
+    selToChips("#homeTeam","Local");
+    selToChips("#awayTeam","Visitante");
+    selToChips("#resultTag","Etiqueta");
+
+    if($("#from").value || $("#to").value){
+      chips.push([`Fecha: ${$("#from").value||"—"} → ${$("#to").value||"—"}`, ()=>{
+        $("#from").value=""; $("#to").value=""; applyFilters(); render();
+      }]);
+    }
+    if($("#q").value){
+      chips.push([`Buscar: “${$("#q").value}”`, ()=>{ $("#q").value=""; applyFilters(); render(); }]);
+    }
+
+    // rangos
+    rangeChip("#homePosMin","#homePosMax","Pos L");
+    rangeChip("#awayPosMin","#awayPosMax","Pos V");
+    rangeChip("#oddMin","#oddMax","Odd");
+    rangeChip("#odd1Min","#odd1Max","Odd1");
+    rangeChip("#oddxMin","#oddxMax","OddX");
+    rangeChip("#odd2Min","#odd2Max","Odd2");
+    rangeChip("#srMin","#srMax","Éxito %");
+    rangeChip("#roiMin","#roiMax","ROI %");
+
+    rangeChip("#haMin","#haMax","Atk L");
+    rangeChip("#aaMin","#aaMax","Atk V");
+    rangeChip("#hdMin","#hdMax","Dang L");
+    rangeChip("#adMin","#adMax","Dang V");
+    rangeChip("#hogMin","#hogMax","OT L");
+    rangeChip("#aogMin","#aogMax","OT V");
+    rangeChip("#htsMin","#htsMax","Tiros L");
+    rangeChip("#atsMin","#atsMax","Tiros V");
+    rangeChip("#hpMin","#hpMax","Pos L%");
+    rangeChip("#apMin","#apMax","Pos V%");
+    rangeChip("#hcMin","#hcMax","Cor L");
+    rangeChip("#acMin","#acMax","Cor V");
+
+    // checks
+    [["#onlyGG","GG"],["#noGG","No GG"],["#htGoals","Goles HT"],["#ftGoals","Goles FT"],["#hasRed","Con rojas"]]
+      .forEach(([id, label])=>{
+        if($(id).checked){
+          chips.push([label, ()=>{ $(id).checked=false; applyFilters(); render(); }]);
+        }
       });
-      tr.appendChild(tdLiga);
 
-      const tdLocal = document.createElement('td'); tdLocal.textContent = a.local; tr.appendChild(tdLocal);
-      const tdVisita = document.createElement('td'); tdVisita.textContent = a.visita; tr.appendChild(tdVisita);
-      const tdMercado = document.createElement('td'); tdMercado.textContent = a.mercado; tr.appendChild(tdMercado);
-
-      const tdProb = document.createElement('td'); tdProb.textContent = a.probabilidad.toFixed(2); tr.appendChild(tdProb);
-
-      const tdCuotaImpl = document.createElement('td');
-      tdCuotaImpl.textContent = a.cuotaImplicita ? a.cuotaImplicita.toFixed(2) : calcularCuotaImplicita(a.probabilidad);
-      tr.appendChild(tdCuotaImpl);
-
-      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = a.cuotaBookie.toFixed(2); tr.appendChild(tdCuotaBookie);
-
-      const tdEV = document.createElement('td');
-      tdEV.textContent = (a.ev * 100).toFixed(2);
-      tdEV.style.color = a.ev >= 0 ? '#4caf50' : '#ef4444';
-      tr.appendChild(tdEV);
-
-      const tdKelly = document.createElement('td');
-      tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(2) : '-';
-      tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
-      tr.appendChild(tdKelly);
-
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      const tdStake = document.createElement('td'); tdStake.textContent = stake.toFixed(2); tr.appendChild(tdStake);
-
-      const tdEstado = document.createElement('td');
-      tdEstado.textContent = a.estado; tdEstado.className = `status-${a.estado}`; tr.appendChild(tdEstado);
-
-      const tdAcciones = document.createElement('td'); tdAcciones.className = 'acciones';
-      const btnGanada = document.createElement('button'); btnGanada.title='Marcar como ganada'; btnGanada.innerHTML='✅';
-      btnGanada.addEventListener('click', () => cambiarEstado(a.id, 'ganada'));
-      const btnPerdida = document.createElement('button'); btnPerdida.title='Marcar como perdida'; btnPerdida.innerHTML='❌';
-      btnPerdida.addEventListener('click', () => cambiarEstado(a.id, 'perdida'));
-      const btnPendiente = document.createElement('button'); btnPendiente.title='Marcar como pendiente'; btnPendiente.innerHTML='⏳';
-      btnPendiente.addEventListener('click', () => cambiarEstado(a.id, 'pendiente'));
-      const btnBorrar = document.createElement('button'); btnBorrar.title='Eliminar apuesta'; btnBorrar.innerHTML='🗑️';
-      btnBorrar.addEventListener('click', () => eliminarApuesta(a.id));
-      tdAcciones.append(btnGanada, btnPerdida, btnPendiente, btnBorrar);
-      tr.appendChild(tdAcciones);
-
-      tablaBody.appendChild(tr);
-    });
+    // Pintar
+    for(const [t,rem] of chips) addChip(t, rem);
   }
 
-  // Cambiar estado apuesta
-  function cambiarEstado(id, nuevoEstado) {
-    const index = historial.findIndex(a => a.id === id);
-    if (index !== -1) {
-      historial[index].estado = nuevoEstado;
-      guardarHistorial();
-      actualizarVista();
+  // ======= Export/State =======
+  $("#btnExport").addEventListener("click", ()=>{
+    const rows = filtered;
+    if(!rows.length){ alert("No hay filas para exportar."); return; }
+    const headers = COLUMNS.map(c=>c.label);
+    const keys = COLUMNS.map(c=>c.key);
+    const lines = [];
+    lines.push(headers.map(csvEscape).join(","));
+    for(const r of rows){
+      const arr = keys.map(k=>{
+        let v = r[k];
+        if(k==="Date" && r._dateObj) v = r._dateObj.toISOString();
+        if(k==="GG") v = r.GG==null?"":(r.GG?"Sí":"No");
+        return csvEscape(v==null?"":v);
+      });
+      lines.push(arr.join(","));
     }
-  }
-
-  // Eliminar apuesta
-  function eliminarApuesta(id) {
-    if (!confirm('¿Estás seguro de eliminar esta apuesta?')) return;
-    historial = historial.filter(a => a.id !== id);
-    guardarHistorial();
-    actualizarVista();
-  }
-
-  // ---- NUEVO: Eliminar TODO el historial ----
-  btnEliminarTodo.addEventListener('click', () => {
-    if (!confirm('⚠️ ¿Seguro que quieres eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
-    historial = [];
-    localStorage.removeItem(STORAGE_KEY);
-    actualizarVista();
-    alert('Historial eliminado ✅');
+    download("liga_mx_filtrado.csv", lines.join("\n"), "text/csv;charset=utf-8");
   });
 
-  // Actualizar resumen estadístico
-  function actualizarResumen() {
-    const apuestasFiltradas = filtrarHistorial();
-    if (apuestasFiltradas.length === 0) {
-      resumenBankroll.textContent = '-';
-      resumenNumApuestas.textContent = '0';
-      resumenGanadas.textContent = '0';
-      resumenPerdidas.textContent = '0';
-      resumenYield.textContent = '0.00%';
-      resumenROI.textContent = '0.00%';
-      resumenTasaExito.textContent = '0.00%';
-      resumenUnidades.textContent = '0.00';
-      return;
-    }
-
-    const bankrollInicial = apuestasFiltradas[0].bankroll || 0;
-    resumenBankroll.textContent = bankrollInicial.toFixed(2);
-
-    const numApuestas = apuestasFiltradas.length;
-    resumenNumApuestas.textContent = numApuestas;
-
-    const ganadas = apuestasFiltradas.filter(a => a.estado === 'ganada').length;
-    const perdidas = apuestasFiltradas.filter(a => a.estado === 'perdida').length;
-    resumenGanadas.textContent = ganadas;
-    resumenPerdidas.textContent = perdidas;
-
-    const tasaExito = numApuestas > 0 ? (ganadas / numApuestas) * 100 : 0;
-    resumenTasaExito.textContent = tasaExito.toFixed(2) + '%';
-
-    // Yield: (Ganancias netas / total apostado) * 100
-    let totalGanado = 0;
-    let totalApostado = 0;
-    apuestasFiltradas.forEach(a => {
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      totalApostado += stake;
-      if (a.estado === 'ganada') totalGanado += stake * a.cuotaBookie;
-    });
-    const neto = totalGanado - totalApostado;
-    const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
-    resumenYield.textContent = yieldPct.toFixed(2) + '%';
-
-    // ROI: (Ganancia neta / bankroll inicial) * 100
-    const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
-    resumenROI.textContent = roiPct.toFixed(2) + '%';
-    resumenUnidades.textContent = neto.toFixed(2);
-  }
-
-  // Actualizar gráficas
-  function actualizarGraficas() {
-    const apuestasFiltradas = filtrarHistorial();
-
-    if (graficaBankroll) graficaBankroll.destroy();
-    if (graficaKelly) graficaKelly.destroy();
-
-    if (apuestasFiltradas.length === 0) return;
-
-    // Datos para gráfica de bankroll
-    let bankInicial = apuestasFiltradas[0].bankroll || 100;
-    let bankData = [bankInicial];
-    let labels = ['Inicio'];
-
-    apuestasFiltradas.forEach((a, i) => {
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      let lastBank = bankData[bankData.length - 1];
-      let nuevoBank = lastBank;
-      if (a.estado === 'ganada') {
-        nuevoBank += stake * (a.cuotaBookie - 1);
-      } else if (a.estado === 'perdida') {
-        nuevoBank -= stake;
+  $("#btnSaveState").addEventListener("click", ()=>{
+    const state = {};
+    for(const sel of filterInputs){
+      const el = $(sel);
+      if(el.tagName==="SELECT"){
+        state[sel] = Array.from(el.selectedOptions).map(o=>o.value);
+      }else if(el.type==="checkbox"){
+        state[sel] = el.checked;
+      }else{
+        state[sel] = el.value;
       }
-      bankData.push(nuevoBank);
-      labels.push(`Apuesta ${i + 1}`);
-    });
+    }
+    localStorage.setItem("liga_mx_filters", JSON.stringify(state));
+    alert("Estado de filtros guardado.");
+  });
 
-    graficaBankroll = new Chart(ctxBankroll, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Bankroll',
-          data: bankData,
-          borderColor: '#8257e6',
-          backgroundColor: 'rgba(130, 87, 230, 0.3)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 3,
-        }]
-      },
-      options: {
-        responsive: true,
-        interaction: { mode: 'nearest', intersect: false },
-        plugins: {
-          legend: { labels: { color: '#ddd', font: { size: 14, weight: '600' } } },
-          tooltip: { callbacks: { label: ctx => `Bankroll: ${ctx.parsed.y.toFixed(2)}` } }
-        },
-        scales: {
-          y: { beginAtZero: false, ticks: { color: '#ddd' }, grid: { color: '#444' } },
-          x: { ticks: { color: '#ddd' }, grid: { color: '#444' } }
+  $("#btnLoadState").addEventListener("click", ()=>{
+    const txt = localStorage.getItem("liga_mx_filters");
+    if(!txt){ alert("No hay estado guardado."); return; }
+    try{
+      const state = JSON.parse(txt);
+      for(const sel of filterInputs){
+        const el = $(sel);
+        const v = state[sel];
+        if(v===undefined) continue;
+        if(el.tagName==="SELECT"){
+          Array.from(el.options).forEach(o=>o.selected = Array.isArray(v) && v.includes(o.value));
+        }else if(el.type==="checkbox"){
+          el.checked = !!v;
+        }else{
+          el.value = v ?? "";
         }
       }
-    });
-
-    // Datos para gráfica Kelly Full
-    let kellyData = apuestasFiltradas.map(a => a.kellyFull ? a.kellyFull * 100 : 0);
-
-    graficaKelly = new Chart(ctxKelly, {
-      type: 'bar',
-      data: {
-        labels: labels.slice(1),
-        datasets: [{ label: 'Kelly FULL (%)', data: kellyData, backgroundColor: '#ffba08', borderRadius: 4 }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: true, max: 100, ticks: { color: '#ddd' }, grid: { color: '#444' } },
-          x: { ticks: { color: '#ddd' }, grid: { color: '#444' } }
-        },
-        plugins: { legend: { labels: { color: '#ddd', font: { size: 14, weight: '600' } } } }
-      }
-    });
-  }
-
-  // Actualizar toda la vista
-  function actualizarVista() {
-    renderizarTabla();
-    actualizarResumen();
-    actualizarGraficas();
-  }
-
-  // Envío de formulario
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const formData = new FormData(form);
-    try {
-      // Validaciones
-      const liga = formData.get('liga').trim();
-      const local = formData.get('local').trim();
-      const visita = formData.get('visita').trim();
-      const mercado = formData.get('mercado');
-      const prob = parseFloat(formData.get('probabilidad'));
-      const cuotaBookie = parseFloat(formData.get('cuotaBookie'));
-      const bankroll = parseFloat(formData.get('bankroll'));
-      const kellyFrac = parseFloat(formData.get('kellyFrac'));
-
-      if (!liga) throw new Error('La liga es requerida');
-      if (!local) throw new Error('Equipo local es requerido');
-      if (!visita) throw new Error('Equipo visitante es requerido');
-      if (!mercado) throw new Error('Selecciona un mercado');
-      if (!(prob > 0 && prob <= 100)) throw new Error('Probabilidad debe estar entre 0 y 100');
-      if (!(cuotaBookie > 1)) throw new Error('Cuota bookie debe ser mayor que 1');
-      if (!(bankroll > 0)) throw new Error('Bankroll debe ser mayor que 0');
-      if (!(kellyFrac > 0 && kellyFrac <= 1)) throw new Error('Fracción Kelly inválida');
-
-      const cuotaImplicitaCalc = parseFloat(calcularCuotaImplicita(prob));
-      const ev = calcularEV(prob, cuotaBookie);
-      const kellyFull = calcularKelly(prob, cuotaBookie);
-
-      const apuesta = {
-        id: Date.now(),
-        fecha: new Date().toISOString(),
-        liga, local, visita, mercado,
-        probabilidad: prob,
-        cuotaImplicita: cuotaImplicitaCalc,
-        cuotaBookie, ev, kellyFull,
-        bankroll, kellyFrac,
-        estado: 'pendiente'
-      };
-
-      historial.push(apuesta);
-      guardarHistorial();
-      form.reset();
-      cuotaImplicitaInput.value = '';
-      actualizarVista();
-      alert('Apuesta agregada correctamente');
-    } catch (error) {
-      alert('Error al agregar apuesta: ' + error.message);
+      applyFilters(); render();
+    }catch(e){
+      alert("No se pudo cargar el estado.");
     }
   });
 
-  // Calcular cuota implícita al cambiar probabilidad
-  document.getElementById('probabilidad').addEventListener('input', e => {
-    const valorProb = parseFloat(e.target.value);
-    cuotaImplicitaInput.value = calcularCuotaImplicita(valorProb);
-  });
-
-  // Preview de stake sugerido
-  const cuotaBookieInput = document.getElementById('cuotaBookie');
-  const bankrollInput = document.getElementById('bankroll');
-  const kellyFracInput = document.getElementById('kellyFrac');
-  const stakePreviewInput = document.getElementById('stakePreview');
-
-  function actualizarStakePreview() {
-    const prob = parseFloat(document.getElementById('probabilidad').value);
-    const cuotaBookie = parseFloat(cuotaBookieInput.value);
-    const bankroll = parseFloat(bankrollInput.value);
-    const kellyFrac = parseFloat(kellyFracInput.value);
-    if (!(prob > 0 && cuotaBookie > 1 && bankroll > 0 && kellyFrac > 0)) { stakePreviewInput.value = ""; return; }
-    const kellyFull = calcularKelly(prob, cuotaBookie);
-    const stake = stakeSugerido(bankroll, kellyFull, kellyFrac);
-    stakePreviewInput.value = stake.toFixed(2);
-  }
-
-  ['input','change'].forEach(evt => {
-    document.getElementById('probabilidad').addEventListener(evt, actualizarStakePreview);
-    cuotaBookieInput.addEventListener(evt, actualizarStakePreview);
-    bankrollInput.addEventListener(evt, actualizarStakePreview);
-    kellyFracInput.addEventListener(evt, actualizarStakePreview);
-  });
-
-  // Filtros (incluye probabilidad y fechas)
-  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado,
-   filtroProbMin, filtroProbMax, filtroFechaInicio, filtroFechaFin].forEach(el => {
-    el.addEventListener('input', actualizarVista);
-    el.addEventListener('change', actualizarVista);
-  });
-
-  btnLimpiarFiltros.addEventListener('click', e => {
-    e.preventDefault();
-    limpiarFiltros();
-    actualizarVista();
-  });
-
-  // Exportar CSV
-  btnExportarCSV.addEventListener('click', () => {
-    if (historial.length === 0) { alert('No hay datos para exportar'); return; }
-    const csvRows = [];
-    const headers = [
-      'id','fecha','liga','local','visita','mercado',
-      'probabilidad','cuotaImplicita','cuotaBookie','ev','kellyFull','bankroll','kellyFrac','estado'
-    ];
-    csvRows.push(headers.join(','));
-
-    historial.forEach(a => {
-      csvRows.push([
-        a.id, a.fecha,
-        `"${a.liga}"`, `"${a.local}"`, `"${a.visita}"`,
-        a.mercado, a.probabilidad, a.cuotaImplicita, a.cuotaBookie,
-        a.ev, a.kellyFull, a.bankroll, a.kellyFrac, a.estado
-      ].join(','));
-    });
-
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = 'historial_apuestas.csv';
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  });
-
-  // Importar JSON (arreglado para usar actualizarVista)
-  btnImportarJSON.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file'; input.accept = '.json';
-
-    input.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target.result);
-          if (!Array.isArray(data)) { alert('El archivo no contiene un historial válido'); return; }
-
-          // Validar y normalizar
-          data.forEach(apuesta => {
-            if (!apuesta.id) apuesta.id = Date.now() + Math.random();
-            if (!apuesta.estado) apuesta.estado = 'pendiente';
-            if (!apuesta.fecha) apuesta.fecha = new Date().toISOString();
-          });
-
-          historial = [...historial, ...data];
-          guardarHistorial();
-          actualizarVista(); // <-- fix
-          alert('Importación exitosa ✅');
-        } catch (err) {
-          console.error(err);
-          alert('Error al importar el archivo JSON');
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    input.click();
-  });
-
-  // Inicialización
-  function init() {
-    cargarHistorial();
-    actualizarVista();
-  }
-  init();
+  // ======= Inicio: encabezados vacíos para estructura =======
+  buildThead();
 
 })();
 </script>
