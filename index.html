@@ -75,7 +75,7 @@
   .legend{display:flex; align-items:center; gap:8px; font-size:.85rem; color:#9fb0c9}
   .legend .box{width:18px; height:12px; border-radius:3px; border:1px solid #253049}
   .hint{color:#9fb0c9; font-size:.9rem}
-  dialog{border:none; border-radius:16px; background:#0e1422; color:var(--ink); width:min(720px,92%); padding:0; box-shadow:var(--shadow)}
+  dialog{border:none; border-radius:16px; background:#0e1422; color:#var(--ink); width:min(720px,92%); padding:0; box-shadow:var(--shadow)}
   dialog .dlg-head{display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid #2a3850}
   dialog .dlg-body{padding:16px 18px}
   dialog .map-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
@@ -228,21 +228,21 @@
    Estado y utilidades
 ============================ */
 const STORAGE_MAP = 'bt_map_fields_v1';
-const STORAGE_LAST = 'bt_last_dataset_v1'; // sólo si el usuario lo permite
-let RAW = [];            // registros originales del JSON
-let DATA = [];           // registros normalizados
-let MAP = {};            // mapeo {stdField -> jsonKey}
-let FILTERS = {};        // estado de filtros
-let SORT = { key:null, dir:1 }; // para tablas
+const STORAGE_LAST = 'bt_last_dataset_v1';
+let RAW = [];
+let DATA = [];
+let MAP = {};
+let FILTERS = {};
+let SORT = { key:null, dir:1 };
 let CHARTS = { bankroll:null, odds:null, monthly:null, markets:null };
 
 const $ = sel => document.querySelector(sel);
 const $$ = sel => document.querySelectorAll(sel);
 const fmt = n => (isFinite(n) ? (Math.abs(n) >= 1000 ? n.toFixed(0) : n.toFixed(2)) : '-');
 const pct = n => isFinite(n) ? (n>=0?'+':'') + n.toFixed(2) + '%' : '-';
-const asDate = v => (v instanceof Date ? v : (v ? new Date(v) : null));
+const isValidDate = d => d instanceof Date && !isNaN(d.getTime());
 
-/* Debounce para filtros de texto */
+/* Debounce */
 const debounce = (fn,ms=250)=>{ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args),ms); } };
 
 /* ============================
@@ -280,7 +280,7 @@ function sampleData(){
 }
 
 /* ============================
-   Mapeo de campos (modo genérico)
+   Mapeo genérico
 ============================ */
 const FIELDS = [
   ['fecha', true], ['liga', true], ['local', true], ['visita', true], ['mercado', true],
@@ -289,9 +289,7 @@ const FIELDS = [
 ];
 
 function openMapping(keys){
-  const dlg = $('#dlgMap');
-  const grid = $('#mapGrid');
-  grid.innerHTML='';
+  const dlg = $('#dlgMap'), grid = $('#mapGrid'); grid.innerHTML='';
   FIELDS.forEach(([f,req])=>{
     const wrap=document.createElement('div'); wrap.className='field';
     const label=document.createElement('label'); label.textContent = f + (req?' *':' (opcional)');
@@ -300,42 +298,33 @@ function openMapping(keys){
     sel.appendChild(NONE);
     keys.forEach(k=>{
       const opt=document.createElement('option'); opt.value=k; opt.textContent=k;
-      if(MAP[f]===k) opt.selected=true;
-      sel.appendChild(opt);
+      if(MAP[f]===k) opt.selected=true; sel.appendChild(opt);
     });
     wrap.append(label, sel); grid.append(wrap);
   });
   dlg.showModal();
 }
-
 function saveMappingFromDialog(){
-  const sels = $$('#mapGrid select');
-  const m={};
-  for(const s of sels){ const f=s.dataset.field; const v=s.value.trim(); if(v) m[f]=v; }
-  // validar requeridos
+  const m={}; $$('#mapGrid select').forEach(s=>{ const f=s.dataset.field; const v=s.value.trim(); if(v) m[f]=v; });
   for(const [f,req] of FIELDS){ if(req && !m[f]){ alert('Falta mapear: '+f); return; } }
   MAP = m;
   if($('#chkRememberMap').checked) localStorage.setItem(STORAGE_MAP, JSON.stringify(MAP));
   $('#dlgMap').close();
   if(RAW.length) { normalizeGeneric(); refreshAll(); }
 }
-
-function clearMapping(){
-  MAP={};
-  localStorage.removeItem(STORAGE_MAP);
-  $('#mapGrid select').forEach(s=>s.value='');
-}
+function clearMapping(){ MAP={}; localStorage.removeItem(STORAGE_MAP); $('#mapGrid select').forEach(s=>s.value=''); }
 
 /* ============================
-   Normalización (modo genérico)
+   Normalización genérica
 ============================ */
 function normalizeGeneric(){
   DATA = RAW.map((r,i)=>{
     const get = f => MAP[f] ? r[MAP[f]] : null;
-    const fecha = asDate(get('fecha'));
+    const fecha = new Date(get('fecha'));
+    const valid = isValidDate(fecha) ? fecha : null;
     const o = Number(get('odd'));
     const stake = Number(get('stake'));
-    const res = (get('resultado')||'').toString().toLowerCase(); // ganada|perdida|push
+    const res = (get('resultado')||'').toString().toLowerCase();
     const benefit = res==='ganada' ? (o-1)*stake : (res==='perdida' ? -stake : 0);
     const liga = (get('liga')||'').toString();
     const local = (get('local')||'').toString();
@@ -344,60 +333,70 @@ function normalizeGeneric(){
     const bookie = (get('bookie')||'').toString();
     const prob_modelo = get('prob_modelo')!=null && get('prob_modelo')!=='' ? Number(get('prob_modelo')) : null;
     const cuota_cierre = get('cuota_cierre')!=null && get('cuota_cierre')!=='' ? Number(get('cuota_cierre')) : null;
-    const y = fecha ? fecha.getFullYear() : null;
-    const m = fecha ? String(fecha.getMonth()+1).padStart(2,'0') : null;
+    const monthKey = isValidDate(valid) ? `${valid.getFullYear()}-${String(valid.getMonth()+1).padStart(2,'0')}` : 'N/A';
     return {
-      _i:i,
-      fecha, fechaStr: fecha? fecha.toISOString().slice(0,10) : '',
+      _i:i, fecha: valid, fechaStr: isValidDate(valid)? valid.toISOString().slice(0,10) : '',
       liga, local, visita, equipoKey:`${local}|${visita}`,
-      mercado, odd:o, stake, resultado:res, bookie,
-      prob_modelo, cuota_cierre,
-      beneficio: benefit,
-      monthKey: (y && m) ? `${y}-${m}` : 'N/A'
+      mercado, odd:o, stake, resultado:res, bookie, prob_modelo, cuota_cierre,
+      beneficio: benefit, monthKey
     };
-  }).filter(x=>x.fecha && x.odd>0 && x.stake>=0 && x.resultado);
+  }).filter(x=> isValidDate(x.fecha) && x.odd>0 && x.stake>=0 && x.resultado);
 }
 
 /* ===================================================
    ESQUEMA ESPECIAL: Desired Outcome / Match / Result FT
 =================================================== */
-
-// Detecta si el JSON tiene el esquema pedido
-function detectDesiredOutcomeSchema(rec){
-  if(!rec || typeof rec!=='object') return false;
-  const keys = Object.keys(rec);
-  return keys.includes('Desired Outcome') && keys.includes('Match') && (keys.includes('Result FT') || keys.includes('Result'));
+// Helpers robustos de fecha
+function normalizeStr(s){ return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function parseSpanishDate(raw){
+  if(!raw || typeof raw!=='string') return null;
+  let s = normalizeStr(raw).replace(/\./g,'').trim();
+  // quitar prefijo de dia: lun, mar, mie, jue, vie, sab, dom + opcional coma
+  s = s.replace(/^(lun|mar|mie|jue|vie|sab|dom),?\s*/,'');
+  // casos 1: "20 ago 2023 18:30" o "20 agosto 2023 18:30" o sin hora
+  const meses = {
+    ene:1, enero:1, feb:2, febrero:2, mar:3, marzo:3, abr:4, abril:4, may:5, mayo:5,
+    jun:6, junio:6, jul:7, julio:7, ago:8, agosto:8,
+    sep:9, set:9, sept:9, septiembre:9, setiembre:9,
+    oct:10, octubre:10, nov:11, noviembre:11, dic:12, diciembre:12
+  };
+  let m = s.match(/^(\d{1,2})\s+([a-z]+)\s+(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/i);
+  if(m && meses[m[2]]) {
+    const dd = parseInt(m[1],10), mm = meses[m[2]], yyyy = parseInt(m[3],10);
+    const hh = m[4]? parseInt(m[4],10) : 0, mi = m[5]? parseInt(m[5],10) : 0;
+    const d = new Date(yyyy, mm-1, dd, hh, mi, 0);
+    return isValidDate(d) ? d : null;
+  }
+  // casos 2: dd/mm/yyyy [hh:mm]
+  m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if(m){
+    const dd = parseInt(m[1],10), mm = parseInt(m[2],10), yyyy = parseInt(m[3],10);
+    const hh = m[4]? parseInt(m[4],10) : 0, mi = m[5]? parseInt(m[5],10) : 0;
+    const d = new Date(yyyy, mm-1, dd, hh, mi, 0);
+    return isValidDate(d) ? d : null;
+  }
+  // casos 3: yyyy-mm-dd [hh:mm]
+  m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if(m){
+    const yyyy = parseInt(m[1],10), mm = parseInt(m[2],10), dd = parseInt(m[3],10);
+    const hh = m[4]? parseInt(m[4],10) : 0, mi = m[5]? parseInt(m[5],10) : 0;
+    const d = new Date(yyyy, mm-1, dd, hh, mi, 0);
+    return isValidDate(d) ? d : null;
+  }
+  // último recurso: Date(raw) y validar
+  const d = new Date(raw);
+  return isValidDate(d) ? d : null;
 }
 
-// Parsear fecha estilo "dom., 20 ago. 2023 18:30"
-function parseSpanishDate(str){
-  if(!str || typeof str!=='string') return null;
-  let s = str.trim().toLowerCase()
-    .replace(/^lun\.?,\s*|^mar\.?,\s*|^mié\.?,\s*|^jue\.?,\s*|^vie\.?,\s*|^sáb\.?,\s*|^dom\.?,\s*/,'')
-    .replace(/\./g,'');
-  const meses = { ene:'01', feb:'02', mar:'03', abr:'04', may:'05', jun:'06',
-                  jul:'07', ago:'08', sep:'09', oct:'10', nov:'11', dic:'12' };
-  const m = s.match(/(\d{1,2})\s+([a-z]{3})\s+(\d{4})\s+(\d{1,2}):(\d{2})/i);
-  if(!m) return new Date(str);
-  const dd = m[1].padStart(2,'0');
-  const mm = meses[m[2]] || '01';
-  const yyyy = m[3];
-  const hh = m[4].padStart(2,'0');
-  const mi = m[5];
-  return new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:00`);
-}
-
-// Separar "Match": "Chicago Fire - Orlando City"
 function splitMatch(str){
   if(!str) return {local:'', visita:''};
   const parts = str.split(' - ');
   return { local: (parts[0]||'').trim(), visita:(parts[1]||'').trim() };
 }
 
-// Traducir Desired Outcome a mercado estándar + selector de 1X2
 function mapDesiredOutcome(code){
   if(!code) return { mercado:'', oneXTwo:null };
-  const c = code.toString().toUpperCase().trim();
+  const c = normalizeStr(code).toUpperCase(); // ya sin acentos
   if(['1','H'].includes(c)) return { mercado:'1X2', oneXTwo:'1' };
   if(['X','D'].includes(c)) return { mercado:'1X2', oneXTwo:'X' };
   if(['2','A'].includes(c)) return { mercado:'1X2', oneXTwo:'2' };
@@ -414,14 +413,12 @@ function mapDesiredOutcome(code){
   return { mercado: code, oneXTwo:null };
 }
 
-// Parsear marcador "1-3"
 function parseScore(str){
   const m = (str||'').toString().trim().match(/(-?\d+)\s*[-:]\s*(-?\d+)/);
   if(!m) return null;
   return [parseInt(m[1],10), parseInt(m[2],10)];
 }
 
-// Calcular resultado por mercado + marcador FT
 function resolveBet(mercado, oneXTwoPick, scoreFT){
   if(!scoreFT) return null;
   const [h,a] = scoreFT;
@@ -430,15 +427,15 @@ function resolveBet(mercado, oneXTwoPick, scoreFT){
     const res = h>a ? '1' : (h<a ? '2' : 'X');
     return (res===oneXTwoPick) ? 'ganada' : 'perdida';
   }
-  if(mercado.startsWith('Over ')){
-    const m = mercado.match(/Over\s+([\d.]+)/i);
-    const line = m ? parseFloat(m[1]) : NaN;
+  if(/^Over\s+/i.test(mercado)){
+    const mm = mercado.match(/Over\s+([\d.]+)/i);
+    const line = mm ? parseFloat(mm[1]) : NaN;
     if(!isFinite(line)) return null;
     return total>line ? 'ganada' : 'perdida';
   }
-  if(mercado.startsWith('Under ')){
-    const m = mercado.match(/Under\s+([\d.]+)/i);
-    const line = m ? parseFloat(m[1]) : NaN;
+  if(/^Under\s+/i.test(mercado)){
+    const mm = mercado.match(/Under\s+([\d.]+)/i);
+    const line = mm ? parseFloat(mm[1]) : NaN;
     if(!isFinite(line)) return null;
     return total<line ? 'ganada' : 'perdida';
   }
@@ -450,7 +447,6 @@ function resolveBet(mercado, oneXTwoPick, scoreFT){
   return null;
 }
 
-// Elegir cuota correcta
 function pickOddForRecord(rec, mercado, oneXTwoPick){
   if(mercado==='1X2' && oneXTwoPick){
     const m = {
@@ -463,53 +459,63 @@ function pickOddForRecord(rec, mercado, oneXTwoPick){
   const o = Number(rec['Odd']);
   return isFinite(o) && o>0 ? o : NaN;
 }
-
-// Normalizar texto "Result"
 function normalizeResultText(s){
   if(!s) return null;
-  const v = s.toString().toLowerCase().trim();
+  const v = normalizeStr(s);
   if(['win','winning','ganada','won'].includes(v)) return 'ganada';
   if(['lose','lost','perdida','loss'].includes(v)) return 'perdida';
   if(['void','push','anulada','nula'].includes(v)) return 'push';
   return null;
 }
 
-// Normalización específica para este esquema (stake=1)
+function detectDesiredOutcomeSchema(rec){
+  if(!rec || typeof rec!=='object') return false;
+  const keys = Object.keys(rec);
+  return keys.includes('Desired Outcome') && keys.includes('Match') && (keys.includes('Result FT') || keys.includes('Result')) && keys.includes('Date');
+}
+
 function normalizeDesiredOutcomeSchema(){
   DATA = RAW.map((r,i)=>{
     const fecha = parseSpanishDate(r['Date']);
+    const valid = isValidDate(fecha) ? fecha : null;
     const { local, visita } = splitMatch(r['Match']);
     const { mercado, oneXTwo } = mapDesiredOutcome(r['Desired Outcome']);
-    const scoreFT = parseScore(r['Result FT']);
+    const scoreFT = parseScore(r['Result FT'] || '');
     const odd = pickOddForRecord(r, mercado, oneXTwo);
-    const stake = 1; // fijo
+    const stake = 1;
+
     let resultado = resolveBet(mercado, oneXTwo, scoreFT);
     if(!resultado){
       const fromText = normalizeResultText(r['Result']);
       if(fromText) resultado = fromText;
     }
+    if(!resultado) resultado = 'push';
+
     let beneficio = 0;
     if(isFinite(odd) && odd>0){
       if(resultado==='ganada') beneficio = (odd-1)*stake;
       else if(resultado==='perdida') beneficio = -stake;
     }
+
     const liga = r['League'] || '';
-    const bookie = r['Bookie'] || ''; // si no existe, queda vacío
+    const bookie = r['Bookie'] || '';
     const prob_modelo = null;
     const cuota_cierre = null;
-    const monthKey = fecha ? `${fecha.getFullYear()}-${String(fecha.getMonth()+1).padStart(2,'0')}` : 'N/A';
+    const monthKey = isValidDate(valid) ? `${valid.getFullYear()}-${String(valid.getMonth()+1).padStart(2,'0')}` : 'N/A';
+
     return {
       _i:i,
-      fecha, fechaStr: fecha? fecha.toISOString().slice(0,10) : '',
+      fecha: valid,
+      fechaStr: isValidDate(valid) ? valid.toISOString().slice(0,10) : '',
       liga, local, visita, equipoKey:`${local}|${visita}`,
       mercado: mercado || (r['Desired Outcome']||''),
       odd: isFinite(odd)? odd : 0,
       stake,
-      resultado: resultado || 'push',
+      resultado,
       bookie, prob_modelo, cuota_cierre,
       beneficio, monthKey
     };
-  }).filter(x=> x.fecha && x.odd>0 && x.stake>=0 && x.resultado);
+  }).filter(x=> isValidDate(x.fecha) && x.odd>0 && x.stake>=0 && x.resultado);
 }
 
 /* ============================
@@ -597,8 +603,7 @@ function aggregateRows(rows){
 ============================ */
 function renderKPIs(rows){
   const k = computeKPIs(rows);
-  const el = $('#kpis');
-  el.innerHTML = `
+  $('#kpis').innerHTML = `
     ${kpi('Apuestas', k.n)}
     ${kpi('Ganadas', k.ganadas, 'good')}
     ${kpi('Perdidas', k.perdidas, 'bad')}
@@ -645,10 +650,10 @@ function chartOddsHist(rows){
 function chartMonthly(rows){
   const g = groupBy(rows, r=>r.monthKey);
   const labels = [...g.keys()].sort();
-  const yieldData = labels.map(k=> aggregateRows(g.get(k)).yield );
-  const roiData   = labels.map(k=> aggregateRows(g.get(k)).roi );
+  const yData = labels.map(k=> aggregateRows(g.get(k)).yield );
+  const rData   = labels.map(k=> aggregateRows(g.get(k)).roi );
   const ctx = $('#chMonthly').getContext('2d');
-  CHARTS.monthly = new Chart(ctx, { type:'bar', data:{ labels, datasets:[ { label:'Yield %', data:yieldData }, { label:'ROI %', data:roiData } ] },
+  CHARTS.monthly = new Chart(ctx, { type:'bar', data:{ labels, datasets:[ { label:'Yield %', data:yData }, { label:'ROI %', data:rData } ] },
                                     options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }});
 }
 function chartMarkets(rows){
@@ -702,7 +707,7 @@ function renderHeatmap(rows){
 }
 
 /* ============================
-   Tablas (historial + agregados)
+   Tablas
 ============================ */
 function renderTables(rows){
   const container = $('#tabContent');
@@ -715,8 +720,7 @@ function renderTables(rows){
   else if(active==='rank'){ renderRank(container, rows); }
 }
 function renderHistory(container, rows){
-  const pageSize = 25;
-  let page = 1;
+  const pageSize = 25; let page = 1;
   const totalPages = Math.max(1, Math.ceil(rows.length/pageSize));
   const shell = html(`
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
@@ -950,7 +954,7 @@ $('#btnExportHist').addEventListener('click', ()=>{
   const csv = [head.join(',')];
   rows.forEach(r=>{
     csv.push([r.fechaStr, `"${r.liga}"`, `"${r.local}"`, `"${r.visita}"`, `"${r.mercado}"`,
-      r.odd, r.stake, r.resultado, r.beneficio, `"${r.bookie}"`, r.prob_modelo??'', r.cuota_cierre??''].join(','));
+      r.odd, r.stake, r.resultado, r.beneficio, `"${r.bookie||''}"`, r.prob_modelo??'', r.cuota_cierre??''].join(','));
   });
   downloadCSV(csv.join('\n'), 'historial_filtrado.csv');
 });
@@ -977,12 +981,12 @@ $('#btnReset').addEventListener('click', ()=>{
 /* Cargar ejemplo */
 $('#btnExample').addEventListener('click', async ()=>{
   RAW = sampleData();
-  MAP = Object.fromEntries(FIELDS.map(([f,req])=> [f,f])); // autogenerar mapeo
+  MAP = Object.fromEntries(FIELDS.map(([f,req])=> [f,f]));
   normalizeGeneric();
   refreshAll();
 });
 
-/* Import JSON con detección del esquema especial */
+/* Import JSON con detección y parser robusto */
 $('#fileInput').addEventListener('change', async (e)=>{
   const file = e.target.files[0]; if(!file) return;
   try{
@@ -992,16 +996,14 @@ $('#fileInput').addEventListener('change', async (e)=>{
     RAW = json;
     if($('#chkRememberMap').checked){ localStorage.setItem(STORAGE_LAST, txt); }
 
-    // 1) Esquema "Desired Outcome / Match / Result FT" con stake=1
     if(RAW.length && detectDesiredOutcomeSchema(RAW[0])){
       normalizeDesiredOutcomeSchema();
-      MAP = {}; // evitamos confusión visual
+      MAP = {};
       refreshAll();
       alert('Archivo importado con el esquema “Desired Outcome/Match/Result FT”. Stake=1 aplicado.');
       return;
     }
 
-    // 2) Si no es el esquema especial, usar mapeo genérico
     const saved = localStorage.getItem(STORAGE_MAP);
     if(saved){
       MAP = JSON.parse(saved);
@@ -1015,7 +1017,7 @@ $('#fileInput').addEventListener('change', async (e)=>{
     }
   }catch(err){
     console.error(err);
-    alert('No se pudo leer el JSON: ' + err.message);
+    alert('No se pudo leer el JSON: ' + (err && err.message ? err.message : err));
   } finally {
     e.target.value='';
   }
