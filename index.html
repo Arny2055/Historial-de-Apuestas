@@ -157,24 +157,27 @@
       <label for="cuotaBookie">Cuota Bookie (decimal) *</label>
       <input type="number" id="cuotaBookie" name="cuotaBookie" min="1.01" step="0.01" placeholder="Ej: 1.80" required aria-required="true" />
     </div>
+
+    <!-- Opcionales: no afectan stake fijo -->
     <div>
-      <label for="bankroll">Bankroll *</label>
-      <input type="number" id="bankroll" name="bankroll" min="0.01" step="0.01" placeholder="Ej: 100" value="100" required aria-required="true" />
+      <label for="bankroll">Bankroll (opcional)</label>
+      <input type="number" id="bankroll" name="bankroll" min="0.01" step="0.01" placeholder="Ej: 100" value="100" />
     </div>
     <div>
-      <label for="kellyFrac">Fracción Kelly *</label>
-      <select id="kellyFrac" name="kellyFrac" required aria-required="true">
-        <option value="0.10">10%</option>
+      <label for="kellyFrac">Fracción Kelly (no usada)</label>
+      <select id="kellyFrac" name="kellyFrac">
         <option value="0.25" selected>25%</option>
+        <option value="0.10">10%</option>
         <option value="0.33">33%</option>
         <option value="0.50">50%</option>
         <option value="1.00">100%</option>
       </select>
     </div>
     <div>
-      <label for="stakePreview">Stake sugerido (preview)</label>
-      <input type="number" id="stakePreview" readonly placeholder="0.00" />
+      <label for="stakePreview">Stake (fijo = 1 u)</label>
+      <input type="number" id="stakePreview" readonly placeholder="1.00" value="1.00" />
     </div>
+
     <div style="align-self:end;">
       <button type="submit" aria-label="Agregar apuesta">Agregar apuesta</button>
     </div>
@@ -241,7 +244,7 @@
             <th scope="col">Cuota Bookie</th>
             <th scope="col">EV (%)</th>
             <th scope="col">Kelly FULL (%)</th>
-            <th scope="col">Stake sugerido</th>
+            <th scope="col">Stake</th>
             <th scope="col">Estado</th>
             <th scope="col" aria-label="Acciones">⚙</th>
           </tr>
@@ -277,7 +280,8 @@
 
   // Constantes y variables
   const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
-  const DEFAULT_PROB = 50; // si Success Rate viene vacío
+  const DEFAULT_PROB = 50;        // si Success Rate viene vacío
+  const STAKE_UNIT = 1;           // stake fijo = 1 unidad
 
   // --- Utilidades de parsing seguro ---
   function toNumberSafe(v, fallback = 0) {
@@ -289,10 +293,7 @@
   function parseFechaFlexible(str) {
     if (!str) return new Date(); // ahora
     try {
-      // Limpieza de prefijos tipo "dom., "
       let s = String(str).trim().replace(/^[a-záéíóúñ]{3,}\.,?\s*/i, '');
-
-      // Mapa de meses ES -> número
       const meses = {
         'ene':0,'ene.':0,'enero':0,
         'feb':1,'feb.':1,'febrero':1,
@@ -307,12 +308,9 @@
         'nov':10,'nov.':10,'noviembre':10,
         'dic':11,'dic.':11,'diciembre':11
       };
-
-      // Intento rápido nativo primero
       const quick = new Date(s);
       if (!isNaN(quick)) return quick;
 
-      // Intento manual: "20 ago. 2023 18:30"
       const re = /(\d{1,2})\s+([a-záéíóúñ\.]+)\s+(\d{4})(?:[ T](\d{1,2}):(\d{2}))?/i;
       const m = s.match(re);
       if (m) {
@@ -327,7 +325,6 @@
           if (!isNaN(dt)) return dt;
         }
       }
-      // fallback final
       const f = new Date(Date.parse(s));
       return isNaN(f) ? new Date() : f;
     } catch {
@@ -386,14 +383,15 @@
     return p * cuotaBookie - 1;
   }
   function calcularKelly(prob, cuotaBookie) {
+    // Mantengo el cálculo por si lo necesitas para análisis, pero NO afecta al stake
     if (!(prob > 0 && cuotaBookie > 1)) return 0;
     const p = prob / 100;
     return (p * (cuotaBookie - 1) - (1 - p)) / (cuotaBookie - 1);
   }
-  function stakeSugerido(bankroll, kellyFull, kellyFrac) {
-    if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
-    const stake = bankroll * kellyFull * kellyFrac;
-    return stake > bankroll ? bankroll : stake;
+
+  // Stake fijo = 1 unidad
+  function stakeSugerido(/*bankroll, kellyFull, kellyFrac*/) {
+    return STAKE_UNIT;
   }
 
   // Guardar y cargar localStorage
@@ -494,8 +492,7 @@
       tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
       tr.appendChild(tdKelly);
 
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      const tdStake = document.createElement('td'); tdStake.textContent = stake.toFixed(2); tr.appendChild(tdStake);
+      const tdStake = document.createElement('td'); tdStake.textContent = STAKE_UNIT.toFixed(2); tr.appendChild(tdStake);
 
       const tdEstado = document.createElement('td');
       tdEstado.textContent = a.estado; tdEstado.className = `status-${a.estado}`; tr.appendChild(tdEstado);
@@ -534,7 +531,7 @@
     actualizarVista();
   }
 
-  // Actualizar resumen estadístico
+  // Actualizar resumen estadístico (con stake fijo = 1)
   function actualizarResumen() {
     const apuestasFiltradas = filtrarHistorial();
     if (apuestasFiltradas.length === 0) {
@@ -549,6 +546,7 @@
       return;
     }
 
+    // Bankroll inicial opcional (no afecta stake)
     const bankrollInicial = apuestasFiltradas[0].bankroll || 0;
     resumenBankroll.textContent = bankrollInicial.toFixed(2);
 
@@ -563,25 +561,27 @@
     const tasaExito = numApuestas > 0 ? (ganadas / numApuestas) * 100 : 0;
     resumenTasaExito.textContent = tasaExito.toFixed(2) + '%';
 
-    // Yield: (Ganancias netas / total apostado) * 100
+    // Con stake fijo:
+    // total apostado = numApuestas * 1
+    // si gana: retorno = 1 * cuotaBookie
     let totalGanado = 0;
     let totalApostado = 0;
-    apuestasFiltradas.forEach(a => {
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      totalApostado += stake;
-      if (a.estado === 'ganada') totalGanado += stake * a.cuotaBookie;
-    });
-    const neto = totalGanado - totalApostado;
-    const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
-    resumenYield.textContent = yieldPct.toFixed(2) + '%';
 
-    // ROI: (Ganancia neta / bankroll inicial) * 100
+    apuestasFiltradas.forEach(a => {
+      totalApostado += STAKE_UNIT;
+      if (a.estado === 'ganada') totalGanado += STAKE_UNIT * a.cuotaBookie;
+    });
+
+    const neto = totalGanado - totalApostado; // unidades
+    const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
     const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
+
+    resumenYield.textContent = yieldPct.toFixed(2) + '%';
     resumenROI.textContent = roiPct.toFixed(2) + '%';
     resumenUnidades.textContent = neto.toFixed(2);
   }
 
-  // Actualizar gráficas
+  // Actualizar gráficas (con stake fijo = 1)
   function actualizarGraficas() {
     const apuestasFiltradas = filtrarHistorial();
 
@@ -590,19 +590,18 @@
 
     if (apuestasFiltradas.length === 0) return;
 
-    // Datos para gráfica de bankroll
-    let bankInicial = apuestasFiltradas[0].bankroll || 100;
+    // Bankroll: partimos del (opcional) bankroll inicial o 0
+    let bankInicial = apuestasFiltradas[0].bankroll || 0;
     let bankData = [bankInicial];
     let labels = ['Inicio'];
 
     apuestasFiltradas.forEach((a, i) => {
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
       let lastBank = bankData[bankData.length - 1];
       let nuevoBank = lastBank;
       if (a.estado === 'ganada') {
-        nuevoBank += stake * (a.cuotaBookie - 1);
+        nuevoBank += STAKE_UNIT * (a.cuotaBookie - 1); // ganancia neta
       } else if (a.estado === 'perdida') {
-        nuevoBank -= stake;
+        nuevoBank -= STAKE_UNIT; // pérdida
       }
       bankData.push(nuevoBank);
       labels.push(`Apuesta ${i + 1}`);
@@ -638,9 +637,8 @@
       }
     });
 
-    // Datos para gráfica Kelly Full
+    // Kelly: solo visual (no afecta stake)
     let kellyData = apuestasFiltradas.map(a => a.kellyFull ? a.kellyFull * 100 : 0);
-
     graficaKelly = new Chart(ctxKelly, {
       type: 'bar',
       data: {
@@ -677,8 +675,8 @@
       const mercado = formData.get('mercado');
       const prob = parseFloat(formData.get('probabilidad'));
       const cuotaBookie = parseFloat(formData.get('cuotaBookie'));
-      const bankroll = parseFloat(formData.get('bankroll'));
-      const kellyFrac = parseFloat(formData.get('kellyFrac'));
+      const bankroll = parseFloat(formData.get('bankroll')) || 0;
+      const kellyFrac = parseFloat(formData.get('kellyFrac')) || 0.25;
 
       if (!liga) throw new Error('La liga es requerida');
       if (!local) throw new Error('Equipo local es requerido');
@@ -686,8 +684,6 @@
       if (!mercado) throw new Error('Selecciona un mercado');
       if (!(prob > 0 && prob <= 100)) throw new Error('Probabilidad debe estar entre 0 y 100');
       if (!(cuotaBookie > 1)) throw new Error('Cuota bookie debe ser mayor que 1');
-      if (!(bankroll > 0)) throw new Error('Bankroll debe ser mayor que 0');
-      if (!(kellyFrac > 0 && kellyFrac <= 1)) throw new Error('Fracción Kelly inválida');
 
       const cuotaImplicitaCalc = parseFloat(calcularCuotaImplicita(prob));
       const ev = calcularEV(prob, cuotaBookie);
@@ -708,6 +704,7 @@
       guardarHistorial();
       form.reset();
       cuotaImplicitaInput.value = '';
+      document.getElementById('stakePreview').value = STAKE_UNIT.toFixed(2);
       actualizarVista();
       alert('Apuesta agregada correctamente');
     } catch (error) {
@@ -721,29 +718,9 @@
     cuotaImplicitaInput.value = calcularCuotaImplicita(valorProb);
   });
 
-  // Preview de stake sugerido
-  const cuotaBookieInput = document.getElementById('cuotaBookie');
-  const bankrollInput = document.getElementById('bankroll');
-  const kellyFracInput = document.getElementById('kellyFrac');
+  // Preview de stake (fijo = 1)
   const stakePreviewInput = document.getElementById('stakePreview');
-
-  function actualizarStakePreview() {
-    const prob = parseFloat(document.getElementById('probabilidad').value);
-    const cuotaBookie = parseFloat(cuotaBookieInput.value);
-    const bankroll = parseFloat(bankrollInput.value);
-    const kellyFrac = parseFloat(kellyFracInput.value);
-    if (!(prob > 0 && cuotaBookie > 1 && bankroll > 0 && kellyFrac > 0)) { stakePreviewInput.value = ""; return; }
-    const kellyFull = calcularKelly(prob, cuotaBookie);
-    const stake = stakeSugerido(bankroll, kellyFull, kellyFrac);
-    stakePreviewInput.value = stake.toFixed(2);
-  }
-
-  ['input','change'].forEach(evt => {
-    document.getElementById('probabilidad').addEventListener(evt, actualizarStakePreview);
-    cuotaBookieInput.addEventListener(evt, actualizarStakePreview);
-    bankrollInput.addEventListener(evt, actualizarStakePreview);
-    kellyFracInput.addEventListener(evt, actualizarStakePreview);
-  });
+  stakePreviewInput.value = STAKE_UNIT.toFixed(2);
 
   // Filtros
   [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado,
@@ -773,7 +750,7 @@
         a.id, a.fecha,
         `"${a.liga}"`, `"${a.local}"`, `"${a.visita}"`,
         a.mercado, a.probabilidad, a.cuotaImplicita, a.cuotaBookie,
-        a.ev, a.kellyFull, a.bankroll, a.kellyFrac, a.estado
+        a.ev, a.kellyFull, a.bankroll ?? 0, a.kellyFrac ?? 0.25, a.estado
       ].join(','));
     });
 
@@ -785,7 +762,7 @@
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   });
 
-  // ---------- IMPORTAR JSON COMPATIBLE CON TUS CREDENCIALES ----------
+  // ---------- IMPORTAR JSON CON TU MAPE0 ----------
   btnImportarJSON.addEventListener('click', () => {
     const input = document.createElement('input');
     input.type = 'file'; input.accept = '.json';
@@ -801,18 +778,15 @@
           const data = Array.isArray(raw) ? raw : [raw];
 
           const convertidos = data.map(item => {
-            // Campos externos
-            const ligaExt   = item.League || item.Name || 'Desconocida';
-            const matchTxt  = item.Match || '';
-            const parts     = matchTxt.split('-');
-            const localExt  = parts[0] ? parts[0].trim() : '';
-            const visitaExt = parts[1] ? parts[1].trim() : '';
-            const mercado   = item['Desired Outcome'] || item.Market || 'N/A';
-            const cuotaBk   = toNumberSafe(item['Odd'], 1.01);
-            const probExt   = toNumberSafe(item['Success Rate'], DEFAULT_PROB);
-            const fecha     = parseFechaFlexible(item.Date).toISOString();
+            // === Mapeo exacto que pediste ===
+            const fecha      = parseFechaFlexible(item.Date).toISOString();     // Date -> fecha
+            const liga       = item.League || 'Desconocida';                    // League -> liga
+            const matchTxt   = item.Match || '';
+            const [loc, vis] = matchTxt.split('-').map(s => (s || '').trim());  // Local/Visita desde Match
+            const mercado    = item['Desired Outcome'] || 'N/A';                // Desired Outcome -> mercado
+            const cuotaBookie= toNumberSafe(item.Odd, 1.01);                    // Odd -> cuotaBookie
 
-            // Estado en función de "Result"
+            // Estado desde Result
             let estado = 'pendiente';
             if (typeof item.Result === 'string') {
               const r = item.Result.toLowerCase();
@@ -820,59 +794,30 @@
               else if (r.includes('lose')) estado = 'perdida';
             }
 
-            // Construcción de la apuesta compatible
-            const prob = Math.max(0.0001, Math.min(100, probExt));
-            const cuotaImplicitaCalc = calcularCuotaImplicita(prob);
-            const ev = calcularEV(prob, cuotaBk);
-            const kellyFull = calcularKelly(prob, cuotaBk);
+            // Probabilidad: si el JSON no trae "Success Rate", usa DEFAULT_PROB
+            const prob = Math.max(0.0001, Math.min(100, toNumberSafe(item['Success Rate'], DEFAULT_PROB)));
 
-            const apuesta = {
+            // Cálculos auxiliares (no afectan stake fijo)
+            const cuotaImplicita = calcularCuotaImplicita(prob);
+            const ev = calcularEV(prob, cuotaBookie);
+            const kellyFull = calcularKelly(prob, cuotaBookie);
+
+            return {
               id: Date.now() + Math.random(),
               fecha,
-              liga: ligaExt,
-              local: localExt,
-              visita: visitaExt,
+              liga,
+              local: loc || '',
+              visita: vis || '',
               mercado,
               probabilidad: prob,
-              cuotaImplicita: toNumberSafe(cuotaImplicitaCalc, ''),
-              cuotaBookie: cuotaBk,
+              cuotaImplicita: toNumberSafe(cuotaImplicita, ''),
+              cuotaBookie,
               ev,
               kellyFull,
-              bankroll: 100,
-              kellyFrac: 0.25,
+              bankroll: 0,     // opcional
+              kellyFrac: 0.25, // no afecta
               estado
             };
-
-            // (Opcional) Guardar extras sin romper tu UI
-            apuesta.extras = {
-              resultHT: item['Result HT'] ?? item['ResultHT'] ?? '',
-              resultFT: item['Result FT'] ?? item['ResultFT'] ?? '',
-              odd1: toNumberSafe(item['Odd 1 PreMatch'], 0),
-              oddX: toNumberSafe(item['Odd X PreMatch'], 0),
-              odd2: toNumberSafe(item['Odd 2 PreMatch'], 0),
-              homePos: item['Home Position'] ?? '',
-              awayPos: item['Away Position'] ?? '',
-              stats: {
-                homeAttFT: item['Home Attacks at FT'] ?? '',
-                awayAttFT: item['Away Attacks at FT'] ?? '',
-                homeDangFT: item['Home Dangerous Attacks at FT'] ?? '',
-                awayDangFT: item['Away Dangerous Attacks at FT'] ?? '',
-                homeOnGoalFT: item['Home OnGoal Shots at FT'] ?? '',
-                awayOnGoalFT: item['Away OnGoal Shots at FT'] ?? '',
-                homeShotsFT: item['Home Total Shots at FT'] ?? '',
-                awayShotsFT: item['Away Total Shots at FT'] ?? '',
-                homePossFT: item['Home Ball Possession at FT'] ?? '',
-                awayPossFT: item['Away Ball Possession at FT'] ?? '',
-                homeCornersFT: item['Home Corners at FT'] ?? '',
-                awayCornersFT: item['Away Corners at FT'] ?? '',
-                homeRC: item['Home RedCards at FT'] ?? '',
-                awayRC: item['Away RedCards at FT'] ?? '',
-                homeYC: item['Home YellowCards at FT'] ?? '',
-                awayYC: item['Away YellowCards at FT'] ?? ''
-              }
-            };
-
-            return apuesta;
           });
 
           historial = [...historial, ...convertidos];
