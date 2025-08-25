@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Liga MX – Análisis por Partido (Patrones & Recomendaciones)</title>
+<title>Liga MX – Análisis por Partido (ligas → equipos vinculados)</title>
 <style>
   :root{
     --bg:#0e1020; --panel:#161a2e; --panel2:#1d2240; --muted:#a7acc8; --text:#e8eaf2;
@@ -50,8 +50,8 @@
 </head>
 <body>
   <header>
-    <h1>Análisis por Partido – Liga MX</h1>
-    <div class="sub">Carga tu JSON, selecciona Local y Visitante, y obtén probabilidades y EV por mercado.</div>
+    <h1>Análisis por Partido – Ligas → Equipos vinculados</h1>
+    <div class="sub">Carga tu JSON, selecciona una o varias ligas y luego elige Local y Visitante (listas filtradas por liga).</div>
     <div class="bar" style="margin-top:10px">
       <label class="file-label" for="fileInput">📂 Cargar JSON</label>
       <input type="file" id="fileInput" accept=".json,application/json">
@@ -65,21 +65,22 @@
 
   <div class="wrap">
     <div class="grid">
-      <!-- Selección de PARTIDO -->
+      <!-- Selección de LIGA y PARTIDO -->
       <div class="card" style="grid-column: span 8;">
-        <h3>Selecciona el partido a analizar</h3>
+        <h3>Selecciona liga(s) y el partido a analizar</h3>
         <div class="grid" style="gap:10px">
           <div class="field" style="grid-column: span 4;">
-            <label>Local</label>
-            <select id="selHome" size="8"></select>
+            <label>Liga(s)</label>
+            <select id="league" multiple size="10"></select>
+            <span class="small muted">Las listas de equipos se filtran automáticamente según estas ligas.</span>
           </div>
           <div class="field" style="grid-column: span 4;">
-            <label>Visitante</label>
-            <select id="selAway" size="8"></select>
+            <label>Local (filtrado por liga)</label>
+            <select id="selHome" size="10"></select>
           </div>
           <div class="field" style="grid-column: span 4;">
-            <label>Filtrar Liga (opcional)</label>
-            <select id="league" multiple size="8"></select>
+            <label>Visitante (filtrado por liga)</label>
+            <select id="selAway" size="10"></select>
           </div>
 
           <div class="field" style="grid-column: span 12;">
@@ -168,7 +169,7 @@
       <!-- Tabla base -->
       <div class="card" style="grid-column: span 12;">
         <h3>Partidos del JSON</h3>
-        <div class="bar small muted">Ordena con los encabezados • Búsqueda: <input id="q" type="search" placeholder="Equipo, marcador, etiqueta…" style="margin-left:6px;"></div>
+        <div class="bar small muted">Búsqueda: <input id="q" type="search" placeholder="Equipo, marcador, etiqueta…" style="margin-left:6px;"></div>
         <div class="scroll-x">
           <table id="tblBase">
             <thead id="theadBase"></thead>
@@ -185,7 +186,7 @@
 // ===== Utilidades =====
 const $ = s=>document.querySelector(s);
 const $$ = s=>Array.from(document.querySelectorAll(s));
-const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep.":8,"oct.":9,"nov.":10,"dic.":11};
+const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep":8,"sep.":8,"oct.":9,"nov.":10,"dic.":11};
 const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
 
 function parseSpanishDate(s){
@@ -241,10 +242,12 @@ $("#btnPaste").addEventListener("click", ()=>{
 });
 $("#btnReset").addEventListener("click", ()=>{
   DATA=[]; PAST=[];
-  $("#selHome").innerHTML=""; $("#selAway").innerHTML=""; $("#league").innerHTML="";
+  $("#league").innerHTML="";
+  $("#selHome").innerHTML=""; $("#selAway").innerHTML="";
   $("#tbodyBase").innerHTML=""; $("#tblRecs tbody").innerHTML="";
   $("#resumen").textContent="";
   $("#pillCount").textContent="0 filas"; $("#pillTeams").textContent="Equipos: 0"; $("#pillRecs").textContent="Mercados: 0";
+  $("#q").value="";
 });
 
 function loadFromText(txt){
@@ -252,7 +255,8 @@ function loadFromText(txt){
     const raw = JSON.parse(txt);
     DATA = raw.map(augmentRow).filter(Boolean);
     PAST = DATA.filter(r=> r._FT_H!=null && r._FT_A!=null);
-    populateSelects();
+    populateLeagues();           // primero ligas
+    refreshTeamLists();          // luego equipos dependientes de ligas
     buildBaseTable(); renderBase();
     $("#pillCount").textContent = DATA.length+" filas";
   }catch(err){ alert("No se pudo parsear el JSON: "+err.message); }
@@ -283,21 +287,44 @@ function parseScore(s){
   return m? [Number(m[1]),Number(m[2])] : [null,null];
 }
 
-// ===== Selects de equipos y ligas =====
-function populateSelects(){
-  const teams = Array.from(new Set(DATA.flatMap(x=>[x.Home,x.Away]).filter(Boolean))).sort((a,b)=> String(a).localeCompare(String(b),'es'));
-  const leagues = Array.from(new Set(DATA.map(x=>x.League).filter(Boolean))).sort((a,b)=> String(a).localeCompare(String(b),'es'));
-  fillSelect($("#selHome"), teams);
-  fillSelect($("#selAway"), teams);
+// ===== Ligas → Equipos dependientes =====
+function populateLeagues(){
+  const leagues = Array.from(new Set(DATA.map(x=>x.League).filter(Boolean)))
+    .sort((a,b)=> String(a).localeCompare(String(b),'es'));
   fillSelect($("#league"), leagues);
-  $("#pillTeams").textContent = "Equipos: "+teams.length;
 }
 function fillSelect(select, arr){
   select.innerHTML="";
   for(const v of arr){ const opt=document.createElement("option"); opt.value=v; opt.textContent=v; select.appendChild(opt); }
 }
+function getTeamsForLeagues(leaguesSel){
+  // Si no hay ligas seleccionadas: usar TODOS los equipos
+  const pool = (leaguesSel.length? DATA.filter(r=> leaguesSel.includes(r.League)) : DATA);
+  const teams = Array.from(new Set(pool.flatMap(x=>[x.Home,x.Away]).filter(Boolean)))
+    .sort((a,b)=> String(a).localeCompare(String(b),'es'));
+  return teams;
+}
+function refreshTeamLists(){
+  const leaguesSel = Array.from($("#league").selectedOptions).map(o=>o.value);
+  const prevHome = $("#selHome").value || null;
+  const prevAway = $("#selAway").value || null;
 
-// ===== Tabla base =====
+  const teams = getTeamsForLeagues(leaguesSel);
+  fillSelect($("#selHome"), teams);
+  fillSelect($("#selAway"), teams);
+
+  // restaurar selección si sigue siendo válida
+  if(prevHome && teams.includes(prevHome)) $("#selHome").value = prevHome;
+  if(prevAway && teams.includes(prevAway)) $("#selAway").value = prevAway;
+
+  $("#pillTeams").textContent = "Equipos: "+teams.length;
+
+  // Actualizar tabla base con filtro por liga
+  renderBase();
+}
+$("#league").addEventListener("change", refreshTeamLists);
+
+// ===== Tabla base (filtrada por liga y búsqueda) =====
 const BASE_COLS = [
   {key:"Date",label:"Fecha"},
   {key:"League",label:"Liga"},
@@ -326,10 +353,14 @@ function buildBaseTable(){
 $("#q").addEventListener("input", renderBase);
 function renderBase(){
   const q = $("#q").value?.trim().toLowerCase() || "";
+  const leaguesSel = Array.from($("#league").selectedOptions).map(o=>o.value);
   let arr = DATA.filter(r=>{
-    if(!q) return true;
-    const blob = JSON.stringify(r).toLowerCase();
-    return blob.includes(q);
+    if(leaguesSel.length && !leaguesSel.includes(r.League)) return false;
+    if(q){
+      const blob = JSON.stringify(r).toLowerCase();
+      if(!blob.includes(q)) return false;
+    }
+    return true;
   });
   if(sortBase.key){
     const k=sortBase.key, dir=sortBase.dir;
@@ -460,19 +491,18 @@ function analyzeSelectedMatch(){
   const useHA = $("#paramHomeAway").value==="1";
   const markets = Array.from($("#paramMarkets").selectedOptions).map(o=>o.value);
 
-  // filtrar por liga si se selecciona
+  // usar solo historial de ligas seleccionadas
   const leaguesSel = Array.from($("#league").selectedOptions).map(o=>o.value);
   const past = leaguesSel.length? PAST.filter(r=>leaguesSel.includes(r.League)) : PAST;
 
-  if(!past.length){ alert("No hay historial suficiente para modelar."); return; }
+  if(!past.length){ alert("No hay historial suficiente en las ligas seleccionadas."); return; }
 
   const idx = buildTeamIndex(past);
   const H = idx[home], A = idx[away];
-  if(!H || !A){ alert("No hay historial suficiente para alguno de los equipos seleccionados."); return; }
+  if(!H || !A){ alert("No hay historial suficiente para alguno de los equipos en esas ligas."); return; }
 
   const lg = leagueAverages(past);
 
-  // tasas H/A o globales
   const sideH = useHA?"H":"ALL", sideA = useHA?"A":"ALL";
   const hFor = weightedGoalRates(H, sideH, N, alpha);
   const aFor = weightedGoalRates(A, sideA, N, alpha);
@@ -489,7 +519,7 @@ function analyzeSelectedMatch(){
   const stH = streakStats(H.all, home, Mstreak);
   const stA = streakStats(A.all, away, Mstreak);
 
-  // cuotas ingresadas manualmente
+  // cuotas manuales
   const o1 = toNum($("#odd1").value);
   const ox = toNum($("#oddx").value);
   const o2 = toNum($("#odd2").value);
@@ -498,7 +528,6 @@ function analyzeSelectedMatch(){
   const oBTTS = toNum($("#oddbtts").value);
 
   const cand = [];
-  // 1X2
   if(markets.includes("1X2")){
     pushEV(cand, home+" gana (1)", o1, probs.pH, pMin, evMin, `λH=${lambdaH.toFixed(2)}, λA=${lambdaA.toFixed(2)}`);
     pushEV(cand, "Empate (X)",   ox, probs.pD, pMin, evMin, `λH=${lambdaH.toFixed(2)}, λA=${lambdaA.toFixed(2)}`);
@@ -514,7 +543,6 @@ function analyzeSelectedMatch(){
     pushEV(cand, "BTTS Sí", oBTTS, probs.pBTTS, pMin, evMin, `λH=${lambdaH.toFixed(2)}, λA=${lambdaA.toFixed(2)}`);
   }
 
-  // razones
   for(const c of cand){
     const reasons = [];
     reasons.push(`Rachas últimos ${Mstreak}: ${home} Over≥3 ${(stH.overRate*100).toFixed(0)}%, BTTS ${(stH.bttsRate*100).toFixed(0)}%`);
@@ -530,7 +558,6 @@ function analyzeSelectedMatch(){
 
   cand.sort((a,b)=> (b.EV??-1) - (a.EV??-1));
 
-  // resumen arriba
   $("#resumen").innerHTML = `
     <span class="chip">λH=${lambdaH.toFixed(2)}</span>
     <span class="chip">λA=${lambdaA.toFixed(2)}</span>
@@ -546,7 +573,6 @@ function analyzeSelectedMatch(){
 
 function pushEV(list, market, odd, p, pMin, evMin, note){
   if(p==null || isNaN(p)) return;
-  // Mostrar siempre que p >= pMin. Si hay cuota, además filtrar por EV mínimo.
   if(p < pMin) return;
   let EV=null;
   if(odd && odd>1) EV = p*odd - 1;
