@@ -65,7 +65,7 @@
   #btnLimpiarFiltros:hover{background-color:#dc2626;}
 
   /* --- Botones export/import --- */
-  .botones-utiles{margin-bottom:35px; display:flex; gap:18px;}
+  .botones-utiles{margin-bottom:35px; display:flex; gap:18px; flex-wrap:wrap;}
   .botones-utiles button{
     background-color:#8257e6; color:#fff; font-weight:600; border:none; border-radius:10px;
     cursor:pointer; padding:12px 20px; box-shadow:0 4px 8px #6b45d9; transition:background-color 0.3s ease;
@@ -203,11 +203,9 @@
       <option value="perdida">Perdida</option>
     </select>
 
-    <!-- NUEVOS: filtros por probabilidad -->
     <input type="number" id="filtroProbMin" placeholder="Prob. mín (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad mínima" />
     <input type="number" id="filtroProbMax" placeholder="Prob. máx (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad máxima" />
 
-    <!-- Filtros por fecha -->
     <input type="date" id="filtroFechaInicio" aria-label="Filtro por fecha inicio" />
     <input type="date" id="filtroFechaFin" aria-label="Filtro por fecha fin" />
 
@@ -279,6 +277,63 @@
 
   // Constantes y variables
   const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
+  const DEFAULT_PROB = 50; // si Success Rate viene vacío
+
+  // --- Utilidades de parsing seguro ---
+  function toNumberSafe(v, fallback = 0) {
+    const n = parseFloat(String(v).toString().replace(',', '.'));
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  // Soporta formatos como: "dom., 20 ago. 2023 18:30" o similares en ES
+  function parseFechaFlexible(str) {
+    if (!str) return new Date(); // ahora
+    try {
+      // Limpieza de prefijos tipo "dom., "
+      let s = String(str).trim().replace(/^[a-záéíóúñ]{3,}\.,?\s*/i, '');
+
+      // Mapa de meses ES -> número
+      const meses = {
+        'ene':0,'ene.':0,'enero':0,
+        'feb':1,'feb.':1,'febrero':1,
+        'mar':2,'mar.':2,'marzo':2,
+        'abr':3,'abr.':3,'abril':3,
+        'may':4,'may.':4,'mayo':4,
+        'jun':5,'jun.':5,'junio':5,
+        'jul':6,'jul.':6,'julio':6,
+        'ago':7,'ago.':7,'agosto':7,
+        'sep':8,'sept':8,'sept.':8,'sep.':8,'set':8,'set.':8,'septiembre':8,
+        'oct':9,'oct.':9,'octubre':9,
+        'nov':10,'nov.':10,'noviembre':10,
+        'dic':11,'dic.':11,'diciembre':11
+      };
+
+      // Intento rápido nativo primero
+      const quick = new Date(s);
+      if (!isNaN(quick)) return quick;
+
+      // Intento manual: "20 ago. 2023 18:30"
+      const re = /(\d{1,2})\s+([a-záéíóúñ\.]+)\s+(\d{4})(?:[ T](\d{1,2}):(\d{2}))?/i;
+      const m = s.match(re);
+      if (m) {
+        const d = parseInt(m[1], 10);
+        const mesTxt = m[2].toLowerCase();
+        const y = parseInt(m[3], 10);
+        const hh = m[4] ? parseInt(m[4], 10) : 0;
+        const mm = m[5] ? parseInt(m[5], 10) : 0;
+        const monthIdx = meses[mesTxt];
+        if (monthIdx !== undefined) {
+          const dt = new Date(y, monthIdx, d, hh, mm, 0);
+          if (!isNaN(dt)) return dt;
+        }
+      }
+      // fallback final
+      const f = new Date(Date.parse(s));
+      return isNaN(f) ? new Date() : f;
+    } catch {
+      return new Date();
+    }
+  }
 
   // Elementos DOM
   const form = document.getElementById('formApuesta');
@@ -289,8 +344,8 @@
   const filtroVisita = document.getElementById('filtroVisita');
   const filtroMercado = document.getElementById('filtroMercado');
   const filtroEstado = document.getElementById('filtroEstado');
-  const filtroProbMin = document.getElementById('filtroProbMin'); // NUEVO
-  const filtroProbMax = document.getElementById('filtroProbMax'); // NUEVO
+  const filtroProbMin = document.getElementById('filtroProbMin');
+  const filtroProbMax = document.getElementById('filtroProbMax');
   const filtroFechaInicio = document.getElementById('filtroFechaInicio');
   const filtroFechaFin = document.getElementById('filtroFechaFin');
   const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
@@ -320,15 +375,15 @@
   // Array para guardar apuestas
   let historial = [];
 
-  // Funciones auxiliares
+  // --- Cálculos principales ---
   function calcularCuotaImplicita(prob) {
     if (!prob || prob <= 0) return '';
     return (100 / prob).toFixed(2);
   }
   function calcularEV(prob, cuotaBookie) {
     if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const probDec = prob / 100;
-    return probDec * cuotaBookie - 1;
+    const p = prob / 100;
+    return p * cuotaBookie - 1;
   }
   function calcularKelly(prob, cuotaBookie) {
     if (!(prob > 0 && cuotaBookie > 1)) return 0;
@@ -352,7 +407,7 @@
     }
   }
 
-  // Limpiar filtros (incluye probabilidad)
+  // Limpiar filtros
   function limpiarFiltros() {
     filtroLiga.value = '';
     filtroLocal.value = '';
@@ -365,7 +420,7 @@
     filtroFechaFin.value = '';
   }
 
-  // Filtrar apuestas (se agregó rango de probabilidad)
+  // Filtrar apuestas
   function filtrarHistorial() {
     return historial.filter(a => {
       if (filtroLiga.value && !a.liga.toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
@@ -374,14 +429,12 @@
       if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
       if (filtroEstado.value && a.estado !== filtroEstado.value) return false;
 
-      // Rango de probabilidad
       const p = Number(a.probabilidad) || 0;
       const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
       const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
       if (min !== null && p < min) return false;
       if (max !== null && p > max) return false;
 
-      // Rango de fechas
       if (filtroFechaInicio.value) {
         const fechaIni = new Date(filtroFechaInicio.value);
         if (new Date(a.fecha) < fechaIni) return false;
@@ -408,7 +461,6 @@
       tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
       tr.appendChild(tdFecha);
 
-      // LIGA editable con doble clic
       const tdLiga = document.createElement('td');
       tdLiga.textContent = a.liga;
       tdLiga.addEventListener('dblclick', () => {
@@ -424,13 +476,13 @@
       const tdVisita = document.createElement('td'); tdVisita.textContent = a.visita; tr.appendChild(tdVisita);
       const tdMercado = document.createElement('td'); tdMercado.textContent = a.mercado; tr.appendChild(tdMercado);
 
-      const tdProb = document.createElement('td'); tdProb.textContent = a.probabilidad.toFixed(2); tr.appendChild(tdProb);
+      const tdProb = document.createElement('td'); tdProb.textContent = Number(a.probabilidad).toFixed(2); tr.appendChild(tdProb);
 
       const tdCuotaImpl = document.createElement('td');
-      tdCuotaImpl.textContent = a.cuotaImplicita ? a.cuotaImplicita.toFixed(2) : calcularCuotaImplicita(a.probabilidad);
+      tdCuotaImpl.textContent = a.cuotaImplicita ? Number(a.cuotaImplicita).toFixed(2) : calcularCuotaImplicita(a.probabilidad);
       tr.appendChild(tdCuotaImpl);
 
-      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = a.cuotaBookie.toFixed(2); tr.appendChild(tdCuotaBookie);
+      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = Number(a.cuotaBookie).toFixed(2); tr.appendChild(tdCuotaBookie);
 
       const tdEV = document.createElement('td');
       tdEV.textContent = (a.ev * 100).toFixed(2);
@@ -693,7 +745,7 @@
     kellyFracInput.addEventListener(evt, actualizarStakePreview);
   });
 
-  // Filtros (incluye probabilidad y fechas)
+  // Filtros
   [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado,
    filtroProbMin, filtroProbMax, filtroFechaInicio, filtroFechaFin].forEach(el => {
     el.addEventListener('input', actualizarVista);
@@ -733,7 +785,7 @@
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   });
 
-  // Importar JSON (arreglado para usar actualizarVista)
+  // ---------- IMPORTAR JSON COMPATIBLE CON TUS CREDENCIALES ----------
   btnImportarJSON.addEventListener('click', () => {
     const input = document.createElement('input');
     input.type = 'file'; input.accept = '.json';
@@ -745,19 +797,87 @@
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const data = JSON.parse(event.target.result);
-          if (!Array.isArray(data)) { alert('El archivo no contiene un historial válido'); return; }
+          const raw = JSON.parse(event.target.result);
+          const data = Array.isArray(raw) ? raw : [raw];
 
-          // Validar y normalizar
-          data.forEach(apuesta => {
-            if (!apuesta.id) apuesta.id = Date.now() + Math.random();
-            if (!apuesta.estado) apuesta.estado = 'pendiente';
-            if (!apuesta.fecha) apuesta.fecha = new Date().toISOString();
+          const convertidos = data.map(item => {
+            // Campos externos
+            const ligaExt   = item.League || item.Name || 'Desconocida';
+            const matchTxt  = item.Match || '';
+            const parts     = matchTxt.split('-');
+            const localExt  = parts[0] ? parts[0].trim() : '';
+            const visitaExt = parts[1] ? parts[1].trim() : '';
+            const mercado   = item['Desired Outcome'] || item.Market || 'N/A';
+            const cuotaBk   = toNumberSafe(item['Odd'], 1.01);
+            const probExt   = toNumberSafe(item['Success Rate'], DEFAULT_PROB);
+            const fecha     = parseFechaFlexible(item.Date).toISOString();
+
+            // Estado en función de "Result"
+            let estado = 'pendiente';
+            if (typeof item.Result === 'string') {
+              const r = item.Result.toLowerCase();
+              if (r.includes('win')) estado = 'ganada';
+              else if (r.includes('lose')) estado = 'perdida';
+            }
+
+            // Construcción de la apuesta compatible
+            const prob = Math.max(0.0001, Math.min(100, probExt));
+            const cuotaImplicitaCalc = calcularCuotaImplicita(prob);
+            const ev = calcularEV(prob, cuotaBk);
+            const kellyFull = calcularKelly(prob, cuotaBk);
+
+            const apuesta = {
+              id: Date.now() + Math.random(),
+              fecha,
+              liga: ligaExt,
+              local: localExt,
+              visita: visitaExt,
+              mercado,
+              probabilidad: prob,
+              cuotaImplicita: toNumberSafe(cuotaImplicitaCalc, ''),
+              cuotaBookie: cuotaBk,
+              ev,
+              kellyFull,
+              bankroll: 100,
+              kellyFrac: 0.25,
+              estado
+            };
+
+            // (Opcional) Guardar extras sin romper tu UI
+            apuesta.extras = {
+              resultHT: item['Result HT'] ?? item['ResultHT'] ?? '',
+              resultFT: item['Result FT'] ?? item['ResultFT'] ?? '',
+              odd1: toNumberSafe(item['Odd 1 PreMatch'], 0),
+              oddX: toNumberSafe(item['Odd X PreMatch'], 0),
+              odd2: toNumberSafe(item['Odd 2 PreMatch'], 0),
+              homePos: item['Home Position'] ?? '',
+              awayPos: item['Away Position'] ?? '',
+              stats: {
+                homeAttFT: item['Home Attacks at FT'] ?? '',
+                awayAttFT: item['Away Attacks at FT'] ?? '',
+                homeDangFT: item['Home Dangerous Attacks at FT'] ?? '',
+                awayDangFT: item['Away Dangerous Attacks at FT'] ?? '',
+                homeOnGoalFT: item['Home OnGoal Shots at FT'] ?? '',
+                awayOnGoalFT: item['Away OnGoal Shots at FT'] ?? '',
+                homeShotsFT: item['Home Total Shots at FT'] ?? '',
+                awayShotsFT: item['Away Total Shots at FT'] ?? '',
+                homePossFT: item['Home Ball Possession at FT'] ?? '',
+                awayPossFT: item['Away Ball Possession at FT'] ?? '',
+                homeCornersFT: item['Home Corners at FT'] ?? '',
+                awayCornersFT: item['Away Corners at FT'] ?? '',
+                homeRC: item['Home RedCards at FT'] ?? '',
+                awayRC: item['Away RedCards at FT'] ?? '',
+                homeYC: item['Home YellowCards at FT'] ?? '',
+                awayYC: item['Away YellowCards at FT'] ?? ''
+              }
+            };
+
+            return apuesta;
           });
 
-          historial = [...historial, ...data];
+          historial = [...historial, ...convertidos];
           guardarHistorial();
-          actualizarVista(); // <-- fix
+          actualizarVista();
           alert('Importación exitosa ✅');
         } catch (err) {
           console.error(err);
