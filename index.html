@@ -71,6 +71,8 @@
     cursor:pointer; padding:12px 20px; box-shadow:0 4px 8px #6b45d9; transition:background-color 0.3s ease;
   }
   .botones-utiles button:hover{background-color:#6b45d9;}
+  .botones-utiles .btn-danger{background-color:#ef4444; box-shadow:0 4px 8px rgba(239,68,68,.4);}
+  .botones-utiles .btn-danger:hover{background-color:#dc2626;}
   input[type="file"]{display:none;}
 
   /* --- Tabla --- */
@@ -157,27 +159,24 @@
       <label for="cuotaBookie">Cuota Bookie (decimal) *</label>
       <input type="number" id="cuotaBookie" name="cuotaBookie" min="1.01" step="0.01" placeholder="Ej: 1.80" required aria-required="true" />
     </div>
-
-    <!-- Opcionales: no afectan stake fijo -->
     <div>
-      <label for="bankroll">Bankroll (opcional)</label>
-      <input type="number" id="bankroll" name="bankroll" min="0.01" step="0.01" placeholder="Ej: 100" value="100" />
+      <label for="bankroll">Bankroll *</label>
+      <input type="number" id="bankroll" name="bankroll" min="0.01" step="0.01" placeholder="Ej: 100" value="100" required aria-required="true" />
     </div>
     <div>
-      <label for="kellyFrac">Fracción Kelly (no usada)</label>
-      <select id="kellyFrac" name="kellyFrac">
-        <option value="0.25" selected>25%</option>
+      <label for="kellyFrac">Fracción Kelly *</label>
+      <select id="kellyFrac" name="kellyFrac" required aria-required="true">
         <option value="0.10">10%</option>
+        <option value="0.25" selected>25%</option>
         <option value="0.33">33%</option>
         <option value="0.50">50%</option>
         <option value="1.00">100%</option>
       </select>
     </div>
     <div>
-      <label for="stakePreview">Stake (fijo = 1 u)</label>
-      <input type="number" id="stakePreview" readonly placeholder="1.00" value="1.00" />
+      <label for="stakePreview">Stake sugerido (preview)</label>
+      <input type="number" id="stakePreview" readonly placeholder="0.00" />
     </div>
-
     <div style="align-self:end;">
       <button type="submit" aria-label="Agregar apuesta">Agregar apuesta</button>
     </div>
@@ -206,9 +205,11 @@
       <option value="perdida">Perdida</option>
     </select>
 
+    <!-- NUEVOS: filtros por probabilidad -->
     <input type="number" id="filtroProbMin" placeholder="Prob. mín (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad mínima" />
     <input type="number" id="filtroProbMax" placeholder="Prob. máx (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad máxima" />
 
+    <!-- Filtros por fecha -->
     <input type="date" id="filtroFechaInicio" aria-label="Filtro por fecha inicio" />
     <input type="date" id="filtroFechaFin" aria-label="Filtro por fecha fin" />
 
@@ -222,6 +223,8 @@
     <input type="file" id="inputImportJSON" accept=".json" aria-label="Seleccionar archivo JSON para importar" />
     <button onclick="location.href='historial_ligas.html'" title="Ver historial por ligas">Historial por Ligas</button>
     <button onclick="location.href='probabilidades.html'" title="Ver estadísticas por probabilidad">Probabilidades</button>
+    <!-- NUEVO: borrar todo -->
+    <button id="btnEliminarTodo" class="btn-danger" title="Eliminar todo el historial">Eliminar todo</button>
   </section>
 
   <!-- TABLA -->
@@ -244,7 +247,7 @@
             <th scope="col">Cuota Bookie</th>
             <th scope="col">EV (%)</th>
             <th scope="col">Kelly FULL (%)</th>
-            <th scope="col">Stake</th>
+            <th scope="col">Stake sugerido</th>
             <th scope="col">Estado</th>
             <th scope="col" aria-label="Acciones">⚙</th>
           </tr>
@@ -280,57 +283,6 @@
 
   // Constantes y variables
   const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
-  const DEFAULT_PROB = 50;        // si Success Rate viene vacío
-  const STAKE_UNIT = 1;           // stake fijo = 1 unidad
-
-  // --- Utilidades de parsing seguro ---
-  function toNumberSafe(v, fallback = 0) {
-    const n = parseFloat(String(v).toString().replace(',', '.'));
-    return Number.isFinite(n) ? n : fallback;
-  }
-
-  // Soporta formatos como: "dom., 20 ago. 2023 18:30" o similares en ES
-  function parseFechaFlexible(str) {
-    if (!str) return new Date(); // ahora
-    try {
-      let s = String(str).trim().replace(/^[a-záéíóúñ]{3,}\.,?\s*/i, '');
-      const meses = {
-        'ene':0,'ene.':0,'enero':0,
-        'feb':1,'feb.':1,'febrero':1,
-        'mar':2,'mar.':2,'marzo':2,
-        'abr':3,'abr.':3,'abril':3,
-        'may':4,'may.':4,'mayo':4,
-        'jun':5,'jun.':5,'junio':5,
-        'jul':6,'jul.':6,'julio':6,
-        'ago':7,'ago.':7,'agosto':7,
-        'sep':8,'sept':8,'sept.':8,'sep.':8,'set':8,'set.':8,'septiembre':8,
-        'oct':9,'oct.':9,'octubre':9,
-        'nov':10,'nov.':10,'noviembre':10,
-        'dic':11,'dic.':11,'diciembre':11
-      };
-      const quick = new Date(s);
-      if (!isNaN(quick)) return quick;
-
-      const re = /(\d{1,2})\s+([a-záéíóúñ\.]+)\s+(\d{4})(?:[ T](\d{1,2}):(\d{2}))?/i;
-      const m = s.match(re);
-      if (m) {
-        const d = parseInt(m[1], 10);
-        const mesTxt = m[2].toLowerCase();
-        const y = parseInt(m[3], 10);
-        const hh = m[4] ? parseInt(m[4], 10) : 0;
-        const mm = m[5] ? parseInt(m[5], 10) : 0;
-        const monthIdx = meses[mesTxt];
-        if (monthIdx !== undefined) {
-          const dt = new Date(y, monthIdx, d, hh, mm, 0);
-          if (!isNaN(dt)) return dt;
-        }
-      }
-      const f = new Date(Date.parse(s));
-      return isNaN(f) ? new Date() : f;
-    } catch {
-      return new Date();
-    }
-  }
 
   // Elementos DOM
   const form = document.getElementById('formApuesta');
@@ -341,8 +293,8 @@
   const filtroVisita = document.getElementById('filtroVisita');
   const filtroMercado = document.getElementById('filtroMercado');
   const filtroEstado = document.getElementById('filtroEstado');
-  const filtroProbMin = document.getElementById('filtroProbMin');
-  const filtroProbMax = document.getElementById('filtroProbMax');
+  const filtroProbMin = document.getElementById('filtroProbMin'); // NUEVO
+  const filtroProbMax = document.getElementById('filtroProbMax'); // NUEVO
   const filtroFechaInicio = document.getElementById('filtroFechaInicio');
   const filtroFechaFin = document.getElementById('filtroFechaFin');
   const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
@@ -361,6 +313,7 @@
   const btnExportarCSV = document.getElementById('btnExportarCSV');
   const btnImportarJSON = document.getElementById('btnImportarJSON');
   const inputImportJSON = document.getElementById('inputImportJSON');
+  const btnEliminarTodo = document.getElementById('btnEliminarTodo'); // NUEVO
 
   const ctxBankroll = document.getElementById('graficaBankroll').getContext('2d');
   const ctxKelly = document.getElementById('graficaKelly').getContext('2d');
@@ -372,26 +325,25 @@
   // Array para guardar apuestas
   let historial = [];
 
-  // --- Cálculos principales ---
+  // Funciones auxiliares
   function calcularCuotaImplicita(prob) {
     if (!prob || prob <= 0) return '';
     return (100 / prob).toFixed(2);
   }
   function calcularEV(prob, cuotaBookie) {
     if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const p = prob / 100;
-    return p * cuotaBookie - 1;
+    const probDec = prob / 100;
+    return probDec * cuotaBookie - 1;
   }
   function calcularKelly(prob, cuotaBookie) {
-    // Mantengo el cálculo por si lo necesitas para análisis, pero NO afecta al stake
     if (!(prob > 0 && cuotaBookie > 1)) return 0;
     const p = prob / 100;
     return (p * (cuotaBookie - 1) - (1 - p)) / (cuotaBookie - 1);
   }
-
-  // Stake fijo = 1 unidad
-  function stakeSugerido(/*bankroll, kellyFull, kellyFrac*/) {
-    return STAKE_UNIT;
+  function stakeSugerido(bankroll, kellyFull, kellyFrac) {
+    if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
+    const stake = bankroll * kellyFull * kellyFrac;
+    return stake > bankroll ? bankroll : stake;
   }
 
   // Guardar y cargar localStorage
@@ -405,7 +357,7 @@
     }
   }
 
-  // Limpiar filtros
+  // Limpiar filtros (incluye probabilidad)
   function limpiarFiltros() {
     filtroLiga.value = '';
     filtroLocal.value = '';
@@ -418,7 +370,7 @@
     filtroFechaFin.value = '';
   }
 
-  // Filtrar apuestas
+  // Filtrar apuestas (se agregó rango de probabilidad)
   function filtrarHistorial() {
     return historial.filter(a => {
       if (filtroLiga.value && !a.liga.toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
@@ -427,12 +379,14 @@
       if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
       if (filtroEstado.value && a.estado !== filtroEstado.value) return false;
 
+      // Rango de probabilidad
       const p = Number(a.probabilidad) || 0;
       const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
       const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
       if (min !== null && p < min) return false;
       if (max !== null && p > max) return false;
 
+      // Rango de fechas
       if (filtroFechaInicio.value) {
         const fechaIni = new Date(filtroFechaInicio.value);
         if (new Date(a.fecha) < fechaIni) return false;
@@ -459,6 +413,7 @@
       tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
       tr.appendChild(tdFecha);
 
+      // LIGA editable con doble clic
       const tdLiga = document.createElement('td');
       tdLiga.textContent = a.liga;
       tdLiga.addEventListener('dblclick', () => {
@@ -474,13 +429,13 @@
       const tdVisita = document.createElement('td'); tdVisita.textContent = a.visita; tr.appendChild(tdVisita);
       const tdMercado = document.createElement('td'); tdMercado.textContent = a.mercado; tr.appendChild(tdMercado);
 
-      const tdProb = document.createElement('td'); tdProb.textContent = Number(a.probabilidad).toFixed(2); tr.appendChild(tdProb);
+      const tdProb = document.createElement('td'); tdProb.textContent = a.probabilidad.toFixed(2); tr.appendChild(tdProb);
 
       const tdCuotaImpl = document.createElement('td');
-      tdCuotaImpl.textContent = a.cuotaImplicita ? Number(a.cuotaImplicita).toFixed(2) : calcularCuotaImplicita(a.probabilidad);
+      tdCuotaImpl.textContent = a.cuotaImplicita ? a.cuotaImplicita.toFixed(2) : calcularCuotaImplicita(a.probabilidad);
       tr.appendChild(tdCuotaImpl);
 
-      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = Number(a.cuotaBookie).toFixed(2); tr.appendChild(tdCuotaBookie);
+      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = a.cuotaBookie.toFixed(2); tr.appendChild(tdCuotaBookie);
 
       const tdEV = document.createElement('td');
       tdEV.textContent = (a.ev * 100).toFixed(2);
@@ -492,7 +447,8 @@
       tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
       tr.appendChild(tdKelly);
 
-      const tdStake = document.createElement('td'); tdStake.textContent = STAKE_UNIT.toFixed(2); tr.appendChild(tdStake);
+      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+      const tdStake = document.createElement('td'); tdStake.textContent = stake.toFixed(2); tr.appendChild(tdStake);
 
       const tdEstado = document.createElement('td');
       tdEstado.textContent = a.estado; tdEstado.className = `status-${a.estado}`; tr.appendChild(tdEstado);
@@ -531,7 +487,16 @@
     actualizarVista();
   }
 
-  // Actualizar resumen estadístico (con stake fijo = 1)
+  // ---- NUEVO: Eliminar TODO el historial ----
+  btnEliminarTodo.addEventListener('click', () => {
+    if (!confirm('⚠️ ¿Seguro que quieres eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
+    historial = [];
+    localStorage.removeItem(STORAGE_KEY);
+    actualizarVista();
+    alert('Historial eliminado ✅');
+  });
+
+  // Actualizar resumen estadístico
   function actualizarResumen() {
     const apuestasFiltradas = filtrarHistorial();
     if (apuestasFiltradas.length === 0) {
@@ -546,7 +511,6 @@
       return;
     }
 
-    // Bankroll inicial opcional (no afecta stake)
     const bankrollInicial = apuestasFiltradas[0].bankroll || 0;
     resumenBankroll.textContent = bankrollInicial.toFixed(2);
 
@@ -561,27 +525,25 @@
     const tasaExito = numApuestas > 0 ? (ganadas / numApuestas) * 100 : 0;
     resumenTasaExito.textContent = tasaExito.toFixed(2) + '%';
 
-    // Con stake fijo:
-    // total apostado = numApuestas * 1
-    // si gana: retorno = 1 * cuotaBookie
+    // Yield: (Ganancias netas / total apostado) * 100
     let totalGanado = 0;
     let totalApostado = 0;
-
     apuestasFiltradas.forEach(a => {
-      totalApostado += STAKE_UNIT;
-      if (a.estado === 'ganada') totalGanado += STAKE_UNIT * a.cuotaBookie;
+      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+      totalApostado += stake;
+      if (a.estado === 'ganada') totalGanado += stake * a.cuotaBookie;
     });
-
-    const neto = totalGanado - totalApostado; // unidades
+    const neto = totalGanado - totalApostado;
     const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
-    const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
-
     resumenYield.textContent = yieldPct.toFixed(2) + '%';
+
+    // ROI: (Ganancia neta / bankroll inicial) * 100
+    const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
     resumenROI.textContent = roiPct.toFixed(2) + '%';
     resumenUnidades.textContent = neto.toFixed(2);
   }
 
-  // Actualizar gráficas (con stake fijo = 1)
+  // Actualizar gráficas
   function actualizarGraficas() {
     const apuestasFiltradas = filtrarHistorial();
 
@@ -590,18 +552,19 @@
 
     if (apuestasFiltradas.length === 0) return;
 
-    // Bankroll: partimos del (opcional) bankroll inicial o 0
-    let bankInicial = apuestasFiltradas[0].bankroll || 0;
+    // Datos para gráfica de bankroll
+    let bankInicial = apuestasFiltradas[0].bankroll || 100;
     let bankData = [bankInicial];
     let labels = ['Inicio'];
 
     apuestasFiltradas.forEach((a, i) => {
+      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
       let lastBank = bankData[bankData.length - 1];
       let nuevoBank = lastBank;
       if (a.estado === 'ganada') {
-        nuevoBank += STAKE_UNIT * (a.cuotaBookie - 1); // ganancia neta
+        nuevoBank += stake * (a.cuotaBookie - 1);
       } else if (a.estado === 'perdida') {
-        nuevoBank -= STAKE_UNIT; // pérdida
+        nuevoBank -= stake;
       }
       bankData.push(nuevoBank);
       labels.push(`Apuesta ${i + 1}`);
@@ -637,8 +600,9 @@
       }
     });
 
-    // Kelly: solo visual (no afecta stake)
+    // Datos para gráfica Kelly Full
     let kellyData = apuestasFiltradas.map(a => a.kellyFull ? a.kellyFull * 100 : 0);
+
     graficaKelly = new Chart(ctxKelly, {
       type: 'bar',
       data: {
@@ -675,8 +639,8 @@
       const mercado = formData.get('mercado');
       const prob = parseFloat(formData.get('probabilidad'));
       const cuotaBookie = parseFloat(formData.get('cuotaBookie'));
-      const bankroll = parseFloat(formData.get('bankroll')) || 0;
-      const kellyFrac = parseFloat(formData.get('kellyFrac')) || 0.25;
+      const bankroll = parseFloat(formData.get('bankroll'));
+      const kellyFrac = parseFloat(formData.get('kellyFrac'));
 
       if (!liga) throw new Error('La liga es requerida');
       if (!local) throw new Error('Equipo local es requerido');
@@ -684,6 +648,8 @@
       if (!mercado) throw new Error('Selecciona un mercado');
       if (!(prob > 0 && prob <= 100)) throw new Error('Probabilidad debe estar entre 0 y 100');
       if (!(cuotaBookie > 1)) throw new Error('Cuota bookie debe ser mayor que 1');
+      if (!(bankroll > 0)) throw new Error('Bankroll debe ser mayor que 0');
+      if (!(kellyFrac > 0 && kellyFrac <= 1)) throw new Error('Fracción Kelly inválida');
 
       const cuotaImplicitaCalc = parseFloat(calcularCuotaImplicita(prob));
       const ev = calcularEV(prob, cuotaBookie);
@@ -704,7 +670,6 @@
       guardarHistorial();
       form.reset();
       cuotaImplicitaInput.value = '';
-      document.getElementById('stakePreview').value = STAKE_UNIT.toFixed(2);
       actualizarVista();
       alert('Apuesta agregada correctamente');
     } catch (error) {
@@ -718,11 +683,31 @@
     cuotaImplicitaInput.value = calcularCuotaImplicita(valorProb);
   });
 
-  // Preview de stake (fijo = 1)
+  // Preview de stake sugerido
+  const cuotaBookieInput = document.getElementById('cuotaBookie');
+  const bankrollInput = document.getElementById('bankroll');
+  const kellyFracInput = document.getElementById('kellyFrac');
   const stakePreviewInput = document.getElementById('stakePreview');
-  stakePreviewInput.value = STAKE_UNIT.toFixed(2);
 
-  // Filtros
+  function actualizarStakePreview() {
+    const prob = parseFloat(document.getElementById('probabilidad').value);
+    const cuotaBookie = parseFloat(cuotaBookieInput.value);
+    const bankroll = parseFloat(bankrollInput.value);
+    const kellyFrac = parseFloat(kellyFracInput.value);
+    if (!(prob > 0 && cuotaBookie > 1 && bankroll > 0 && kellyFrac > 0)) { stakePreviewInput.value = ""; return; }
+    const kellyFull = calcularKelly(prob, cuotaBookie);
+    const stake = stakeSugerido(bankroll, kellyFull, kellyFrac);
+    stakePreviewInput.value = stake.toFixed(2);
+  }
+
+  ['input','change'].forEach(evt => {
+    document.getElementById('probabilidad').addEventListener(evt, actualizarStakePreview);
+    cuotaBookieInput.addEventListener(evt, actualizarStakePreview);
+    bankrollInput.addEventListener(evt, actualizarStakePreview);
+    kellyFracInput.addEventListener(evt, actualizarStakePreview);
+  });
+
+  // Filtros (incluye probabilidad y fechas)
   [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado,
    filtroProbMin, filtroProbMax, filtroFechaInicio, filtroFechaFin].forEach(el => {
     el.addEventListener('input', actualizarVista);
@@ -750,7 +735,7 @@
         a.id, a.fecha,
         `"${a.liga}"`, `"${a.local}"`, `"${a.visita}"`,
         a.mercado, a.probabilidad, a.cuotaImplicita, a.cuotaBookie,
-        a.ev, a.kellyFull, a.bankroll ?? 0, a.kellyFrac ?? 0.25, a.estado
+        a.ev, a.kellyFull, a.bankroll, a.kellyFrac, a.estado
       ].join(','));
     });
 
@@ -762,7 +747,7 @@
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   });
 
-  // ---------- IMPORTAR JSON CON TU MAPE0 ----------
+  // Importar JSON (arreglado para usar actualizarVista)
   btnImportarJSON.addEventListener('click', () => {
     const input = document.createElement('input');
     input.type = 'file'; input.accept = '.json';
@@ -774,55 +759,19 @@
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
-          const raw = JSON.parse(event.target.result);
-          const data = Array.isArray(raw) ? raw : [raw];
+          const data = JSON.parse(event.target.result);
+          if (!Array.isArray(data)) { alert('El archivo no contiene un historial válido'); return; }
 
-          const convertidos = data.map(item => {
-            // === Mapeo exacto que pediste ===
-            const fecha      = parseFechaFlexible(item.Date).toISOString();     // Date -> fecha
-            const liga       = item.League || 'Desconocida';                    // League -> liga
-            const matchTxt   = item.Match || '';
-            const [loc, vis] = matchTxt.split('-').map(s => (s || '').trim());  // Local/Visita desde Match
-            const mercado    = item['Desired Outcome'] || 'N/A';                // Desired Outcome -> mercado
-            const cuotaBookie= toNumberSafe(item.Odd, 1.01);                    // Odd -> cuotaBookie
-
-            // Estado desde Result
-            let estado = 'pendiente';
-            if (typeof item.Result === 'string') {
-              const r = item.Result.toLowerCase();
-              if (r.includes('win')) estado = 'ganada';
-              else if (r.includes('lose')) estado = 'perdida';
-            }
-
-            // Probabilidad: si el JSON no trae "Success Rate", usa DEFAULT_PROB
-            const prob = Math.max(0.0001, Math.min(100, toNumberSafe(item['Success Rate'], DEFAULT_PROB)));
-
-            // Cálculos auxiliares (no afectan stake fijo)
-            const cuotaImplicita = calcularCuotaImplicita(prob);
-            const ev = calcularEV(prob, cuotaBookie);
-            const kellyFull = calcularKelly(prob, cuotaBookie);
-
-            return {
-              id: Date.now() + Math.random(),
-              fecha,
-              liga,
-              local: loc || '',
-              visita: vis || '',
-              mercado,
-              probabilidad: prob,
-              cuotaImplicita: toNumberSafe(cuotaImplicita, ''),
-              cuotaBookie,
-              ev,
-              kellyFull,
-              bankroll: 0,     // opcional
-              kellyFrac: 0.25, // no afecta
-              estado
-            };
+          // Validar y normalizar
+          data.forEach(apuesta => {
+            if (!apuesta.id) apuesta.id = Date.now() + Math.random();
+            if (!apuesta.estado) apuesta.estado = 'pendiente';
+            if (!apuesta.fecha) apuesta.fecha = new Date().toISOString();
           });
 
-          historial = [...historial, ...convertidos];
+          historial = [...historial, ...data];
           guardarHistorial();
-          actualizarVista();
+          actualizarVista(); // <-- fix
           alert('Importación exitosa ✅');
         } catch (err) {
           console.error(err);
