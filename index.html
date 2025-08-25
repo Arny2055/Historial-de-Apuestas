@@ -3,17 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Liga MX – Análisis por Partido (ligas → equipos vinculados)</title>
+<title>Liga MX – Ligas → Equipos (sticky fijo arreglado)</title>
 <style>
   :root{
     --bg:#0e1020; --panel:#161a2e; --panel2:#1d2240; --muted:#a7acc8; --text:#e8eaf2;
     --border:#2a2e4a; --accent:#5dd4a4; --accent2:#7aa2ff; --warn:#ffb84d; --danger:#ff6b6b;
     --chip:#2a2f55; --table:#13172b;
+    /* offset dinámico del header para los thead sticky (se actualiza vía JS) */
+    --sticky-top: 0px;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
-  header{position:sticky;top:0;z-index:5;padding:16px;border-bottom:1px solid var(--border);
-    background:linear-gradient(180deg, rgba(14,16,32,.98), rgba(14,16,32,.92))}
+  header{
+    position:sticky; top:0; z-index:50; padding:16px; border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg, rgba(14,16,32,.98), rgba(14,16,32,.92))
+  }
   header h1{margin:0 0 6px;font-size:20px}
   header .sub{color:var(--muted);font-size:12px}
   .wrap{max-width:1300px;margin:0 auto;padding:18px 16px 40px}
@@ -33,8 +37,13 @@
   .pill{font-weight:700;padding:4px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:12px}
   .muted{color:var(--muted)} .small{font-size:12px}
   table{width:100%;border-collapse:separate;border-spacing:0;background:var(--table);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-  thead th{position:sticky;top:188px;background:linear-gradient(180deg,#1a1f3a,#161b33);
-    color:var(--muted);font-size:12px;text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
+  /* Sticky header de tablas usando offset DINÁMICO */
+  thead th{
+    position:sticky; top:var(--sticky-top); z-index:5;
+    background:linear-gradient(180deg,#1a1f3a,#161b33);
+    color:var(--muted);font-size:12px;text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);
+    cursor:pointer;white-space:nowrap
+  }
   tbody td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
   tbody tr:hover{background:#1a1f3a}
   .right{text-align:right}.center{text-align:center}
@@ -44,14 +53,14 @@
   .scroll-x{overflow:auto}
   .tag{display:inline-block;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);font-size:11px;color:var(--muted)}
   .rec-row strong{font-weight:800}
-  @media (max-width:1100px){ thead th{top:228px} .grid{grid-template-columns: repeat(6,1fr)} }
-  @media (max-width:700px){ thead th{top:268px} .grid{grid-template-columns: repeat(2,1fr)} }
+  @media (max-width:1100px){ .grid{grid-template-columns: repeat(6,1fr)} }
+  @media (max-width:700px){ .grid{grid-template-columns: repeat(2,1fr)} }
 </style>
 </head>
 <body>
-  <header>
-    <h1>Análisis por Partido – Ligas → Equipos vinculados</h1>
-    <div class="sub">Carga tu JSON, selecciona una o varias ligas y luego elige Local y Visitante (listas filtradas por liga).</div>
+  <header id="pageHeader">
+    <h1>Análisis por Partido – Ligas → Equipos</h1>
+    <div class="sub">Selecciona liga(s). Los equipos de Local y Visitante se filtran automáticamente por esas ligas.</div>
     <div class="bar" style="margin-top:10px">
       <label class="file-label" for="fileInput">📂 Cargar JSON</label>
       <input type="file" id="fileInput" accept=".json,application/json">
@@ -72,7 +81,7 @@
           <div class="field" style="grid-column: span 4;">
             <label>Liga(s)</label>
             <select id="league" multiple size="10"></select>
-            <span class="small muted">Las listas de equipos se filtran automáticamente según estas ligas.</span>
+            <span class="small muted">Las listas de equipos se filtran según estas ligas.</span>
           </div>
           <div class="field" style="grid-column: span 4;">
             <label>Local (filtrado por liga)</label>
@@ -186,9 +195,18 @@
 // ===== Utilidades =====
 const $ = s=>document.querySelector(s);
 const $$ = s=>Array.from(document.querySelectorAll(s));
-const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep":8,"sep.":8,"oct.":9,"nov.":10,"dic.":11};
+const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep":8,"sep.":8,"oct.":9,"nov":10,"nov.":10,"dic.":11};
 const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
 
+// ===== Sticky OFFSET dinámico =====
+function updateStickyOffset(){
+  const h = document.getElementById('pageHeader')?.offsetHeight || 0;
+  document.documentElement.style.setProperty('--sticky-top', h + 'px');
+}
+window.addEventListener('load', updateStickyOffset);
+window.addEventListener('resize', ()=>{ requestAnimationFrame(updateStickyOffset); });
+
+// ===== Parseos y helpers =====
 function parseSpanishDate(s){
   if(!s) return null;
   try{
@@ -248,6 +266,7 @@ $("#btnReset").addEventListener("click", ()=>{
   $("#resumen").textContent="";
   $("#pillCount").textContent="0 filas"; $("#pillTeams").textContent="Equipos: 0"; $("#pillRecs").textContent="Mercados: 0";
   $("#q").value="";
+  updateStickyOffset();
 });
 
 function loadFromText(txt){
@@ -255,10 +274,11 @@ function loadFromText(txt){
     const raw = JSON.parse(txt);
     DATA = raw.map(augmentRow).filter(Boolean);
     PAST = DATA.filter(r=> r._FT_H!=null && r._FT_A!=null);
-    populateLeagues();           // primero ligas
-    refreshTeamLists();          // luego equipos dependientes de ligas
+    populateLeagues();
+    refreshTeamLists();
     buildBaseTable(); renderBase();
     $("#pillCount").textContent = DATA.length+" filas";
+    updateStickyOffset();
   }catch(err){ alert("No se pudo parsear el JSON: "+err.message); }
 }
 
@@ -298,7 +318,6 @@ function fillSelect(select, arr){
   for(const v of arr){ const opt=document.createElement("option"); opt.value=v; opt.textContent=v; select.appendChild(opt); }
 }
 function getTeamsForLeagues(leaguesSel){
-  // Si no hay ligas seleccionadas: usar TODOS los equipos
   const pool = (leaguesSel.length? DATA.filter(r=> leaguesSel.includes(r.League)) : DATA);
   const teams = Array.from(new Set(pool.flatMap(x=>[x.Home,x.Away]).filter(Boolean)))
     .sort((a,b)=> String(a).localeCompare(String(b),'es'));
@@ -313,16 +332,13 @@ function refreshTeamLists(){
   fillSelect($("#selHome"), teams);
   fillSelect($("#selAway"), teams);
 
-  // restaurar selección si sigue siendo válida
   if(prevHome && teams.includes(prevHome)) $("#selHome").value = prevHome;
   if(prevAway && teams.includes(prevAway)) $("#selAway").value = prevAway;
 
   $("#pillTeams").textContent = "Equipos: "+teams.length;
-
-  // Actualizar tabla base con filtro por liga
   renderBase();
 }
-$("#league").addEventListener("change", refreshTeamLists);
+$("#league").addEventListener("change", ()=>{ refreshTeamLists(); updateStickyOffset(); });
 
 // ===== Tabla base (filtrada por liga y búsqueda) =====
 const BASE_COLS = [
@@ -491,7 +507,6 @@ function analyzeSelectedMatch(){
   const useHA = $("#paramHomeAway").value==="1";
   const markets = Array.from($("#paramMarkets").selectedOptions).map(o=>o.value);
 
-  // usar solo historial de ligas seleccionadas
   const leaguesSel = Array.from($("#league").selectedOptions).map(o=>o.value);
   const past = leaguesSel.length? PAST.filter(r=>leaguesSel.includes(r.League)) : PAST;
 
