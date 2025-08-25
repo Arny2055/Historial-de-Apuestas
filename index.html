@@ -1,858 +1,632 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Liga MX — Filtros avanzados para JSON</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liga MX – Descubrimiento de Patrones & Recomendaciones</title>
 <style>
   :root{
-    --bg:#0f1220; --panel:#171a2b; --panel-2:#1f2340; --text:#e8eaf1;
-    --muted:#a8adcb; --accent:#5dd4a4; --accent-2:#79a6ff; --warn:#ffb84d; --danger:#ff6b6b;
-    --chip:#2b2f52; --border:#2a2e4a; --table:#14172a;
+    --bg:#0e1020; --panel:#161a2e; --panel2:#1d2240; --muted:#a7acc8; --text:#e8eaf2;
+    --border:#2a2e4a; --accent:#5dd4a4; --accent2:#7aa2ff; --warn:#ffb84d; --danger:#ff6b6b;
+    --chip:#2a2f55; --table:#13172b;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol"}
-  header{padding:18px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:linear-gradient(180deg, rgba(15,18,32,.97), rgba(15,18,32,.90))}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
+  header{position:sticky;top:0;z-index:5;padding:16px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg, rgba(14,16,32,.98), rgba(14,16,32,.92))}
   header h1{margin:0 0 6px;font-size:20px}
   header .sub{color:var(--muted);font-size:12px}
-  .wrap{max-width:1400px;margin:0 auto;padding:18px 16px 28px}
-  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0 18px}
-  .btn, .file-label{background:var(--accent-2);color:#0b0e1a;border:0;border-radius:8px;padding:9px 12px;font-weight:600;cursor:pointer}
-  .btn.secondary{background:var(--chip);color:var(--text);border:1px solid var(--border)}
-  .btn.warn{background:var(--warn);color:#1a1305}
+  .wrap{max-width:1300px;margin:0 auto;padding:18px 16px 40px}
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .btn{background:var(--accent2);color:#0c1122;border:0;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
   .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
-  input[type="file"]{display:none}
-  .file-label{display:inline-flex;align-items:center;gap:8px}
+  .btn.alt{background:var(--chip);color:var(--text);border:1px solid var(--border)}
+  input[type=file]{display:none}
+  .file-label{background:var(--accent2);color:#0c1122;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}
   .grid{display:grid;gap:12px;grid-template-columns: repeat(12,1fr)}
   .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px}
-  .card h3{margin:0 0 10px;font-size:14px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .card h3{margin:0 0 10px;font-size:14px;color:var(--muted);letter-spacing:.02em;text-transform:uppercase}
   .field{display:flex;flex-direction:column;gap:6px}
   .field label{font-size:12px;color:var(--muted)}
-  .field input, .field select, .field textarea{
-    background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;
-    padding:8px 9px;outline:none
-  }
-  .muted{color:var(--muted)}
-  .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip{background:var(--chip);border:1px solid var(--border);padding:6px 8px;border-radius:999px;font-size:12px}
+  .field input,.field select{background:var(--panel2);color:var(--text);border:1px solid var(--border);
+    border-radius:8px;padding:8px 9px}
+  .pill{font-weight:700;padding:4px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:12px}
+  .muted{color:var(--muted)} .small{font-size:12px}
   table{width:100%;border-collapse:separate;border-spacing:0;background:var(--table);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-  thead th{position:sticky;top:64px;background:linear-gradient(180deg,#1b1f38,#181b31);text-align:left;padding:10px 8px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
+  thead th{position:sticky;top:128px;background:linear-gradient(180deg,#1a1f3a,#161b33);
+    color:var(--muted);font-size:12px;text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap}
   tbody td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
   tbody tr:hover{background:#1a1f3a}
-  .right{text-align:right}
-  .center{text-align:center}
-  .good{color:var(--accent)}
-  .bad{color:var(--danger)}
-  .sticky-actions{position:sticky;bottom:0;display:flex;gap:8px;justify-content:flex-end;margin-top:10px;padding-top:12px;background:linear-gradient(0deg, rgba(15,18,32,1), rgba(15,18,32,0));}
-  .pill{font-weight:700;padding:4px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:12px}
-  .nowrap{white-space:nowrap}
+  .right{text-align:right}.center{text-align:center}
+  .good{color:var(--accent)} .bad{color:var(--danger)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:var(--chip);border:1px solid var(--border);padding:6px 8px;border-radius:999px;font-size:12px}
   .scroll-x{overflow:auto}
-  .small{font-size:12px}
-  .hidden{display:none !important}
-  @media (max-width:980px){
-    .grid{grid-template-columns: repeat(6,1fr)}
-    thead th{top:96px}
-  }
-  @media (max-width:640px){
-    .grid{grid-template-columns: repeat(2,1fr)}
-    thead th{top:144px}
-  }
+  .tag{display:inline-block;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--panel2);font-size:11px;color:var(--muted)}
+  .rec-row strong{font-weight:800}
+  @media (max-width:980px){ thead th{top:168px} .grid{grid-template-columns: repeat(6,1fr)} }
+  @media (max-width:620px){ thead th{top:208px} .grid{grid-template-columns: repeat(2,1fr)} }
 </style>
 </head>
 <body>
   <header>
-    <h1>Explorador JSON — México Liga MX</h1>
-    <div class="sub">Carga tu archivo JSON, aplica filtros avanzados, ordena columnas y exporta a CSV.</div>
-    <div class="bar">
+    <h1>Patrones & Recomendaciones – Liga MX</h1>
+    <div class="sub">Carga tu JSON, detecta patrones por equipo y genera entradas sugeridas con EV.</div>
+    <div class="bar" style="margin-top:10px">
       <label class="file-label" for="fileInput">📂 Cargar JSON</label>
-      <input type="file" id="fileInput" accept=".json,application/json" />
-      <button class="btn secondary" id="btnPaste">Pegar JSON</button>
-      <button class="btn ghost" id="btnReset">Limpiar filtros</button>
+      <input type="file" id="fileInput" accept=".json,application/json">
+      <button class="btn alt" id="btnPaste">Pegar JSON</button>
+      <button class="btn ghost" id="btnReset">Limpiar</button>
       <span class="pill" id="pillCount">0 filas</span>
-      <span class="pill" id="pillAgg">ROI medio: — | Éxito: —</span>
-      <span class="muted small">Consejo: clic en encabezados para ordenar.</span>
+      <span class="pill" id="pillNext">Próximos: 0</span>
+      <span class="pill" id="pillRecs">Recs: 0</span>
     </div>
   </header>
 
   <div class="wrap">
-    <!-- FILTROS -->
+    <!-- Parámetros de modelado -->
     <div class="grid">
-      <div class="card" style="grid-column: span 12;">
-        <h3>Búsqueda global</h3>
-        <div class="field">
-          <input id="q" type="search" placeholder="Busca en cualquier campo (equipos, liga, marcador, etc.)…" />
-        </div>
-        <div class="chips" id="activeChips"></div>
-      </div>
-
-      <div class="card" style="grid-column: span 6;">
-        <h3>Fecha y liga</h3>
-        <div class="grid" style="gap:10px">
-          <div class="field" style="grid-column: span 6;">
-            <label>Desde (fecha y hora)</label>
-            <input id="from" type="datetime-local" />
-          </div>
-          <div class="field" style="grid-column: span 6;">
-            <label>Hasta (fecha y hora)</label>
-            <input id="to" type="datetime-local" />
-          </div>
-          <div class="field" style="grid-column: span 6;">
-            <label>Liga</label>
-            <select id="league" multiple size="4"></select>
-          </div>
-          <div class="field" style="grid-column: span 6;">
-            <label>Outcome deseado</label>
-            <select id="desired" multiple size="4"></select>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="grid-column: span 6;">
-        <h3>Equipos</h3>
-        <div class="grid" style="gap:10px">
-          <div class="field" style="grid-column: span 6;">
-            <label>Local</label>
-            <select id="homeTeam" multiple size="6"></select>
-          </div>
-          <div class="field" style="grid-column: span 6;">
-            <label>Visitante</label>
-            <select id="awayTeam" multiple size="6"></select>
-          </div>
-          <div class="field" style="grid-column: span 6;">
-            <label>Posición local (min–max)</label>
-            <div class="bar">
-              <input id="homePosMin" type="number" min="1" max="20" placeholder="min" style="width:90px">
-              <input id="homePosMax" type="number" min="1" max="20" placeholder="max" style="width:90px">
-            </div>
-          </div>
-          <div class="field" style="grid-column: span 6;">
-            <label>Posición visitante (min–max)</label>
-            <div class="bar">
-              <input id="awayPosMin" type="number" min="1" max="20" placeholder="min" style="width:90px">
-              <input id="awayPosMax" type="number" min="1" max="20" placeholder="max" style="width:90px">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="grid-column: span 12;">
-        <h3>Cuotas & desempeño</h3>
+      <div class="card" style="grid-column: span 8;">
+        <h3>Parámetros del modelo</h3>
         <div class="grid" style="gap:10px">
           <div class="field" style="grid-column: span 3;">
-            <label>Odd (min–max)</label>
-            <div class="bar">
-              <input id="oddMin" type="number" step="0.01" placeholder="min">
-              <input id="oddMax" type="number" step="0.01" placeholder="max">
-            </div>
+            <label>Partidos recientes (N)</label>
+            <input id="paramN" type="number" min="3" max="30" step="1" value="10">
           </div>
           <div class="field" style="grid-column: span 3;">
-            <label>Odd 1 (min–max)</label>
-            <div class="bar">
-              <input id="odd1Min" type="number" step="0.01" placeholder="min">
-              <input id="odd1Max" type="number" step="0.01" placeholder="max">
-            </div>
+            <label>Peso recency (0–1) — exponencial</label>
+            <input id="paramAlpha" type="number" min="0" max="1" step="0.05" value="0.30">
           </div>
           <div class="field" style="grid-column: span 3;">
-            <label>Odd X (min–max)</label>
-            <div class="bar">
-              <input id="oddxMin" type="number" step="0.01" placeholder="min">
-              <input id="oddxMax" type="number" step="0.01" placeholder="max">
-            </div>
+            <label>Máx. goles en matriz Poisson</label>
+            <input id="paramGMax" type="number" min="4" max="12" step="1" value="8">
           </div>
           <div class="field" style="grid-column: span 3;">
-            <label>Odd 2 (min–max)</label>
-            <div class="bar">
-              <input id="odd2Min" type="number" step="0.01" placeholder="min">
-              <input id="odd2Max" type="number" step="0.01" placeholder="max">
-            </div>
+            <label>Ventana rachas (últimos M)</label>
+            <input id="paramStreak" type="number" min="3" max="15" step="1" value="5">
           </div>
 
           <div class="field" style="grid-column: span 3;">
-            <label>% Éxito (min–max)</label>
-            <div class="bar">
-              <input id="srMin" type="number" step="0.01" placeholder="min %">
-              <input id="srMax" type="number" step="0.01" placeholder="max %">
-            </div>
+            <label>Prob. mínima de mercado</label>
+            <input id="paramPMin" type="number" step="0.01" value="0.45">
           </div>
           <div class="field" style="grid-column: span 3;">
-            <label>ROI (min–max)</label>
-            <div class="bar">
-              <input id="roiMin" type="number" step="0.01" placeholder="min %">
-              <input id="roiMax" type="number" step="0.01" placeholder="max %">
-            </div>
+            <label>EV mínimo</label>
+            <input id="paramEVMin" type="number" step="0.01" value="0.02">
           </div>
           <div class="field" style="grid-column: span 3;">
-            <label>Resultado etiqueta</label>
-            <select id="resultTag" multiple size="3">
-              <option value="Winning">Winning</option>
-              <option value="Losing">Losing</option>
-              <option value="">(vacío)</option>
+            <label>Mercados a considerar</label>
+            <select id="paramMarkets" multiple size="4">
+              <option selected value="1X2">1X2</option>
+              <option selected value="O2.5">Over 2.5</option>
+              <option selected value="U2.5">Under 2.5</option>
+              <option selected value="BTTS">BTTS (GG)</option>
             </select>
           </div>
           <div class="field" style="grid-column: span 3;">
-            <label>Condiciones rápidas</label>
-            <div class="bar" style="gap:12px;flex-wrap:wrap">
-              <label class="small"><input type="checkbox" id="onlyGG"> Ambos anotan (GG)</label>
-              <label class="small"><input type="checkbox" id="noGG"> No GG</label>
-              <label class="small"><input type="checkbox" id="htGoals"> Goles al HT</label>
-              <label class="small"><input type="checkbox" id="ftGoals"> Goles al FT</label>
-              <label class="small"><input type="checkbox" id="hasRed"> Con rojas</label>
-            </div>
+            <label>Usar medias H/A (más realista)</label>
+            <select id="paramHomeAway">
+              <option value="1" selected>Sí</option>
+              <option value="0">No (global)</option>
+            </select>
           </div>
+        </div>
+        <div class="bar" style="margin-top:10px">
+          <button class="btn" id="btnRun">Analizar & Sugerir</button>
+          <button class="btn ghost" id="btnExportRecs">Exportar recomendaciones CSV</button>
+          <span class="muted small">Tip: ajusta N y α para datasets pequeños o desactualizados.</span>
         </div>
       </div>
 
-      <div class="card" style="grid-column: span 12;">
-        <h3>Estadísticas (min–max)</h3>
-        <div class="grid" style="gap:10px">
-          <!-- Una selección representativa; puedes añadir más si quieres -->
-          <div class="field" style="grid-column: span 2;">
-            <label>Attacks Local</label>
-            <div class="bar"><input id="haMin" type="number" placeholder="min"><input id="haMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>Attacks Visitante</label>
-            <div class="bar"><input id="aaMin" type="number" placeholder="min"><input id="aaMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>Danger Local</label>
-            <div class="bar"><input id="hdMin" type="number" placeholder="min"><input id="hdMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>Danger Visitante</label>
-            <div class="bar"><input id="adMin" type="number" placeholder="min"><input id="adMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>On Target Local</label>
-            <div class="bar"><input id="hogMin" type="number" placeholder="min"><input id="hogMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>On Target Visitante</label>
-            <div class="bar"><input id="aogMin" type="number" placeholder="min"><input id="aogMax" type="number" placeholder="max"></div>
-          </div>
-
-          <div class="field" style="grid-column: span 2;">
-            <label>Tiros Local</label>
-            <div class="bar"><input id="htsMin" type="number" placeholder="min"><input id="htsMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>Tiros Visitante</label>
-            <div class="bar"><input id="atsMin" type="number" placeholder="min"><input id="atsMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>Posesión Local %</label>
-            <div class="bar"><input id="hpMin" type="number" placeholder="min"><input id="hpMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>Posesión Visitante %</label>
-            <div class="bar"><input id="apMin" type="number" placeholder="min"><input id="apMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>Corners Local</label>
-            <div class="bar"><input id="hcMin" type="number" placeholder="min"><input id="hcMax" type="number" placeholder="max"></div>
-          </div>
-          <div class="field" style="grid-column: span 2;">
-            <label>Corners Visitante</label>
-            <div class="bar"><input id="acMin" type="number" placeholder="min"><input id="acMax" type="number" placeholder="max"></div>
-          </div>
+      <div class="card" style="grid-column: span 4;">
+        <h3>Estado del dataset</h3>
+        <div class="field">
+          <div class="chips" id="chipsMeta"></div>
+        </div>
+        <div class="field">
+          <label class="small">Filtrar Liga</label>
+          <select id="league" multiple size="6"></select>
+        </div>
+        <div class="field">
+          <label class="small">Buscar global</label>
+          <input id="q" type="search" placeholder="Equipo, marcador, etiqueta…">
         </div>
       </div>
     </div>
 
-    <!-- TABLA -->
-    <div class="scroll-x">
-      <table id="tbl">
-        <thead id="thead"></thead>
-        <tbody id="tbody"></tbody>
-      </table>
+    <!-- Recomendaciones -->
+    <div class="card" style="margin-top:12px">
+      <h3>Recomendaciones (valor esperado positivo)</h3>
+      <div class="scroll-x">
+        <table id="tblRecs">
+          <thead><tr>
+            <th>Fecha</th><th>Partido</th><th>Mercado</th><th>Cuota</th>
+            <th>Prob.</th><th>EV</th><th>Modelo</th><th>Razonamiento</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
-    <div class="sticky-actions">
-      <button class="btn" id="btnExport">Exportar CSV</button>
-      <button class="btn warn" id="btnSaveState">Guardar estado</button>
-      <button class="btn ghost" id="btnLoadState">Cargar estado</button>
+
+    <!-- Tabla base -->
+    <div class="card" style="margin-top:12px">
+      <h3>Partidos del JSON</h3>
+      <div class="scroll-x">
+        <table id="tblBase">
+          <thead id="theadBase"></thead>
+          <tbody id="tbodyBase"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
 <script>
-(() => {
-  // ======= Utilidades =======
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => Array.from(document.querySelectorAll(sel));
+(()=>{
 
-  const MONTH_MAP = {
-    "ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep.":8,"oct.":9,"nov.":10,"dic.":11
-  };
-  const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
+// ===== Utilidades generales =====
+const $ = s=>document.querySelector(s);
+const $$ = s=>Array.from(document.querySelectorAll(s));
+const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep.":8,"oct.":9,"nov.":10,"dic.":11};
+const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
 
-  function parseSpanishDate(s){
-    // Ej: "vie., 25 jul. 2025 19:00"
-    if(!s) return null;
-    try{
-      let str = String(s).trim().toLowerCase();
-      // quitar día de la semana si está
-      for(const w of WDAYS){ if(str.startsWith(w)) { str = str.replace(w,"").replace(",","").trim(); break; } }
-      // separar partes "25 jul. 2025 19:00"
-      const [dia, mesRaw, anio, hora] = str.split(/\s+/);
-      const m = MONTH_MAP[mesRaw];
-      if(m===undefined) return new Date(s); // fallback
-      const [hh="00", mm="00"] = (hora||"00:00").split(":");
-      return new Date(Number(anio), m, Number(dia), Number(hh), Number(mm));
-    }catch(e){ return new Date(s); }
-  }
-
-  function toNumberSafe(x){
-    if(x === null || x === undefined) return null;
-    const str = String(x).trim().replace("%","").replace(",",".");
-    if(str==="") return null;
-    const n = Number(str);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  function percent(n){ return (n==null || isNaN(n)) ? "" : (n.toFixed(2)+" %"); }
-
-  function csvEscape(v){
-    if(v==null) return "";
-    const s = String(v);
-    if(s.includes('"') || s.includes(",") || s.includes("\n")) return `"${s.replace(/"/g,'""')}"`;
-    return s;
-  }
-
-  function download(filename, content, mime="text/plain"){
-    const blob = new Blob([content], {type:mime});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  function addChip(text, onRemove){
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    chip.textContent = text+" ✕";
-    chip.style.cursor = "pointer";
-    chip.title = "Quitar filtro";
-    chip.onclick = onRemove;
-    $("#activeChips").appendChild(chip);
-  }
-
-  // ======= Estado global =======
-  let rawData = [];      // original
-  let data = [];         // normalizada + campos calculados
-  let filtered = [];     // resultado de filtros
-  let sort = { key:null, dir:1 };
-
-  // ======= Campos y columnas =======
-  // Columnas visibles (puedes modificar el orden)
-  const COLUMNS = [
-    {key:"Date", label:"Fecha", fmt:(v,row)=> row._dateObj ? row._dateObj.toLocaleString() : v, align:"left"},
-    {key:"League", label:"Liga"},
-    {key:"Home", label:"Local"},
-    {key:"Away", label:"Visitante"},
-    {key:"Desired Outcome", label:"Outcome"},
-    {key:"Odd", label:"Odd", align:"right"},
-    {key:"Odd 1 PreMatch", label:"Odd 1", align:"right"},
-    {key:"Odd X PreMatch", label:"Odd X", align:"right"},
-    {key:"Odd 2 PreMatch", label:"Odd 2", align:"right"},
-    {key:"Result HT", label:"HT"},
-    {key:"Result FT", label:"FT"},
-    {key:"GG", label:"GG", fmt:(v)=> v ? "Sí":"No", cls:(v)=> v?"good":"bad", align:"center"},
-    {key:"Home Position", label:"Pos L", align:"right"},
-    {key:"Away Position", label:"Pos V", align:"right"},
-    {key:"Success Rate", label:"Éxito", align:"right"},
-    {key:"Overall ROI", label:"ROI", align:"right"},
-    {key:"Home Attacks at FT", label:"Atk L", align:"right"},
-    {key:"Away Attacks at FT", label:"Atk V", align:"right"},
-    {key:"Home Dangerous Attacks at FT", label:"Dang L", align:"right"},
-    {key:"Away Dangerous Attacks at FT", label:"Dang V", align:"right"},
-    {key:"Home OnGoal Shots at FT", label:"OT L", align:"right"},
-    {key:"Away OnGoal Shots at FT", label:"OT V", align:"right"},
-    {key:"Home Total Shots at FT", label:"Tiros L", align:"right"},
-    {key:"Away Total Shots at FT", label:"Tiros V", align:"right"},
-    {key:"Home Ball Possession at FT", label:"Pos L %", align:"right"},
-    {key:"Away Ball Possession at FT", label:"Pos V %", align:"right"},
-    {key:"Home Corners at FT", label:"Cor L", align:"right"},
-    {key:"Away Corners at FT", label:"Cor V", align:"right"},
-    {key:"Home YellowCards at FT", label:"Amar L", align:"right"},
-    {key:"Away YellowCards at FT", label:"Amar V", align:"right"},
-    {key:"Home RedCards at FT", label:"Roja L", align:"right"},
-    {key:"Away RedCards at FT", label:"Roja V", align:"right"},
-    {key:"Result", label:"Etiqueta"}
-  ];
-
-  function buildThead(){
-    const thead = $("#thead"); thead.innerHTML="";
-    const tr = document.createElement("tr");
-    COLUMNS.forEach(col=>{
-      const th = document.createElement("th");
-      th.textContent = col.label;
-      th.className = col.align ? (col.align==="right"?"right":col.align==="center"?"center":"") : "";
-      th.onclick = () => toggleSort(col.key);
-      tr.appendChild(th);
-    });
-    thead.appendChild(tr);
-  }
-
-  function toggleSort(key){
-    if(sort.key===key){ sort.dir *= -1 } else { sort.key = key; sort.dir = 1 }
-    render();
-  }
-
-  function render(){
-    let arr = [...filtered];
-    if(sort.key){
-      const k = sort.key, dir = sort.dir;
-      arr.sort((a,b)=>{
-        const va = normForSort(a[k]), vb = normForSort(b[k]);
-        if(va<vb) return -1*dir;
-        if(va>vb) return 1*dir;
-        return 0;
-      });
+function parseSpanishDate(s){
+  if(!s) return null;
+  try{
+    let str = String(s).trim().toLowerCase();
+    for(const w of WDAYS){ if(str.startsWith(w)){ str = str.replace(w,"").replace(",","").trim(); break; } }
+    const parts = str.split(/\s+/);
+    // admite "25 jul. 2025 19:00" o "2025-07-25 19:00"
+    if(parts.length>=3 && MONTH_MAP[parts[1]]!==undefined){
+      const d = Number(parts[0]); const m = MONTH_MAP[parts[1]]; const y = Number(parts[2]);
+      let hh=0, mm=0; if(parts[3]){ [hh,mm] = parts[3].split(":").map(Number); }
+      return new Date(y,m,d,hh||0,mm||0);
     }
-    const tbody = $("#tbody"); tbody.innerHTML="";
-    const fmt = (col, val, row)=>{
-      let txt = val;
-      if(col.fmt) txt = col.fmt(val,row);
-      if(txt==null) txt = "";
-      const td = document.createElement("td");
-      td.innerHTML = escapeHtml(String(txt));
-      if(col.align) td.classList.add(col.align);
-      if(col.cls){
-        const cls = typeof col.cls==="function" ? col.cls(row[col.key], row) : col.cls;
-        if(cls) td.classList.add(cls);
-      }
-      return td;
-    }
-    for(const row of arr){
-      const tr = document.createElement("tr");
-      for(const col of COLUMNS){
-        tr.appendChild( fmt(col, row[col.key], row) );
-      }
-      tbody.appendChild(tr);
-    }
-    // Badges
-    $("#pillCount").textContent = `${arr.length} filas`;
-    // Agregados simples: ROI y Éxito promedio (ignorando vacíos)
-    const rois = arr.map(r=> toNumberSafe(r["Overall ROI"]) ).filter(v=>v!=null);
-    const srs  = arr.map(r=> toNumberSafe(r["Success Rate"]) ).filter(v=>v!=null);
-    const roiAvg = rois.length ? (rois.reduce((a,b)=>a+b,0)/rois.length) : null;
-    const srAvg  = srs.length ? (srs.reduce((a,b)=>a+b,0)/srs.length) : null;
-    $("#pillAgg").textContent = `ROI medio: ${roiAvg==null?"—":roiAvg.toFixed(2)+" %"} | Éxito: ${srAvg==null?"—":srAvg.toFixed(2)+" %"}`;
-    // Chips
-    $("#activeChips").innerHTML="";
-    buildChipsFromFilters();
-  }
+    const dt = new Date(s);
+    return isNaN(dt)? null: dt;
+  }catch(e){ return null; }
+}
+const toNum = v => {
+  if(v==null) return null;
+  const s = String(v).replace("%","").replace(",",".").trim();
+  if(s==="") return null;
+  const n = Number(s);
+  return Number.isFinite(n)? n : null;
+}
+const fmtPct = p=> (p==null? "—" : (p*100).toFixed(1)+"%");
+const fmtProb = p=> (p==null? "—" : (p*100).toFixed(1)+"%");
+const fmt2 = n=> n==null? "—" : Number(n).toFixed(2);
+const csvEscape = s=>{
+  if(s==null) return "";
+  s = String(s);
+  return (s.includes('"')||s.includes(",")||s.includes("\n"))? `"${s.replace(/"/g,'""')}"` : s;
+}
+function download(name, content, mime="text/csv;charset=utf-8"){
+  const blob = new Blob([content],{type:mime});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
-  function normForSort(v){
-    if(v==null) return -Infinity;
-    if(typeof v==="number") return v;
-    if(v instanceof Date) return v.getTime();
-    const s = String(v).trim();
-    const num = toNumberSafe(s.replace("%",""));
-    return num!=null ? num : s.toLowerCase();
-  }
+// ===== Carga =====
+let RAW=[], DATA=[];
+let FUTURE=[], PAST=[];
+let sortBase = {key:"Date",dir:1};
 
-  function escapeHtml(s){
-    return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
+$("#fileInput").addEventListener("change", async (e)=>{
+  const f = e.target.files?.[0]; if(!f) return;
+  const txt = await f.text(); loadFromText(txt);
+});
+$("#btnPaste").addEventListener("click", ()=>{
+  const txt = prompt("Pega aquí el JSON (array de objetos):");
+  if(!txt) return;
+  loadFromText(txt);
+});
+$("#btnReset").addEventListener("click", ()=>{
+  RAW=[]; DATA=[]; FUTURE=[]; PAST=[];
+  $("#tbodyBase").innerHTML=""; $("#tblRecs tbody").innerHTML="";
+  $("#chipsMeta").innerHTML=""; $("#league").innerHTML="";
+  $("#pillCount").textContent="0 filas"; $("#pillNext").textContent="Próximos: 0"; $("#pillRecs").textContent="Recs: 0";
+});
 
-  // ======= Carga de datos =======
-  $("#fileInput").addEventListener("change", async (e)=>{
-    const file = e.target.files?.[0];
-    if(!file) return;
-    const txt = await file.text();
-    loadFromText(txt);
+function loadFromText(txt){
+  try{
+    RAW = JSON.parse(txt);
+    DATA = RAW.map(augmentRow).filter(r => r);
+    splitFuturePast();
+    populateLeagueFilter();
+    buildBaseTable();
+    renderBase();
+    renderMeta();
+  }catch(err){
+    alert("No se pudo parsear el JSON: "+err.message);
+  }
+}
+
+function augmentRow(r){
+  const row = {...r};
+  // Match → Home/Away
+  if(row.Match && typeof row.Match==="string" && row.Match.includes(" - ")){
+    const [h,a] = row.Match.split(" - ").map(s=>s.trim());
+    row.Home = row.Home||h; row.Away = row.Away||a;
+  }
+  row._dt = parseSpanishDate(row.Date);
+  // Goles FT/HT
+  const [hht,aht] = parseScore(row["Result HT"]);
+  const [hft,aft] = parseScore(row["Result FT"]);
+  row._HT_H=hht; row._HT_A=aht; row._FT_H=hft; row._FT_A=aft;
+  if(hft!=null && aft!=null){ row._TotalGoals = hft+aft; row._GG = (hft>0 && aft>0); }
+  // Numéricos:
+  ["Home Position","Away Position","Odd","Odd 1 PreMatch","Odd X PreMatch","Odd 2 PreMatch",
+   "Home Total Shots at FT","Away Total Shots at FT",
+   "Home Ball Possession at FT","Away Ball Possession at FT",
+   "Home Corners at FT","Away Corners at FT"].forEach(k=> row[k]=toNum(row[k]));
+  row["Success Rate"] = row["Success Rate"]??""; // % string
+  row["Overall ROI"]  = row["Overall ROI"]??"";
+  return row;
+}
+function parseScore(s){
+  if(!s) return [null,null];
+  const m = String(s).trim().match(/^(\d+)\s*-\s*(\d+)$/);
+  return m? [Number(m[1]),Number(m[2])] : [null,null];
+}
+function splitFuturePast(){
+  const now = new Date();
+  FUTURE = DATA.filter(r => (!r._FT_H && !r._FT_A) || (r._dt && r._dt>now));
+  PAST   = DATA.filter(r => (r._FT_H!=null && r._FT_A!=null) && r._dt && r._dt<=now);
+  $("#pillCount").textContent = DATA.length+" filas";
+  $("#pillNext").textContent  = "Próximos: "+FUTURE.length;
+}
+function populateLeagueFilter(){
+  const leagues = Array.from(new Set(DATA.map(x=>x.League).filter(Boolean))).sort((a,b)=> String(a).localeCompare(String(b),'es'));
+  const sel = $("#league"); sel.innerHTML="";
+  for(const l of leagues){ const opt=document.createElement("option"); opt.value=l; opt.textContent=l; sel.appendChild(opt); }
+}
+
+// ===== Tabla base =====
+const BASE_COLS = [
+  {key:"Date",label:"Fecha"},
+  {key:"League",label:"Liga"},
+  {key:"Home",label:"Local"},
+  {key:"Away",label:"Visitante"},
+  {key:"Result HT",label:"HT"},
+  {key:"Result FT",label:"FT"},
+  {key:"Odd 1 PreMatch",label:"Odd 1",align:"right"},
+  {key:"Odd X PreMatch",label:"Odd X",align:"right"},
+  {key:"Odd 2 PreMatch",label:"Odd 2",align:"right"},
+  {key:"Overall ROI",label:"ROI",align:"right"},
+  {key:"Success Rate",label:"Éxito",align:"right"},
+  {key:"Result",label:"Etiqueta"}
+];
+function buildBaseTable(){
+  const thead=$("#theadBase"); thead.innerHTML="";
+  const tr=document.createElement("tr");
+  BASE_COLS.forEach(c=>{
+    const th=document.createElement("th");
+    th.textContent=c.label; if(c.align) th.classList.add(c.align);
+    th.onclick=()=>{ sortBase.key=c.key; sortBase.dir*=-1; renderBase(); };
+    tr.appendChild(th);
   });
-
-  $("#btnPaste").addEventListener("click", async ()=>{
-    const txt = prompt("Pega aquí el JSON (array de objetos) y acepta:");
-    if(!txt) return;
-    loadFromText(txt);
-  });
-
-  function loadFromText(txt){
-    try{
-      rawData = JSON.parse(txt);
-      data = rawData.map(augmentRow);
-      populateFilterOptions();
-      applyFilters();
-      buildThead();
-      render();
-    }catch(err){
-      alert("No se pudo parsear el JSON. Asegúrate de pegar/cargar un array de objetos válido.\n\n"+err.message);
+  thead.appendChild(tr);
+}
+function renderBase(){
+  // filtros simples: liga + query
+  const sel = $("#league");
+  const leagues = Array.from(sel.selectedOptions).map(o=>o.value);
+  const q = $("#q").value.trim().toLowerCase();
+  let arr = DATA.filter(r=>{
+    if(leagues.length && !leagues.includes(r.League)) return false;
+    if(q){
+      const blob = JSON.stringify(r).toLowerCase();
+      if(!blob.includes(q)) return false;
     }
-  }
-
-  function augmentRow(r){
-    const row = {...r};
-    // Split equipos desde "Match": "Puebla - Santos Laguna"
-    if(row.Match && typeof row.Match==="string" && row.Match.includes(" - ")){
-      const [home, away] = row.Match.split(" - ").map(s=>s.trim());
-      row.Home = home; row.Away = away;
-    }else{
-      row.Home = row.Home || ""; row.Away = row.Away || "";
-    }
-    // Fechas
-    row._dateObj = parseSpanishDate(row.Date);
-    // Parse marcadores
-    const [hth,hta] = parseScore(row["Result HT"]);
-    const [fth,fta] = parseScore(row["Result FT"]);
-    row._HT_H = hth; row._HT_A = hta; row._FT_H = fth; row._FT_A = fta;
-    row.GG = (fth!=null && fta!=null) ? (fth>0 && fta>0) : null;
-
-    // Normalizaciones numéricas
-    const numFields = [
-      "Odd","Odd 1 PreMatch","Odd X PreMatch","Odd 2 PreMatch",
-      "Home Position","Away Position",
-      "Home Attacks at FT","Away Attacks at FT",
-      "Home Dangerous Attacks at FT","Away Dangerous Attacks at FT",
-      "Home OnGoal Shots at FT","Away OnGoal Shots at FT",
-      "Home Total Shots at FT","Away Total Shots at FT",
-      "Home Ball Possession at FT","Away Ball Possession at FT",
-      "Home Corners at FT","Away Corners at FT",
-      "Home YellowCards at FT","Away YellowCards at FT",
-      "Home RedCards at FT","Away RedCards at FT"
-    ];
-    for(const k of numFields){
-      const v = row[k];
-      row[k] = toNumberSafe(v);
-    }
-    // Porcentajes: Success Rate / Overall ROI — mantener cadena con %
-    row["Success Rate"] = row["Success Rate"] ?? "";
-    row["Overall ROI"] = row["Overall ROI"] ?? "";
-    return row;
-  }
-
-  function parseScore(s){
-    if(!s) return [null,null];
-    const m = String(s).trim().match(/^(\d+)\s*-\s*(\d+)$/);
-    if(!m) return [null,null];
-    return [Number(m[1]), Number(m[2])];
-  }
-
-  function populateFilterOptions(){
-    fillMulti($("#league"), unique(data.map(x=>x.League).filter(Boolean)));
-    fillMulti($("#desired"), unique(data.map(x=>x["Desired Outcome"]).filter(Boolean)));
-    fillMulti($("#homeTeam"), unique(data.map(x=>x.Home).filter(Boolean)));
-    fillMulti($("#awayTeam"), unique(data.map(x=>x.Away).filter(Boolean)));
-  }
-
-  function fillMulti(select, values){
-    select.innerHTML="";
-    values.sort((a,b)=> String(a).localeCompare(String(b),'es',{sensitivity:'base'}));
-    for(const v of values){
-      const opt = document.createElement("option");
-      opt.value = v; opt.textContent = v;
-      select.appendChild(opt);
-    }
-  }
-
-  const unique = arr => Array.from(new Set(arr));
-
-  // ======= Filtros =======
-  const filterInputs = [
-    "#q","#from","#to",
-    "#league","#desired","#homeTeam","#awayTeam",
-    "#homePosMin","#homePosMax","#awayPosMin","#awayPosMax",
-    "#oddMin","#oddMax","#odd1Min","#odd1Max","#oddxMin","#oddxMax","#odd2Min","#odd2Max",
-    "#srMin","#srMax","#roiMin","#roiMax",
-    "#onlyGG","#noGG","#htGoals","#ftGoals","#hasRed",
-    "#haMin","#haMax","#aaMin","#aaMax",
-    "#hdMin","#hdMax","#adMin","#adMax",
-    "#hogMin","#hogMax","#aogMin","#aogMax",
-    "#htsMin","#htsMax","#atsMin","#atsMax",
-    "#hpMin","#hpMax","#apMin","#apMax",
-    "#hcMin","#hcMax","#acMin","#acMax",
-    "#resultTag"
-  ];
-  filterInputs.forEach(sel=>{
-    const el = $(sel);
-    const evt = (el.tagName==="SELECT" || el.type==="checkbox") ? "change" : "input";
-    el.addEventListener(evt, ()=>{ applyFilters(); render(); });
-  });
-
-  $("#btnReset").addEventListener("click", ()=>{
-    filterInputs.forEach(sel=>{
-      const el = $(sel);
-      if(el.tagName==="SELECT"){ Array.from(el.options).forEach(o=>o.selected=false); }
-      else if(el.type==="checkbox"){ el.checked=false; }
-      else el.value="";
-    });
-    sort = {key:null, dir:1};
-    applyFilters(); render();
-  });
-
-  function inRange(val, min, max){
-    if(val==null || isNaN(val)) return false;
-    if(min!=null && val < min) return false;
-    if(max!=null && val > max) return false;
     return true;
-  }
-
-  function inRangeOptional(val, min, max){
-    if(min==null && max==null) return true;
-    return inRange(val, min, max);
-  }
-
-  function multiSelOk(val, selectEl){
-    const picks = Array.from(selectEl.selectedOptions).map(o=>o.value);
-    if(picks.length===0) return true;
-    return picks.includes(val);
-  }
-
-  function applyFilters(){
-    const q = $("#q").value.trim().toLowerCase();
-    const from = $("#from").value ? new Date($("#from").value) : null;
-    const to   = $("#to").value   ? new Date($("#to").value)   : null;
-
-    const pos = {
-      hMin: toNumberSafe($("#homePosMin").value),
-      hMax: toNumberSafe($("#homePosMax").value),
-      aMin: toNumberSafe($("#awayPosMin").value),
-      aMax: toNumberSafe($("#awayPosMax").value),
-    };
-
-    const odds = {
-      oMin: toNumberSafe($("#oddMin").value),
-      oMax: toNumberSafe($("#oddMax").value),
-      o1Min: toNumberSafe($("#odd1Min").value),
-      o1Max: toNumberSafe($("#odd1Max").value),
-      oxMin: toNumberSafe($("#oddxMin").value),
-      oxMax: toNumberSafe($("#oddxMax").value),
-      o2Min: toNumberSafe($("#odd2Min").value),
-      o2Max: toNumberSafe($("#odd2Max").value),
-    };
-
-    const perf = {
-      srMin: toNumberSafe($("#srMin").value),
-      srMax: toNumberSafe($("#srMax").value),
-      roiMin: toNumberSafe($("#roiMin").value),
-      roiMax: toNumberSafe($("#roiMax").value),
-    };
-
-    const quick = {
-      onlyGG: $("#onlyGG").checked,
-      noGG: $("#noGG").checked,
-      htGoals: $("#htGoals").checked,
-      ftGoals: $("#ftGoals").checked,
-      hasRed: $("#hasRed").checked,
-    };
-
-    const stats = {
-      haMin: toNumberSafe($("#haMin").value), haMax: toNumberSafe($("#haMax").value),
-      aaMin: toNumberSafe($("#aaMin").value), aaMax: toNumberSafe($("#aaMax").value),
-      hdMin: toNumberSafe($("#hdMin").value), hdMax: toNumberSafe($("#hdMax").value),
-      adMin: toNumberSafe($("#adMin").value), adMax: toNumberSafe($("#adMax").value),
-      hogMin: toNumberSafe($("#hogMin").value), hogMax: toNumberSafe($("#hogMax").value),
-      aogMin: toNumberSafe($("#aogMin").value), aogMax: toNumberSafe($("#aogMax").value),
-      htsMin: toNumberSafe($("#htsMin").value), htsMax: toNumberSafe($("#htsMax").value),
-      atsMin: toNumberSafe($("#atsMin").value), atsMax: toNumberSafe($("#atsMax").value),
-      hpMin: toNumberSafe($("#hpMin").value), hpMax: toNumberSafe($("#hpMax").value),
-      apMin: toNumberSafe($("#apMin").value), apMax: toNumberSafe($("#apMax").value),
-      hcMin: toNumberSafe($("#hcMin").value), hcMax: toNumberSafe($("#hcMax").value),
-      acMin: toNumberSafe($("#acMin").value), acMax: toNumberSafe($("#acMax").value),
-    };
-
-    filtered = data.filter(r=>{
-      // texto global
-      if(q){
-        const blob = JSON.stringify(r).toLowerCase();
-        if(!blob.includes(q)) return false;
-      }
-      // fecha
-      if(from && r._dateObj && r._dateObj < from) return false;
-      if(to && r._dateObj && r._dateObj > to) return false;
-
-      // selects
-      if(!multiSelOk(r.League, $("#league"))) return false;
-      if(!multiSelOk(r["Desired Outcome"], $("#desired"))) return false;
-      if(!multiSelOk(r.Home, $("#homeTeam"))) return false;
-      if(!multiSelOk(r.Away, $("#awayTeam"))) return false;
-      if(!multiSelOk(r.Result, $("#resultTag"))) return false;
-
-      // posiciones
-      if(!inRangeOptional(toNumberSafe(r["Home Position"]), pos.hMin, pos.hMax)) return false;
-      if(!inRangeOptional(toNumberSafe(r["Away Position"]), pos.aMin, pos.aMax)) return false;
-
-      // odds
-      if(!inRangeOptional(r.Odd, odds.oMin, odds.oMax)) return false;
-      if(!inRangeOptional(r["Odd 1 PreMatch"], odds.o1Min, odds.o1Max)) return false;
-      if(!inRangeOptional(r["Odd X PreMatch"], odds.oxMin, odds.oxMax)) return false;
-      if(!inRangeOptional(r["Odd 2 PreMatch"], odds.o2Min, odds.o2Max)) return false;
-
-      // performance
-      const sr = toNumberSafe(r["Success Rate"]);
-      const roi = toNumberSafe(r["Overall ROI"]);
-      if((perf.srMin!=null && (sr==null || sr < perf.srMin)) || (perf.srMax!=null && (sr==null || sr > perf.srMax))) return false;
-      if((perf.roiMin!=null && (roi==null || roi < perf.roiMin)) || (perf.roiMax!=null && (roi==null || roi > perf.roiMax))) return false;
-
-      // checks rápidos
-      if(quick.onlyGG && !r.GG) return false;
-      if(quick.noGG && (r.GG===true)) return false;
-      if(quick.htGoals && !((r._HT_H??0)+(r._HT_A??0) > 0)) return false;
-      if(quick.ftGoals && !((r._FT_H??0)+(r._FT_A??0) > 0)) return false;
-      if(quick.hasRed){
-        const rl = toNumberSafe(r["Home RedCards at FT"])||0;
-        const ra = toNumberSafe(r["Away RedCards at FT"])||0;
-        if((rl+ra)<=0) return false;
-      }
-
-      // stats
-      if(!inRangeOptional(r["Home Attacks at FT"], stats.haMin, stats.haMax)) return false;
-      if(!inRangeOptional(r["Away Attacks at FT"], stats.aaMin, stats.aaMax)) return false;
-      if(!inRangeOptional(r["Home Dangerous Attacks at FT"], stats.hdMin, stats.hdMax)) return false;
-      if(!inRangeOptional(r["Away Dangerous Attacks at FT"], stats.adMin, stats.adMax)) return false;
-      if(!inRangeOptional(r["Home OnGoal Shots at FT"], stats.hogMin, stats.hogMax)) return false;
-      if(!inRangeOptional(r["Away OnGoal Shots at FT"], stats.aogMin, stats.aogMax)) return false;
-      if(!inRangeOptional(r["Home Total Shots at FT"], stats.htsMin, stats.htsMax)) return false;
-      if(!inRangeOptional(r["Away Total Shots at FT"], stats.atsMin, stats.atsMax)) return false;
-      if(!inRangeOptional(r["Home Ball Possession at FT"], stats.hpMin, stats.hpMax)) return false;
-      if(!inRangeOptional(r["Away Ball Possession at FT"], stats.apMin, stats.apMax)) return false;
-      if(!inRangeOptional(r["Home Corners at FT"], stats.hcMin, stats.hcMax)) return false;
-      if(!inRangeOptional(r["Away Corners at FT"], stats.acMin, stats.acMax)) return false;
-
-      return true;
+  });
+  if(sortBase.key){
+    const k=sortBase.key, dir=sortBase.dir;
+    arr.sort((a,b)=>{
+      const va = norm(a[k]); const vb = norm(b[k]);
+      if(va<vb) return -1*dir; if(va>vb) return 1*dir; return 0;
     });
   }
+  const tbody=$("#tbodyBase"); tbody.innerHTML="";
+  for(const r of arr){
+    const tr=document.createElement("tr");
+    for(const c of BASE_COLS){
+      const td=document.createElement("td");
+      let v = r[c.key]; if(c.key==="Date" && r._dt) v = r._dt.toLocaleString();
+      td.textContent = v==null? "" : v;
+      if(c.align) td.classList.add(c.align);
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+}
+function norm(v){
+  if(v==null) return -Infinity;
+  if(v instanceof Date) return v.getTime();
+  const n = toNum(v); return n!=null? n : String(v).toLowerCase();
+}
+$("#league").addEventListener("change", renderBase);
+$("#q").addEventListener("input", renderBase);
 
-  function buildChipsFromFilters(){
-    const chips = [];
+// ===== Meta =====
+function renderMeta(){
+  const chips=$("#chipsMeta"); chips.innerHTML="";
+  const leagues = new Set(DATA.map(x=>x.League).filter(Boolean));
+  const teams = new Set(DATA.flatMap(x=>[x.Home,x.Away]).filter(Boolean));
+  addChip(`${leagues.size} ligas`, chips);
+  addChip(`${teams.size} equipos`, chips);
+  const years = new Set(DATA.map(r=> r._dt? r._dt.getFullYear(): null).filter(Boolean));
+  addChip(`Años: ${Array.from(years).sort().join(", ")}`, chips);
+}
+function addChip(text, container){
+  const s=document.createElement("span"); s.className="chip"; s.textContent=text; container.appendChild(s);
+}
 
-    function selToChips(id,label){
-      const el = $(id);
-      const opts = Array.from(el.selectedOptions).map(o=>o.value);
-      if(opts.length){
-        chips.push([`${label}: ${opts.join(", ")}`, ()=>{ Array.from(el.options).forEach(o=>o.selected=false); applyFilters(); render(); }]);
-      }
+// ===== Motor de patrones =====
+
+// 1) Construir índices por equipo
+function buildTeamIndex(pastRows){
+  const idx = {};
+  for(const r of pastRows){
+    if(!r.Home || !r.Away) continue;
+    if(!idx[r.Home]) idx[r.Home] = {home:[],away:[],all:[]};
+    if(!idx[r.Away]) idx[r.Away] = {home:[],away:[],all:[]};
+    idx[r.Home].home.push(r); idx[r.Home].all.push({...r,_side:"H"});
+    idx[r.Away].away.push(r); idx[r.Away].all.push({...r,_side:"A"});
+  }
+  // ordenar por fecha
+  for(const t of Object.keys(idx)){
+    ["home","away","all"].forEach(k=> idx[t][k].sort((a,b)=> a._dt-b._dt));
+  }
+  return idx;
+}
+
+// 2) Medias ponderadas (recency α) para goles a favor/en contra
+function weightedGoalRates(rows, side, N, alpha){ // side "H" o "A" o "ALL"
+  // tomamos últimos N partidos (según side)
+  let arr = side==="H"? rows.home : side==="A"? rows.away : rows.all;
+  if(!arr || !arr.length) return {gf:0.9, ga:0.9, n:0};
+  arr = arr.slice(-N);
+  // pesos exponenciales (más recientes pesan más)
+  const m = arr.length;
+  let wsum=0, gf=0, ga=0;
+  for(let i=0;i<m;i++){
+    const r = arr[m-1-i]; // i=0 más reciente
+    const w = Math.pow(1-alpha, i);
+    const gfor  = r._FT_H!=null && r._FT_A!=null ? (r._side==="A"? r._FT_A : r._FT_H) : 0;
+    const gagen = r._FT_H!=null && r._FT_A!=null ? (r._side==="A"? r._FT_H : r._FT_A) : 0;
+    gf += w*gfor; ga += w*gagen; wsum += w;
+  }
+  if(wsum===0) return {gf:0.9,ga:0.9,n:arr.length};
+  return {gf:gf/wsum, ga:ga/wsum, n:arr.length};
+}
+
+// 3) Fuerzas ofensiva/defensiva simples (tipo Dixon-Coles lite)
+function leagueAverages(pastRows){
+  let hGoals=0,aGoals=0,c=0;
+  for(const r of pastRows){
+    if(r._FT_H==null || r._FT_A==null) continue;
+    hGoals+=r._FT_H; aGoals+=r._FT_A; c++;
+  }
+  const muH = c? hGoals/c : 1.2;
+  const muA = c? aGoals/c : 1.0;
+  return {muH, muA};
+}
+
+// 4) Matriz Poisson y mercados
+function poissonPmf(k, lambda){ return Math.exp(-lambda) * Math.pow(lambda, k) / factorial(k); }
+const FACTS = [1];
+function factorial(n){
+  for(let i=FACTS.length;i<=n;i++) FACTS[i]=FACTS[i-1]*i;
+  return FACTS[n];
+}
+function matchDistribution(lh, la, gmax){
+  // devuelve matriz P(X=h, Y=a) hasta gmax
+  const PX = Array.from({length:gmax+1},(_,x)=>poissonPmf(x,lh));
+  const PY = Array.from({length:gmax+1},(_,y)=>poissonPmf(y,la));
+  const M = Array.from({length:gmax+1},()=>Array(gmax+1).fill(0));
+  for(let x=0;x<=gmax;x++) for(let y=0;y<=gmax;y++) M[x][y]=PX[x]*PY[y];
+  // masa fuera de rango
+  const tailH = 1-PX.reduce((a,b)=>a+b,0);
+  const tailA = 1-PY.reduce((a,b)=>a+b,0);
+  // aproximación: añadir cola a última fila/col
+  for(let x=0;x<=gmax;x++) M[x][gmax]+=PX[x]*tailA;
+  for(let y=0;y<=gmax;y++) M[gmax][y]+=PY[y]*tailH;
+  M[gmax][gmax]+=tailH*tailA;
+  return M;
+}
+function probFromMatrix(M, fn){
+  let p=0;
+  for(let x=0;x<M.length;x++)
+    for(let y=0;y<M[x].length;y++)
+      if(fn(x,y)) p+=M[x][y];
+  return Math.min(Math.max(p,0),1);
+}
+function probsFromLambdas(lh, la, gmax){
+  const M = matchDistribution(lh,la,gmax);
+  const pH = probFromMatrix(M,(x,y)=>x>y);
+  const pD = probFromMatrix(M,(x,y)=>x===y);
+  const pA = probFromMatrix(M,(x,y)=>x<y);
+  const pO25 = probFromMatrix(M,(x,y)=>x+y>=3);
+  const pU25 = 1-pO25;
+  const pBTTS = probFromMatrix(M,(x,y)=>x>0 && y>0);
+  return {pH,pD,pA,pO25,pU25,pBTTS};
+}
+
+// 5) Rachas y patrones simples
+function streakStats(rows, team, M){
+  // rows: idx[team].all (ordenado por fecha)
+  const arr = rows.slice(-M);
+  let over = 0, btts=0, win=0, draw=0, lose=0;
+  for(const r of arr){
+    if(r._FT_H==null||r._FT_A==null) continue;
+    const tg = r._FT_H + r._FT_A;
+    if(tg>=3) over++;
+    if(r._FT_H>0 && r._FT_A>0) btts++;
+    const isH = r._side==="H";
+    if((isH && r._FT_H>r._FT_A) || (!isH && r._FT_A>r._FT_H)) win++;
+    else if(r._FT_H===r._FT_A) draw++;
+    else lose++;
+  }
+  return {overRate: over/arr.length || 0, bttsRate:btts/arr.length || 0, winRate:win/arr.length||0, sample:arr.length};
+}
+
+// 6) Generar recomendaciones
+$("#btnRun").addEventListener("click", generateRecommendations);
+
+function generateRecommendations(){
+  const N = Number($("#paramN").value)||10;
+  const alpha = Number($("#paramAlpha").value)||0.3;
+  const gmax = Math.max(5, Math.min(12, Number($("#paramGMax").value)||8));
+  const Mstreak = Number($("#paramStreak").value)||5;
+  const pMin = Number($("#paramPMin").value)||0.45;
+  const evMin = Number($("#paramEVMin").value)||0.02;
+  const useHA = $("#paramHomeAway").value==="1";
+  const wantedMkts = Array.from($("#paramMarkets").selectedOptions).map(o=>o.value);
+
+  // filtrar por liga seleccionada para modelar, si aplica
+  const leaguesSel = Array.from($("#league").selectedOptions).map(o=>o.value);
+  const past = leaguesSel.length? PAST.filter(r=>leaguesSel.includes(r.League)) : PAST;
+  const fut  = leaguesSel.length? FUTURE.filter(r=>leaguesSel.includes(r.League)) : FUTURE;
+
+  if(!past.length){ alert("No hay historial (pasado) suficiente para modelar."); return; }
+
+  const lg = leagueAverages(past);
+  const idx = buildTeamIndex(past);
+
+  const recs = [];
+  for(const f of fut){
+    const home = f.Home, away = f.Away;
+    if(!home || !away) continue;
+    const H = idx[home], A = idx[away];
+    if(!H || !A) continue;
+
+    // rates H/A o global
+    const sideH = useHA?"H":"ALL", sideA = useHA?"A":"ALL";
+    const hFor = weightedGoalRates(H, sideH, N, alpha); // gf, ga
+    const aFor = weightedGoalRates(A, sideA, N, alpha);
+
+    // fuerza-ofensiva/defensiva vs promedio liga
+    // lambda local ≈ (promedio local de H) * (promedio concedido visitante de A) / liga referencia
+    // Añadimos un suavizado mínimo para evitar ceros
+    const eps = 0.05;
+    const offH = Math.max(hFor.gf, eps);
+    const defA = Math.max(aFor.ga, eps);
+    const offA = Math.max(aFor.gf, eps);
+    const defH = Math.max(hFor.ga, eps);
+    const lambdaH = offH * (defA) / (lg.muA || 1.0);
+    const lambdaA = offA * (defH) / (lg.muH || 1.0);
+
+    const probs = probsFromLambdas(lambdaH, lambdaA, gmax);
+
+    // Rachas para contexto
+    const stH = streakStats(H.all, home, Mstreak);
+    const stA = streakStats(A.all, away, Mstreak);
+
+    // Cuotas (si existen). Si no, seguir proponiendo con cuota estimada "—"
+    const o1 = toNum(f["Odd 1 PreMatch"]);
+    const ox = toNum(f["Odd X PreMatch"]);
+    const o2 = toNum(f["Odd 2 PreMatch"]);
+    const oO25 = toNum(f["Odd Over 2.5"]) ?? toNum(f["Odd Over2.5"]) ?? null;
+    const oU25 = toNum(f["Odd Under 2.5"]) ?? toNum(f["Odd Under2.5"]) ?? null;
+    const oBTTS = toNum(f["Odd BTTS"]) ?? toNum(f["Odd GG"]) ?? null;
+
+    // Probar mercados solicitados
+    const cand = [];
+    if(wantedMkts.includes("1X2")){
+      pushEV(cand, "1", o1, probs.pH, pMin, evMin, `λH=${lambdaH.toFixed(2)}, λA=${lambdaA.toFixed(2)}`);
+      pushEV(cand, "X", ox, probs.pD, pMin, evMin, `λH=${lambdaH.toFixed(2)}, λA=${lambdaA.toFixed(2)}`);
+      pushEV(cand, "2", o2, probs.pA, pMin, evMin, `λH=${lambdaH.toFixed(2)}, λA=${lambdaA.toFixed(2)}`);
+    }
+    if(wantedMkts.includes("O2.5")){
+      pushEV(cand, "Over 2.5", oO25, probs.pO25, pMin, evMin, `TG≈${(lambdaH+lambdaA).toFixed(2)}`);
+    }
+    if(wantedMkts.includes("U2.5")){
+      pushEV(cand, "Under 2.5", oU25, probs.pU25, pMin, evMin, `TG≈${(lambdaH+lambdaA).toFixed(2)}`);
+    }
+    if(wantedMkts.includes("BTTS")){
+      pushEV(cand, "BTTS Sí", oBTTS, probs.pBTTS, pMin, evMin, `λH=${lambdaH.toFixed(2)}, λA=${lambdaA.toFixed(2)}`);
     }
 
-    function valChip(id,label){
-      const el = $(id);
-      if(el.value){
-        chips.push([`${label}: ${el.value}`, ()=>{ el.value=""; applyFilters(); render(); }]);
-      }
+    // Enriquecer con razones (patrones)
+    for(const c of cand){
+      const reasons = [];
+      reasons.push(`Últimos ${Math.min(N, (idx[home]?.all?.length||0))} ${home}: Over≥3 en ${(stH.overRate*100).toFixed(0)}% · BTTS ${(stH.bttsRate*100).toFixed(0)}%`);
+      reasons.push(`Últimos ${Math.min(N, (idx[away]?.all?.length||0))} ${away}: Over≥3 en ${(stA.overRate*100).toFixed(0)}% · BTTS ${(stA.bttsRate*100).toFixed(0)}%`);
+      // Sesgo de localía implícito si λH>λA
+      if(lambdaH>lambdaA+0.2) reasons.push("Modelo favorece al local (λH>λA)");
+      if(lambdaA>lambdaH+0.2) reasons.push("Modelo favorece al visitante (λA>λH)");
+      if((stH.overRate+stA.overRate)/2>0.6) reasons.push("Tendencia Over en ambos");
+      if((stH.bttsRate+stA.bttsRate)/2>0.6) reasons.push("Tendencia BTTS en ambos");
+      c.reasons = reasons;
+      c.date = f._dt ? f._dt.toLocaleString() : (f.Date||"—");
+      c.match = `${home} vs ${away}`;
+      c.model = `Poisson gmax=${gmax}, N=${N}, α=${alpha}`;
+      c.league = f.League || "";
     }
-
-    function rangeChip(minId,maxId,label){
-      const min = $(minId).value, max = $(maxId).value;
-      if(min || max){
-        chips.push([`${label}: ${min||"−∞"}..${max||"∞"}`, ()=>{ $(minId).value=""; $(maxId).value=""; applyFilters(); render(); }]);
-      }
-    }
-
-    selToChips("#league","Liga");
-    selToChips("#desired","Outcome");
-    selToChips("#homeTeam","Local");
-    selToChips("#awayTeam","Visitante");
-    selToChips("#resultTag","Etiqueta");
-
-    if($("#from").value || $("#to").value){
-      chips.push([`Fecha: ${$("#from").value||"—"} → ${$("#to").value||"—"}`, ()=>{
-        $("#from").value=""; $("#to").value=""; applyFilters(); render();
-      }]);
-    }
-    if($("#q").value){
-      chips.push([`Buscar: “${$("#q").value}”`, ()=>{ $("#q").value=""; applyFilters(); render(); }]);
-    }
-
-    // rangos
-    rangeChip("#homePosMin","#homePosMax","Pos L");
-    rangeChip("#awayPosMin","#awayPosMax","Pos V");
-    rangeChip("#oddMin","#oddMax","Odd");
-    rangeChip("#odd1Min","#odd1Max","Odd1");
-    rangeChip("#oddxMin","#oddxMax","OddX");
-    rangeChip("#odd2Min","#odd2Max","Odd2");
-    rangeChip("#srMin","#srMax","Éxito %");
-    rangeChip("#roiMin","#roiMax","ROI %");
-
-    rangeChip("#haMin","#haMax","Atk L");
-    rangeChip("#aaMin","#aaMax","Atk V");
-    rangeChip("#hdMin","#hdMax","Dang L");
-    rangeChip("#adMin","#adMax","Dang V");
-    rangeChip("#hogMin","#hogMax","OT L");
-    rangeChip("#aogMin","#aogMax","OT V");
-    rangeChip("#htsMin","#htsMax","Tiros L");
-    rangeChip("#atsMin","#atsMax","Tiros V");
-    rangeChip("#hpMin","#hpMax","Pos L%");
-    rangeChip("#apMin","#apMax","Pos V%");
-    rangeChip("#hcMin","#hcMax","Cor L");
-    rangeChip("#acMin","#acMax","Cor V");
-
-    // checks
-    [["#onlyGG","GG"],["#noGG","No GG"],["#htGoals","Goles HT"],["#ftGoals","Goles FT"],["#hasRed","Con rojas"]]
-      .forEach(([id, label])=>{
-        if($(id).checked){
-          chips.push([label, ()=>{ $(id).checked=false; applyFilters(); render(); }]);
-        }
-      });
-
-    // Pintar
-    for(const [t,rem] of chips) addChip(t, rem);
+    recs.push(...cand);
   }
 
-  // ======= Export/State =======
-  $("#btnExport").addEventListener("click", ()=>{
-    const rows = filtered;
-    if(!rows.length){ alert("No hay filas para exportar."); return; }
-    const headers = COLUMNS.map(c=>c.label);
-    const keys = COLUMNS.map(c=>c.key);
-    const lines = [];
-    lines.push(headers.map(csvEscape).join(","));
-    for(const r of rows){
-      const arr = keys.map(k=>{
-        let v = r[k];
-        if(k==="Date" && r._dateObj) v = r._dateObj.toISOString();
-        if(k==="GG") v = r.GG==null?"":(r.GG?"Sí":"No");
-        return csvEscape(v==null?"":v);
-      });
-      lines.push(arr.join(","));
-    }
-    download("liga_mx_filtrado.csv", lines.join("\n"), "text/csv;charset=utf-8");
+  // Ordenar por EV desc
+  recs.sort((a,b)=> (b.EV??-1) - (a.EV??-1));
+  renderRecs(recs);
+}
+
+function pushEV(list, market, odd, p, pMin, evMin, note){
+  if(p==null || isNaN(p)) return;
+  if(pMin!=null && p<pMin) return; // prob. mínima
+  let EV=null;
+  if(odd && odd>1) EV = p*odd - 1;
+  // Si no hay cuota, proponemos igual pero marcamos EV como "—" y priorizamos por p
+  if(odd==null){
+    if(p>=Math.max(pMin,0.55)) list.push({Market:market, Odd:"—", P:p, EV:null, Note:note});
+    return;
+  }
+  if(EV>=evMin) list.push({Market:market, Odd:odd, P:p, EV:EV, Note:note});
+}
+
+function renderRecs(recs){
+  const tbody = $("#tblRecs tbody"); tbody.innerHTML="";
+  let count=0;
+  for(const r of recs){
+    const tr = document.createElement("tr"); tr.className="rec-row";
+    tr.innerHTML = `
+      <td>${r.date||"—"}</td>
+      <td><strong>${r.match||"—"}</strong><div class="small muted">${r.league||""}</div></td>
+      <td><span class="tag">${r.Market}</span></td>
+      <td class="right">${r.Odd=="—"?"—":fmt2(r.Odd)}</td>
+      <td class="right">${fmtProb(r.P)}</td>
+      <td class="right ${r.EV!=null && r.EV>=0? "good":"bad"}">${r.EV==null?"—":fmt2(r.EV)}</td>
+      <td class="small muted">${r.model||""}</td>
+      <td class="small">${(r.reasons||[]).map(x=>`• ${x}`).join("<br>")}${r.Note? `<br><span class="muted">(${r.Note})</span>`:""}</td>
+    `;
+    tbody.appendChild(tr); count++;
+  }
+  $("#pillRecs").textContent = "Recs: "+count;
+}
+
+// ===== Exportar recomendaciones =====
+$("#btnExportRecs").addEventListener("click", ()=>{
+  const rows = Array.from($("#tblRecs tbody").children).map(tr=>{
+    const tds = Array.from(tr.children).map(td=>td.innerText);
+    return tds;
   });
+  if(!rows.length){ alert("No hay recomendaciones para exportar."); return; }
+  const headers = ["Fecha","Partido","Mercado","Cuota","Prob.","EV","Modelo","Razonamiento"];
+  const lines = [headers.map(csvEscape).join(",")];
+  for(const r of rows) lines.push(r.map(csvEscape).join(","));
+  download("recomendaciones.csv", lines.join("\n"));
+});
 
-  $("#btnSaveState").addEventListener("click", ()=>{
-    const state = {};
-    for(const sel of filterInputs){
-      const el = $(sel);
-      if(el.tagName==="SELECT"){
-        state[sel] = Array.from(el.selectedOptions).map(o=>o.value);
-      }else if(el.type==="checkbox"){
-        state[sel] = el.checked;
-      }else{
-        state[sel] = el.value;
-      }
-    }
-    localStorage.setItem("liga_mx_filters", JSON.stringify(state));
-    alert("Estado de filtros guardado.");
-  });
+// ===== Listeners extra =====
+$("#q").addEventListener("input", ()=>{}); // ya usado en renderBase()
 
-  $("#btnLoadState").addEventListener("click", ()=>{
-    const txt = localStorage.getItem("liga_mx_filters");
-    if(!txt){ alert("No hay estado guardado."); return; }
-    try{
-      const state = JSON.parse(txt);
-      for(const sel of filterInputs){
-        const el = $(sel);
-        const v = state[sel];
-        if(v===undefined) continue;
-        if(el.tagName==="SELECT"){
-          Array.from(el.options).forEach(o=>o.selected = Array.isArray(v) && v.includes(o.value));
-        }else if(el.type==="checkbox"){
-          el.checked = !!v;
-        }else{
-          el.value = v ?? "";
-        }
-      }
-      applyFilters(); render();
-    }catch(e){
-      alert("No se pudo cargar el estado.");
-    }
-  });
+// ===== Inicio: cabeceras vacías para estructura =====
+buildBaseTable();
 
-  // ======= Inicio: encabezados vacíos para estructura =======
-  buildThead();
-
-})();
-</script>
+})();</script>
 </body>
 </html>
