@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Liga MX – Ligas → Equipos (sticky fijo arreglado)</title>
+<title>Liga MX – Ligas → Equipos (sticky arreglado)</title>
 <style>
   :root{
     --bg:#0e1020; --panel:#161a2e; --panel2:#1d2240; --muted:#a7acc8; --text:#e8eaf2;
     --border:#2a2e4a; --accent:#5dd4a4; --accent2:#7aa2ff; --warn:#ffb84d; --danger:#ff6b6b;
     --chip:#2a2f55; --table:#13172b;
-    /* offset dinámico del header para los thead sticky (se actualiza vía JS) */
+    /* Offset dinámico del header para todos los thead sticky */
     --sticky-top: 0px;
   }
   *{box-sizing:border-box}
@@ -37,12 +37,15 @@
   .pill{font-weight:700;padding:4px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--border);color:var(--muted);font-size:12px}
   .muted{color:var(--muted)} .small{font-size:12px}
   table{width:100%;border-collapse:separate;border-spacing:0;background:var(--table);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-  /* Sticky header de tablas usando offset DINÁMICO */
+  /* Encabezados sticky: ahora con offset dinámico y z-index alto */
   thead th{
-    position:sticky; top:var(--sticky-top); z-index:5;
+    position:sticky;
+    top:var(--sticky-top);            /* se ajusta vía JS */
+    z-index:200;                      /* por encima de las filas */
     background:linear-gradient(180deg,#1a1f3a,#161b33);
     color:var(--muted);font-size:12px;text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);
-    cursor:pointer;white-space:nowrap
+    cursor:pointer;white-space:nowrap;
+    box-shadow: 0 1px 0 rgba(0,0,0,.35); /* línea de separación */
   }
   tbody td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
   tbody tr:hover{background:#1a1f3a}
@@ -198,7 +201,7 @@ const $$ = s=>Array.from(document.querySelectorAll(s));
 const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago.":7,"sept.":8,"sep":8,"sep.":8,"oct.":9,"nov":10,"nov.":10,"dic.":11};
 const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
 
-// ===== Sticky OFFSET dinámico =====
+// ===== Sticky OFFSET dinámico (siempre debajo del header) =====
 function updateStickyOffset(){
   const h = document.getElementById('pageHeader')?.offsetHeight || 0;
   document.documentElement.style.setProperty('--sticky-top', h + 'px');
@@ -206,7 +209,7 @@ function updateStickyOffset(){
 window.addEventListener('load', updateStickyOffset);
 window.addEventListener('resize', ()=>{ requestAnimationFrame(updateStickyOffset); });
 
-// ===== Parseos y helpers =====
+// utilidades varias
 function parseSpanishDate(s){
   if(!s) return null;
   try{
@@ -337,8 +340,9 @@ function refreshTeamLists(){
 
   $("#pillTeams").textContent = "Equipos: "+teams.length;
   renderBase();
+  updateStickyOffset();
 }
-$("#league").addEventListener("change", ()=>{ refreshTeamLists(); updateStickyOffset(); });
+$("#league").addEventListener("change", ()=>{ refreshTeamLists(); });
 
 // ===== Tabla base (filtrada por liga y búsqueda) =====
 const BASE_COLS = [
@@ -397,6 +401,7 @@ function renderBase(){
     }
     tbody.appendChild(tr);
   }
+  updateStickyOffset();
 }
 function norm(v){
   if(v==null) return -Infinity;
@@ -615,6 +620,7 @@ function renderRecs(recs){
     tbody.appendChild(tr); count++;
   }
   $("#pillRecs").textContent = "Mercados: "+count;
+  updateStickyOffset(); // asegura que el encabezado quede bien colocado
 }
 
 // ===== Exportar mercados =====
