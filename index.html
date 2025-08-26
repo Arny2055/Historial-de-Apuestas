@@ -608,14 +608,19 @@
     actualizarVista();
   }
 
-  // ---- Eliminar TODO el historial ----
-  btnEliminarTodo.addEventListener('click', () => {
-    if (!confirm('⚠️ ¿Seguro que quieres eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
-    historial = [];
-    localStorage.removeItem(STORAGE_KEY);
-    actualizarVista();
-    alert('Historial eliminado ✅');
-  });
+// ---- Eliminar TODO el historial ----
+btnEliminarTodo.addEventListener('click', () => {
+  if (!confirm('⚠️ ¿Seguro que quieres eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
+  
+  historial = []; // vaciar array
+  localStorage.removeItem(STORAGE_KEY); // borrar del storage
+  actualizarVista(); // refrescar tabla, resumen y gráficas
+
+  // por si había archivo seleccionado en el input de importación
+  inputImportJSON.value = '';
+
+  alert('Historial eliminado ✅');
+});
 
   // Actualizar resumen estadístico
   function actualizarResumen() {
