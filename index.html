@@ -419,12 +419,36 @@
     return x || '';
   }
   function mapEstado(x) {
-    const s = String(x || '').toLowerCase();
-    if (/win|ganad/.test(s)) return 'ganada';
-    if (/lose|perdid/.test(s)) return 'perdida';
-    if (/void|cancel/.test(s)) return 'pendiente';
-    return 'pendiente';
-  }
+  const s = String(x || '').trim().toLowerCase();
+
+  // GANADA
+  if (
+    /\bwin(n?ing)?\b/.test(s) ||   // win, winning
+    /\bwon\b/.test(s) ||
+    /ganad[ao]s?/.test(s) ||       // ganada, ganadas, ganado, ganados
+    /\bgreen\b/.test(s)            // a veces usan "green"
+  ) return 'ganada';
+
+  // PERDIDA
+  if (
+    /\blos(e|ing|t)\b/.test(s) ||  // lose, losing, lost
+    /\bloss\b/.test(s) ||
+    /perdid[ao]s?/.test(s) ||      // perdida, perdidas, perdido, perdidos
+    /\bred\b/.test(s)              // a veces usan "red"
+  ) return 'perdida';
+
+  // NULA / CANCELADA → lo dejamos como pendiente en este sistema
+  if (
+    /\bvoid(ed)?\b/.test(s) ||
+    /cancel(l?ed|ar|ada)/.test(s) ||
+    /\bpush\b/.test(s) ||
+    /\brefund(ed)?\b/.test(s) ||
+    /nula|anulada/.test(s)
+  ) return 'pendiente';
+
+  // Desconocido → pendiente
+  return 'pendiente';
+}
 
   function recordFromExternal(rec) {
     // Lee valores
