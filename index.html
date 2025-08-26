@@ -109,7 +109,7 @@
             <label>Local (filtrado por liga)</label>
             <select id="selHome"></select>
           </div>
-          <div class="field" style="grid-column: span 4%;">
+          <div class="field" style="grid-column: span 4;">
             <label>Visitante (filtrado por liga)</label>
             <select id="selAway"></select>
           </div>
@@ -147,15 +147,15 @@
             <label>Peso recency (α 0–1)</label>
             <input id="paramAlpha" type="number" min="0" max="1" step="0.05" value="0.30">
           </div>
-          <div class="field" style="grid-column: span 6;">
+          <div class="field" style="grid-column: span 6%;">
             <label>Máx. goles (gmax)</label>
             <input id="paramGMax" type="number" min="4" max="12" step="1" value="8">
           </div>
-          <div class="field" style="grid-column: span 6;">
+          <div class="field" style="grid-column: span 6%;">
             <label>Ventana rachas (M)</label>
             <input id="paramStreak" type="number" min="3" max="15" step="1" value="5">
           </div>
-          <div class="field" style="grid-column: span 6;">
+          <div class="field" style="grid-column: span 6%;">
             <label>Prob. mínima</label>
             <input id="paramPMin" type="number" step="0.01" value="0.45">
           </div>
@@ -256,6 +256,7 @@ const setStatus = (t)=> $("#pillStatus").textContent = t;
 // ====== Estado ======
 let DATA=[], PAST=[];
 let sortBase = {key:"Date",dir:1};
+let LAST_RECS = []; // para exportación
 
 // ====== Lectura JSON (compat iOS) ======
 const fileInput = $("#fileInput");
@@ -286,7 +287,10 @@ fileInput.addEventListener("change", (e)=>{
 // Modal pegar
 $("#btnPaste").addEventListener("click", ()=>{
   $("#pasteTxt").value="";
-  $("#pasteDlg").showModal();
+  $("#pasteDlg").showModal?.() || (function(){
+    const txt = prompt("Pega tu JSON aquí:");
+    if(txt){ try{ loadFromText(normalizeText(txt)); setStatus("Cargado (pegado)"); }catch(err){ alert("No se pudo parsear: "+err.message); } }
+  })();
 });
 $("#pasteOk").addEventListener("click", (ev)=>{
   ev.preventDefault();
@@ -313,6 +317,16 @@ $("#btnDemo").addEventListener("click", ()=>{
   ]);
   loadFromText(demo);
   setStatus("Cargado: DEMO");
+});
+
+// Limpiar todo
+$("#btnReset").addEventListener("click", ()=>{
+  DATA=[]; PAST=[]; LAST_RECS=[];
+  $("#league").innerHTML=""; $("#selHome").innerHTML=""; $("#selAway").innerHTML="";
+  $("#theadBase").innerHTML=""; $("#tbodyBase").innerHTML="";
+  $("#tblRecs tbody").innerHTML=""; $("#resumen").textContent="";
+  $("#pillStatus").textContent="Sin datos"; $("#pillTeams").textContent="Equipos: 0"; $("#pillRecs").textContent="Mercados: 0";
+  ["odd1","oddx","odd2","oddo25","oddu25","oddbtts"].forEach(id=>{ const el=$("#"+id); if(el) el.value=""; });
 });
 
 // Normaliza texto: quita BOM y espacios extra
@@ -425,7 +439,7 @@ function refreshTeamLists(){
   fillSelect($("#selHome"), teams);
   fillSelect($("#selAway"), teams);
 
-  if(prevHome && teams.includes(prevHome)) $("#selHome").value = prevHome;   // <- corregido (sin doble punto)
+  if(prevHome && teams.includes(prevHome)) $("#selHome").value = prevHome;
   if(prevAway && teams.includes(prevAway)) $("#selAway").value = prevAway;
 
   $("#pillTeams").textContent = "Equipos: "+teams.length;
@@ -723,6 +737,7 @@ function analyzeSelectedMatch(){
     <span class="chip">P(O2.5) ${(probs.pO25*100).toFixed(1)}%</span>
     <span class="chip">P(BTTS) ${(probs.pBTTS*100).toFixed(1)}%</span>
   `;
+  LAST_RECS = cand.slice();
   renderRecs(cand);
 }
 function pushEV(list, market, odd, p, pMin, evMin, note){
@@ -760,4 +775,32 @@ function renderRecs(recs){
 
 // ====== Exportar ======
 $("#btnExportRecs").addEventListener("click", ()=>{
-  const rows = Array.from($("#tblRecs tbody").children).map(tr
+  const recs = LAST_RECS || [];
+  if(!recs.length){ alert("No hay mercados para exportar. Primero analiza un partido."); return; }
+  const header = ["Partido","Mercado","Cuota","Prob.","EV","Modelo","Razonamiento"];
+  const rows = recs.map(r=>[
+    r.match||"",
+    r.Market||"",
+    r.Odd==="—" ? "" : (Number(r.Odd).toFixed(2)),
+    r.P!=null ? (r.P*100).toFixed(1)+"%" : "",
+    r.EV!=null ? r.EV.toFixed(2) : "",
+    r.model||"",
+    (r.Note?`(${r.Note}) `:"") + (r.reasons||[]).join(" | ")
+  ]);
+  const csv = [header,...rows].map(cols=>cols.map(v=>{
+    const s = (v==null ? "" : String(v));
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+  }).join(",")).join("\n");
+  const blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "mercados.csv";
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+});
+
+// ====== FIN IIFE ======
+})();
+</script>
+</body>
+</html>
