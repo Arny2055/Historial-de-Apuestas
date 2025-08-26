@@ -49,8 +49,8 @@
   .range::-webkit-slider-thumb{appearance:none;width:20px;height:20px;border-radius:50%;background:#7aa2ff;border:2px solid #2a2f55}
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
-  /* Modal pegar JSON */
-  dialog#pasteDlg{border:1px solid var(--border);border-radius:12px;background:var(--panel);color:var(--text);max-width:800px;width:92%}
+  /* Modales */
+  dialog#pasteDlg, dialog#simDlg{border:1px solid var(--border);border-radius:12px;background:var(--panel);color:var(--text);max-width:900px;width:92%}
   #pasteDlg textarea{width:100%;min-height:45vh;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:14px}
 
   @media (max-width:700px){
@@ -76,6 +76,7 @@
       <button class="btn alt" id="btnPaste">Pegar JSON</button>
       <button class="btn ghost" id="btnDemo">Cargar demo</button>
       <button class="btn ghost" id="btnReset">Limpiar</button>
+      <button class="btn" id="btnSim">🧪 Simular rentabilidad</button>
       <span class="pill" id="pillStatus">Sin datos</span>
       <span class="pill" id="pillTeams">Equipos: 0</span>
       <span class="pill" id="pillRecs">Mercados: 0</span>
@@ -90,6 +91,75 @@
       <div class="bar" style="margin:10px 0">
         <button class="btn" id="pasteOk">Cargar</button>
         <button class="btn ghost" onclick="document.getElementById('pasteDlg').close()">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Modal de simulación -->
+  <dialog id="simDlg">
+    <form method="dialog" style="margin:0">
+      <h3 style="margin:10px 0;color:#a7acc8">Simulación de rentabilidad (usa ligas seleccionadas)</h3>
+      <div class="grid" style="gap:10px">
+        <div class="field" style="grid-column: span 4;">
+          <label>Grid N</label>
+          <input id="simN" value="6,8,10,12">
+          <span class="small muted"># de partidos recientes</span>
+        </div>
+        <div class="field" style="grid-column: span 4;">
+          <label>Grid α</label>
+          <input id="simAlpha" value="0.20,0.30,0.40">
+          <span class="small muted">decaimiento recency</span>
+        </div>
+        <div class="field" style="grid-column: span 4;">
+          <label>Grid gmax</label>
+          <input id="simGmax" value="6,7,8">
+          <span class="small muted">tope matriz Poisson</span>
+        </div>
+        <div class="field" style="grid-column: span 4;">
+          <label>Prob. mínima</label>
+          <input id="simPmin" value="0.45,0.50">
+        </div>
+        <div class="field" style="grid-column: span 4;">
+          <label>EV mínimo</label>
+          <input id="simEVmin" value="0.00,0.02,0.05">
+        </div>
+        <div class="field" style="grid-column: span 4;">
+          <label>Medias H/A</label>
+          <select id="simHA">
+            <option value="1" selected>Sí</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column: span 12;">
+          <label>Mercados considerados</label>
+          <span class="small muted">Por ahora 1X2 (usa "Odd 1/X/2 PreMatch"). Si tu JSON trae odds O/U o BTTS con esos nombres, también se evaluarán.</span>
+        </div>
+      </div>
+      <div class="bar" style="margin:10px 0">
+        <button class="btn" id="simRun">Ejecutar</button>
+        <button class="btn ghost" id="simExport" disabled>Exportar CSV</button>
+        <button class="btn ghost" onclick="document.getElementById('simDlg').close()">Cerrar</button>
+        <span class="pill" id="simStatus">Listo</span>
+      </div>
+      <div class="scroll-x">
+        <table id="tblSim">
+          <thead>
+            <tr>
+              <th>#</th><th>LigAS</th><th>N</th><th>α</th><th>gmax</th><th>H/A</th>
+              <th>pMin</th><th>evMin</th><th>Apuestas</th><th>Hit%</th><th>ROI</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <h3>Detalle por liga (mejor combinación)</h3>
+        <div class="scroll-x">
+          <table id="tblSimLeagues">
+            <thead><tr><th>Liga</th><th>Apuestas</th><th>Hit%</th><th>ROI</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </form>
   </dialog>
@@ -136,14 +206,14 @@
       </div>
 
       <!-- Parámetros del modelo -->
-      <div class="card" style="grid-column: span 4;">
+      <div class="card" style="grid-column: span 4%;">
         <h3>Parámetros del modelo</h3>
         <div class="grid" style="gap:10px">
-          <div class="field" style="grid-column: span 6;">
+          <div class="field" style="grid-column: span 6%;">
             <label>Partidos recientes (N)</label>
             <input id="paramN" type="number" min="3" max="30" step="1" value="10">
           </div>
-          <div class="field" style="grid-column: span 6;">
+          <div class="field" style="grid-column: span 6%;">
             <label>Peso recency (α 0–1)</label>
             <input id="paramAlpha" type="number" min="0" max="1" step="0.05" value="0.30">
           </div>
@@ -163,7 +233,7 @@
             <label>EV mínimo</label>
             <input id="paramEVMin" type="number" step="0.01" value="0.02">
           </div>
-          <div class="field" style="grid-column: span 6;">
+          <div class="field" style="grid-column: span 6%;">
             <label>Mercados</label>
             <select id="paramMarkets" multiple size="5">
               <option selected value="1X2">1X2</option>
@@ -172,7 +242,7 @@
               <option selected value="BTTS">BTTS (GG)</option>
             </select>
           </div>
-          <div class="field" style="grid-column: span 6;">
+          <div class="field" style="grid-column: span 6%;">
             <label>Medias H/A</label>
             <select id="paramHomeAway">
               <option value="1" selected>Sí (recomendado)</option>
@@ -183,7 +253,7 @@
       </div>
 
       <!-- Pesos de ESTADÍSTICAS AVANZADAS -->
-      <div class="card" style="grid-column: span 12;">
+      <div class="card" style="grid-column: span 12%;">
         <h3>Estadísticas avanzadas que ajustan el modelo</h3>
         <div class="two-col">
           <div class="field">
@@ -215,7 +285,7 @@
       </div>
 
       <!-- Resultado del análisis -->
-      <div class="card" style="grid-column: span 12;">
+      <div class="card" style="grid-column: span 12%;">
         <h3>Resultados del partido</h3>
         <div id="resumen" class="small muted" style="margin-bottom:8px"></div>
         <div class="scroll-x">
@@ -229,7 +299,7 @@
       </div>
 
       <!-- Tabla base -->
-      <div class="card" style="grid-column: span 12;">
+      <div class="card" style="grid-column: span 12%;">
         <h3>Partidos del JSON</h3>
         <div class="bar small muted">Búsqueda: <input id="q" type="search" placeholder="Equipo, marcador, etiqueta…" style="margin-left:6px; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--panel2); color:var(--text)"></div>
         <div class="scroll-x">
@@ -257,6 +327,7 @@ const setStatus = (t)=> $("#pillStatus").textContent = t;
 let DATA=[], PAST=[];
 let sortBase = {key:"Date",dir:1};
 let LAST_RECS = []; // para exportación
+let SIM_ROWS = [];  // resultados de simulación
 
 // ====== Lectura JSON (compat iOS) ======
 const fileInput = $("#fileInput");
@@ -276,11 +347,9 @@ fileInput.addEventListener("change", (e)=>{
       alert("Error cargando JSON: "+err.message);
       setStatus("Error al cargar");
     }finally{
-      // Permite volver a seleccionar el mismo archivo
       fileInput.value = "";
     }
   };
-  // Leer como texto UTF-8 (maneja BOM)
   reader.readAsText(f, "utf-8");
 });
 
@@ -305,7 +374,7 @@ $("#pasteOk").addEventListener("click", (ev)=>{
   }
 });
 
-// Demo mínima para probar
+// Demo mínima
 $("#btnDemo").addEventListener("click", ()=>{
   const demo = JSON.stringify([
     {"Date":"1/5/2025 20:00","League":"México Liga MX","Match":"América - Tigres","Result HT":"1 - 0","Result FT":"2 - 1",
@@ -321,40 +390,29 @@ $("#btnDemo").addEventListener("click", ()=>{
 
 // Limpiar todo
 $("#btnReset").addEventListener("click", ()=>{
-  DATA=[]; PAST=[]; LAST_RECS=[];
+  DATA=[]; PAST=[]; LAST_RECS=[]; SIM_ROWS=[];
   $("#league").innerHTML=""; $("#selHome").innerHTML=""; $("#selAway").innerHTML="";
   $("#theadBase").innerHTML=""; $("#tbodyBase").innerHTML="";
   $("#tblRecs tbody").innerHTML=""; $("#resumen").textContent="";
   $("#pillStatus").textContent="Sin datos"; $("#pillTeams").textContent="Equipos: 0"; $("#pillRecs").textContent="Mercados: 0";
-  ["odd1","oddx","odd2","oddo25","oddu25","oddbtts"].forEach(id=>{ const el=$("#"+id); if(el) el.value=""; });
 });
 
-// Normaliza texto: quita BOM y espacios extra
-function normalizeText(t){
-  if(!t) return "";
-  return String(t).replace(/^\uFEFF/,"").trim();
-}
+// ====== Normaliza texto ======
+function normalizeText(t){ if(!t) return ""; return String(t).replace(/^\uFEFF/,"").trim(); }
 
 // ====== Parseo y construcción ======
 const MONTH_MAP = {"ene.":0,"feb.":1,"mar.":2,"abr.":3,"may.":4,"jun.":5,"jul.":6,"ago":7,"ago.":7,"sept.":8,"sep":8,"sep.":8,"oct.":9,"nov":10,"nov.":10,"dic.":11};
 const WDAYS = ["lun.","mar.","mié.","mie.","jue.","vie.","sáb.","sab.","dom."];
 
 function loadFromText(txt){
-  // Acepta JSON array, objeto con propiedad conocida o NDJSON (línea por línea)
   let raw;
-  try{
-    raw = JSON.parse(txt);
-  }catch(_){
-    // NDJSON
+  try{ raw = JSON.parse(txt); }
+  catch(_){
     const lines = txt.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-    if(lines.length){
-      raw = lines.map(l=>JSON.parse(l));
-    }else{
-      throw new Error("Formato no reconocido");
-    }
+    if(lines.length){ raw = lines.map(l=>JSON.parse(l)); }
+    else{ throw new Error("Formato no reconocido"); }
   }
   if(!Array.isArray(raw)){
-    // intenta usar alguna propiedad contenedora común
     const key = ["data","rows","matches","items"].find(k=>Array.isArray(raw[k]));
     if(key) raw = raw[key];
   }
@@ -383,9 +441,9 @@ function augmentRow(r){
   ["Home Position","Away Position","Odd","Odd 1 PreMatch","Odd X PreMatch","Odd 2 PreMatch",
    "Home Total Shots at FT","Away Total Shots at FT",
    "Home Ball Possession at FT","Away Ball Possession at FT",
-   "Home Corners at FT","Away Corners at FT"].forEach(k=> row[k]=toNum(row[k]));
-  row["Success Rate"] = row["Success Rate"]??"";
-  row["Overall ROI"]  = row["Overall ROI"]??"";
+   "Home Corners at FT","Away Corners at FT",
+   "Over 2.5 PreMatch","Under 2.5 PreMatch","BTTS Yes PreMatch"].forEach(k=> row[k]=toNum(row[k]));
+  row["Success Rate"] = row["Success Rate"]??""; row["Overall ROI"]  = row["Overall ROI"]??"";
   return row;
 }
 function parseSpanishDate(s){
@@ -508,7 +566,7 @@ function norm(v){
   const n=toNum(v); return n!=null? n : String(v).toLowerCase();
 }
 
-// ====== Motor estadístico ======
+// ====== Motor estadístico (reutilizable) ======
 function buildTeamIndex(pastRows){
   const idx = {};
   for(const r of pastRows){
@@ -588,7 +646,7 @@ function streakStats(rowsAll, team, M){
   return {overRate:arr.length?over/arr.length:0, bttsRate:arr.length?btts/arr.length:0};
 }
 
-// ====== Avanzadas ======
+// Avanzadas (mismas utilidades)
 function avgRecent(arr, keyFor, keyAg, N, alpha){
   if(!arr || !arr.length) return {for:0, ag:0, n:0};
   arr = arr.slice(-N);
@@ -623,10 +681,64 @@ function stdev(a,m){ if(!a.length) return 0; let s=0,c=0; for(const v of a){ if(
 function lastNonNull(a){ for(let i=a.length-1;i>=0;i--){ if(a[i]!=null) return a[i]; } return null; }
 function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
 function detailModel(lh,la,bh,ba,W){
-  return `λ ajustadas: H=${lh.toFixed(2)} A=${la.toFixed(2)} | boosts H=${bh.toFixed(2)} A=${ba.toFixed(2)} | pesos (shots=${W.shots}, poss=${W.poss}, corners=${W.corn}, rank=${W.rank}, form=${W.form}, h2h=${W.h2h})`;
+  return `λ ajustadas: H=${lh.toFixed(2)} A=${la.toFixed(2)} | boosts H=${bh.toFixed(2)} A=${ba.toFixed(2)}`;
 }
 
-// ====== Analizar ======
+// ====== Predicción para un partido dado historial ======
+function predictProbs(home, away, past, params){
+  const {N, alpha, gmax, useHA, W} = params;
+  const idx=buildTeamIndex(past);
+  const H=idx[home], A=idx[away];
+  if(!H || !A) return null;
+
+  const lg=leagueAverages(past);
+  const sideH=useHA?"H":"ALL", sideA=useHA?"A":"ALL";
+  const hFor=weightedGoalRates(H, sideH, N, alpha);
+  const aFor=weightedGoalRates(A, sideA, N, alpha);
+  let lambdaH=Math.max(hFor.gf,0.05)*Math.max(aFor.ga,0.05)/(lg.muA||1.0);
+  let lambdaA=Math.max(aFor.gf,0.05)*Math.max(hFor.ga,0.05)/(lg.muH||1.0);
+
+  // Avanzadas (simple, mismas de la vista)
+  const pool=(team,which)=> (which==="H"?team.home:which==="A"?team.away:team.all);
+  const hs=avgRecent(pool(H,sideH),"Home Total Shots at FT","Away Total Shots at FT",N,alpha);
+  const as=avgRecent(pool(A,sideA),"Away Total Shots at FT","Home Total Shots at FT",N,alpha);
+  const diffsShots=past.slice(-Math.min(past.length,1000)).map(r=>(toNum(r["Home Total Shots at FT"])??0)-(toNum(r["Away Total Shots at FT"])??0));
+  const zSH=zScore((hs.for-hs.ag), average(diffsShots), stdev(diffsShots, average(diffsShots)));
+  const zSA=zScore((as.for-as.ag)*-1, -average(diffsShots), stdev(diffsShots, average(diffsShots)));
+
+  const hp=avgRecent(pool(H,sideH),"Home Ball Possession at FT","Away Ball Possession at FT",N,alpha);
+  const ap=avgRecent(pool(A,sideA),"Away Ball Possession at FT","Home Ball Possession at FT",N,alpha);
+  const diffsPoss=past.slice(-Math.min(past.length,1000)).map(r=>(toNum(r["Home Ball Possession at FT"])??0)-(toNum(r["Away Ball Possession at FT"])??0));
+  const zPH=zScore((hp.for-hp.ag), average(diffsPoss), stdev(diffsPoss, average(diffsPoss)));
+  const zPA=zScore((ap.for-ap.ag)*-1, -average(diffsPoss), stdev(diffsPoss, average(diffsPoss)));
+
+  const hc=avgRecent(pool(H,sideH),"Home Corners at FT","Away Corners at FT",N,alpha);
+  const ac=avgRecent(pool(A,sideA),"Away Corners at FT","Home Corners at FT",N,alpha);
+  const diffsCorn=past.slice(-Math.min(past.length,1000)).map(r=>(toNum(r["Home Corners at FT"])??0)-(toNum(r["Away Corners at FT"])??0));
+  const zCH=zScore((hc.for-hc.ag), average(diffsCorn), stdev(diffsCorn, average(diffsCorn)));
+  const zCA=zScore((ac.for-ac.ag)*-1, -average(diffsCorn), stdev(diffsCorn, average(diffsCorn)));
+
+  const posH=toNum(lastNonNull(pool(H,"ALL").map(r=>r["Home Position"]))) ?? 10;
+  const posA=toNum(lastNonNull(pool(A,"ALL").map(r=>r["Away Position"]))) ?? 10;
+  const zRH=zScore((posA-posH), 0, 6), zRA=-zRH;
+
+  const fH=formPoints(pool(H,"ALL"),N,alpha).ppg;
+  const fA=formPoints(pool(A,"ALL"),N,alpha).ppg;
+  const zFH=zScore(fH-fA, 0, 1.0);
+
+  const H2Hrows=past.filter(r=> (r.Home===home&&r.Away===away)||(r.Home===away&&r.Away===home)).slice(-5);
+  let h2hDiff=0; H2Hrows.forEach(r=>{ if(r.Home===home){ h2hDiff+=(r._FT_H??0)-(r._FT_A??0);} else { h2hDiff+=(r._FT_A??0)-(r._FT_H??0);} });
+  const zHH=zScore(h2hDiff, 0, 2.0);
+
+  const boostH=Math.exp((W.shots*zSH + W.poss*zPH + W.corn*zCH + W.rank*zRH + W.form*zFH + W.h2h*zHH) || 0);
+  const boostA=Math.exp((W.shots*zSA + W.poss*zPA + W.corn*zCA + W.rank*zRA - W.form*zFH - W.h2h*zHH) || 0);
+  lambdaH*=clamp(boostH,0.6,1.6); lambdaA*=clamp(boostA,0.6,1.6);
+
+  const probs=probsFromLambdas(lambdaH,lambdaA,gmax);
+  return {probs, lambdaH, lambdaA};
+}
+
+// ====== Analizar partido pantalla principal ======
 $("#btnRun").addEventListener("click", ()=>{
   try{ analyzeSelectedMatch(); }
   catch(err){ console.error(err); alert("Error al analizar: "+(err?.message||err)); }
@@ -694,10 +806,11 @@ function analyzeSelectedMatch(){
 
   const H2Hrows=past.filter(r=> (r.Home===home&&r.Away===away)||(r.Home===away&&r.Away===home)).slice(-5);
   let h2hDiff=0; H2Hrows.forEach(r=>{ if(r.Home===home){ h2hDiff+=(r._FT_H??0)-(r._FT_A??0);} else { h2hDiff+=(r._FT_A??0)-(r._FT_H??0);} });
+
   const zHH=zScore(h2hDiff, 0, 2.0);
 
-  const boostH=Math.exp((W.shots*zSH + W.poss*zPH + W.corn*zCH + W.rank*zRH + W.form*zFH + W.h2h*zHH) || 0);
-  const boostA=Math.exp((W.shots*zSA + W.poss*zPA + W.corn*zCA + W.rank*zRA - W.form*zFH - W.h2h*zHH) || 0);
+  const boostH=Math.exp((Number($("#wShots").value||0)*zSH + Number($("#wPoss").value||0)*zPH + Number($("#wCorn").value||0)*zCH + Number($("#wRank").value||0)*zRH + Number($("#wForm").value||0)*zFH + Number($("#wH2H").value||0)*zHH) || 0);
+  const boostA=Math.exp((Number($("#wShots").value||0)*zSA + Number($("#wPoss").value||0)*zPA + Number($("#wCorn").value||0)*zCA + Number($("#wRank").value||0)*zRA - Number($("#wForm").value||0)*zFH - Number($("#wH2H").value||0)*zHH) || 0);
   lambdaH*=clamp(boostH,0.6,1.6); lambdaA*=clamp(boostA,0.6,1.6);
 
   const probs=probsFromLambdas(lambdaH,lambdaA,gmax);
@@ -707,8 +820,11 @@ function analyzeSelectedMatch(){
   const o1=toNum($("#odd1").value), ox=toNum($("#oddx").value), o2=toNum($("#odd2").value);
   const oO25=toNum($("#oddo25").value), oU25=toNum($("#oddu25").value), oBTTS=toNum($("#oddbtts").value);
 
-  const note=detailModel(lambdaH,lambdaA,boostH,boostA,W);
   const cand=[];
+  const note=`λH=${lambdaH.toFixed(2)} λA=${lambdaA.toFixed(2)}`;
+  const markets=Array.from($("#paramMarkets").selectedOptions).map(o=>o.value);
+  const pMin=pMinSan(); const evMin=evMinSan();
+
   if(markets.includes("1X2")){
     pushEV(cand, home+" gana (1)", o1, probs.pH, pMin, evMin, note);
     pushEV(cand, "Empate (X)", ox, probs.pD, pMin, evMin, note);
@@ -722,9 +838,7 @@ function analyzeSelectedMatch(){
     c.match=`${home} vs ${away}`;
     c.model=`Poisson gmax=${gmax}, N=${N}, α=${alpha}`;
     c.reasons=[`Rachas ${Mstreak}: ${home} Over≥3 ${(stH.overRate*100).toFixed(0)}%, BTTS ${(stH.bttsRate*100).toFixed(0)}%`,
-               `Rachas ${Mstreak}: ${away} Over≥3 ${(stA.overRate*100).toFixed(0)}%, BTTS ${(stA.bttsRate*100).toFixed(0)}%`,
-               ...(lambdaH>lambdaA+0.2?["Modelo favorece al local (λH>λA)"]:[]),
-               ...(lambdaA>lambdaH+0.2?["Modelo favorece al visitante (λA>λH)"]:[])];
+               `Rachas ${Mstreak}: ${away} Over≥3 ${(stA.overRate*100).toFixed(0)}%, BTTS ${(stA.bttsRate*100).toFixed(0)}%`];
   }
   cand.sort((a,b)=> (b.EV??-1)-(a.EV??-1));
 
@@ -739,6 +853,9 @@ function analyzeSelectedMatch(){
   `;
   LAST_RECS = cand.slice();
   renderRecs(cand);
+
+  function pMinSan(){ const v=Number($("#paramPMin").value); return Number.isFinite(v)? v:0.45; }
+  function evMinSan(){ const v=Number($("#paramEVMin").value); return Number.isFinite(v)? v:0.02; }
 }
 function pushEV(list, market, odd, p, pMin, evMin, note){
   if(p==null || isNaN(p)) return;
@@ -773,33 +890,210 @@ function renderRecs(recs){
   $("#pillRecs").textContent="Mercados: "+count;
 }
 
-// ====== Exportar ======
+// ====== Exportar recomendaciones ======
 $("#btnExportRecs").addEventListener("click", ()=>{
   const recs = LAST_RECS || [];
   if(!recs.length){ alert("No hay mercados para exportar. Primero analiza un partido."); return; }
   const header = ["Partido","Mercado","Cuota","Prob.","EV","Modelo","Razonamiento"];
   const rows = recs.map(r=>[
-    r.match||"",
-    r.Market||"",
+    r.match||"", r.Market||"",
     r.Odd==="—" ? "" : (Number(r.Odd).toFixed(2)),
     r.P!=null ? (r.P*100).toFixed(1)+"%" : "",
     r.EV!=null ? r.EV.toFixed(2) : "",
     r.model||"",
     (r.Note?`(${r.Note}) `:"") + (r.reasons||[]).join(" | ")
   ]);
-  const csv = [header,...rows].map(cols=>cols.map(v=>{
+  downloadCSV("mercados.csv", [header,...rows]);
+});
+
+// ====== SIMULADOR ======
+$("#btnSim").addEventListener("click", ()=>{
+  if(!PAST.length){ alert("Carga primero tu JSON con historial."); return; }
+  $("#simDlg").showModal();
+});
+
+$("#simRun").addEventListener("click", (ev)=>{
+  ev.preventDefault();
+  try{
+    runSimulation();
+  }catch(err){
+    console.error(err);
+    alert("Error en simulación: "+(err?.message||err));
+  }
+});
+
+$("#simExport").addEventListener("click", ()=>{
+  if(!SIM_ROWS.length){ alert("No hay resultados para exportar."); return; }
+  const header=["#", "Ligas", "N","alpha","gmax","H/A","pMin","evMin","Apuestas","Hit%","ROI"];
+  const rows = SIM_ROWS.map(r=>[
+    r.rank, r.leagues, r.N, r.alpha, r.gmax, r.useHA?"Sí":"No",
+    r.pMin, r.evMin, r.bets, (r.hitRate*100).toFixed(1)+"%", r.ROI.toFixed(3)
+  ]);
+  downloadCSV("simulacion_roi.csv", [header, ...rows]);
+});
+
+function parseGrid(input){
+  return input.split(",").map(s=>Number(s.trim())).filter(x=>Number.isFinite(x));
+}
+function runSimulation(){
+  SIM_ROWS = [];
+  const leaguesSel = Array.from($("#league").selectedOptions).map(o=>o.value);
+  let pool = leaguesSel.length? PAST.filter(r=>leaguesSel.includes(r.League)) : PAST.slice();
+  if(!pool.length){ alert("No hay partidos en las ligas seleccionadas."); return; }
+
+  pool = pool.filter(r=> r._dt instanceof Date).sort((a,b)=> a._dt-b._dt);
+
+  const Ns = parseGrid($("#simN").value||"10");
+  const As = parseGrid($("#simAlpha").value||"0.30");
+  const Gs = parseGrid($("#simGmax").value||"8");
+  const Pmins = parseGrid($("#simPmin").value||"0.45");
+  const EVmins = parseGrid($("#simEVmin").value||"0.02");
+  const useHA = $("#simHA").value==="1";
+
+  const W = {shots:0.40, poss:0.20, corn:0.20, rank:0.15, form:0.30, h2h:0.10}; // usa pesos actuales
+
+  const tbody=$("#tblSim tbody"); tbody.innerHTML="";
+  $("#simStatus").textContent="Corriendo…";
+
+  // Genera combinaciones
+  const combos=[];
+  for(const N of Ns)for(const alpha of As)for(const gmax of Gs)
+    for(const pMin of Pmins)for(const evMin of EVmins)
+      combos.push({N,alpha,gmax,pMin,evMin,useHA,W});
+
+  // Backtest rolling
+  combos.forEach((params, idx)=>{
+    const res = backtest(pool, params);
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${idx+1}</td>
+      <td>${leaguesSel.length? leaguesSel.join(" | ") : "Todas"}</td>
+      <td>${params.N}</td><td>${params.alpha.toFixed(2)}</td><td>${params.gmax}</td>
+      <td>${params.useHA?"Sí":"No"}</td>
+      <td>${params.pMin}</td><td>${params.evMin}</td>
+      <td class="right">${res.bets}</td>
+      <td class="right">${(res.hitRate*100).toFixed(1)}%</td>
+      <td class="right ${res.ROI>=0?"good":"bad"}">${res.ROI.toFixed(3)}</td>
+    `;
+    tbody.appendChild(tr);
+    SIM_ROWS.push({
+      rank: idx+1, leagues: (leaguesSel.length? leaguesSel.join(" | ") : "Todas"),
+      N:params.N, alpha:params.alpha, gmax:params.gmax, useHA:params.useHA,
+      pMin:params.pMin, evMin:params.evMin, bets:res.bets, hitRate:res.hitRate, ROI:res.ROI,
+      details: res.details
+    });
+  });
+
+  // Ordenar por ROI desc visualmente
+  SIM_ROWS.sort((a,b)=> b.ROI - a.ROI);
+  Array.from(tbody.children)
+    .sort((a,b)=> Number(b.children[10].textContent)-Number(a.children[10].textContent))
+    .forEach(tr=>tbody.appendChild(tr));
+
+  // Detalle por liga de la mejor combinación
+  if(SIM_ROWS.length){
+    const best = SIM_ROWS[0];
+    const det = best.detailsByLeague||best.details;
+    const tb=$("#tblSimLeagues tbody"); tb.innerHTML="";
+    Object.keys(det).forEach(league=>{
+      const d = det[league];
+      if(!d) return;
+      const tr=document.createElement("tr");
+      tr.innerHTML = `
+        <td>${league}</td>
+        <td class="right">${d.bets||0}</td>
+        <td class="right">${d.bets? ((d.wins/d.bets)*100).toFixed(1)+"%":"—"}</td>
+        <td class="right ${(d.profit>=0)?"good":"bad"}">${d.bets? (d.profit/d.bets).toFixed(3):"—"}</td>
+      `;
+      tb.appendChild(tr);
+    });
+  }
+
+  $("#simStatus").textContent = `Listo: ${combos.length} combinaciones`;
+  $("#simExport").disabled = SIM_ROWS.length===0;
+}
+
+function backtest(pool, params){
+  let profit=0, bets=0, wins=0;
+  const detailsByLeague={};
+  const pastSoFar=[];
+
+  for(const r of pool){
+    // construir predicción con HISTORIAL PREVIO solamente
+    const past = pastSoFar.slice();
+    // filtra al menos misma liga (para medias) + otras si se desea; aquí usamos todo el pool previo
+    const pred = predictProbs(r.Home, r.Away, past, params);
+    pastSoFar.push(r); // ya entra al historial
+
+    if(!pred) continue;
+    const {probs} = pred;
+
+    // Odds disponibles
+    const o1=r["Odd 1 PreMatch"], ox=r["Odd X PreMatch"], o2=r["Odd 2 PreMatch"];
+    const oO25=r["Over 2.5 PreMatch"] ?? null;
+    const oU25=r["Under 2.5 PreMatch"] ?? null;
+    const oBTTS=r["BTTS Yes PreMatch"] ?? null;
+
+    // Colocar apuestas según filtros
+    const picks=[];
+    pushEV(picks,"1",o1,probs.pH,params.pMin,params.evMin);
+    pushEV(picks,"X",ox,probs.pD,params.pMin,params.evMin);
+    pushEV(picks,"2",o2,probs.pA,params.pMin,params.evMin);
+    // (Si tu JSON trae estos campos, también se evaluarán)
+    pushEV(picks,"O2.5",oO25,probs.pO25,params.pMin,params.evMin);
+    pushEV(picks,"U2.5",oU25,probs.pU25,params.pMin,params.evMin);
+    pushEV(picks,"BTTS",oBTTS,probs.pBTTS,params.pMin,params.evMin);
+
+    // Evaluación de resultados reales
+    for(const pk of picks){
+      if(pk.odd==null) continue;
+      bets++;
+      const won = settle(pk.market, r);
+      if(won){ profit += (pk.odd - 1); wins++; } else { profit -= 1; }
+
+      // detalle por liga
+      const L = r.League || "—";
+      if(!detailsByLeague[L]) detailsByLeague[L]={bets:0,wins:0,profit:0};
+      detailsByLeague[L].bets++; detailsByLeague[L].wins += won?1:0;
+      detailsByLeague[L].profit += won? (pk.odd - 1) : -1;
+    }
+  }
+  const ROI = bets? (profit/bets) : 0;
+  const hitRate = bets? (wins/bets) : 0;
+  return {ROI, bets, hitRate, detailsByLeague};
+
+  function pushEV(list, market, odd, p, pMin, evMin){
+    if(odd && p!=null && p>=pMin && (p*odd-1)>=evMin){
+      list.push({market, odd, p});
+    }
+  }
+  function settle(market, row){
+    const gh=row._FT_H??0, ga=row._FT_A??0;
+    if(market==="1") return gh>ga;
+    if(market==="X") return gh===ga;
+    if(market==="2") return gh<ga;
+    if(market==="O2.5") return (gh+ga)>=3;
+    if(market==="U2.5") return (gh+ga)<=2;
+    if(market==="BTTS") return (gh>0 && ga>0);
+    return false;
+  }
+}
+
+// ====== util descarga CSV ======
+function downloadCSV(filename, rows){
+  const csv = rows.map(cols=>cols.map(v=>{
     const s = (v==null ? "" : String(v));
     return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
   }).join(",")).join("\n");
   const blob = new Blob([csv],{type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = "mercados.csv";
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
-});
+}
 
-// ====== FIN IIFE ======
+// ====== FIN: botón export recs ya definido más arriba ======
 })();
 </script>
 </body>
