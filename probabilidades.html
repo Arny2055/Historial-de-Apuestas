@@ -3,276 +3,211 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Probabilidades - Desglose</title>
+<title>Probabilidades — Perfiles</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
-  *, *::before, *::after { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 0;
-    font-family: 'Inter', sans-serif;
-    background-color: #121214; color: #e1e1e6;
-    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-  }
-  main { max-width: 1000px; width: 95%; margin: 20px auto 40px auto; }
-  h1 { color: #8257e6; margin: 10px 0 20px; text-align:center; }
-  .toolbar {
-    display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; justify-content:center;
-  }
-  .toolbar button {
-    background-color:#8257e6; color:#fff; border:none; border-radius:10px; padding:10px 16px;
-    cursor:pointer; font-weight:600; box-shadow:0 4px 8px #6b45d9;
-  }
-  .toolbar button:hover { background:#6b45d9; }
-
-  #tablaWrapper {
-    overflow-x:auto; overflow-y:auto; max-height: 70vh;
-    box-shadow:0 6px 12px rgba(0,0,0,0.4); border-radius:12px; background:#202024;
-  }
-  table { width:100%; border-collapse:separate; border-spacing:0; min-width:720px; }
-  thead th {
-    position: sticky; top: 0; background:#29292e; color:#cfcfe4;
-    text-align:left; padding:14px 16px; font-weight:700; white-space:nowrap;
-  }
-  tbody td {
-    padding:12px 16px; border-top:1px solid #2c2c32; white-space:nowrap;
-  }
-  tfoot td {
-    padding:14px 16px; background:#1c1c21; font-weight:700; border-top:2px solid #3a3a46;
-  }
-  .num { text-align:right; }
-  .pos { color:#4caf50; font-weight:600; }
-  .neg { color:#ef4444; font-weight:600; }
-  .muted { color:#a1a1aa; }
-  .empty {
-    margin-top:18px; text-align:center; color:#a1a1aa;
-  }
+  :root{--bg:#121214;--panel:#202024;--panel2:#29292e;--text:#e1e1e6;--muted:#c4c4cc;--accent:#8257e6;--ok:#4caf50;--danger:#ef4444}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;display:flex;justify-content:center}
+  main{max-width:1200px;width:95%;margin:20px auto 40px}
+  h1{color:var(--accent);margin:.2rem 0 1rem}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--panel);padding:12px 16px;border-radius:10px;box-shadow:0 6px 12px rgba(0,0,0,.35)}
+  .bar select,.bar input{min-width:160px;padding:10px 14px;border:none;border-radius:8px;background:#121214;color:var(--text);box-shadow:inset 0 0 5px rgb(255 255 255 / .1)}
+  .bar button{background:var(--accent);border:none;color:#fff;font-weight:600;border-radius:10px;padding:10px 16px;cursor:pointer;box-shadow:0 4px 8px #6b45d9}
+  .bar button:hover{filter:brightness(.95)}
+  #tablaWrap{overflow:auto;border-radius:12px;box-shadow:0 6px 12px rgba(0,0,0,.4);margin-top:10px}
+  table{width:100%;border-collapse:separate;border-spacing:0 6px;min-width:900px}
+  thead th{position:sticky;top:0;background:var(--panel2);padding:12px 14px;color:#bbb;text-align:left}
+  tbody tr{background:var(--panel);transition:.2s}
+  tbody tr:hover{background:#2a2a30}
+  td{padding:12px 14px;white-space:nowrap}
+  .pos{color:var(--ok);font-weight:700}
+  .neg{color:var(--danger);font-weight:700}
+  canvas{background:var(--panel);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.5);height:380px !important;margin-top:22px}
+  .links{margin-top:14px}
+  .links a{color:#fff;background:#3b82f6;text-decoration:none;padding:8px 12px;border-radius:8px;margin-right:8px;display:inline-block}
 </style>
 </head>
 <body>
 <main>
-  <h1>Desglose por Probabilidad (valor exacto)</h1>
+  <h1>Probabilidades (rangos)</h1>
 
-  <div class="toolbar">
-    <button onclick="history.back()">← Volver</button>
-    <button id="btnExportarCSV">Exportar CSV</button>
-  </div>
+  <section class="bar" aria-label="Perfiles y filtros">
+    <strong>Perfil:</strong>
+    <select id="selectPerfil"></select>
+    <input id="filtroLiga" placeholder="Filtrar liga (opcional)..." />
+    <select id="rangoCustom">
+      <option value="">Rangos estándar</option>
+      <option value="45,55">45–55</option>
+      <option value="50,60">50–60</option>
+      <option value="60,70">60–70</option>
+      <option value="70,80">70–80</option>
+    </select>
+    <button id="btnCSV">Exportar CSV</button>
+    <button id="btnVolver">⬅ Volver</button>
+  </section>
 
-  <div id="tablaWrapper" role="region" aria-label="Tabla de probabilidades">
-    <table id="tablaProb" aria-describedby="tbldesc">
-      <caption id="tbldesc" style="text-align:left; margin:10px 0; color:#a1a1aa">
-        Estadísticas agrupadas por el valor exacto de probabilidad ingresado (2 decimales)
-      </caption>
+  <div id="tablaWrap">
+    <table id="tabla">
       <thead>
         <tr>
-          <th>Probabilidad (%)</th>
-          <th class="num"># Apuestas</th>
-          <th class="num">Ganadas</th>
-          <th class="num">Perdidas</th>
-          <th class="num">Yield (%)</th>
-          <th class="num">ROI (%)</th>
+          <th>#</th>
+          <th>Rango Prob. (%)</th>
+          <th>Muestras</th>
+          <th>Winrate %</th>
+          <th>EV medio %</th>
+          <th>Kelly FULL medio %</th>
+          <th>Unidades</th>
         </tr>
       </thead>
-      <tbody><!-- JS --></tbody>
-      <tfoot>
-        <tr>
-          <td>Total</td>
-          <td class="num" id="tApuestas">0</td>
-          <td class="num" id="tGanadas">0</td>
-          <td class="num" id="tPerdidas">0</td>
-          <td class="num" id="tYield">0.00%</td>
-          <td class="num" id="tROI">0.00%</td>
-        </tr>
-      </tfoot>
+      <tbody></tbody>
     </table>
   </div>
 
-  <p id="msgVacio" class="empty" hidden>
-    No hay datos en el historial. Vuelve a la página principal y agrega apuestas.
-  </p>
+  <canvas id="grafica"></canvas>
+
+  <div class="links" id="links"></div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-(() => {
-  'use strict';
+(()=>{'use strict';
+  // Perfiles
+  const STORAGE_ROOT='HAPC', PROFILE_LIST_KEY=STORAGE_ROOT+'_profiles', CURRENT_PROFILE_KEY=STORAGE_ROOT+'_currentProfile';
+  const dataKeyFor=p=>`${STORAGE_ROOT}_data_${p}`;
+  const getProfiles=()=>{try{const a=JSON.parse(localStorage.getItem(PROFILE_LIST_KEY)||'[]');return Array.isArray(a)?a:[]}catch{return[]}};
+  const getCurrent=()=>localStorage.getItem(CURRENT_PROFILE_KEY)||'default';
+  const setCurrent=p=>localStorage.setItem(CURRENT_PROFILE_KEY,p);
+  const getUrlPerfil=()=>{const s=new URLSearchParams(location.search).get('perfil'); return s&&s.trim()?s.trim():null;}
 
-  const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
+  // DOM
+  const sel=document.getElementById('selectPerfil');
+  const fLiga=document.getElementById('filtroLiga');
+  const rangoCustom=document.getElementById('rangoCustom');
+  const tbody=document.querySelector('#tabla tbody');
+  const ctx=document.getElementById('grafica').getContext('2d');
+  const btnCSV=document.getElementById('btnCSV');
+  const btnVolver=document.getElementById('btnVolver');
+  const links=document.getElementById('links');
 
-  // --- Helpers numéricos robustos ---
-  const toNum = v => typeof v === 'number' ? v : parseFloat(v);
-  const safe = v => Number.isFinite(v) ? v : 0;
+  let perfil='default', data=[], chart=null;
 
-  // --- Fórmulas (idénticas a la página principal) ---
-  function stakeSugerido(bankroll, kellyFull, kellyFrac) {
-    bankroll  = safe(toNum(bankroll));
-    kellyFull = safe(toNum(kellyFull));
-    kellyFrac = safe(toNum(kellyFrac));
-    if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
-    const stake = bankroll * kellyFull * kellyFrac;
-    return stake > bankroll ? bankroll : stake;
+  function refreshSelect(){
+    const list=getProfiles(); perfil=getUrlPerfil()||getCurrent();
+    if(!list.includes(perfil)){ if(list.length){perfil=list[0];} else {perfil='default';} setCurrent(perfil); }
+    sel.innerHTML=''; list.forEach(p=>{ const o=document.createElement('option'); o.value=p; o.textContent=p; if(p===perfil)o.selected=true; sel.appendChild(o); });
   }
+  function load(){ data=JSON.parse(localStorage.getItem(dataKeyFor(perfil))||'[]'); }
 
-  // Cargar historial desde localStorage
-  function cargar() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    } catch { return []; }
-  }
+  const stake=(b,kf,kfr)=> (b>0&&kf>0&&kfr>0)? Math.min(b,b*kf*kfr):0;
 
-  // Agrupa EXACTAMENTE por probabilidad (2 decimales)
-  function agruparPorProb(historial) {
-    const grupos = new Map();
-    historial.forEach(a => {
-      const p = safe(toNum(a.probabilidad));
-      const key = p.toFixed(2); // exacto a 2 decimales
-      if (!grupos.has(key)) grupos.set(key, []);
-      grupos.get(key).push(a);
-    });
-    return grupos;
-  }
-
-  // Métricas por grupo:
-  // - totalApostado incluye ganadas, perdidas y PENDIENTES (igual que la página principal)
-  // - yield = neto / totalApostado
-  // - roi (del grupo) = neto / bankroll inicial del grupo (primer registro del grupo)
-  function calcularGrupo(apuestas) {
-    const totalApuestas = apuestas.length;
-    const ganadas = apuestas.filter(a => a.estado === 'ganada').length;
-    const perdidas = apuestas.filter(a => a.estado === 'perdida').length;
-
-    let totalApostado = 0;
-    let totalGanadoBruto = 0;
-
-    const bankrollInicialGrupo = apuestas.length ? safe(toNum(apuestas[0].bankroll)) : 0;
-
-    apuestas.forEach(a => {
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      totalApostado += stake; // incluye pendientes
-      if (a.estado === 'ganada') {
-        totalGanadoBruto += stake * safe(toNum(a.cuotaBookie));
-      }
-    });
-
-    const neto = totalGanadoBruto - totalApostado;
-    const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
-    const roiPct = bankrollInicialGrupo > 0 ? (neto / bankrollInicialGrupo) * 100 : 0;
-
-    return {
-      totalApuestas, ganadas, perdidas,
-      yieldPct, roiPct,
-      _totalApostado: totalApostado,
-      _neto: neto
-    };
-  }
-
-  function render() {
-    const tbody = document.querySelector('#tablaProb tbody');
-    const tApuestas = document.getElementById('tApuestas');
-    const tGanadas = document.getElementById('tGanadas');
-    const tPerdidas = document.getElementById('tPerdidas');
-    const tYield = document.getElementById('tYield');
-    const tROI = document.getElementById('tROI');
-    const msgVacio = document.getElementById('msgVacio');
-
-    const historial = cargar();
-
-    // Mostrar mensaje si no hay datos
-    if (!historial.length) {
-      tbody.innerHTML = '';
-      tApuestas.textContent = '0';
-      tGanadas.textContent  = '0';
-      tPerdidas.textContent = '0';
-      tYield.textContent    = '0.00%';
-      tROI.textContent      = '0.00%';
-      msgVacio.hidden = false;
-      return;
-    } else {
-      msgVacio.hidden = true;
+  function bucketize(rows){
+    // Construye buckets
+    let buckets;
+    if(rangoCustom.value){
+      const [lo,hi]=rangoCustom.value.split(',').map(Number);
+      buckets=[{from:lo,to:hi,label:`${lo}-${hi}`}];
+    }else{
+      buckets=[
+        {from:0,to:40,label:'0-40'},
+        {from:40,to:50,label:'40-50'},
+        {from:50,to:60,label:'50-60'},
+        {from:60,to:70,label:'60-70'},
+        {from:70,to:80,label:'70-80'},
+        {from:80,to:90,label:'80-90'},
+        {from:90,to:100,label:'90-100'}
+      ];
     }
 
-    // --- Bankroll inicial GLOBAL para el ROI TOTAL ---
-    // Para igualar la página principal, usamos el PRIMER registro tal como está en el arreglo,
-    // que es lo que la principal toma cuando no hay filtros: apuestasFiltradas[0].bankroll
-    const bankrollInicialGlobal = safe(toNum(historial[0]?.bankroll));
+    const agg=buckets.map(b=>({label:b.label, from:b.from, to:b.to, n:0, g:0, evSum:0, kellySum:0, apostado:0, ganado:0}));
+    rows.forEach(a=>{
+      const p = Number(a.probabilidad)||0;
+      const b = agg.find(x=> p>=x.from && p<=(x===agg.at(-1)? x.to : x.to)); // incluye el extremo superior en el último
+      if(!b) return;
+      const st = stake(a.bankroll,a.kellyFull,a.kellyFrac);
+      b.n++; if(a.estado==='ganada') { b.g++; b.ganado += st*(a.cuotaBookie||0); }
+      else if(a.estado==='perdida'){ /* ganado += 0 */ }
+      b.apostado += st;
+      b.evSum += (a.ev||0)*100;              // a.ev ya es decimal -> %
+      b.kellySum += (a.kellyFull||0)*100;    // kelly decimal -> %
+    });
 
-    const grupos = agruparPorProb(historial);
-    const keys = Array.from(grupos.keys()).sort((a,b) => parseFloat(a) - parseFloat(b));
+    return agg.map(b=>{
+      const winrate = b.n? b.g/b.n*100:0;
+      const evMedio = b.n? b.evSum/b.n:0;
+      const kMedio  = b.n? b.kellySum/b.n:0;
+      const neto    = b.ganado - b.apostado;
+      return {...b, winrate, evMedio, kMedio, neto};
+    });
+  }
 
-    tbody.innerHTML = '';
+  function render(){
+    const ligaF=(fLiga.value||'').toLowerCase();
+    const rows = ligaF? data.filter(a=> (a.liga||'').toLowerCase().includes(ligaF)) : data;
+    const agg=bucketize(rows);
 
-    // acumuladores globales
-    let gApuestas = 0, gGanadas = 0, gPerdidas = 0;
-    let gTotalApostado = 0, gNeto = 0;
-
-    keys.forEach(k => {
-      const stats = calcularGrupo(grupos.get(k));
-      gApuestas += stats.totalApuestas;
-      gGanadas  += stats.ganadas;
-      gPerdidas += stats.perdidas;
-      gTotalApostado += stats._totalApostado;
-      gNeto += stats._neto;
-
-      const tr = document.createElement('tr');
-
-      const tdProb = document.createElement('td');
-      tdProb.textContent = k;
-
-      const tdN = document.createElement('td'); tdN.className = 'num';
-      tdN.textContent = stats.totalApuestas;
-
-      const tdW = document.createElement('td'); tdW.className = 'num';
-      tdW.textContent = stats.ganadas;
-
-      const tdL = document.createElement('td'); tdL.className = 'num';
-      tdL.textContent = stats.perdidas;
-
-      const tdYield = document.createElement('td'); tdYield.className = 'num ' + (stats.yieldPct >= 0 ? 'pos':'neg');
-      tdYield.textContent = stats.yieldPct.toFixed(2) + '%';
-
-      const tdROI = document.createElement('td'); tdROI.className = 'num ' + (stats.roiPct >= 0 ? 'pos':'neg');
-      tdROI.textContent = stats.roiPct.toFixed(2) + '%';
-
-      tr.append(tdProb, tdN, tdW, tdL, tdYield, tdROI);
+    tbody.innerHTML='';
+    agg.forEach((b,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${i+1}</td>
+        <td>${b.label}</td>
+        <td>${b.n}</td>
+        <td>${b.winrate.toFixed(2)}</td>
+        <td>${b.evMedio.toFixed(2)}</td>
+        <td>${b.kMedio.toFixed(2)}</td>
+        <td class="${b.neto>=0?'pos':'neg'}">${b.neto.toFixed(2)}</td>`;
       tbody.appendChild(tr);
     });
 
-    // Totales globales (idéntica lógica a la principal)
-    tApuestas.textContent = gApuestas;
-    tGanadas.textContent  = gGanadas;
-    tPerdidas.textContent = gPerdidas;
+    if(chart) chart.destroy();
+    chart = new Chart(ctx,{
+      data:{
+        labels: agg.map(b=>b.label),
+        datasets:[
+          {type:'bar', label:'Unidades', data: agg.map(b=>b.neto), yAxisID:'y'},
+          {type:'line', label:'Winrate %', data: agg.map(b=>b.winrate), yAxisID:'y1', tension:.3, pointRadius:3, borderWidth:3}
+        ]
+      },
+      options:{
+        responsive:true,
+        plugins:{legend:{labels:{color:'#ddd'}}},
+        scales:{
+          x:{ticks:{color:'#ddd'},grid:{color:'#444'}},
+          y:{position:'left',ticks:{color:'#ddd'},grid:{color:'#444'}},
+          y1:{position:'right',ticks:{color:'#ddd'},grid:{drawOnChartArea:false}}
+        }
+      }
+    });
 
-    const gYield = gTotalApostado > 0 ? (gNeto / gTotalApostado) * 100 : 0;
-    const gROI   = bankrollInicialGlobal > 0 ? (gNeto / bankrollInicialGlobal) * 100 : 0;
-
-    tYield.textContent = gYield.toFixed(2) + '%';
-    tYield.className = 'num ' + (gYield >= 0 ? 'pos' : 'neg');
-    tROI.textContent = gROI.toFixed(2) + '%';
-    tROI.className = 'num ' + (gROI >= 0 ? 'pos' : 'neg');
+    // Links
+    links.innerHTML='';
+    const mk=(href,txt)=>{const a=document.createElement('a'); a.href=href; a.textContent=txt; return a;}
+    links.append(
+      mk(`index.html?perfil=${encodeURIComponent(perfil)}`,'Dashboard'),
+      mk(`historial_ligas.html?perfil=${encodeURIComponent(perfil)}`,'Historial por Ligas'),
+      mk(`historial_equipos_rol.html?perfil=${encodeURIComponent(perfil)}`,'Historial por Equipos (Rol)')
+    );
   }
 
-  // Export CSV de toda la tabla (incluye totales)
-  function exportarCSV() {
-    const tabla = document.getElementById('tablaProb');
-    const filas = [...tabla.querySelectorAll('thead tr, tbody tr, tfoot tr')];
-    const csv = filas.map(tr => {
-      const celdas = [...tr.children];
-      return celdas.map(td => `"${String(td.textContent).replace(/"/g,'""')}"`).join(',');
-    }).join('\n');
+  // eventos
+  sel.addEventListener('change',()=>{ setCurrent(sel.value); perfil=sel.value; load(); render(); });
+  [fLiga, rangoCustom].forEach(el=> el.addEventListener('input', render));
+  btnCSV.addEventListener('click', ()=>{
+    const rows=(fLiga.value? data.filter(a=>(a.liga||'').toLowerCase().includes(fLiga.value.toLowerCase())): data);
+    const agg=bucketize(rows);
+    const hdr=['Rango','Muestras','Winrate %','EV medio %','Kelly FULL medio %','Unidades'];
+    const csv=[hdr.join(',')].concat(agg.map(b=>[b.label,b.n,b.winrate.toFixed(2),b.evMedio.toFixed(2),b.kMedio.toFixed(2),b.neto.toFixed(2)].join(','))).join('\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`probabilidades_${perfil}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  });
+  btnVolver.addEventListener('click',()=> location.href=`index.html?perfil=${encodeURIComponent(perfil)}`);
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'probabilidades_desglose.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  // Init
-  document.getElementById('btnExportarCSV').addEventListener('click', exportarCSV);
-  render();
+  // init
+  (function init(){
+    if(getProfiles().length===0){ localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify(['default'])); localStorage.setItem(dataKeyFor('default'),'[]'); }
+    refreshSelect(); load(); render();
+  })();
 })();
 </script>
 </body>
