@@ -3,433 +3,209 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial por Equipos (Rol)</title>
+<title>Historial por Equipos (Rol) — Perfiles</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
-  /* --- Reset y base --- */
-  *, *::before, *::after { box-sizing: border-box; }
-  body{
-    margin:0; padding:0; font-family:'Inter',sans-serif;
-    background:#121214; color:#e1e1e6; min-height:100vh; display:flex; flex-direction:column; align-items:center;
-  }
-  main{ max-width:1200px; width:95%; margin:20px auto 40px auto; }
-  h1{ font-weight:600; color:#8257e6; margin:0 0 12px 0; text-align:center; }
-
-  /* Navegación */
-  .nav{
-    display:flex; flex-wrap:wrap; gap:12px; margin-bottom:18px; justify-content:center;
-  }
-  .nav a, .nav button{
-    background:#8257e6; color:#fff; border:none; border-radius:10px; padding:10px 14px;
-    font-weight:600; cursor:pointer; box-shadow:0 4px 8px #6b45d9; text-decoration:none;
-  }
-  .nav a:hover, .nav button:hover{ background:#6b45d9; }
-
-  /* Filtros */
-  .filtros{ display:flex; flex-wrap:wrap; gap:12px 14px; align-items:center; margin:18px 0 22px 0; }
-  .filtros input, .filtros select{
-    min-width:160px; padding:9px 12px; border:none; border-radius:8px; background:#121214; color:#e1e1e6;
-    box-shadow:inset 0 0 5px rgb(255 255 255 / .1);
-  }
-  .filtros input:focus, .filtros select:focus{ outline:none; box-shadow:inset 0 0 8px #8257e6; }
-  #btnLimpiarFiltros{
-    background:#ef4444; color:#fff; font-weight:700; border:none; border-radius:10px; cursor:pointer; padding:8px 14px;
-  }
-  #btnLimpiarFiltros:hover{ background:#dc2626; }
-
-  /* Tabla */
-  #tablaWrapper{ overflow:auto; max-height:70vh; border-radius:12px; box-shadow:0 6px 12px rgba(0,0,0,.4); }
-  table{ width:100%; border-collapse:separate; border-spacing:0 5px; min-width:950px; font-size:.9rem; }
-  thead th{
-    position:sticky; top:0; background:#29292e; color:#bbb; font-weight:700; text-align:left; padding:14px 16px; white-space:nowrap;
-  }
-  tbody tr{ background:#202024; transition:background .25s ease; }
-  tbody tr:hover{ background:#333339; }
-  tbody td{ padding:12px 16px; white-space:nowrap; }
-
-  /* Chips */
-  .chip{ padding:4px 8px; border-radius:999px; font-weight:700; font-size:.8rem; }
-  .ok{ background:rgba(76,175,80,.15); color:#4caf50; }
-  .bad{ background:rgba(239,68,68,.15); color:#ef4444; }
-  .muted{ background:#2a2f55; color:#a7acc8; }
-
-  /* Sortable headers */
-  th.sortable{ cursor:pointer; user-select:none; }
-  th.sortable .sort-ind{ margin-left:6px; opacity:.8; font-size:.85em; }
-  th.sortable:hover{ background:#303036; }
-  th[aria-sort="ascending"]{ color:#fff; }
-  th[aria-sort="descending"]{ color:#fff; }
-
-  /* Export */
-  .acciones{ display:flex; gap:12px; margin-top:16px; }
-
-  /* Responsive */
-  @media (max-width:900px){
-    .filtros{ flex-direction:column; align-items:stretch; }
-    thead th, tbody td{ font-size:.8rem; padding:10px 12px; }
-  }
+  :root{--bg:#121214;--panel:#202024;--panel2:#29292e;--text:#e1e1e6;--muted:#c4c4cc;--accent:#8257e6;--ok:#4caf50;--danger:#ef4444}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;display:flex;justify-content:center}
+  main{max-width:1200px;width:95%;margin:20px auto 40px}
+  h1{color:var(--accent);margin:.2rem 0 1rem}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--panel);padding:12px 16px;border-radius:10px;box-shadow:0 6px 12px rgba(0,0,0,.35)}
+  .bar select,.bar input{min-width:160px;padding:10px 14px;border:none;border-radius:8px;background:#121214;color:var(--text);box-shadow:inset 0 0 5px rgb(255 255 255 / .1)}
+  .bar button{background:var(--accent);border:none;color:#fff;font-weight:600;border-radius:10px;padding:10px 16px;cursor:pointer;box-shadow:0 4px 8px #6b45d9}
+  .bar button:hover{filter:brightness(.95)}
+  #tablaWrap{overflow:auto;border-radius:12px;box-shadow:0 6px 12px rgba(0,0,0,.4);margin-top:10px}
+  table{width:100%;border-collapse:separate;border-spacing:0 6px;min-width:900px}
+  thead th{position:sticky;top:0;background:var(--panel2);padding:12px 14px;color:#bbb;text-align:left}
+  tbody tr{background:var(--panel);transition:.2s}
+  tbody tr:hover{background:#2a2a30}
+  td{padding:12px 14px;white-space:nowrap}
+  .pos{color:var(--ok);font-weight:700}
+  .neg{color:var(--danger);font-weight:700}
+  canvas{background:var(--panel);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.5);height:360px !important;margin-top:22px}
+  .links{margin-top:14px}
+  .links a{color:#fff;background:#3b82f6;text-decoration:none;padding:8px 12px;border-radius:8px;margin-right:8px;display:inline-block}
 </style>
 </head>
 <body>
 <main>
   <h1>Historial por Equipos (Rol)</h1>
 
-  <div class="nav">
-    <a href="index.html" title="Volver">← Volver</a>
-    <a href="historial_ligas.html" title="Historial por Ligas">Historial por Ligas</a>
-  </div>
-
-  <!-- Filtros -->
-  <section class="filtros" aria-label="Filtros">
-    <input type="text" id="filtroEquipo" placeholder="Filtrar por equipo..." aria-label="Filtro por equipo" />
-    <select id="filtroRol" aria-label="Filtro por rol">
+  <section class="bar" aria-label="Perfiles y filtros">
+    <strong>Perfil:</strong>
+    <select id="selectPerfil"></select>
+    <input id="filtroEquipo" placeholder="Filtrar equipo..." />
+    <select id="filtroRol">
       <option value="">Todos los roles</option>
       <option value="Local">Local</option>
-      <option value="Visitante">Visitante</option>
+      <option value="Visita">Visita</option>
     </select>
-    <input type="text" id="filtroLiga" placeholder="Filtrar por liga..." aria-label="Filtro por liga" />
-    <select id="filtroMercado" aria-label="Filtro por mercado">
-      <option value="">Todos los mercados</option>
-      <option value="Over 2.5 FT">Over 2.5 FT</option>
-      <option value="Under 2.5 FT">Under 2.5 FT</option>
-      <option value="Ambos Anotan">Ambos Anotan</option>
-      <option value="BTTS NO">BTTS NO</option>
-      <option value="Hándicap">Hándicap</option>
-    </select>
-    <input type="number" id="filtroProbMin" placeholder="Prob. mín (%)" min="0" max="100" step="0.01" />
-    <input type="number" id="filtroProbMax" placeholder="Prob. máx (%)" min="0" max="100" step="0.01" />
-    <input type="date" id="filtroFechaIni" />
-    <input type="date" id="filtroFechaFin" />
-    <button id="btnLimpiarFiltros">✖</button>
+    <input id="filtroLiga" placeholder="Filtrar liga..." />
+    <button id="btnExportCSV">Exportar CSV</button>
+    <button id="btnVolver">⬅ Volver</button>
   </section>
 
-  <!-- Tabla -->
-  <section aria-label="Tabla de equipos por rol">
-    <div id="tablaWrapper">
-      <table id="tablaEquiposRol" role="grid" aria-describedby="descTabla">
-        <caption id="descTabla" style="text-align:left; margin-bottom:12px; font-weight:700; font-size:1.1rem;">
-          Rendimiento por equipo según su rol (Local/Visitante)
-        </caption>
-        <thead>
-          <tr>
-            <th class="sortable" data-key="equipo" scope="col" aria-sort="none">Equipo <span class="sort-ind">⇅</span></th>
-            <th class="sortable" data-key="rol" scope="col" aria-sort="none">Rol <span class="sort-ind">⇅</span></th>
-            <th class="sortable" data-key="n" scope="col" aria-sort="descending">Apuestas <span class="sort-ind">▼</span></th>
-            <th class="sortable" data-key="gan" scope="col" aria-sort="none">Ganadas <span class="sort-ind">⇅</span></th>
-            <th class="sortable" data-key="per" scope="col" aria-sort="none">Perdidas <span class="sort-ind">⇅</span></th>
-            <th class="sortable" data-key="tasa" scope="col" aria-sort="none">Tasa Éxito (%) <span class="sort-ind">⇅</span></th>
-            <th class="sortable" data-key="evMed" scope="col" aria-sort="none">EV medio (%) <span class="sort-ind">⇅</span></th>
-            <th class="sortable" data-key="kellyMed" scope="col" aria-sort="none">Kelly medio (%) <span class="sort-ind">⇅</span></th>
-            <th class="sortable" data-key="yieldPct" scope="col" aria-sort="none">Yield (%) <span class="sort-ind">⇅</span></th>
-            <th class="sortable" data-key="roiPct" scope="col" aria-sort="none">ROI (%) <span class="sort-ind">⇅</span></th>
-            <th class="sortable" data-key="unidades" scope="col" aria-sort="none">Unids. <span class="sort-ind">⇅</span></th>
-          </tr>
-        </thead>
-        <tbody><!-- Relleno por JS --></tbody>
-      </table>
-    </div>
-  </section>
-
-  <div class="acciones">
-    <button id="btnExportarCSV" title="Exportar CSV">Exportar CSV</button>
+  <div id="tablaWrap">
+    <table id="tabla">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Equipo</th>
+          <th>Rol</th>
+          <th>Liga</th>
+          <th>Apuestas</th>
+          <th>Ganadas</th>
+          <th>Perdidas</th>
+          <th>Winrate %</th>
+          <th>Yield %</th>
+          <th>Unidades</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
+
+  <canvas id="grafica"></canvas>
+
+  <div class="links" id="links"></div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-(() => {
-  'use strict';
+(()=>{'use strict';
+  // Perfiles
+  const STORAGE_ROOT='HAPC', PROFILE_LIST_KEY=STORAGE_ROOT+'_profiles', CURRENT_PROFILE_KEY=STORAGE_ROOT+'_currentProfile';
+  const dataKeyFor=p=>`${STORAGE_ROOT}_data_${p}`;
+  const getProfiles=()=>{try{const a=JSON.parse(localStorage.getItem(PROFILE_LIST_KEY)||'[]');return Array.isArray(a)?a:[]}catch{return[]}};
+  const getCurrent=()=>localStorage.getItem(CURRENT_PROFILE_KEY)||'default';
+  const setCurrent=p=>localStorage.setItem(CURRENT_PROFILE_KEY,p);
+  const getUrlPerfil=()=>{const s=new URLSearchParams(location.search).get('perfil'); return s&&s.trim()?s.trim():null;}
 
-  const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
+  // DOM
+  const sel=document.getElementById('selectPerfil');
+  const fEq=document.getElementById('filtroEquipo');
+  const fRol=document.getElementById('filtroRol');
+  const fLiga=document.getElementById('filtroLiga');
+  const tbody=document.querySelector('#tabla tbody');
+  const ctx=document.getElementById('grafica').getContext('2d');
+  const btnCSV=document.getElementById('btnExportCSV');
+  const btnVolver=document.getElementById('btnVolver');
+  const links=document.getElementById('links');
 
-  // Filtros
-  const filtroEquipo = document.getElementById('filtroEquipo');
-  const filtroRol = document.getElementById('filtroRol');
-  const filtroLiga = document.getElementById('filtroLiga');
-  const filtroMercado = document.getElementById('filtroMercado');
-  const filtroProbMin = document.getElementById('filtroProbMin');
-  const filtroProbMax = document.getElementById('filtroProbMax');
-  const filtroFechaIni = document.getElementById('filtroFechaIni');
-  const filtroFechaFin = document.getElementById('filtroFechaFin');
-  const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+  let perfil='default', data=[], chart=null;
 
-  const table = document.getElementById('tablaEquiposRol');
-  const tbody = table.querySelector('tbody');
-  const btnExportarCSV = document.getElementById('btnExportarCSV');
-
-  // Estado de ordenamiento
-  let sortKey = 'n';           // por defecto "Apuestas"
-  let sortDir = 'desc';        // descendente por defecto
-
-  // Utilidades (idénticas a tu página principal)
-  function calcularEV(prob, cuotaBookie) {
-    if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const p = prob / 100;
-    return p * cuotaBookie - 1;
+  function refreshSelect(){
+    const list=getProfiles(); perfil=getUrlPerfil()||getCurrent();
+    if(!list.includes(perfil)){ if(list.length){perfil=list[0];} else {perfil='default';} setCurrent(perfil); }
+    sel.innerHTML=''; list.forEach(p=>{ const o=document.createElement('option'); o.value=p; o.textContent=p; if(p===perfil)o.selected=true; sel.appendChild(o); });
   }
-  function calcularKelly(prob, cuotaBookie) {
-    if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const p = prob / 100;
-    const b = cuotaBookie - 1;
-    return (p * b - (1 - p)) / b;
-  }
-  function stakeSugerido(bankroll, kellyFull, kellyFrac) {
-    if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
-    const stake = bankroll * kellyFull * kellyFrac;
-    return stake > bankroll ? bankroll : stake;
-  }
+  function load(){ data=JSON.parse(localStorage.getItem(dataKeyFor(perfil))||'[]'); }
+  const stake=(b,kf,kfr)=> (b>0&&kf>0&&kfr>0)? Math.min(b, b*kf*kfr):0;
 
-  function cargarHistorial() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
-    } catch { return []; }
-  }
+  function agrupar(rows){
+    // clave: liga|equipo|rol
+    const map=new Map();
+    rows.forEach(a=>{
+      const liga=(a.liga||'Sin liga').trim();
+      const eqLocal=(a.local||'').trim();
+      const eqVisita=(a.visita||'').trim();
 
-  // Filtro a nivel de registro (igual que usas en la principal)
-  function pasaFiltros(a){
-    if (filtroLiga.value && !String(a.liga||'').toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
-    if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
-
-    const p = Number(a.probabilidad) || 0;
-    const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
-    const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
-    if (min !== null && p < min) return false;
-    if (max !== null && p > max) return false;
-
-    if (filtroFechaIni.value) {
-      const ini = new Date(filtroFechaIni.value);
-      if (new Date(a.fecha) < ini) return false;
-    }
-    if (filtroFechaFin.value) {
-      const fin = new Date(filtroFechaFin.value);
-      fin.setHours(23,59,59,999);
-      if (new Date(a.fecha) > fin) return false;
-    }
-    return true;
-  }
-
-  // Agrupar por equipo+rol
-  function agruparPorEquipoRol(registros){
-    const map = new Map();
-
-    registros.forEach(a => {
-      if (!pasaFiltros(a)) return;
-
-      [
-        { equipo: a.local, rol: 'Local' },
-        { equipo: a.visita, rol: 'Visitante' }
-      ].forEach(view => {
-        if (filtroEquipo.value && !String(view.equipo||'').toLowerCase().includes(filtroEquipo.value.toLowerCase())) return;
-        if (filtroRol.value && view.rol !== filtroRol.value) return;
-
-        const key = `${view.equipo}|${view.rol}`;
-        if (!map.has(key)) {
-          map.set(key, {
-            equipo: view.equipo || '',
-            rol: view.rol,
-            n: 0, gan: 0, per: 0,
-            sumEV: 0, sumKelly: 0,
-            totalApostado: 0, totalDevuelto: 0,
-            bankrollInicial: a.bankroll || 0
-          });
-        }
-        const g = map.get(key);
-
-        const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-        const devuelto = a.estado === 'ganada' ? stake * a.cuotaBookie
-                        : a.estado === 'perdida' ? 0
-                        : 0;
-
-        g.n += 1;
-        if (a.estado === 'ganada') g.gan += 1;
-        if (a.estado === 'perdida') g.per += 1;
-        g.sumEV += (a.ev || calcularEV(a.probabilidad, a.cuotaBookie));
-        g.sumKelly += ((a.kellyFull != null) ? a.kellyFull : calcularKelly(a.probabilidad, a.cuotaBookie));
-        g.totalApostado += stake;
-        g.totalDevuelto += devuelto;
-        if (!g.bankrollInicial && a.bankroll) g.bankrollInicial = a.bankroll;
-      });
-    });
-
-    const arr = [];
-    map.forEach(g => {
-      const tasa = g.n > 0 ? (g.gan / g.n) * 100 : 0;
-      const evMed = g.n > 0 ? (g.sumEV / g.n) * 100 : 0;
-      const kellyMed = g.n > 0 ? (g.sumKelly / g.n) * 100 : 0;
-      const neto = g.totalDevuelto - g.totalApostado;
-      const yieldPct = g.totalApostado > 0 ? (neto / g.totalApostado) * 100 : 0;
-      const roiPct = g.bankrollInicial > 0 ? (neto / g.bankrollInicial) * 100 : 0;
-
-      arr.push({
-        equipo: g.equipo,
-        rol: g.rol,
-        n: g.n,
-        gan: g.gan,
-        per: g.per,
-        tasa: tasa,
-        evMed: evMed,
-        kellyMed: kellyMed,
-        yieldPct: yieldPct,
-        roiPct: roiPct,
-        unidades: neto
-      });
-    });
-
-    return ordenar(arr, sortKey, sortDir);
-  }
-
-  // Ordenamiento genérico
-  function ordenar(arr, key, dir){
-    const isNum = (v) => typeof v === 'number' || (!isNaN(parseFloat(v)) && isFinite(v));
-    const sgn = dir === 'asc' ? 1 : -1;
-
-    const sorted = arr.slice().sort((a,b)=>{
-      const va = a[key];
-      const vb = b[key];
-
-      // numérico si ambos son números; si no, string
-      if (isNum(va) && isNum(vb)) {
-        return sgn * (parseFloat(va) - parseFloat(vb));
-      } else {
-        return sgn * String(va || '').localeCompare(String(vb || ''), 'es', { sensitivity:'base' });
+      // Local
+      {
+        const key=`${liga}|${eqLocal}|Local`;
+        const st=stake(a.bankroll,a.kellyFull,a.kellyFrac);
+        let m=map.get(key)||{liga, equipo:eqLocal, rol:'Local', n:0,g:0,p:0,apostado:0,ganado:0};
+        m.n++; m.apostado+=st;
+        if(a.estado==='ganada'){m.g++; m.ganado += st*(a.cuotaBookie||0);}
+        else if(a.estado==='perdida'){m.p++;}
+        map.set(key,m);
+      }
+      // Visita
+      {
+        const key=`${liga}|${eqVisita}|Visita`;
+        const st=stake(a.bankroll,a.kellyFull,a.kellyFrac);
+        let m=map.get(key)||{liga, equipo:eqVisita, rol:'Visita', n:0,g:0,p:0,apostado:0,ganado:0};
+        m.n++; m.apostado+=st;
+        if(a.estado==='ganada'){m.g++; m.ganado += st*(a.cuotaBookie||0);}
+        else if(a.estado==='perdida'){m.p++;}
+        map.set(key,m);
       }
     });
-
-    // Si empate, desempata por equipo
-    return sorted.sort((a,b)=>{
-      if (a[key] === b[key]) {
-        return String(a.equipo||'').localeCompare(String(b.equipo||''), 'es', { sensitivity:'base' });
-      }
-      return 0;
+    return [...map.values()].map(m=>{
+      const neto=m.ganado - m.apostado;
+      const wr=m.n? m.g/m.n*100:0;
+      const yld=m.apostado? neto/m.apostado*100:0;
+      return {...m, neto, wr, yld};
     });
   }
 
-  // Render tabla según estado de sort
-  function renderTabla(){
-    const historial = cargarHistorial();
-    const datos = agruparPorEquipoRol(historial);
+  function render(){
+    const fEqv=(fEq.value||'').toLowerCase();
+    const fLigaV=(fLiga.value||'').toLowerCase();
+    const fRolV=fRol.value||'';
+    const agg=agrupar(data).filter(m=>{
+      if(fEqv && !m.equipo.toLowerCase().includes(fEqv)) return false;
+      if(fLigaV && !m.liga.toLowerCase().includes(fLigaV)) return false;
+      if(fRolV && m.rol!==fRolV) return false;
+      return true;
+    }).sort((a,b)=> b.neto - a.neto);
 
-    tbody.innerHTML = '';
-    datos.forEach(d => {
-      const tr = document.createElement('tr');
-
-      const tdEq = document.createElement('td'); tdEq.textContent = d.equipo || '-'; tr.appendChild(tdEq);
-      const tdRol = document.createElement('td');
-      tdRol.innerHTML = `<span class="chip muted">${d.rol}</span>`;
-      tr.appendChild(tdRol);
-
-      const tdN = document.createElement('td'); tdN.textContent = d.n; tr.appendChild(tdN);
-      const tdG = document.createElement('td'); tdG.innerHTML = `<span class="chip ok">${d.gan}</span>`; tr.appendChild(tdG);
-      const tdP = document.createElement('td'); tdP.innerHTML = `<span class="chip bad">${d.per}</span>`; tr.appendChild(tdP);
-
-      const tdTasa = document.createElement('td'); tdTasa.textContent = d.tasa.toFixed(2); tr.appendChild(tdTasa);
-      const tdEVm = document.createElement('td'); tdEVm.textContent = d.evMed.toFixed(2); tr.appendChild(tdEVm);
-      const tdKm = document.createElement('td'); tdKm.textContent = d.kellyMed.toFixed(2); tr.appendChild(tdKm);
-
-      const tdYield = document.createElement('td'); tdYield.textContent = d.yieldPct.toFixed(2); tr.appendChild(tdYield);
-      const tdROI = document.createElement('td'); tdROI.textContent = d.roiPct.toFixed(2); tr.appendChild(tdROI);
-      const tdUnids = document.createElement('td'); tdUnids.textContent = d.unidades.toFixed(2); tr.appendChild(tdUnids);
-
+    tbody.innerHTML='';
+    agg.forEach((m,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td>${i+1}</td>
+        <td>${m.equipo}</td>
+        <td>${m.rol}</td>
+        <td>${m.liga}</td>
+        <td>${m.n}</td>
+        <td>${m.g}</td>
+        <td>${m.p}</td>
+        <td>${m.wr.toFixed(2)}</td>
+        <td>${m.yld.toFixed(2)}</td>
+        <td class="${m.neto>=0?'pos':'neg'}">${m.neto.toFixed(2)}</td>`;
       tbody.appendChild(tr);
     });
 
-    actualizarIndicadoresOrden();
-  }
-
-  // Indicadores ▲▼ y aria-sort en <th>
-  function actualizarIndicadoresOrden(){
-    const ths = table.querySelectorAll('thead th.sortable');
-    ths.forEach(th=>{
-      const key = th.getAttribute('data-key');
-      const span = th.querySelector('.sort-ind');
-      if (!span) return;
-
-      if (key === sortKey) {
-        th.setAttribute('aria-sort', sortDir === 'asc' ? 'ascending' : 'descending');
-        span.textContent = sortDir === 'asc' ? '▲' : '▼';
-      } else {
-        th.setAttribute('aria-sort', 'none');
-        span.textContent = '⇅';
-      }
-    });
-  }
-
-  // Click en encabezados para ordenar
-  function setupSorting(){
-    const ths = table.querySelectorAll('thead th.sortable');
-    ths.forEach(th=>{
-      th.addEventListener('click', ()=>{
-        const key = th.getAttribute('data-key');
-        if (key === sortKey) {
-          // alterna asc/desc
-          sortDir = (sortDir === 'asc') ? 'desc' : 'asc';
-        } else {
-          sortKey = key;
-          // por defecto, números descendente; texto ascendente
-          const numericKeys = new Set(['n','gan','per','tasa','evMed','kellyMed','yieldPct','roiPct','unidades']);
-          sortDir = numericKeys.has(key) ? 'desc' : 'asc';
-        }
-        renderTabla();
-      });
-    });
-  }
-
-  function limpiar(){
-    filtroEquipo.value = '';
-    filtroRol.value = '';
-    filtroLiga.value = '';
-    filtroMercado.value = '';
-    filtroProbMin.value = '';
-    filtroProbMax.value = '';
-    filtroFechaIni.value = '';
-    filtroFechaFin.value = '';
-  }
-
-  // Exportar CSV respeta el orden actual
-  function exportarCSV(){
-    const historial = cargarHistorial();
-    const datos = agruparPorEquipoRol(historial);
-    if (datos.length === 0) { alert('No hay datos para exportar'); return; }
-
-    const headers = ['equipo','rol','apuestas','ganadas','perdidas','tasa_exito_%','ev_medio_%','kelly_medio_%','yield_%','roi_%','unidades'];
-    const rows = [headers.join(',')];
-
-    datos.forEach(d=>{
-      rows.push([
-        `"${d.equipo}"`,
-        d.rol,
-        d.n, d.gan, d.per,
-        d.tasa.toFixed(2),
-        d.evMed.toFixed(2),
-        d.kellyMed.toFixed(2),
-        d.yieldPct.toFixed(2),
-        d.roiPct.toFixed(2),
-        d.unidades.toFixed(2)
-      ].join(','));
+    // Gráfica: Top 12 equipos por unidades (filtrados)
+    if(chart) chart.destroy();
+    const top=agg.slice(0,12);
+    chart=new Chart(ctx,{
+      type:'bar',
+      data:{labels:top.map(x=>`${x.equipo} (${x.rol[0]})`), datasets:[{label:'Unidades por equipo/rol', data:top.map(x=>x.neto)}]},
+      options:{responsive:true, scales:{x:{ticks:{color:'#ddd'},grid:{color:'#444'}},y:{ticks:{color:'#ddd'},grid:{color:'#444'}}},
+               plugins:{legend:{labels:{color:'#ddd'}}}}
     });
 
-    const blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'equipos_por_rol.csv';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    // Links
+    links.innerHTML='';
+    const mk=(href,txt)=>{const a=document.createElement('a'); a.href=href; a.textContent=txt; return a;}
+    links.append(
+      mk(`index.html?perfil=${encodeURIComponent(perfil)}`,'Dashboard'),
+      mk(`historial_ligas.html?perfil=${encodeURIComponent(perfil)}`,'Historial por Ligas'),
+      mk(`probabilidades.html?perfil=${encodeURIComponent(perfil)}`,'Probabilidades')
+    );
   }
 
-  // Eventos
-  [filtroEquipo, filtroRol, filtroLiga, filtroMercado, filtroProbMin, filtroProbMax, filtroFechaIni, filtroFechaFin].forEach(el=>{
-    el.addEventListener('input', renderTabla);
-    el.addEventListener('change', renderTabla);
+  // eventos
+  sel.addEventListener('change',()=>{ setCurrent(sel.value); perfil=sel.value; load(); render(); });
+  [fEq,fRol,fLiga].forEach(el=>el.addEventListener('input',render));
+  btnCSV.addEventListener('click', ()=>{
+    const agg=agrupar(data).sort((a,b)=> b.neto - a.neto);
+    const rows=[['Equipo','Rol','Liga','Apuestas','Ganadas','Perdidas','Winrate %','Yield %','Unidades']];
+    agg.forEach(m=> rows.push([m.equipo,m.rol,m.liga,m.n,m.g,m.p,m.wr.toFixed(2),m.yld.toFixed(2),m.neto.toFixed(2)]));
+    const csv=rows.map(r=>r.join(',')).join('\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`equipos_rol_${perfil}.csv`; document.body.appendChild(a); a.click(); a.remove();
   });
-  btnLimpiarFiltros.addEventListener('click', (e)=>{
-    e.preventDefault(); limpiar(); renderTabla();
-  });
-  btnExportarCSV.addEventListener('click', exportarCSV);
+  btnVolver.addEventListener('click',()=> location.href=`index.html?perfil=${encodeURIComponent(perfil)}`);
 
-  // Init
-  setupSorting();
-  renderTabla();
+  // init
+  (function init(){
+    if(getProfiles().length===0){ localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify(['default'])); localStorage.setItem(dataKeyFor('default'),'[]'); }
+    refreshSelect(); load(); render();
+  })();
 })();
 </script>
 </body>
