@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional (Perfiles)</title>
+<title>Historial de Apuestas Profesional (Perfiles + Migración)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; }
@@ -264,11 +264,13 @@
 (() => {
   'use strict';
 
-  /* ===================== PERFILES ===================== */
-  // Lista de perfiles guardada aparte (para poblar el <select>)
+  /* ===================== CONSTANTES DE CLAVES ===================== */
   const PROFILE_LIST_KEY = 'historialApuestas__perfiles';
   const DEFAULT_PROFILE = 'default';
+  const OLD_KEY = 'historialApuestasProfesionalCompleto';     // clave de tu versión anterior
+  // Cada perfil nuevo usa: historialApuestas_<perfil>
 
+  /* ===================== PERFILES ===================== */
   const selectPerfil = document.getElementById('selectPerfil');
   const btnNuevoPerfil = document.getElementById('btnNuevoPerfil');
   const btnBorrarPerfil = document.getElementById('btnBorrarPerfil');
@@ -291,7 +293,7 @@
     selectPerfil.innerHTML = '';
     perfiles.forEach(p => {
       const opt = document.createElement('option');
-      opt.value = p; opt.textContent = p === DEFAULT_PROFILE ? 'default' : p;
+      opt.value = p; opt.textContent = (p === DEFAULT_PROFILE ? 'default' : p);
       if (p === perfilActual) opt.selected = true;
       selectPerfil.appendChild(opt);
     });
@@ -303,13 +305,11 @@
     if (!/^[a-zA-Z0-9_\- ]{1,24}$/.test(name)) { alert('Nombre inválido'); return null; }
     return name;
   }
-  function getStorageKey() {
-    // Cada perfil usa su propia clave
-    return `historialApuestas_${perfilActual}`;
-  }
+  function getStorageKey() { return `historialApuestas_${perfilActual}`; }
+  function getDefaultStorageKey() { return `historialApuestas_${DEFAULT_PROFILE}`; }
 
   /* ===================== APP ===================== */
-  // DOM comunes (del resto de tu app)
+  // DOM
   const form = document.getElementById('formApuesta');
   const cuotaImplicitaInput = document.getElementById('cuotaImplicita');
 
@@ -371,6 +371,47 @@
     const data = localStorage.getItem(getStorageKey());
     if (data) { try { historial = JSON.parse(data); } catch { historial = []; } }
     else { historial = []; }
+  }
+
+  // ---------- MIGRACIÓN DESDE CLAVE VIEJA ----------
+  function migrateFromOldKeyIfNeeded() {
+    try {
+      const oldRaw = localStorage.getItem(OLD_KEY);
+      if (!oldRaw) return false; // no hay datos viejos
+
+      // Si el perfil default ya tiene datos, no pisar.
+      const newRaw = localStorage.getItem(getDefaultStorageKey());
+      if (newRaw && JSON.parse(newRaw || '[]').length > 0) return false;
+
+      let oldData = JSON.parse(oldRaw);
+      if (!Array.isArray(oldData)) return false;
+
+      // Normaliza ids y campos mínimos
+      oldData = oldData.map(item => ({
+        id: item.id || Date.now() + Math.random(),
+        fecha: item.fecha || new Date().toISOString(),
+        liga: item.liga || 'Sin liga',
+        local: item.local || '',
+        visita: item.visita || '',
+        mercado: item.mercado || '',
+        probabilidad: Number(item.probabilidad) || 0,
+        cuotaImplicita: item.cuotaImplicita !== undefined ? item.cuotaImplicita : (Number(item.probabilidad) ? Number((100/Number(item.probabilidad)).toFixed(2)) : ''),
+        cuotaBookie: Number(item.cuotaBookie) || 0,
+        ev: (typeof item.ev === 'number') ? item.ev : calcularEV(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
+        kellyFull: (typeof item.kellyFull === 'number') ? item.kellyFull : calcularKelly(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
+        bankroll: Number(item.bankroll) || 100,
+        kellyFrac: Number(item.kellyFrac) || 0.25,
+        estado: item.estado || 'pendiente'
+      }));
+
+      localStorage.setItem(getDefaultStorageKey(), JSON.stringify(oldData));
+      // No borramos la clave vieja automáticamente por seguridad
+      alert(`Migramos ${oldData.length} apuestas desde tu versión anterior al perfil "default".`);
+      return true;
+    } catch (e) {
+      console.warn('Migración falló o no necesaria:', e);
+      return false;
+    }
   }
 
   // ---------- Filtros ----------
@@ -514,7 +555,7 @@
       labels.push(`Apuesta ${i+1}`);
     });
 
-    // versión estilizada de la gráfica (más limpia)
+    // versión estilizada (línea suave + relleno ligero + decimation)
     const g = ctxBankroll.createLinearGradient(0,0,0,ctxBankroll.canvas.height);
     g.addColorStop(0,'rgba(130,87,230,0.18)');
     g.addColorStop(1,'rgba(130,87,230,0.00)');
@@ -645,7 +686,6 @@
   btnBorrarPerfil.addEventListener('click', ()=>{
     if (perfilActual === DEFAULT_PROFILE) { alert('El perfil "default" no puede eliminarse.'); return; }
     if (!confirm(`¿Borrar el perfil "${perfilActual}" y todos sus datos?`)) return;
-    // Borra datos y perfil
     localStorage.removeItem(getStorageKey());
     perfiles = perfiles.filter(p=>p!==perfilActual);
     perfilActual = DEFAULT_PROFILE; saveProfiles();
@@ -655,8 +695,7 @@
   });
 
   selectPerfil.addEventListener('change', ()=>{
-    // Guarda el historial actual antes de cambiar (por seguridad)
-    guardarHistorial();
+    guardarHistorial(); // guarda el perfil actual por si acaso
     perfilActual = selectPerfil.value;
     cargarHistorial(); actualizarVista();
   });
@@ -666,7 +705,20 @@
     loadProfiles();
     perfilActual = perfiles[0] || DEFAULT_PROFILE;
     renderProfilesSelect();
+
+    // 1) Intentamos migrar si es necesario (sólo una vez)
+    const migrated = migrateFromOldKeyIfNeeded();
+
+    // 2) Cargamos historial del perfil seleccionado
     cargarHistorial();
+
+    // 3) Si migramos y estamos en otro perfil distinto, cambiamos a default para que lo veas
+    if (migrated && perfilActual !== DEFAULT_PROFILE) {
+      perfilActual = DEFAULT_PROFILE;
+      renderProfilesSelect();
+      cargarHistorial();
+    }
+
     actualizarVista();
   }
   init();
