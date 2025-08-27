@@ -723,21 +723,45 @@ btnEliminarTodo.addEventListener('click', () => {
       labels.push(`Apuesta ${i + 1}`);
     });
 
-    graficaBankroll = new Chart(ctxBankroll, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Bankroll',
-          data: bankData,
-          borderColor: '#8257e6',
-          backgroundColor: 'rgba(130, 87, 230, 0.3)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 3,
-        }]
+    // --- reemplaza SOLO esta parte ---
+const g = ctxBankroll.createLinearGradient(0, 0, 0, ctxBankroll.canvas.height);
+g.addColorStop(0, 'rgba(130,87,230,0.18)');
+g.addColorStop(1, 'rgba(130,87,230,0.00)');
+
+graficaBankroll = new Chart(ctxBankroll, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: 'Bankroll',
+      data: bankData,
+      borderColor: '#8257e6',
+      backgroundColor: g,
+      fill: true,
+      borderWidth: 2,
+      tension: 0.35,
+      cubicInterpolationMode: 'monotone',
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      spanGaps: true
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    parsing: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: '#ddd', font: { size: 13, weight: '600' } } },
+      tooltip: { callbacks: { label: ctx => `Bankroll: ${ctx.parsed.y.toFixed(2)}` }, displayColors: false },
+      decimation: { enabled: true, algorithm: 'lttb', samples: 250 }
+    },
+    scales: {
+      y: { beginAtZero: false, ticks: { color: '#cfcfd6' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+      x: { ticks: { color: '#cfcfd6', autoSkip: true, maxTicksLimit: 10 }, grid: { display: false } }
+    }
+  }
+});
       },
       options: {
         responsive: true,
