@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional (Perfiles + Migración + Fix Bankroll)</title>
+<title>Historial de Apuestas Profesional (Perfiles + Migración + Fix Gráfica)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; }
@@ -268,6 +268,7 @@
   const PROFILE_LIST_KEY = 'historialApuestas__perfiles';
   const DEFAULT_PROFILE = 'default';
   const OLD_KEY = 'historialApuestasProfesionalCompleto'; // clave vieja
+
   const selectPerfil = document.getElementById('selectPerfil');
   const btnNuevoPerfil = document.getElementById('btnNuevoPerfil');
   const btnBorrarPerfil = document.getElementById('btnBorrarPerfil');
@@ -345,9 +346,9 @@
   // Estado por perfil
   let historial = [];
 
-  /* ===================== HELPERS NUMÉRICOS ===================== */
+  /* ===================== HELPERS NÚMERICOS ===================== */
   const n = (x, dflt = 0) => {
-    const v = parseFloat(x);
+    const v = typeof x === 'string' ? parseFloat(x.replace(',', '.')) : parseFloat(x);
     return Number.isFinite(v) ? v : dflt;
   };
 
@@ -441,7 +442,7 @@
 
   /* ===================== TABLA ===================== */
   function renderizarTabla() {
-    const apuestas = filtrarHistorial().slice().reverse();
+    const apuestas = filtrarHistorial().slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)); // más reciente arriba
     tablaBody.innerHTML = '';
     apuestas.forEach((a, i) => {
       const tr = document.createElement('tr');
@@ -511,7 +512,9 @@
       resumenTasaExito.textContent='0.00%'; resumenUnidades.textContent='0.00';
       return;
     }
-    const bank0 = n(arr[0].bankroll, 0); resumenBankroll.textContent = bank0.toFixed(2);
+    // Orden cronológico para métricas iniciales coherentes
+    const ordered = arr.slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+    const bank0 = n(ordered[0].bankroll, 0); resumenBankroll.textContent = bank0.toFixed(2);
     const nA = arr.length; resumenNumApuestas.textContent = nA;
     const g = arr.filter(a=>a.estado==='ganada').length;
     const p = arr.filter(a=>a.estado==='perdida').length;
@@ -542,17 +545,22 @@
   }
 
   function datosBankrollSanitizados(arr) {
-    // Construye labels y data robustos
+    // Orden cronológico para que la línea siga el tiempo
+    const ordered = arr.slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+
     const labels = ['Inicio'];
-    const data = [ n(arr[0]?.bankroll, 100) ];
-    for (let i=0;i<arr.length;i++){
-      const a = arr[i];
+    // Bankroll inicial del PRIMER registro cronológico (o 100 si falta)
+    const bank0 = n(ordered[0]?.bankroll, 100);
+    const data = [ bank0 ];
+
+    for (let i=0;i<ordered.length;i++){
+      const a = ordered[i];
       const st = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      const last = n(data[data.length-1], n(arr[0]?.bankroll, 100));
+      const last = Number.isFinite(data[data.length-1]) ? data[data.length-1] : bank0;
       let nuevo = last;
       if (a.estado === 'ganada') nuevo = last + st * (n(a.cuotaBookie, 1) - 1);
       else if (a.estado === 'perdida') nuevo = last - st;
-      // pendiente = no mueve bankroll
+      // pendiente no altera bankroll
       data.push( Number.isFinite(nuevo) ? nuevo : last );
       labels.push(`Apuesta ${i+1}`);
     }
@@ -561,7 +569,7 @@
 
   function actualizarGraficas() {
     const arr = filtrarHistorial();
-    // Destruye instancias previas
+
     if (graficaBankroll) { graficaBankroll.destroy(); graficaBankroll = null; }
     if (graficaKelly) { graficaKelly.destroy(); graficaKelly = null; }
 
@@ -572,23 +580,27 @@
 
     graficaBankroll = new Chart(ctxBankroll, {
       type:'line',
-      data:{ labels, datasets:[{
-        label:'Bankroll',
-        data: bankData.map(v => n(v, null)).filter(v => v !== null),
-        borderColor:'#8257e6',
-        backgroundColor: grad,
-        fill:true,
-        borderWidth:2,
-        tension:0.35,
-        cubicInterpolationMode:'monotone',
-        pointRadius:0,
-        pointHoverRadius:4,
-        spanGaps:true
-      }]},
+      data:{ 
+        labels, 
+        datasets:[{
+          label:'Bankroll',
+          // Mantener misma longitud que labels; usa NaN para huecos
+          data: bankData.map(v => Number.isFinite(n(v)) ? n(v) : NaN),
+          borderColor:'#8257e6',
+          backgroundColor: grad,
+          fill:true,
+          borderWidth:2,
+          tension:0.35,
+          cubicInterpolationMode:'monotone',
+          pointRadius:0,
+          pointHoverRadius:4,
+          spanGaps:true
+        }]
+      },
       options:{
         responsive:true,
         maintainAspectRatio:false,
-        animation:false,             // <- para que se vea el cambio inmediato
+        animation:false,
         parsing:false,
         interaction:{ mode:'index', intersect:false },
         plugins:{
@@ -597,22 +609,42 @@
           decimation:{ enabled:true, algorithm:'lttb', samples:250 }
         },
         scales:{
-          y:{ beginAtZero:false, ticks:{ color:'#cfcfd6' }, grid:{ color:'rgba(255,255,255,0.06)'} },
-          x:{ ticks:{ color:'#cfcfd6', autoSkip:true, maxTicksLimit:10 }, grid:{ display:false } }
+          y:{ 
+            beginAtZero:false, 
+            ticks:{ 
+              color:'#cfcfd6',
+              // Ticks sin decimales en el eje Y
+              callback: (val)=> Number(val).toLocaleString(undefined, {maximumFractionDigits:0, minimumFractionDigits:0})
+            }, 
+            grid:{ color:'rgba(255,255,255,0.06)'} 
+          },
+          x:{ 
+            ticks:{ color:'#cfcfd6', autoSkip:true, maxTicksLimit:10 }, 
+            grid:{ display:false } 
+          }
         }
       }
     });
 
-    const kellyData = arr.map(a => {
+    // Kelly FULL (%)
+    const ordered = arr.slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+    const kellyData = ordered.map(a => {
       const k = n(a.kellyFull);
       return k>0 ? k*100 : 0;
     });
 
     graficaKelly = new Chart(ctxKelly, {
       type:'bar',
-      data:{ labels:labels.slice(1), datasets:[{ label:'Kelly FULL (%)', data:kellyData, backgroundColor:'#ffba08', borderRadius:4 }]},
-      options:{ responsive:true, animation:false,
-        scales:{ y:{ beginAtZero:true, max:100, ticks:{ color:'#ddd' }, grid:{ color:'#444' } }, x:{ ticks:{ color:'#ddd' }, grid:{ color:'#444' } } },
+      data:{ 
+        labels: labels.slice(1), 
+        datasets:[{ label:'Kelly FULL (%)', data: kellyData, backgroundColor:'#ffba08', borderRadius:4 }]
+      },
+      options:{ 
+        responsive:true, animation:false,
+        scales:{ 
+          y:{ beginAtZero:true, max:100, ticks:{ color:'#ddd', stepSize:20, callback:(v)=>`${v}%` }, grid:{ color:'#444' } }, 
+          x:{ ticks:{ color:'#ddd' }, grid:{ color:'#444' } } 
+        },
         plugins:{ legend:{ labels:{ color:'#ddd', font:{ size:14, weight:'600'} } } }
       }
     });
@@ -768,7 +800,7 @@
     cargarHistorial(); actualizarVista();
   });
 
-  // Debounce de resize para rehacer gradiente/gráficas si cambia tamaño
+  // Redibuja si cambia tamaño
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
@@ -782,6 +814,10 @@
     renderProfilesSelect();
 
     const migrated = migrateFromOldKeyIfNeeded();
+
+    // Limpia filtros para no ocultar migrados por accidente
+    limpiarFiltros();
+
     cargarHistorial();
     if (migrated && perfilActual !== DEFAULT_PROFILE) {
       perfilActual = DEFAULT_PROFILE;
