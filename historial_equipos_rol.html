@@ -53,6 +53,13 @@
   .bad{ background:rgba(239,68,68,.15); color:#ef4444; }
   .muted{ background:#2a2f55; color:#a7acc8; }
 
+  /* Sortable headers */
+  th.sortable{ cursor:pointer; user-select:none; }
+  th.sortable .sort-ind{ margin-left:6px; opacity:.8; font-size:.85em; }
+  th.sortable:hover{ background:#303036; }
+  th[aria-sort="ascending"]{ color:#fff; }
+  th[aria-sort="descending"]{ color:#fff; }
+
   /* Export */
   .acciones{ display:flex; gap:12px; margin-top:16px; }
 
@@ -105,17 +112,17 @@
         </caption>
         <thead>
           <tr>
-            <th>Equipo</th>
-            <th>Rol</th>
-            <th>Apuestas</th>
-            <th>Ganadas</th>
-            <th>Perdidas</th>
-            <th>Tasa Éxito (%)</th>
-            <th>EV medio (%)</th>
-            <th>Kelly medio (%)</th>
-            <th>Yield (%)</th>
-            <th>ROI (%)</th>
-            <th>Unids.</th>
+            <th class="sortable" data-key="equipo" scope="col" aria-sort="none">Equipo <span class="sort-ind">⇅</span></th>
+            <th class="sortable" data-key="rol" scope="col" aria-sort="none">Rol <span class="sort-ind">⇅</span></th>
+            <th class="sortable" data-key="n" scope="col" aria-sort="descending">Apuestas <span class="sort-ind">▼</span></th>
+            <th class="sortable" data-key="gan" scope="col" aria-sort="none">Ganadas <span class="sort-ind">⇅</span></th>
+            <th class="sortable" data-key="per" scope="col" aria-sort="none">Perdidas <span class="sort-ind">⇅</span></th>
+            <th class="sortable" data-key="tasa" scope="col" aria-sort="none">Tasa Éxito (%) <span class="sort-ind">⇅</span></th>
+            <th class="sortable" data-key="evMed" scope="col" aria-sort="none">EV medio (%) <span class="sort-ind">⇅</span></th>
+            <th class="sortable" data-key="kellyMed" scope="col" aria-sort="none">Kelly medio (%) <span class="sort-ind">⇅</span></th>
+            <th class="sortable" data-key="yieldPct" scope="col" aria-sort="none">Yield (%) <span class="sort-ind">⇅</span></th>
+            <th class="sortable" data-key="roiPct" scope="col" aria-sort="none">ROI (%) <span class="sort-ind">⇅</span></th>
+            <th class="sortable" data-key="unidades" scope="col" aria-sort="none">Unids. <span class="sort-ind">⇅</span></th>
           </tr>
         </thead>
         <tbody><!-- Relleno por JS --></tbody>
@@ -145,8 +152,13 @@
   const filtroFechaFin = document.getElementById('filtroFechaFin');
   const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
 
-  const tbody = document.querySelector('#tablaEquiposRol tbody');
+  const table = document.getElementById('tablaEquiposRol');
+  const tbody = table.querySelector('tbody');
   const btnExportarCSV = document.getElementById('btnExportarCSV');
+
+  // Estado de ordenamiento
+  let sortKey = 'n';           // por defecto "Apuestas"
+  let sortDir = 'desc';        // descendente por defecto
 
   // Utilidades (idénticas a tu página principal)
   function calcularEV(prob, cuotaBookie) {
@@ -200,20 +212,15 @@
 
   // Agrupar por equipo+rol
   function agruparPorEquipoRol(registros){
-    // Estructura: { 'Equipo|Rol': { equipo, rol, ...acum } }
     const map = new Map();
 
     registros.forEach(a => {
       if (!pasaFiltros(a)) return;
 
-      // Para cada registro generamos dos vistas:
-      // 1) Equipo local con Rol=Local
-      // 2) Equipo visita con Rol=Visitante
       [
         { equipo: a.local, rol: 'Local' },
         { equipo: a.visita, rol: 'Visitante' }
       ].forEach(view => {
-        // Si filtras por equipo/rol, verifica aquí:
         if (filtroEquipo.value && !String(view.equipo||'').toLowerCase().includes(filtroEquipo.value.toLowerCase())) return;
         if (filtroRol.value && view.rol !== filtroRol.value) return;
 
@@ -225,16 +232,15 @@
             n: 0, gan: 0, per: 0,
             sumEV: 0, sumKelly: 0,
             totalApostado: 0, totalDevuelto: 0,
-            bankrollInicial: a.bankroll || 0 // tomamos el primero que veamos
+            bankrollInicial: a.bankroll || 0
           });
         }
         const g = map.get(key);
 
-        // stake estimado según tu misma lógica
         const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
         const devuelto = a.estado === 'ganada' ? stake * a.cuotaBookie
                         : a.estado === 'perdida' ? 0
-                        : 0; // pendiente se considera 0 en el flujo
+                        : 0;
 
         g.n += 1;
         if (a.estado === 'ganada') g.gan += 1;
@@ -247,7 +253,6 @@
       });
     });
 
-    // Transformar a array con métricas
     const arr = [];
     map.forEach(g => {
       const tasa = g.n > 0 ? (g.gan / g.n) * 100 : 0;
@@ -260,17 +265,48 @@
       arr.push({
         equipo: g.equipo,
         rol: g.rol,
-        n: g.n, gan: g.gan, per: g.per,
-        tasa: tasa, evMed: evMed, kellyMed: kellyMed,
-        yieldPct: yieldPct, roiPct: roiPct, unidades: neto
+        n: g.n,
+        gan: g.gan,
+        per: g.per,
+        tasa: tasa,
+        evMed: evMed,
+        kellyMed: kellyMed,
+        yieldPct: yieldPct,
+        roiPct: roiPct,
+        unidades: neto
       });
     });
 
-    // Orden por defecto: más apuestas
-    arr.sort((a,b)=> b.n - a.n || a.equipo.localeCompare(b.equipo));
-    return arr;
+    return ordenar(arr, sortKey, sortDir);
   }
 
+  // Ordenamiento genérico
+  function ordenar(arr, key, dir){
+    const isNum = (v) => typeof v === 'number' || (!isNaN(parseFloat(v)) && isFinite(v));
+    const sgn = dir === 'asc' ? 1 : -1;
+
+    const sorted = arr.slice().sort((a,b)=>{
+      const va = a[key];
+      const vb = b[key];
+
+      // numérico si ambos son números; si no, string
+      if (isNum(va) && isNum(vb)) {
+        return sgn * (parseFloat(va) - parseFloat(vb));
+      } else {
+        return sgn * String(va || '').localeCompare(String(vb || ''), 'es', { sensitivity:'base' });
+      }
+    });
+
+    // Si empate, desempata por equipo
+    return sorted.sort((a,b)=>{
+      if (a[key] === b[key]) {
+        return String(a.equipo||'').localeCompare(String(b.equipo||''), 'es', { sensitivity:'base' });
+      }
+      return 0;
+    });
+  }
+
+  // Render tabla según estado de sort
   function renderTabla(){
     const historial = cargarHistorial();
     const datos = agruparPorEquipoRol(historial);
@@ -298,6 +334,46 @@
 
       tbody.appendChild(tr);
     });
+
+    actualizarIndicadoresOrden();
+  }
+
+  // Indicadores ▲▼ y aria-sort en <th>
+  function actualizarIndicadoresOrden(){
+    const ths = table.querySelectorAll('thead th.sortable');
+    ths.forEach(th=>{
+      const key = th.getAttribute('data-key');
+      const span = th.querySelector('.sort-ind');
+      if (!span) return;
+
+      if (key === sortKey) {
+        th.setAttribute('aria-sort', sortDir === 'asc' ? 'ascending' : 'descending');
+        span.textContent = sortDir === 'asc' ? '▲' : '▼';
+      } else {
+        th.setAttribute('aria-sort', 'none');
+        span.textContent = '⇅';
+      }
+    });
+  }
+
+  // Click en encabezados para ordenar
+  function setupSorting(){
+    const ths = table.querySelectorAll('thead th.sortable');
+    ths.forEach(th=>{
+      th.addEventListener('click', ()=>{
+        const key = th.getAttribute('data-key');
+        if (key === sortKey) {
+          // alterna asc/desc
+          sortDir = (sortDir === 'asc') ? 'desc' : 'asc';
+        } else {
+          sortKey = key;
+          // por defecto, números descendente; texto ascendente
+          const numericKeys = new Set(['n','gan','per','tasa','evMed','kellyMed','yieldPct','roiPct','unidades']);
+          sortDir = numericKeys.has(key) ? 'desc' : 'asc';
+        }
+        renderTabla();
+      });
+    });
   }
 
   function limpiar(){
@@ -311,7 +387,7 @@
     filtroFechaFin.value = '';
   }
 
-  // Exportar CSV
+  // Exportar CSV respeta el orden actual
   function exportarCSV(){
     const historial = cargarHistorial();
     const datos = agruparPorEquipoRol(historial);
@@ -352,6 +428,7 @@
   btnExportarCSV.addEventListener('click', exportarCSV);
 
   // Init
+  setupSorting();
   renderTabla();
 })();
 </script>
