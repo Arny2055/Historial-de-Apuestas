@@ -3,21 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional</title>
+<title>Historial de Apuestas Profesional (Perfiles + Migración + Fix Gráfica)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
-  /* --- Reset y base --- */
   *, *::before, *::after { box-sizing: border-box; }
-  body {
-    margin: 0; padding: 0;
-    font-family: 'Inter', sans-serif;
-    background-color: #121214; color: #e1e1e6;
-    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-  }
+  body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background-color: #121214; color: #e1e1e6; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
   main { max-width: 1200px; width: 95%; margin: 20px auto 40px auto; flex-grow: 1; }
   h1, h2 { font-weight: 600; margin-bottom: 0.5rem; color: #8257e6; }
 
-  /* --- Formulario de apuesta --- */
+  /* Barra de perfiles */
+  .perfiles { display:flex; gap:10px; align-items:center; margin: 8px 0 18px; flex-wrap:wrap; }
+  .perfiles select, .perfiles button {
+    background:#202024; color:#e1e1e6; border:none; border-radius:8px; padding:10px 12px;
+    box-shadow: inset 0 0 5px rgb(255 255 255 / 0.08);
+    font-weight:600; cursor:pointer;
+  }
+  .perfiles select { min-width: 180px; }
+  .perfiles .danger { background:#ef4444; }
+  .perfiles .primary { background:#8257e6; }
+
+  /* Formulario */
   form#formApuesta{
     background-color:#202024; padding:25px 30px; border-radius:10px;
     box-shadow:0 6px 12px rgba(0,0,0,0.4);
@@ -43,11 +48,8 @@
   }
   form#formApuesta button[type="submit"]:hover{background-color:#6a40d6;}
 
-  /* --- Sección filtros --- */
-  section.filtros{
-    margin-bottom:30px; display:flex; flex-wrap:wrap; gap:15px 18px;
-    align-items: center;
-  }
+  /* Filtros */
+  section.filtros{ margin-bottom:30px; display:flex; flex-wrap:wrap; gap:15px 18px; align-items: center; }
   section.filtros input[type="text"],
   section.filtros input[type="number"],
   section.filtros input[type="date"],
@@ -56,15 +58,14 @@
     background-color:#121214; color:#e1e1e6; box-shadow:inset 0 0 5px rgb(255 255 255 / 0.1);
     transition: box-shadow 0.25s ease;
   }
-  section.filtros input:focus,
-  section.filtros select:focus{outline:none; box-shadow:inset 0 0 8px #8257e6;}
+  section.filtros input:focus, section.filtros select:focus{outline:none; box-shadow:inset 0 0 8px #8257e6;}
   #btnLimpiarFiltros{
     background-color:#ef4444; color:#fff; font-weight:700; border:none; border-radius:10px;
     cursor:pointer; padding:8px 14px; transition:background-color 0.3s ease;
   }
   #btnLimpiarFiltros:hover{background-color:#dc2626;}
 
-  /* --- Botones export/import --- */
+  /* Botones útiles */
   .botones-utiles{margin-bottom:35px; display:flex; gap:18px; flex-wrap:wrap;}
   .botones-utiles button{
     background-color:#8257e6; color:#fff; font-weight:600; border:none; border-radius:10px;
@@ -75,16 +76,10 @@
   .botones-utiles .btn-danger:hover{background-color:#dc2626;}
   input[type="file"]{display:none;}
 
-  /* --- Tabla --- */
-  #tablaWrapper{
-    overflow-x:auto; overflow-y:auto; max-height:580px;
-    box-shadow:0 6px 12px rgba(0,0,0,0.4); border-radius:12px;
-  }
+  /* Tabla */
+  #tablaWrapper{ overflow-x:auto; overflow-y:auto; max-height:580px; box-shadow:0 6px 12px rgba(0,0,0,0.4); border-radius:12px; }
   table#tablaHistorial{width:100%; border-collapse:separate; border-spacing:0 5px; min-width:900px; font-size:0.9rem;}
-  thead th{
-    position:sticky; top:0; background-color:#29292e; color:#bbb; font-weight:700; text-align:left;
-    padding:14px 18px; user-select:none; white-space:nowrap;
-  }
+  thead th{ position:sticky; top:0; background-color:#29292e; color:#bbb; font-weight:700; text-align:left; padding:14px 18px; user-select:none; white-space:nowrap; }
   tbody tr{background-color:#202024; transition:background-color 0.3s ease;}
   tbody tr:hover{background-color:#333339;}
   tbody td{padding:14px 18px; color:#ddd; vertical-align:middle; white-space:nowrap;}
@@ -94,19 +89,16 @@
   .status-ganada{color:#4caf50; font-weight:600;}
   .status-perdida{color:#ef4444; font-weight:600;}
 
-  /* --- Resumen estadísticas --- */
-  #resumen{
-    margin-top:40px; background-color:#29292e; border-radius:10px; padding:22px 26px; color:#d4d4d8;
-    font-size:1.05rem; font-weight:600; display:flex; flex-wrap:wrap; gap:28px; justify-content:space-around;
-  }
+  /* Resumen */
+  #resumen{ margin-top:40px; background-color:#29292e; border-radius:10px; padding:22px 26px; color:#d4d4d8; font-size:1.05rem; font-weight:600; display:flex; flex-wrap:wrap; gap:28px; justify-content:space-around; }
   #resumen > div{min-width:140px;}
   #resumen > div strong{display:block; font-size:1.15rem; color:#8257e6; margin-bottom:6px;}
 
-  /* --- Gráficas --- */
+  /* Gráficas */
   #graficas{margin-top:45px; display:flex; flex-direction:column; gap:40px;}
   canvas{background-color:#202024; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,0.5); max-width:100%; height:320px !important;}
 
-  /* --- Responsive --- */
+  /* Responsive */
   @media (max-width: 900px){
     form#formApuesta{grid-template-columns:1fr !important;}
     section.filtros{flex-direction:column !important; gap:15px !important;}
@@ -120,23 +112,31 @@
 <main>
   <h1 style="text-align:center;">Historial Profesional de Apuestas</h1>
 
-  <!-- FORMULARIO -->
+  <!-- ====== PERFILES / REGISTROS ====== -->
+  <div class="perfiles" aria-label="Gestión de perfiles/registros">
+    <strong>Perfil/Registro:</strong>
+    <select id="selectPerfil" title="Selecciona un perfil"></select>
+    <button id="btnNuevoPerfil" class="primary">Nuevo perfil</button>
+    <button id="btnBorrarPerfil" class="danger">Borrar perfil actual</button>
+  </div>
+
+  <!-- ====== FORMULARIO ====== -->
   <form id="formApuesta" autocomplete="off" novalidate aria-label="Formulario para agregar apuesta">
     <div>
       <label for="liga">Liga *</label>
-      <input type="text" id="liga" name="liga" placeholder="Ej: LaLiga" required aria-required="true" />
+      <input type="text" id="liga" name="liga" placeholder="Ej: LaLiga" required />
     </div>
     <div>
       <label for="local">Equipo Local *</label>
-      <input type="text" id="local" name="local" placeholder="Ej: Real Madrid" required aria-required="true" />
+      <input type="text" id="local" name="local" placeholder="Ej: Real Madrid" required />
     </div>
     <div>
       <label for="visita">Equipo Visitante *</label>
-      <input type="text" id="visita" name="visita" placeholder="Ej: Barcelona" required aria-required="true" />
+      <input type="text" id="visita" name="visita" placeholder="Ej: Barcelona" required />
     </div>
     <div>
       <label for="mercado">Mercado *</label>
-      <select id="mercado" name="mercado" required aria-required="true">
+      <select id="mercado" name="mercado" required>
         <option value="" disabled selected>Selecciona mercado</option>
         <option value="Over 2.5 FT">Over 2.5 FT</option>
         <option value="Under 2.5 FT">Under 2.5 FT</option>
@@ -147,24 +147,24 @@
     </div>
     <div>
       <label for="probabilidad">Probabilidad (%) *</label>
-      <input type="number" id="probabilidad" name="probabilidad" min="0.01" max="100" step="0.01" placeholder="Ej: 60" required aria-required="true" aria-describedby="descProbabilidad" />
-      <small id="descProbabilidad" style="color:#c4c4cc; font-size:0.8rem;">Ingresa probabilidad estimada entre 0 y 100</small>
+      <input type="number" id="probabilidad" name="probabilidad" min="0.01" max="100" step="0.01" placeholder="Ej: 60" required />
+      <small style="color:#c4c4cc; font-size:0.8rem;">Ingresa probabilidad estimada entre 0 y 100</small>
     </div>
     <div>
-      <label for="cuotaImplicita">Cuota Implícita (calculada automáticamente)</label>
-      <input type="number" id="cuotaImplicita" name="cuotaImplicita" step="0.01" readonly aria-readonly="true" placeholder="Ej: 1.66" />
+      <label for="cuotaImplicita">Cuota Implícita (auto)</label>
+      <input type="number" id="cuotaImplicita" step="0.01" readonly placeholder="Ej: 1.66" />
     </div>
     <div>
       <label for="cuotaBookie">Cuota Bookie (decimal) *</label>
-      <input type="number" id="cuotaBookie" name="cuotaBookie" min="1.01" step="0.01" placeholder="Ej: 1.80" required aria-required="true" />
+      <input type="number" id="cuotaBookie" name="cuotaBookie" min="1.01" step="0.01" placeholder="Ej: 1.80" required />
     </div>
     <div>
       <label for="bankroll">Bankroll *</label>
-      <input type="number" id="bankroll" name="bankroll" min="0.01" step="0.01" placeholder="Ej: 100" value="100" required aria-required="true" />
+      <input type="number" id="bankroll" name="bankroll" min="0.01" step="0.01" placeholder="Ej: 100" value="100" required />
     </div>
     <div>
       <label for="kellyFrac">Fracción Kelly *</label>
-      <select id="kellyFrac" name="kellyFrac" required aria-required="true">
+      <select id="kellyFrac" name="kellyFrac" required>
         <option value="0.10">10%</option>
         <option value="0.25" selected>25%</option>
         <option value="0.33">33%</option>
@@ -181,13 +181,13 @@
     </div>
   </form>
 
-  <!-- FILTROS -->
+  <!-- ====== FILTROS ====== -->
   <section class="filtros" aria-label="Filtros para el historial de apuestas">
-    <input type="text" id="filtroLiga" placeholder="Filtrar por liga..." aria-label="Filtro por liga" />
-    <input type="text" id="filtroLocal" placeholder="Filtrar por local..." aria-label="Filtro por equipo local" />
-    <input type="text" id="filtroVisita" placeholder="Filtrar por visita..." aria-label="Filtro por equipo visitante" />
+    <input type="text" id="filtroLiga" placeholder="Filtrar por liga..." />
+    <input type="text" id="filtroLocal" placeholder="Filtrar por local..." />
+    <input type="text" id="filtroVisita" placeholder="Filtrar por visita..." />
 
-    <select id="filtroMercado" aria-label="Filtro por mercado">
+    <select id="filtroMercado">
       <option value="">Todos los mercados</option>
       <option value="Over 2.5 FT">Over 2.5 FT</option>
       <option value="Under 2.5 FT">Under 2.5 FT</option>
@@ -196,39 +196,32 @@
       <option value="Hándicap">Hándicap</option>
     </select>
 
-    <select id="filtroEstado" aria-label="Filtro por estado de apuesta">
+    <select id="filtroEstado">
       <option value="">Todos los estados</option>
       <option value="pendiente">Pendiente</option>
       <option value="ganada">Ganada</option>
       <option value="perdida">Perdida</option>
     </select>
 
-    <!-- NUEVOS: filtros por probabilidad -->
-    <input type="number" id="filtroProbMin" placeholder="Prob. mín (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad mínima" />
-    <input type="number" id="filtroProbMax" placeholder="Prob. máx (%)" min="0" max="100" step="0.01" aria-label="Filtro por probabilidad máxima" />
-
-    <!-- Filtros por fecha -->
-    <input type="date" id="filtroFechaInicio" aria-label="Filtro por fecha inicio" />
-    <input type="date" id="filtroFechaFin" aria-label="Filtro por fecha fin" />
-
+    <input type="number" id="filtroProbMin" placeholder="Prob. mín (%)" min="0" max="100" step="0.01" />
+    <input type="number" id="filtroProbMax" placeholder="Prob. máx (%)" min="0" max="100" step="0.01" />
+    <input type="date" id="filtroFechaInicio" />
+    <input type="date" id="filtroFechaFin" />
     <button id="btnLimpiarFiltros" title="Limpiar filtros" aria-label="Limpiar filtros">✖</button>
   </section>
 
-  <!-- BOTONES UTILES -->
+  <!-- ====== BOTONES ====== -->
   <section class="botones-utiles" aria-label="Exportar o importar historial de apuestas">
     <button id="btnExportarCSV" title="Exportar historial a CSV">Exportar CSV</button>
     <button id="btnImportarJSON" title="Importar historial desde archivo JSON">Importar JSON</button>
-    <input type="file" id="inputImportJSON" accept=".json" aria-label="Seleccionar archivo JSON para importar" />
-    <button onclick="location.href='historial_ligas.html'" title="Ver historial por ligas">Historial por Ligas</button>
-    <button onclick="location.href='historial_equipos_rol.html'" title="Ver historial por equipo (rol)">
-  Historial por Equipos (Rol)
-</button>
-    <button onclick="location.href='probabilidades.html'" title="Ver estadísticas por probabilidad">Probabilidades</button>
-    <!-- NUEVO: borrar todo -->
-    <button id="btnEliminarTodo" class="btn-danger" title="Eliminar todo el historial">Eliminar todo</button>
+    <input type="file" id="inputImportJSON" accept=".json" />
+    <button onclick="location.href='historial_ligas.html'">Historial por Ligas</button>
+    <button onclick="location.href='historial_equipos_rol.html'">Historial por Equipos (Rol)</button>
+    <button onclick="location.href='probabilidades.html'">Probabilidades</button>
+    <button id="btnEliminarTodo" class="btn-danger" title="Eliminar historial del perfil actual">Eliminar todo (perfil)</button>
   </section>
 
-  <!-- TABLA -->
+  <!-- ====== TABLA ====== -->
   <section aria-label="Historial de apuestas registradas">
     <div id="tablaWrapper">
       <table role="grid" aria-describedby="tableDescription" id="tablaHistorial" tabindex="0">
@@ -237,28 +230,17 @@
         </caption>
         <thead>
           <tr>
-            <th scope="col">#</th>
-            <th scope="col">Fecha</th>
-            <th scope="col">Liga</th>
-            <th scope="col">Local</th>
-            <th scope="col">Visita</th>
-            <th scope="col">Mercado</th>
-            <th scope="col">Prob (%)</th>
-            <th scope="col">Cuota Implícita</th>
-            <th scope="col">Cuota Bookie</th>
-            <th scope="col">EV (%)</th>
-            <th scope="col">Kelly FULL (%)</th>
-            <th scope="col">Stake sugerido</th>
-            <th scope="col">Estado</th>
-            <th scope="col" aria-label="Acciones">⚙</th>
+            <th>#</th><th>Fecha</th><th>Liga</th><th>Local</th><th>Visita</th><th>Mercado</th>
+            <th>Prob (%)</th><th>Cuota Implícita</th><th>Cuota Bookie</th><th>EV (%)</th>
+            <th>Kelly FULL (%)</th><th>Stake sugerido</th><th>Estado</th><th>⚙</th>
           </tr>
         </thead>
-        <tbody><!-- Contenido generado por JS --></tbody>
+        <tbody></tbody>
       </table>
     </div>
   </section>
 
-  <!-- RESUMEN -->
+  <!-- ====== RESUMEN ====== -->
   <section id="resumen" aria-label="Resumen estadístico de apuestas">
     <div><strong>Bankroll inicial:</strong> <span id="resumenBankroll">-</span></div>
     <div><strong>Número apuestas:</strong> <span id="resumenNumApuestas">0</span></div>
@@ -270,7 +252,7 @@
     <div><strong>Unidades ganadas:</strong> <span id="resumenUnidades">0.00</span></div>
   </section>
 
-  <!-- GRAFICAS -->
+  <!-- ====== GRÁFICAS ====== -->
   <section id="graficas" aria-label="Gráficas de evolución del bankroll y Kelly">
     <canvas id="graficaBankroll" aria-label="Gráfica de evolución de bankroll"></canvas>
     <canvas id="graficaKelly" aria-label="Gráfica de Kelly Full"></canvas>
@@ -282,10 +264,49 @@
 (() => {
   'use strict';
 
-  // Constantes y variables
-  const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
+  /* ===================== CONSTANTES ===================== */
+  const PROFILE_LIST_KEY = 'historialApuestas__perfiles';
+  const DEFAULT_PROFILE = 'default';
+  const OLD_KEY = 'historialApuestasProfesionalCompleto'; // clave vieja
 
-  // Elementos DOM
+  const selectPerfil = document.getElementById('selectPerfil');
+  const btnNuevoPerfil = document.getElementById('btnNuevoPerfil');
+  const btnBorrarPerfil = document.getElementById('btnBorrarPerfil');
+
+  let perfiles = [];
+  let perfilActual = DEFAULT_PROFILE;
+
+  function loadProfiles() {
+    try { perfiles = JSON.parse(localStorage.getItem(PROFILE_LIST_KEY) || '[]'); }
+    catch { perfiles = []; }
+    if (!Array.isArray(perfiles)) perfiles = [];
+    if (!perfiles.includes(DEFAULT_PROFILE)) perfiles.unshift(DEFAULT_PROFILE);
+    saveProfiles(false);
+  }
+  function saveProfiles(refresh = true) {
+    localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify(perfiles));
+    if (refresh) renderProfilesSelect();
+  }
+  function renderProfilesSelect() {
+    selectPerfil.innerHTML = '';
+    perfiles.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = (p === DEFAULT_PROFILE ? 'default' : p);
+      if (p === perfilActual) opt.selected = true;
+      selectPerfil.appendChild(opt);
+    });
+  }
+  function promptProfileName() {
+    let name = prompt('Nombre del nuevo perfil (letras/números/guiones bajos):', '');
+    if (!name) return null;
+    name = name.trim();
+    if (!/^[a-zA-Z0-9_\- ]{1,24}$/.test(name)) { alert('Nombre inválido'); return null; }
+    return name;
+  }
+  function getStorageKey() { return `historialApuestas_${perfilActual}`; }
+  function getDefaultStorageKey() { return `historialApuestas_${DEFAULT_PROFILE}`; }
+
+  /* ===================== DOM APP ===================== */
   const form = document.getElementById('formApuesta');
   const cuotaImplicitaInput = document.getElementById('cuotaImplicita');
 
@@ -319,492 +340,342 @@
   const ctxBankroll = document.getElementById('graficaBankroll').getContext('2d');
   const ctxKelly = document.getElementById('graficaKelly').getContext('2d');
 
-  // Variables para gráficos
   let graficaBankroll = null;
   let graficaKelly = null;
 
-  // Array para guardar apuestas
+  // Estado por perfil
   let historial = [];
 
-  // ------------------ Funciones auxiliares base ------------------
-  function calcularCuotaImplicita(prob) {
-    if (!(prob > 0)) return '';
-    return (100 / prob).toFixed(2);
-  }
-  function calcularEV(prob, cuotaBookie) {
-    if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const p = prob / 100;
-    return p * cuotaBookie - 1; // decimal (0.05 = 5%)
-  }
+  /* ===================== HELPERS NÚMERICOS ===================== */
+  const n = (x, dflt = 0) => {
+    const v = typeof x === 'string' ? parseFloat(x.replace(',', '.')) : parseFloat(x);
+    return Number.isFinite(v) ? v : dflt;
+  };
+
+  function calcularCuotaImplicita(prob) { const p = n(prob); if (!(p > 0)) return ''; return (100 / p).toFixed(2); }
+  function calcularEV(prob, cuotaBookie) { const p = n(prob)/100, q = n(cuotaBookie); if (!(p>0 && q>1)) return 0; return p*q - 1; }
   function calcularKelly(prob, cuotaBookie) {
-    if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const p = prob / 100;
-    const b = cuotaBookie - 1;
-    return (p * b - (1 - p)) / b; // decimal (0.05 = 5%)
+    const p = n(prob)/100, q = n(cuotaBookie); if (!(p>0 && q>1)) return 0;
+    const b = q - 1; return (p*b - (1 - p)) / b;
   }
   function stakeSugerido(bankroll, kellyFull, kellyFrac) {
-    if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
-    const stake = bankroll * kellyFull * kellyFrac;
-    return stake > bankroll ? bankroll : stake;
+    const br = n(bankroll), kf = n(kellyFull), frac = n(kellyFrac, 0.25);
+    if (!(br>0 && kf>0 && frac>0)) return 0;
+    const stake = br * kf * frac;
+    return stake > br ? br : stake;
   }
 
-  // ------------------ Utilidades de normalización para import ------------------
-  const removeDiacritics = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const normalizeKey = (k) => removeDiacritics(String(k)).toLowerCase().replace(/[^a-z0-9]+/g,'');
-  function getVal(obj, candidates) {
-    const map = new Map(Object.keys(obj).map(k => [normalizeKey(k), k]));
-    for (const c of candidates) {
-      const nk = normalizeKey(c);
-      if (map.has(nk)) return obj[map.get(nk)];
-    }
-    return undefined;
-  }
-  function toNumber(val) {
-    if (typeof val === 'number') return val;
-    if (val === null || val === undefined) return NaN;
-    let s = String(val).trim();
-    s = s.replace(/%/g,'').replace(/\s+/g,'').replace(/,/g,'.');
-    if (s === '') return NaN;
-    const n = parseFloat(s);
-    return isNaN(n) ? NaN : n;
-  }
-  const monthMap = {
-    ene:0, enero:0,
-    feb:1, febrero:1,
-    mar:2, marzo:2,
-    abr:3, abril:3,
-    may:4, mayo:4,
-    jun:5, junio:5,
-    jul:6, julio:6,
-    ago:7, agosto:7,
-    sep:8, set:8, sept:8, septiembre:8, setiembre:8,
-    oct:9, octubre:9,
-    nov:10, noviembre:10,
-    dic:11, diciembre:11
-  };
-  function parseSpanishDate(str) {
-    if (!str) return new Date();
-    const raw = removeDiacritics(String(str)).toLowerCase().replace(/\./g,' ').replace(/,/g,' ').replace(/\s+/g,' ').trim();
-    // Intenta "20 sept 2023 12:15"
-    const m = raw.match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
-    if (m) {
-      const day = parseInt(m[1],10);
-      const monToken = m[2];
-      const monKey = (monthMap[monToken] !== undefined) ? monToken
-                      : monthMap[monToken.slice(0,4)] !== undefined ? monToken.slice(0,4)
-                      : monthMap[monToken.slice(0,3)] !== undefined ? monToken.slice(0,3)
-                      : null;
-      const month = monKey !== null ? monthMap[monKey] : undefined;
-      if (month !== undefined) {
-        const year = parseInt(m[3],10);
-        const hh = m[4] ? parseInt(m[4],10) : 12;
-        const mm = m[5] ? parseInt(m[5],10) : 0;
-        return new Date(year, month, day, hh, mm, 0);
-      }
-    }
-    const d2 = new Date(str);
-    return isNaN(d2) ? new Date() : d2;
-  }
-  function splitMatch(what) {
-    if (!what) return ['', ''];
-    const s = String(what).replace(/vs\.?|v\.s\.?/gi, '-');
-    const parts = s.split('-');
-    if (parts.length >= 2) return [parts[0].trim(), parts.slice(1).join('-').trim()];
-    return [String(what).trim(), ''];
-  }
-  function mapOutcome(x) {
-    const s = String(x || '').toLowerCase();
-    if (/gg\b|btts\s*si|btts\s*s[ií]|ambos/.test(s)) return 'Ambos Anotan';
-    if (/ng\b|btts\s*no/.test(s)) return 'BTTS NO';
-    if ((/over/.test(s) || /\bo\d+(\.\d+)?\b/.test(s)) && /2(\.|,)?5/.test(s)) return 'Over 2.5 FT';
-    if ((/under/.test(s) || /\bu\d+(\.\d+)?\b/.test(s)) && /2(\.|,)?5/.test(s)) return 'Under 2.5 FT';
-    if (/handicap|h.ndicap/i.test(s)) return 'Hándicap';
-    return x || '';
-  }
-  function mapEstado(x) {
-  const s = String(x || '').trim().toLowerCase();
-
-  // GANADA
-  if (
-    /\bwin(n?ing)?\b/.test(s) ||   // win, winning
-    /\bwon\b/.test(s) ||
-    /ganad[ao]s?/.test(s) ||       // ganada, ganadas, ganado, ganados
-    /\bgreen\b/.test(s)            // a veces usan "green"
-  ) return 'ganada';
-
-  // PERDIDA
-  if (
-    /\blos(e|ing|t)\b/.test(s) ||  // lose, losing, lost
-    /\bloss\b/.test(s) ||
-    /perdid[ao]s?/.test(s) ||      // perdida, perdidas, perdido, perdidos
-    /\bred\b/.test(s)              // a veces usan "red"
-  ) return 'perdida';
-
-  // NULA / CANCELADA → lo dejamos como pendiente en este sistema
-  if (
-    /\bvoid(ed)?\b/.test(s) ||
-    /cancel(l?ed|ar|ada)/.test(s) ||
-    /\bpush\b/.test(s) ||
-    /\brefund(ed)?\b/.test(s) ||
-    /nula|anulada/.test(s)
-  ) return 'pendiente';
-
-  // Desconocido → pendiente
-  return 'pendiente';
-}
-
-  function recordFromExternal(rec) {
-    // Lee valores
-    const rawDate = getVal(rec, ['Date','Fecha']);
-    const rawLeague = getVal(rec, ['League','Liga']);
-    const rawMatch  = getVal(rec, ['Match','Partido']);
-    const rawOutcome = getVal(rec, ['Desired Outcome','Outcome','Mercado']);
-    let prob = toNumber(getVal(rec, ['Prob(%)','Prob','Probability','Probabilidad']));
-    const implied = toNumber(getVal(rec, ['Cuota Implícita','Cuota Implicita','Cuota Impl�cita','Implied Odds']));
-    const odd = toNumber(getVal(rec, ['Odd','Cuota','Cuota Bookie','Precio','Decimal Odds']));
-    const result = getVal(rec, ['Result','Estado','Resultado']);
-
-    // Si no viene probabilidad, intenta desde cuota implícita
-    if (!(prob > 0) && implied > 0) prob = 100 / implied;
-
-    // Parseos
-    const fechaISO = parseSpanishDate(rawDate).toISOString();
-    const liga = (rawLeague ? String(rawLeague) : 'Sin liga').trim();
-    const [local, visita] = splitMatch(rawMatch);
-    const mercado = mapOutcome(rawOutcome);
-
-    // Parámetros actuales de stake
-    const bankrollActual = parseFloat(document.getElementById('bankroll').value) || 100;
-    const kellyFracActual = parseFloat(document.getElementById('kellyFrac').value) || 0.25;
-
-    // Cálculos
-    const cuotaImplicitaCalc = prob > 0 ? parseFloat((100 / prob).toFixed(2)) : '';
-    const ev = calcularEV(prob, odd);
-    const kellyFull = calcularKelly(prob, odd);
-
-    return {
-      id: Date.now() + Math.random(),
-      fecha: fechaISO,
-      liga, local, visita, mercado,
-      probabilidad: prob > 0 ? prob : 0,
-      cuotaImplicita: cuotaImplicitaCalc || '',
-      cuotaBookie: odd > 0 ? odd : 0,
-      ev, kellyFull,
-      bankroll: bankrollActual,
-      kellyFrac: kellyFracActual,
-      estado: mapEstado(result)
-    };
-  }
-
-  // Guardar y cargar localStorage
-  function guardarHistorial() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(historial));
-  }
+  /* ===================== STORAGE POR PERFIL ===================== */
+  function guardarHistorial() { localStorage.setItem(getStorageKey(), JSON.stringify(historial)); }
   function cargarHistorial() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-      try { historial = JSON.parse(data); } catch { historial = []; }
+    const data = localStorage.getItem(getStorageKey());
+    if (data) { try { historial = JSON.parse(data) || []; } catch { historial = []; } }
+    else { historial = []; }
+  }
+
+  /* ===================== MIGRACIÓN DESDE CLAVE VIEJA ===================== */
+  function migrateFromOldKeyIfNeeded() {
+    try {
+      const oldRaw = localStorage.getItem(OLD_KEY);
+      if (!oldRaw) return false;
+      const newRaw = localStorage.getItem(getDefaultStorageKey());
+      if (newRaw && JSON.parse(newRaw || '[]').length > 0) return false;
+
+      let oldData = JSON.parse(oldRaw);
+      if (!Array.isArray(oldData)) return false;
+
+      oldData = oldData.map(item => ({
+        id: item.id || Date.now() + Math.random(),
+        fecha: item.fecha || new Date().toISOString(),
+        liga: item.liga || 'Sin liga',
+        local: item.local || '',
+        visita: item.visita || '',
+        mercado: item.mercado || '',
+        probabilidad: n(item.probabilidad, 0),
+        cuotaImplicita: (item.cuotaImplicita !== undefined && item.cuotaImplicita !== null && item.cuotaImplicita !== '') ? n(item.cuotaImplicita) : (n(item.probabilidad) ? n((100/n(item.probabilidad)).toFixed(2)) : ''),
+        cuotaBookie: n(item.cuotaBookie, 0),
+        ev: Number.isFinite(item.ev) ? item.ev : calcularEV(item.probabilidad, item.cuotaBookie),
+        kellyFull: Number.isFinite(item.kellyFull) ? item.kellyFull : calcularKelly(item.probabilidad, item.cuotaBookie),
+        bankroll: n(item.bankroll, 100),
+        kellyFrac: n(item.kellyFrac, 0.25),
+        estado: item.estado || 'pendiente'
+      }));
+
+      localStorage.setItem(getDefaultStorageKey(), JSON.stringify(oldData));
+      alert(`Migramos ${oldData.length} apuestas al perfil "default".`);
+      return true;
+    } catch(e) {
+      console.warn('Migración falló o no necesaria:', e);
+      return false;
     }
   }
 
-  // Limpiar filtros
+  /* ===================== FILTROS ===================== */
   function limpiarFiltros() {
-    filtroLiga.value = '';
-    filtroLocal.value = '';
-    filtroVisita.value = '';
-    filtroMercado.value = '';
-    filtroEstado.value = '';
-    filtroProbMin.value = '';
-    filtroProbMax.value = '';
-    filtroFechaInicio.value = '';
-    filtroFechaFin.value = '';
+    filtroLiga.value = filtroLocal.value = filtroVisita.value = '';
+    filtroMercado.value = filtroEstado.value = '';
+    filtroProbMin.value = filtroProbMax.value = '';
+    filtroFechaInicio.value = filtroFechaFin.value = '';
   }
-
-  // Filtrar apuestas
   function filtrarHistorial() {
     return historial.filter(a => {
-      if (filtroLiga.value && !a.liga.toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
-      if (filtroLocal.value && !a.local.toLowerCase().includes(filtroLocal.value.toLowerCase())) return false;
-      if (filtroVisita.value && !a.visita.toLowerCase().includes(filtroVisita.value.toLowerCase())) return false;
+      if (filtroLiga.value && !String(a.liga||'').toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
+      if (filtroLocal.value && !String(a.local||'').toLowerCase().includes(filtroLocal.value.toLowerCase())) return false;
+      if (filtroVisita.value && !String(a.visita||'').toLowerCase().includes(filtroVisita.value.toLowerCase())) return false;
       if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
       if (filtroEstado.value && a.estado !== filtroEstado.value) return false;
 
-      const p = Number(a.probabilidad) || 0;
-      const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
-      const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
-      if (min !== null && p < min) return false;
-      if (max !== null && p > max) return false;
+      const pmin = filtroProbMin.value !== '' ? n(filtroProbMin.value) : null;
+      const pmax = filtroProbMax.value !== '' ? n(filtroProbMax.value) : null;
+      const p = n(a.probabilidad);
+      if (pmin !== null && p < pmin) return false;
+      if (pmax !== null && p > pmax) return false;
 
-      if (filtroFechaInicio.value) {
-        const fechaIni = new Date(filtroFechaInicio.value);
-        if (new Date(a.fecha) < fechaIni) return false;
-      }
+      if (filtroFechaInicio.value && new Date(a.fecha) < new Date(filtroFechaInicio.value)) return false;
       if (filtroFechaFin.value) {
-        const fechaFin = new Date(filtroFechaFin.value);
-        fechaFin.setHours(23, 59, 59, 999);
-        if (new Date(a.fecha) > fechaFin) return false;
+        const fin = new Date(filtroFechaFin.value); fin.setHours(23,59,59,999);
+        if (new Date(a.fecha) > fin) return false;
       }
       return true;
     });
   }
 
-  // Renderizar tabla
+  /* ===================== TABLA ===================== */
   function renderizarTabla() {
-    const apuestas = filtrarHistorial().slice().reverse();
+    const apuestas = filtrarHistorial().slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)); // más reciente arriba
     tablaBody.innerHTML = '';
     apuestas.forEach((a, i) => {
       const tr = document.createElement('tr');
+      const td = (txt)=>{const x=document.createElement('td'); x.textContent=txt; return x;};
 
-      const tdIndex = document.createElement('td'); tdIndex.textContent = i + 1; tr.appendChild(tdIndex);
-
-      const tdFecha = document.createElement('td');
-      tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
-      tr.appendChild(tdFecha);
-
-      const tdLiga = document.createElement('td');
-      tdLiga.textContent = a.liga;
+      tr.appendChild(td(i + 1));
+      tr.appendChild(td(new Date(a.fecha).toLocaleDateString()));
+      const tdLiga = td(a.liga);
       tdLiga.addEventListener('dblclick', () => {
-        const input = document.createElement('input');
-        input.type = 'text'; input.value = a.liga; input.style.width = "100%";
-        tdLiga.textContent = ''; tdLiga.appendChild(input); input.focus();
-        input.addEventListener('blur', () => { a.liga = input.value.trim() || a.liga; guardarHistorial(); actualizarVista(); });
-        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+        const input = document.createElement('input'); input.type='text'; input.value=a.liga; input.style.width="100%";
+        tdLiga.textContent=''; tdLiga.appendChild(input); input.focus();
+        input.addEventListener('blur', ()=>{ a.liga = input.value.trim() || a.liga; guardarHistorial(); actualizarVista(); });
+        input.addEventListener('keydown', e=>{ if(e.key==='Enter') input.blur(); });
       });
       tr.appendChild(tdLiga);
+      tr.appendChild(td(a.local));
+      tr.appendChild(td(a.visita));
+      tr.appendChild(td(a.mercado));
+      tr.appendChild(td((n(a.probabilidad)||0).toFixed(2)));
 
-      const tdLocal = document.createElement('td'); tdLocal.textContent = a.local; tr.appendChild(tdLocal);
-      const tdVisita = document.createElement('td'); tdVisita.textContent = a.visita; tr.appendChild(tdVisita);
-      const tdMercado = document.createElement('td'); tdMercado.textContent = a.mercado; tr.appendChild(tdMercado);
+      const impl = (a.cuotaImplicita!=='' && a.cuotaImplicita!==null) ? n(a.cuotaImplicita) : n(calcularCuotaImplicita(a.probabilidad));
+      tr.appendChild(td(Number.isFinite(impl) && impl>0 ? impl.toFixed(2) : '-'));
+      tr.appendChild(td((n(a.cuotaBookie)||0).toFixed(2)));
 
-      const tdProb = document.createElement('td'); tdProb.textContent = (Number(a.probabilidad) || 0).toFixed(2); tr.appendChild(tdProb);
+      const evPct = (n(a.ev)*100).toFixed(2);
+      const tdEV = td(evPct); tdEV.style.color=n(a.ev)>=0?'#4caf50':'#ef4444'; tr.appendChild(tdEV);
 
-      const tdCuotaImpl = document.createElement('td');
-      const impl = a.cuotaImplicita !== '' && a.cuotaImplicita !== null ? a.cuotaImplicita : calcularCuotaImplicita(a.probabilidad);
-      tdCuotaImpl.textContent = impl !== '' ? Number(impl).toFixed(2) : '-';
-      tr.appendChild(tdCuotaImpl);
-
-      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = (Number(a.cuotaBookie) || 0).toFixed(2); tr.appendChild(tdCuotaBookie);
-
-      const tdEV = document.createElement('td');
-      tdEV.textContent = ((a.ev || 0) * 100).toFixed(2);
-      tdEV.style.color = (a.ev || 0) >= 0 ? '#4caf50' : '#ef4444';
-      tr.appendChild(tdEV);
-
-      const tdKelly = document.createElement('td');
-      tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(2) : '-';
-      tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
-      tr.appendChild(tdKelly);
+      const kfull = n(a.kellyFull);
+      const tdKelly = td(kfull>0 ? (kfull*100).toFixed(2) : '-');
+      tdKelly.style.color = kfull>0 ? '#4caf50' : '#c4c4cc'; tr.appendChild(tdKelly);
 
       const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      const tdStake = document.createElement('td'); tdStake.textContent = stake.toFixed(2); tr.appendChild(tdStake);
+      tr.appendChild(td(n(stake).toFixed(2)));
 
-      const tdEstado = document.createElement('td');
-      tdEstado.textContent = a.estado; tdEstado.className = `status-${a.estado}`; tr.appendChild(tdEstado);
+      const tdEstado = td(a.estado); tdEstado.className=`status-${a.estado}`; tr.appendChild(tdEstado);
 
-      const tdAcciones = document.createElement('td'); tdAcciones.className = 'acciones';
-      const btnGanada = document.createElement('button'); btnGanada.title='Marcar como ganada'; btnGanada.innerHTML='✅';
-      btnGanada.addEventListener('click', () => cambiarEstado(a.id, 'ganada'));
-      const btnPerdida = document.createElement('button'); btnPerdida.title='Marcar como perdida'; btnPerdida.innerHTML='❌';
-      btnPerdida.addEventListener('click', () => cambiarEstado(a.id, 'perdida'));
-      const btnPendiente = document.createElement('button'); btnPendiente.title='Marcar como pendiente'; btnPendiente.innerHTML='⏳';
-      btnPendiente.addEventListener('click', () => cambiarEstado(a.id, 'pendiente'));
-      const btnBorrar = document.createElement('button'); btnBorrar.title='Eliminar apuesta'; btnBorrar.innerHTML='🗑️';
-      btnBorrar.addEventListener('click', () => eliminarApuesta(a.id));
-      tdAcciones.append(btnGanada, btnPerdida, btnPendiente, btnBorrar);
+      const tdAcciones = document.createElement('td'); tdAcciones.className='acciones';
+      const btn = (title, html, cb)=>{ const b=document.createElement('button'); b.title=title; b.innerHTML=html; b.addEventListener('click', cb); return b; };
+      tdAcciones.append(btn('Marcar ganada','✅',()=>cambiarEstado(a.id,'ganada')),
+                        btn('Marcar perdida','❌',()=>cambiarEstado(a.id,'perdida')),
+                        btn('Marcar pendiente','⏳',()=>cambiarEstado(a.id,'pendiente')),
+                        btn('Eliminar','🗑️',()=>eliminarApuesta(a.id)));
       tr.appendChild(tdAcciones);
 
       tablaBody.appendChild(tr);
     });
   }
+  function cambiarEstado(id, nuevo) { const i=historial.findIndex(a=>a.id===id); if(i!==-1){ historial[i].estado=nuevo; guardarHistorial(); actualizarVista(); } }
+  function eliminarApuesta(id) { if(!confirm('¿Eliminar esta apuesta?')) return; historial = historial.filter(a=>a.id!==id); guardarHistorial(); actualizarVista(); }
 
-  // Cambiar estado apuesta
-  function cambiarEstado(id, nuevoEstado) {
-    const index = historial.findIndex(a => a.id === id);
-    if (index !== -1) {
-      historial[index].estado = nuevoEstado;
-      guardarHistorial();
-      actualizarVista();
-    }
-  }
-
-  // Eliminar apuesta
-  function eliminarApuesta(id) {
-    if (!confirm('¿Estás seguro de eliminar esta apuesta?')) return;
-    historial = historial.filter(a => a.id !== id);
-    guardarHistorial();
+  btnEliminarTodo.addEventListener('click', () => {
+    if (!confirm(`⚠️ Esto borrará TODO el historial del perfil "${perfilActual}". ¿Continuar?`)) return;
+    historial = [];
+    localStorage.removeItem(getStorageKey());
     actualizarVista();
-  }
+    inputImportJSON.value = '';
+    alert('Historial del perfil eliminado ✅');
+  });
 
-// ---- Eliminar TODO el historial ----
-btnEliminarTodo.addEventListener('click', () => {
-  if (!confirm('⚠️ ¿Seguro que quieres eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
-  
-  historial = []; // vaciar array
-  localStorage.removeItem(STORAGE_KEY); // borrar del storage
-  actualizarVista(); // refrescar tabla, resumen y gráficas
-
-  // por si había archivo seleccionado en el input de importación
-  inputImportJSON.value = '';
-
-  alert('Historial eliminado ✅');
-});
-
-  // Actualizar resumen estadístico
+  /* ===================== RESUMEN ===================== */
   function actualizarResumen() {
-    const apuestasFiltradas = filtrarHistorial();
-    if (apuestasFiltradas.length === 0) {
-      resumenBankroll.textContent = '-';
-      resumenNumApuestas.textContent = '0';
-      resumenGanadas.textContent = '0';
-      resumenPerdidas.textContent = '0';
-      resumenYield.textContent = '0.00%';
-      resumenROI.textContent = '0.00%';
-      resumenTasaExito.textContent = '0.00%';
-      resumenUnidades.textContent = '0.00';
+    const arr = filtrarHistorial();
+    if (arr.length === 0) {
+      resumenBankroll.textContent='-'; resumenNumApuestas.textContent='0';
+      resumenGanadas.textContent='0'; resumenPerdidas.textContent='0';
+      resumenYield.textContent='0.00%'; resumenROI.textContent='0.00%';
+      resumenTasaExito.textContent='0.00%'; resumenUnidades.textContent='0.00';
       return;
     }
+    // Orden cronológico para métricas iniciales coherentes
+    const ordered = arr.slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+    const bank0 = n(ordered[0].bankroll, 0); resumenBankroll.textContent = bank0.toFixed(2);
+    const nA = arr.length; resumenNumApuestas.textContent = nA;
+    const g = arr.filter(a=>a.estado==='ganada').length;
+    const p = arr.filter(a=>a.estado==='perdida').length;
+    resumenGanadas.textContent=g; resumenPerdidas.textContent=p;
+    const tasa = nA>0 ? (g/nA)*100 : 0; resumenTasaExito.textContent = tasa.toFixed(2)+'%';
 
-    const bankrollInicial = apuestasFiltradas[0].bankroll || 0;
-    resumenBankroll.textContent = bankrollInicial.toFixed(2);
-
-    const numApuestas = apuestasFiltradas.length;
-    resumenNumApuestas.textContent = numApuestas;
-
-    const ganadas = apuestasFiltradas.filter(a => a.estado === 'ganada').length;
-    const perdidas = apuestasFiltradas.filter(a => a.estado === 'perdida').length;
-    resumenGanadas.textContent = ganadas;
-    resumenPerdidas.textContent = perdidas;
-
-    const tasaExito = numApuestas > 0 ? (ganadas / numApuestas) * 100 : 0;
-    resumenTasaExito.textContent = tasaExito.toFixed(2) + '%';
-
-    // Yield y ROI usando stakes calculados
-    let totalGanado = 0;
-    let totalApostado = 0;
-    apuestasFiltradas.forEach(a => {
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      totalApostado += stake;
-      if (a.estado === 'ganada') totalGanado += stake * a.cuotaBookie;
-      if (a.estado === 'perdida') totalGanado += 0;
+    let totalGanado=0, totalApostado=0;
+    arr.forEach(a=>{
+      const st = stakeSugerido(a.bankroll,a.kellyFull,a.kellyFrac);
+      totalApostado += st;
+      if (a.estado==='ganada') totalGanado += st * n(a.cuotaBookie, 0);
     });
     const neto = totalGanado - totalApostado;
-    const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
-    resumenYield.textContent = yieldPct.toFixed(2) + '%';
-
-    const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
-    resumenROI.textContent = roiPct.toFixed(2) + '%';
+    const yieldPct = totalApostado>0 ? (neto/totalApostado)*100 : 0;
+    const roiPct = bank0>0 ? (neto/bank0)*100 : 0;
+    resumenYield.textContent = yieldPct.toFixed(2)+'%';
+    resumenROI.textContent = roiPct.toFixed(2)+'%';
     resumenUnidades.textContent = neto.toFixed(2);
   }
 
-  // Actualizar gráficas
+  /* ===================== GRÁFICAS ===================== */
+  function crearGradiente(ctx) {
+    const h = ctx.canvas.clientHeight || ctx.canvas.height || 320;
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, 'rgba(130,87,230,0.18)');
+    grad.addColorStop(1, 'rgba(130,87,230,0.00)');
+    return grad;
+  }
+
+  function datosBankrollSanitizados(arr) {
+    // Orden cronológico para que la línea siga el tiempo
+    const ordered = arr.slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+
+    const labels = ['Inicio'];
+    // Bankroll inicial del PRIMER registro cronológico (o 100 si falta)
+    const bank0 = n(ordered[0]?.bankroll, 100);
+    const data = [ bank0 ];
+
+    for (let i=0;i<ordered.length;i++){
+      const a = ordered[i];
+      const st = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+      const last = Number.isFinite(data[data.length-1]) ? data[data.length-1] : bank0;
+      let nuevo = last;
+      if (a.estado === 'ganada') nuevo = last + st * (n(a.cuotaBookie, 1) - 1);
+      else if (a.estado === 'perdida') nuevo = last - st;
+      // pendiente no altera bankroll
+      data.push( Number.isFinite(nuevo) ? nuevo : last );
+      labels.push(`Apuesta ${i+1}`);
+    }
+    return { labels, data };
+  }
+
   function actualizarGraficas() {
-    const apuestasFiltradas = filtrarHistorial();
+    const arr = filtrarHistorial();
 
-    if (graficaBankroll) graficaBankroll.destroy();
-    if (graficaKelly) graficaKelly.destroy();
+    if (graficaBankroll) { graficaBankroll.destroy(); graficaBankroll = null; }
+    if (graficaKelly) { graficaKelly.destroy(); graficaKelly = null; }
 
-    if (apuestasFiltradas.length === 0) return;
+    if (arr.length === 0) return;
 
-    // Datos para gráfica de bankroll
-    let bankInicial = apuestasFiltradas[0].bankroll || 100;
-    let bankData = [bankInicial];
-    let labels = ['Inicio'];
-
-    apuestasFiltradas.forEach((a, i) => {
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      let lastBank = bankData[bankData.length - 1];
-      let nuevoBank = lastBank;
-      if (a.estado === 'ganada') {
-        nuevoBank += stake * (a.cuotaBookie - 1);
-      } else if (a.estado === 'perdida') {
-        nuevoBank -= stake;
-      }
-      bankData.push(nuevoBank);
-      labels.push(`Apuesta ${i + 1}`);
-    });
+    const { labels, data: bankData } = datosBankrollSanitizados(arr);
+    const grad = crearGradiente(ctxBankroll);
 
     graficaBankroll = new Chart(ctxBankroll, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Bankroll',
-          data: bankData,
-          borderColor: '#8257e6',
-          backgroundColor: 'rgba(130, 87, 230, 0.3)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 0.3,
-          pointHoverRadius: 0.6,
-          borderWidth: 0.3,
+      type:'line',
+      data:{ 
+        labels, 
+        datasets:[{
+          label:'Bankroll',
+          // Mantener misma longitud que labels; usa NaN para huecos
+          data: bankData.map(v => Number.isFinite(n(v)) ? n(v) : NaN),
+          borderColor:'#8257e6',
+          backgroundColor: grad,
+          fill:true,
+          borderWidth:2,
+          tension:0.35,
+          cubicInterpolationMode:'monotone',
+          pointRadius:0,
+          pointHoverRadius:4,
+          spanGaps:true
         }]
       },
-      options: {
-        responsive: true,
-        interaction: { mode: 'nearest', intersect: false },
-        plugins: {
-          legend: { labels: { color: '#ddd', font: { size: 14, weight: '600' } } },
-          tooltip: { callbacks: { label: ctx => `Bankroll: ${ctx.parsed.y.toFixed(2)}` } }
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        animation:false,
+        parsing:false,
+        interaction:{ mode:'index', intersect:false },
+        plugins:{
+          legend:{ labels:{ color:'#ddd', font:{ size:13, weight:'600'} } },
+          tooltip:{ displayColors:false, callbacks:{ label:ctx=>`Bankroll: ${ctx.parsed.y.toFixed(2)}` } },
+          decimation:{ enabled:true, algorithm:'lttb', samples:250 }
         },
-        scales: {
-          y: { beginAtZero: false, ticks: { color: '#ddd' }, grid: { color: '#444' } },
-          x: { ticks: { color: '#ddd' }, grid: { color: '#444' } }
+        scales:{
+          y:{ 
+            beginAtZero:false, 
+            ticks:{ 
+              color:'#cfcfd6',
+              // Ticks sin decimales en el eje Y
+              callback: (val)=> Number(val).toLocaleString(undefined, {maximumFractionDigits:0, minimumFractionDigits:0})
+            }, 
+            grid:{ color:'rgba(255,255,255,0.06)'} 
+          },
+          x:{ 
+            ticks:{ color:'#cfcfd6', autoSkip:true, maxTicksLimit:10 }, 
+            grid:{ display:false } 
+          }
         }
       }
     });
 
-    // Datos para gráfica Kelly Full
-    let kellyData = apuestasFiltradas.map(a => a.kellyFull ? a.kellyFull * 100 : 0);
+    // Kelly FULL (%)
+    const ordered = arr.slice().sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+    const kellyData = ordered.map(a => {
+      const k = n(a.kellyFull);
+      return k>0 ? k*100 : 0;
+    });
 
     graficaKelly = new Chart(ctxKelly, {
-      type: 'bar',
-      data: {
-        labels: labels.slice(1),
-        datasets: [{ label: 'Kelly FULL (%)', data: kellyData, backgroundColor: '#ffba08', borderRadius: 4 }]
+      type:'bar',
+      data:{ 
+        labels: labels.slice(1), 
+        datasets:[{ label:'Kelly FULL (%)', data: kellyData, backgroundColor:'#ffba08', borderRadius:4 }]
       },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: true, max: 100, ticks: { color: '#ddd' }, grid: { color: '#444' } },
-          x: { ticks: { color: '#ddd' }, grid: { color: '#444' } }
+      options:{ 
+        responsive:true, animation:false,
+        scales:{ 
+          y:{ beginAtZero:true, max:100, ticks:{ color:'#ddd', stepSize:20, callback:(v)=>`${v}%` }, grid:{ color:'#444' } }, 
+          x:{ ticks:{ color:'#ddd' }, grid:{ color:'#444' } } 
         },
-        plugins: { legend: { labels: { color: '#ddd', font: { size: 4, weight: '600' } } } }
+        plugins:{ legend:{ labels:{ color:'#ddd', font:{ size:14, weight:'600'} } } }
       }
     });
   }
 
-  // Actualizar toda la vista
-  function actualizarVista() {
-    renderizarTabla();
-    actualizarResumen();
-    actualizarGraficas();
-  }
+  function actualizarVista(){ renderizarTabla(); actualizarResumen(); actualizarGraficas(); }
 
-  // Envío de formulario
-  form.addEventListener('submit', e => {
+  /* ===================== FORM ===================== */
+  form.addEventListener('submit', e=>{
     e.preventDefault();
-    const formData = new FormData(form);
-    try {
-      // Validaciones
-      const liga = formData.get('liga').trim();
-      const local = formData.get('local').trim();
-      const visita = formData.get('visita').trim();
-      const mercado = formData.get('mercado');
-      const prob = parseFloat(formData.get('probabilidad'));
-      const cuotaBookie = parseFloat(formData.get('cuotaBookie'));
-      const bankroll = parseFloat(formData.get('bankroll'));
-      const kellyFrac = parseFloat(formData.get('kellyFrac'));
+    const fd = new FormData(form);
+    try{
+      const liga = String(fd.get('liga')||'').trim();
+      const local = String(fd.get('local')||'').trim();
+      const visita = String(fd.get('visita')||'').trim();
+      const mercado = fd.get('mercado');
+      const prob = n(fd.get('probabilidad'));
+      const cuotaBookie = n(fd.get('cuotaBookie'));
+      const bankroll = n(fd.get('bankroll'));
+      const kellyFrac = n(fd.get('kellyFrac'), 0.25);
 
-      if (!liga) throw new Error('La liga es requerida');
-      if (!local) throw new Error('Equipo local es requerido');
-      if (!visita) throw new Error('Equipo visitante es requerido');
-      if (!mercado) throw new Error('Selecciona un mercado');
-      if (!(prob > 0 && prob <= 100)) throw new Error('Probabilidad debe estar entre 0 y 100');
-      if (!(cuotaBookie > 1)) throw new Error('Cuota bookie debe ser mayor que 1');
-      if (!(bankroll > 0)) throw new Error('Bankroll debe ser mayor que 0');
-      if (!(kellyFrac > 0 && kellyFrac <= 1)) throw new Error('Fracción Kelly inválida');
+      if(!liga) throw new Error('La liga es requerida');
+      if(!local) throw new Error('Equipo local es requerido');
+      if(!visita) throw new Error('Equipo visitante es requerido');
+      if(!mercado) throw new Error('Selecciona un mercado');
+      if(!(prob>0 && prob<=100)) throw new Error('Probabilidad 0-100');
+      if(!(cuotaBookie>1)) throw new Error('Cuota bookie > 1');
+      if(!(bankroll>0)) throw new Error('Bankroll > 0');
+      if(!(kellyFrac>0 && kellyFrac<=1)) throw new Error('Fracción Kelly inválida');
 
-      const cuotaImplicitaCalc = parseFloat(calcularCuotaImplicita(prob));
+      const cuotaImplicitaCalc = n(calcularCuotaImplicita(prob));
       const ev = calcularEV(prob, cuotaBookie);
       const kellyFull = calcularKelly(prob, cuotaBookie);
 
@@ -821,149 +692,138 @@ btnEliminarTodo.addEventListener('click', () => {
 
       historial.push(apuesta);
       guardarHistorial();
-      form.reset();
-      cuotaImplicitaInput.value = '';
+      form.reset(); cuotaImplicitaInput.value='';
       actualizarVista();
       alert('Apuesta agregada correctamente');
-    } catch (error) {
-      alert('Error al agregar apuesta: ' + error.message);
-    }
+    }catch(err){ alert('Error: '+err.message); }
   });
 
-  // Calcular cuota implícita al cambiar probabilidad
+  // Preview
   document.getElementById('probabilidad').addEventListener('input', e => {
-    const valorProb = parseFloat(e.target.value);
-    cuotaImplicitaInput.value = calcularCuotaImplicita(valorProb);
+    const v = n(e.target.value); cuotaImplicitaInput.value = calcularCuotaImplicita(v);
   });
-
-  // Preview de stake sugerido
   const cuotaBookieInput = document.getElementById('cuotaBookie');
   const bankrollInput = document.getElementById('bankroll');
   const kellyFracInput = document.getElementById('kellyFrac');
   const stakePreviewInput = document.getElementById('stakePreview');
-
-  function actualizarStakePreview() {
-    const prob = parseFloat(document.getElementById('probabilidad').value);
-    const cuotaBookie = parseFloat(cuotaBookieInput.value);
-    const bankroll = parseFloat(bankrollInput.value);
-    const kellyFrac = parseFloat(kellyFracInput.value);
-    if (!(prob > 0 && cuotaBookie > 1 && bankroll > 0 && kellyFrac > 0)) { stakePreviewInput.value = ""; return; }
-    const kellyFull = calcularKelly(prob, cuotaBookie);
-    const stake = stakeSugerido(bankroll, kellyFull, kellyFrac);
-    stakePreviewInput.value = stake.toFixed(2);
+  function actualizarStakePreview(){
+    const prob = n(document.getElementById('probabilidad').value);
+    const cuotaBookie = n(cuotaBookieInput.value);
+    const bankroll = n(bankrollInput.value);
+    const kellyFrac = n(kellyFracInput.value, 0.25);
+    if(!(prob>0 && cuotaBookie>1 && bankroll>0 && kellyFrac>0)){ stakePreviewInput.value=""; return; }
+    const kf = calcularKelly(prob,cuotaBookie); const stake = stakeSugerido(bankroll,kf,kellyFrac);
+    stakePreviewInput.value = n(stake).toFixed(2);
   }
-
-  ['input','change'].forEach(evt => {
+  ['input','change'].forEach(evt=>{
     document.getElementById('probabilidad').addEventListener(evt, actualizarStakePreview);
     cuotaBookieInput.addEventListener(evt, actualizarStakePreview);
     bankrollInput.addEventListener(evt, actualizarStakePreview);
     kellyFracInput.addEventListener(evt, actualizarStakePreview);
   });
 
-  // Filtros
-  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado,
-   filtroProbMin, filtroProbMax, filtroFechaInicio, filtroFechaFin].forEach(el => {
-    el.addEventListener('input', actualizarVista);
-    el.addEventListener('change', actualizarVista);
-  });
+  // Filtros eventos
+  [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado, filtroProbMin, filtroProbMax, filtroFechaInicio, filtroFechaFin]
+    .forEach(el => { el.addEventListener('input', actualizarVista); el.addEventListener('change', actualizarVista); });
+  btnLimpiarFiltros.addEventListener('click', e=>{ e.preventDefault(); limpiarFiltros(); actualizarVista(); });
 
-  btnLimpiarFiltros.addEventListener('click', e => {
-    e.preventDefault();
-    limpiarFiltros();
-    actualizarVista();
-  });
-
-  // --------- Exportar CSV ----------
-  btnExportarCSV.addEventListener('click', () => {
-    if (historial.length === 0) { alert('No hay datos para exportar'); return; }
+  // Exportar/Importar
+  btnExportarCSV.addEventListener('click', ()=>{
+    if(historial.length===0){ alert('No hay datos para exportar'); return; }
     const csvRows = [];
-    const headers = [
-      'id','fecha','liga','local','visita','mercado',
-      'probabilidad','cuotaImplicita','cuotaBookie','ev','kellyFull','bankroll','kellyFrac','estado'
-    ];
-    csvRows.push(headers.join(','));
-
-    historial.forEach(a => {
-      csvRows.push([
-        a.id, a.fecha,
-        `"${a.liga}"`, `"${a.local}"`, `"${a.visita}"`,
-        `"${a.mercado}"`, a.probabilidad, a.cuotaImplicita, a.cuotaBookie,
-        a.ev, a.kellyFull, a.bankroll, a.kellyFrac, a.estado
-      ].join(','));
+    csvRows.push(['id','fecha','liga','local','visita','mercado','probabilidad','cuotaImplicita','cuotaBookie','ev','kellyFull','bankroll','kellyFrac','estado'].join(','));
+    historial.forEach(a=>{
+      csvRows.push([a.id,a.fecha,`"${a.liga}"`,`"${a.local}"`,`"${a.visita}"`,`"${a.mercado}"`,n(a.probabilidad),a.cuotaImplicita,n(a.cuotaBookie),n(a.ev),n(a.kellyFull),n(a.bankroll),n(a.kellyFrac),a.estado].join(','));
     });
-
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = 'historial_apuestas.csv';
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    const blob = new Blob([csvRows.join('\n')],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob); const link = document.createElement('a');
+    link.href=url; link.download=`historial_${perfilActual}.csv`; document.body.appendChild(link); link.click(); document.body.removeChild(link);
   });
-
-  // ---------- Importar JSON (con mapeo y cálculos) ----------
-  btnImportarJSON.addEventListener('click', () => inputImportJSON.click());
-
-  inputImportJSON.addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-
+  btnImportarJSON.addEventListener('click', ()=>inputImportJSON.click());
+  inputImportJSON.addEventListener('change', e=>{
+    const file = e.target.files && e.target.files[0]; if(!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        let data = JSON.parse(event.target.result);
-
-        // Acepta objeto único
-        if (!Array.isArray(data)) data = [data];
-
-        // Detecta si ya está en formato interno (tiene 'liga' y 'cuotaBookie') o es externo
-        let importados = 0;
-        data.forEach(item => {
-          let apuesta;
-          const isInternal =
-            ('liga' in item) && ('cuotaBookie' in item) && ('probabilidad' in item);
-
-          if (isInternal) {
-            // Normaliza mínimos
-            apuesta = {
-              id: item.id || Date.now() + Math.random(),
+    reader.onload = (ev)=>{
+      try{
+        let data = JSON.parse(ev.target.result); if(!Array.isArray(data)) data=[data];
+        let count=0; data.forEach(item=>{
+          if(item && typeof item==='object'){
+            const normal = {
+              id: item.id || Date.now()+Math.random(),
               fecha: item.fecha || new Date().toISOString(),
               liga: item.liga || 'Sin liga',
               local: item.local || '',
               visita: item.visita || '',
               mercado: item.mercado || '',
-              probabilidad: Number(item.probabilidad) || 0,
-              cuotaImplicita: item.cuotaImplicita !== undefined ? item.cuotaImplicita : (Number(item.probabilidad) ? Number((100/Number(item.probabilidad)).toFixed(2)) : ''),
-              cuotaBookie: Number(item.cuotaBookie) || 0,
-              ev: (typeof item.ev === 'number') ? item.ev : calcularEV(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
-              kellyFull: (typeof item.kellyFull === 'number') ? item.kellyFull : calcularKelly(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
-              bankroll: Number(item.bankroll) || (parseFloat(bankrollInput.value)||100),
-              kellyFrac: Number(item.kellyFrac) || (parseFloat(kellyFracInput.value)||0.25),
+              probabilidad: n(item.probabilidad, 0),
+              cuotaImplicita: (item.cuotaImplicita!==undefined && item.cuotaImplicita!=='') ? n(item.cuotaImplicita) : (n(item.probabilidad)? n((100/n(item.probabilidad)).toFixed(2)) : ''),
+              cuotaBookie: n(item.cuotaBookie, 0),
+              ev: Number.isFinite(item.ev) ? item.ev : calcularEV(item.probabilidad, item.cuotaBookie),
+              kellyFull: Number.isFinite(item.kellyFull) ? item.kellyFull : calcularKelly(item.probabilidad, item.cuotaBookie),
+              bankroll: n(item.bankroll, 100),
+              kellyFrac: n(item.kellyFrac, 0.25),
               estado: item.estado || 'pendiente'
             };
-          } else {
-            // Formato externo (como el ejemplo del usuario)
-            apuesta = recordFromExternal(item);
+            historial.push(normal); count++;
           }
-
-          historial.push(apuesta);
-          importados++;
         });
-
-        guardarHistorial();
-        actualizarVista();
-        alert(`Importación exitosa ✅  Registros añadidos: ${importados}`);
-        inputImportJSON.value = '';
-      } catch (err) {
-        console.error(err);
-        alert('Error al importar el archivo JSON. Verifica el formato.');
-      }
+        guardarHistorial(); actualizarVista(); alert(`Importación exitosa ✅ Registros añadidos: ${count}`); inputImportJSON.value='';
+      }catch(err){ console.error(err); alert('Error al importar JSON.'); }
     };
     reader.readAsText(file);
   });
 
-  // Inicialización
-  function init() {
+  /* ====== Gestión de perfiles: UI ====== */
+  btnNuevoPerfil.addEventListener('click', ()=>{
+    const name = promptProfileName(); if(!name) return;
+    if (perfiles.includes(name)) { alert('Ese perfil ya existe.'); return; }
+    perfiles.push(name); saveProfiles();
+    perfilActual = name; renderProfilesSelect();
+    cargarHistorial(); actualizarVista();
+    alert(`Perfil creado y seleccionado: ${name}`);
+  });
+
+  btnBorrarPerfil.addEventListener('click', ()=>{
+    if (perfilActual === DEFAULT_PROFILE) { alert('El perfil "default" no puede eliminarse.'); return; }
+    if (!confirm(`¿Borrar el perfil "${perfilActual}" y todos sus datos?`)) return;
+    localStorage.removeItem(getStorageKey());
+    perfiles = perfiles.filter(p=>p!==perfilActual);
+    perfilActual = DEFAULT_PROFILE; saveProfiles();
+    renderProfilesSelect();
+    cargarHistorial(); actualizarVista();
+    alert('Perfil eliminado. Se ha vuelto a "default".');
+  });
+
+  selectPerfil.addEventListener('change', ()=>{
+    guardarHistorial(); // guarda el actual por si acaso
+    perfilActual = selectPerfil.value;
+    cargarHistorial(); actualizarVista();
+  });
+
+  // Redibuja si cambia tamaño
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { actualizarGraficas(); }, 120);
+  });
+
+  // ====== Init ======
+  function init(){
+    loadProfiles();
+    perfilActual = perfiles[0] || DEFAULT_PROFILE;
+    renderProfilesSelect();
+
+    const migrated = migrateFromOldKeyIfNeeded();
+
+    // Limpia filtros para no ocultar migrados por accidente
+    limpiarFiltros();
+
     cargarHistorial();
+    if (migrated && perfilActual !== DEFAULT_PROFILE) {
+      perfilActual = DEFAULT_PROFILE;
+      renderProfilesSelect();
+      cargarHistorial();
+    }
     actualizarVista();
   }
   init();
