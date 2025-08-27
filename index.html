@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Historial de Apuestas Profesional</title>
+<title>Historial de Apuestas Profesional — Perfiles</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
 <style>
   /* --- Reset y base --- */
@@ -16,6 +16,25 @@
   }
   main { max-width: 1200px; width: 95%; margin: 20px auto 40px auto; flex-grow: 1; }
   h1, h2 { font-weight: 600; margin-bottom: 0.5rem; color: #8257e6; }
+
+  /* --- Barra de perfiles --- */
+  .perfil-bar{
+    background:#202024; padding:12px 16px; border-radius:10px; margin-bottom:18px;
+    display:flex; flex-wrap:wrap; gap:10px 12px; align-items:center;
+    box-shadow:0 6px 12px rgba(0,0,0,.35);
+  }
+  .perfil-bar label{color:#c4c4cc; font-weight:600}
+  .perfil-bar select,.perfil-bar input{
+    min-width:160px; padding:9px 14px; border-radius:8px; border:none;
+    background:#121214; color:#e1e1e6; box-shadow:inset 0 0 5px rgb(255 255 255 / .1);
+  }
+  .perfil-bar button{
+    background:#8257e6; color:#fff; font-weight:600; border:none; border-radius:10px;
+    cursor:pointer; padding:10px 14px; box-shadow:0 4px 8px #6b45d9;
+  }
+  .perfil-bar button:hover{filter:brightness(.95)}
+  .perfil-bar .btn-danger{background:#ef4444; box-shadow:0 4px 8px rgba(239,68,68,.4);}
+  .perfil-bar small{opacity:.8}
 
   /* --- Formulario de apuesta --- */
   form#formApuesta{
@@ -120,6 +139,17 @@
 <main>
   <h1 style="text-align:center;">Historial Profesional de Apuestas</h1>
 
+  <!-- BARRA DE PERFILES -->
+  <section class="perfil-bar" aria-label="Gestión de perfiles">
+    <label for="selectPerfil">Perfil:</label>
+    <select id="selectPerfil" title="Selecciona el perfil"></select>
+    <input id="inputNuevoPerfil" placeholder="Nuevo perfil (ej. NBA_2025)" />
+    <button id="btnCrearPerfil" title="Crear nuevo perfil">Crear perfil</button>
+    <button id="btnRenombrarPerfil" title="Renombrar perfil">Renombrar</button>
+    <button id="btnBorrarPerfil" class="btn-danger" title="Eliminar perfil">Eliminar perfil</button>
+    <small id="hintPerfil">Tus datos anteriores se migrarán automáticamente al perfil actual la primera vez.</small>
+  </section>
+
   <!-- FORMULARIO -->
   <form id="formApuesta" autocomplete="off" novalidate aria-label="Formulario para agregar apuesta">
     <div>
@@ -219,11 +249,9 @@
     <button id="btnExportarCSV" title="Exportar historial a CSV">Exportar CSV</button>
     <button id="btnImportarJSON" title="Importar historial desde archivo JSON">Importar JSON</button>
     <input type="file" id="inputImportJSON" accept=".json" aria-label="Seleccionar archivo JSON para importar" />
-    <button onclick="location.href='historial_ligas.html'" title="Ver historial por ligas">Historial por Ligas</button>
-    <button onclick="location.href='historial_equipos_rol.html'" title="Ver historial por equipo (rol)">
-    Historial por Equipos (Rol)
-    </button>
-    <button onclick="location.href='probabilidades.html'" title="Ver estadísticas por probabilidad">Probabilidades</button>
+    <button id="btnIrLigas" title="Ver historial por ligas">Historial por Ligas</button>
+    <button id="btnIrEquiposRol" title="Ver historial por equipo (rol)">Historial por Equipos (Rol)</button>
+    <button id="btnIrProbabilidades" title="Ver estadísticas por probabilidad">Probabilidades</button>
     <!-- NUEVO: borrar todo -->
     <button id="btnEliminarTodo" class="btn-danger" title="Eliminar todo el historial">Eliminar todo</button>
   </section>
@@ -282,12 +310,71 @@
 (() => {
   'use strict';
 
-  // Constantes y variables
-  const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
+  /* ==========================
+     SISTEMA DE PERFILES + MIGRACIÓN
+     ========================== */
+  const STORAGE_ROOT = 'HAPC';
+  const PROFILE_LIST_KEY = STORAGE_ROOT + '_profiles';
+  const CURRENT_PROFILE_KEY = STORAGE_ROOT + '_currentProfile';
+  const dataKeyFor = (perfil) => `${STORAGE_ROOT}_data_${perfil}`;
 
-  // Elementos DOM
+  // Compatibilidad con tu clave anterior (migración 1 vez)
+  const OLD_STORAGE_KEY = 'historialApuestasProfesionalCompleto';
+
+  function getProfiles(){
+    try {
+      const v = JSON.parse(localStorage.getItem(PROFILE_LIST_KEY) || '[]');
+      return Array.isArray(v) ? v : [];
+    } catch { return []; }
+  }
+  function setProfiles(list){
+    localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify(list));
+  }
+  function getCurrentProfile(){
+    const urlP = new URLSearchParams(location.search).get('perfil');
+    if (urlP && urlP.trim()) return urlP.trim();
+    return localStorage.getItem(CURRENT_PROFILE_KEY) || 'default';
+  }
+  function setCurrentProfile(p){
+    localStorage.setItem(CURRENT_PROFILE_KEY, p);
+  }
+  function ensureInitialProfiles(){
+    let list = getProfiles();
+    if (list.length === 0){
+      list = ['default'];
+      setProfiles(list);
+      if (!localStorage.getItem(dataKeyFor('default'))) {
+        localStorage.setItem(dataKeyFor('default'), '[]');
+      }
+    }
+    return list;
+  }
+  function migrateIfNeeded(perfil){
+    const old = localStorage.getItem(OLD_STORAGE_KEY);
+    const destKey = dataKeyFor(perfil);
+    if (old && !localStorage.getItem(destKey)){
+      // Mueve los datos antiguos al perfil actual (1 sola vez)
+      localStorage.setItem(destKey, old);
+      // No borramos la clave vieja por si quieres volver, pero puedes descomentar:
+      // localStorage.removeItem(OLD_STORAGE_KEY);
+    }
+  }
+
+  // Estado de perfil actual y dataset
+  let perfil = 'default';
+  let historial = [];
+
+  /* ==========================
+     ELEMENTOS DOM
+     ========================== */
   const form = document.getElementById('formApuesta');
   const cuotaImplicitaInput = document.getElementById('cuotaImplicita');
+
+  const selectPerfil = document.getElementById('selectPerfil');
+  const inputNuevoPerfil = document.getElementById('inputNuevoPerfil');
+  const btnCrearPerfil = document.getElementById('btnCrearPerfil');
+  const btnRenombrarPerfil = document.getElementById('btnRenombrarPerfil');
+  const btnBorrarPerfil = document.getElementById('btnBorrarPerfil');
 
   const filtroLiga = document.getElementById('filtroLiga');
   const filtroLocal = document.getElementById('filtroLocal');
@@ -316,17 +403,19 @@
   const inputImportJSON = document.getElementById('inputImportJSON');
   const btnEliminarTodo = document.getElementById('btnEliminarTodo');
 
+  const btnIrLigas = document.getElementById('btnIrLigas');
+  const btnIrEquiposRol = document.getElementById('btnIrEquiposRol');
+  const btnIrProbabilidades = document.getElementById('btnIrProbabilidades');
+
   const ctxBankroll = document.getElementById('graficaBankroll').getContext('2d');
   const ctxKelly = document.getElementById('graficaKelly').getContext('2d');
 
-  // Variables para gráficos
   let graficaBankroll = null;
   let graficaKelly = null;
 
-  // Array para guardar apuestas
-  let historial = [];
-
-  // ------------------ Funciones auxiliares base ------------------
+  /* ==========================
+     FUNCIONES AUXILIARES BASE
+     ========================== */
   function calcularCuotaImplicita(prob) {
     if (!(prob > 0)) return '';
     return (100 / prob).toFixed(2);
@@ -385,7 +474,6 @@
   function parseSpanishDate(str) {
     if (!str) return new Date();
     const raw = removeDiacritics(String(str)).toLowerCase().replace(/\./g,' ').replace(/,/g,' ').replace(/\s+/g,' ').trim();
-    // Intenta "20 sept 2023 12:15"
     const m = raw.match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
     if (m) {
       const day = parseInt(m[1],10);
@@ -422,92 +510,32 @@
     return x || '';
   }
   function mapEstado(x) {
-  const s = String(x || '').trim().toLowerCase();
-
-  // GANADA
-  if (
-    /\bwin(n?ing)?\b/.test(s) ||   // win, winning
-    /\bwon\b/.test(s) ||
-    /ganad[ao]s?/.test(s) ||       // ganada, ganadas, ganado, ganados
-    /\bgreen\b/.test(s)            // a veces usan "green"
-  ) return 'ganada';
-
-  // PERDIDA
-  if (
-    /\blos(e|ing|t)\b/.test(s) ||  // lose, losing, lost
-    /\bloss\b/.test(s) ||
-    /perdid[ao]s?/.test(s) ||      // perdida, perdidas, perdido, perdidos
-    /\bred\b/.test(s)              // a veces usan "red"
-  ) return 'perdida';
-
-  // NULA / CANCELADA → lo dejamos como pendiente en este sistema
-  if (
-    /\bvoid(ed)?\b/.test(s) ||
-    /cancel(l?ed|ar|ada)/.test(s) ||
-    /\bpush\b/.test(s) ||
-    /\brefund(ed)?\b/.test(s) ||
-    /nula|anulada/.test(s)
-  ) return 'pendiente';
-
-  // Desconocido → pendiente
-  return 'pendiente';
-}
-
-  function recordFromExternal(rec) {
-    // Lee valores
-    const rawDate = getVal(rec, ['Date','Fecha']);
-    const rawLeague = getVal(rec, ['League','Liga']);
-    const rawMatch  = getVal(rec, ['Match','Partido']);
-    const rawOutcome = getVal(rec, ['Desired Outcome','Outcome','Mercado']);
-    let prob = toNumber(getVal(rec, ['Prob(%)','Prob','Probability','Probabilidad']));
-    const implied = toNumber(getVal(rec, ['Cuota Implícita','Cuota Implicita','Cuota Impl�cita','Implied Odds']));
-    const odd = toNumber(getVal(rec, ['Odd','Cuota','Cuota Bookie','Precio','Decimal Odds']));
-    const result = getVal(rec, ['Result','Estado','Resultado']);
-
-    // Si no viene probabilidad, intenta desde cuota implícita
-    if (!(prob > 0) && implied > 0) prob = 100 / implied;
-
-    // Parseos
-    const fechaISO = parseSpanishDate(rawDate).toISOString();
-    const liga = (rawLeague ? String(rawLeague) : 'Sin liga').trim();
-    const [local, visita] = splitMatch(rawMatch);
-    const mercado = mapOutcome(rawOutcome);
-
-    // Parámetros actuales de stake
-    const bankrollActual = parseFloat(document.getElementById('bankroll').value) || 100;
-    const kellyFracActual = parseFloat(document.getElementById('kellyFrac').value) || 0.25;
-
-    // Cálculos
-    const cuotaImplicitaCalc = prob > 0 ? parseFloat((100 / prob).toFixed(2)) : '';
-    const ev = calcularEV(prob, odd);
-    const kellyFull = calcularKelly(prob, odd);
-
-    return {
-      id: Date.now() + Math.random(),
-      fecha: fechaISO,
-      liga, local, visita, mercado,
-      probabilidad: prob > 0 ? prob : 0,
-      cuotaImplicita: cuotaImplicitaCalc || '',
-      cuotaBookie: odd > 0 ? odd : 0,
-      ev, kellyFull,
-      bankroll: bankrollActual,
-      kellyFrac: kellyFracActual,
-      estado: mapEstado(result)
-    };
+    const s = String(x || '').trim().toLowerCase();
+    if (/\bwin(n?ing)?\b/.test(s) || /\bwon\b/.test(s) || /ganad[ao]s?/.test(s) || /\bgreen\b/.test(s)) return 'ganada';
+    if (/\blos(e|ing|t)\b/.test(s) || /\bloss\b/.test(s) || /perdid[ao]s?/.test(s) || /\bred\b/.test(s)) return 'perdida';
+    if (/\bvoid(ed)?\b/.test(s) || /cancel(l?ed|ar|ada)/.test(s) || /\bpush\b/.test(s) || /\brefund(ed)?\b/.test(s) || /nula|anulada/.test(s)) return 'pendiente';
+    return 'pendiente';
   }
 
-  // Guardar y cargar localStorage
+  /* ==========================
+     CARGA/GUARDADO POR PERFIL
+     ========================== */
   function guardarHistorial() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(historial));
+    localStorage.setItem(dataKeyFor(perfil), JSON.stringify(historial));
   }
   function cargarHistorial() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) {
-      try { historial = JSON.parse(data); } catch { historial = []; }
+    const raw = localStorage.getItem(dataKeyFor(perfil));
+    if (raw) {
+      try { historial = JSON.parse(raw); } catch { historial = []; }
+    } else {
+      historial = [];
+      localStorage.setItem(dataKeyFor(perfil), '[]');
     }
   }
 
-  // Limpiar filtros
+  /* ==========================
+     FILTROS Y RENDER
+     ========================== */
   function limpiarFiltros() {
     filtroLiga.value = '';
     filtroLocal.value = '';
@@ -520,7 +548,6 @@
     filtroFechaFin.value = '';
   }
 
-  // Filtrar apuestas
   function filtrarHistorial() {
     return historial.filter(a => {
       if (filtroLiga.value && !a.liga.toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
@@ -548,7 +575,6 @@
     });
   }
 
-  // Renderizar tabla
   function renderizarTabla() {
     const apuestas = filtrarHistorial().slice().reverse();
     tablaBody.innerHTML = '';
@@ -617,7 +643,6 @@
     });
   }
 
-  // Cambiar estado apuesta
   function cambiarEstado(id, nuevoEstado) {
     const index = historial.findIndex(a => a.id === id);
     if (index !== -1) {
@@ -627,7 +652,6 @@
     }
   }
 
-  // Eliminar apuesta
   function eliminarApuesta(id) {
     if (!confirm('¿Estás seguro de eliminar esta apuesta?')) return;
     historial = historial.filter(a => a.id !== id);
@@ -635,21 +659,16 @@
     actualizarVista();
   }
 
-// ---- Eliminar TODO el historial ----
-btnEliminarTodo.addEventListener('click', () => {
-  if (!confirm('⚠️ ¿Seguro que quieres eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
-  
-  historial = []; // vaciar array
-  localStorage.removeItem(STORAGE_KEY); // borrar del storage
-  actualizarVista(); // refrescar tabla, resumen y gráficas
+  // ---- Eliminar TODO el historial (del perfil actual) ----
+  btnEliminarTodo.addEventListener('click', () => {
+    if (!confirm(`⚠️ ¿Seguro que quieres eliminar TODO el historial del perfil "${perfil}"? Esta acción no se puede deshacer.`)) return;
+    historial = [];
+    localStorage.setItem(dataKeyFor(perfil), '[]');
+    actualizarVista();
+    inputImportJSON.value = '';
+    alert('Historial eliminado ✅');
+  });
 
-  // por si había archivo seleccionado en el input de importación
-  inputImportJSON.value = '';
-
-  alert('Historial eliminado ✅');
-});
-
-  // Actualizar resumen estadístico
   function actualizarResumen() {
     const apuestasFiltradas = filtrarHistorial();
     if (apuestasFiltradas.length === 0) {
@@ -696,7 +715,6 @@ btnEliminarTodo.addEventListener('click', () => {
     resumenUnidades.textContent = neto.toFixed(2);
   }
 
-  // Actualizar gráficas
   function actualizarGraficas() {
     const apuestasFiltradas = filtrarHistorial();
 
@@ -773,19 +791,19 @@ btnEliminarTodo.addEventListener('click', () => {
     });
   }
 
-  // Actualizar toda la vista
   function actualizarVista() {
     renderizarTabla();
     actualizarResumen();
     actualizarGraficas();
   }
 
-  // Envío de formulario
+  /* ==========================
+     FORM / PREVIEW
+     ========================== */
   form.addEventListener('submit', e => {
     e.preventDefault();
     const formData = new FormData(form);
     try {
-      // Validaciones
       const liga = formData.get('liga').trim();
       const local = formData.get('local').trim();
       const visita = formData.get('visita').trim();
@@ -830,13 +848,11 @@ btnEliminarTodo.addEventListener('click', () => {
     }
   });
 
-  // Calcular cuota implícita al cambiar probabilidad
   document.getElementById('probabilidad').addEventListener('input', e => {
     const valorProb = parseFloat(e.target.value);
     cuotaImplicitaInput.value = calcularCuotaImplicita(valorProb);
   });
 
-  // Preview de stake sugerido
   const cuotaBookieInput = document.getElementById('cuotaBookie');
   const bankrollInput = document.getElementById('bankroll');
   const kellyFracInput = document.getElementById('kellyFrac');
@@ -896,12 +912,50 @@ btnEliminarTodo.addEventListener('click', () => {
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url; link.download = 'historial_apuestas.csv';
+    link.href = url; link.download = `historial_apuestas_${perfil}.csv`;
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   });
 
   // ---------- Importar JSON (con mapeo y cálculos) ----------
   btnImportarJSON.addEventListener('click', () => inputImportJSON.click());
+
+  function recordFromExternal(rec) {
+    const rawDate = getVal(rec, ['Date','Fecha']);
+    const rawLeague = getVal(rec, ['League','Liga']);
+    const rawMatch  = getVal(rec, ['Match','Partido']);
+    const rawOutcome = getVal(rec, ['Desired Outcome','Outcome','Mercado']);
+    let prob = toNumber(getVal(rec, ['Prob(%)','Prob','Probability','Probabilidad']));
+    const implied = toNumber(getVal(rec, ['Cuota Implícita','Cuota Implicita','Cuota Implcita','Implied Odds']));
+    const odd = toNumber(getVal(rec, ['Odd','Cuota','Cuota Bookie','Precio','Decimal Odds']));
+    const result = getVal(rec, ['Result','Estado','Resultado']);
+
+    if (!(prob > 0) && implied > 0) prob = 100 / implied;
+
+    const fechaISO = parseSpanishDate(rawDate).toISOString();
+    const liga = (rawLeague ? String(rawLeague) : 'Sin liga').trim();
+    const [local, visita] = splitMatch(rawMatch);
+    const mercado = mapOutcome(rawOutcome);
+
+    const bankrollActual = parseFloat(document.getElementById('bankroll').value) || 100;
+    const kellyFracActual = parseFloat(document.getElementById('kellyFrac').value) || 0.25;
+
+    const cuotaImplicitaCalc = prob > 0 ? parseFloat((100 / prob).toFixed(2)) : '';
+    const ev = calcularEV(prob, odd);
+    const kellyFull = calcularKelly(prob, odd);
+
+    return {
+      id: Date.now() + Math.random(),
+      fecha: fechaISO,
+      liga, local, visita, mercado,
+      probabilidad: prob > 0 ? prob : 0,
+      cuotaImplicita: cuotaImplicitaCalc || '',
+      cuotaBookie: odd > 0 ? odd : 0,
+      ev, kellyFull,
+      bankroll: bankrollActual,
+      kellyFrac: kellyFracActual,
+      estado: mapEstado(result)
+    };
+  }
 
   inputImportJSON.addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
@@ -912,18 +966,14 @@ btnEliminarTodo.addEventListener('click', () => {
       try {
         let data = JSON.parse(event.target.result);
 
-        // Acepta objeto único
         if (!Array.isArray(data)) data = [data];
 
-        // Detecta si ya está en formato interno (tiene 'liga' y 'cuotaBookie') o es externo
         let importados = 0;
         data.forEach(item => {
           let apuesta;
-          const isInternal =
-            ('liga' in item) && ('cuotaBookie' in item) && ('probabilidad' in item);
+          const isInternal = ('liga' in item) && ('cuotaBookie' in item) && ('probabilidad' in item);
 
           if (isInternal) {
-            // Normaliza mínimos
             apuesta = {
               id: item.id || Date.now() + Math.random(),
               fecha: item.fecha || new Date().toISOString(),
@@ -941,7 +991,6 @@ btnEliminarTodo.addEventListener('click', () => {
               estado: item.estado || 'pendiente'
             };
           } else {
-            // Formato externo (como el ejemplo del usuario)
             apuesta = recordFromExternal(item);
           }
 
@@ -961,9 +1010,110 @@ btnEliminarTodo.addEventListener('click', () => {
     reader.readAsText(file);
   });
 
-  // Inicialización
-  function init() {
+  /* ==========================
+     PERFILES: UI Y NAVEGACIÓN
+     ========================== */
+  function refreshPerfilSelect(){
+    const list = ensureInitialProfiles();
+    // perfil actual
+    let p = getCurrentProfile();
+    if (!list.includes(p)) {
+      p = list[0];
+      setCurrentProfile(p);
+    }
+    perfil = p;
+
+    // migración 1ª vez
+    migrateIfNeeded(perfil);
+
+    // poblar select
+    selectPerfil.innerHTML = '';
+    list.forEach(name=>{
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name;
+      if (name === perfil) opt.selected = true;
+      selectPerfil.appendChild(opt);
+    });
+
+    // cargar datos del perfil actual
     cargarHistorial();
+
+    // actualizar botones de navegación con ?perfil=...
+    btnIrLigas.onclick = () => location.href = `historial_ligas.html?perfil=${encodeURIComponent(perfil)}`;
+    btnIrEquiposRol.onclick = () => location.href = `historial_equipos_rol.html?perfil=${encodeURIComponent(perfil)}`;
+    btnIrProbabilidades.onclick = () => location.href = `probabilidades.html?perfil=${encodeURIComponent(perfil)}`;
+  }
+
+  selectPerfil.addEventListener('change', ()=>{
+    perfil = selectPerfil.value;
+    setCurrentProfile(perfil);
+    cargarHistorial();
+    actualizarVista();
+    // actualizar enlaces
+    btnIrLigas.onclick = () => location.href = `historial_ligas.html?perfil=${encodeURIComponent(perfil)}`;
+    btnIrEquiposRol.onclick = () => location.href = `historial_equipos_rol.html?perfil=${encodeURIComponent(perfil)}`;
+    btnIrProbabilidades.onclick = () => location.href = `probabilidades.html?perfil=${encodeURIComponent(perfil)}`;
+  });
+
+  btnCrearPerfil.addEventListener('click', ()=>{
+    const name = (inputNuevoPerfil.value || '').trim();
+    if (!name) { alert('Escribe un nombre para el nuevo perfil.'); return; }
+    const list = getProfiles();
+    if (list.includes(name)) { alert('Ese perfil ya existe.'); return; }
+    list.push(name);
+    setProfiles(list);
+    localStorage.setItem(dataKeyFor(name), '[]');
+    selectPerfil.insertAdjacentHTML('beforeend', `<option value="${name}">${name}</option>`);
+    selectPerfil.value = name;
+    selectPerfil.dispatchEvent(new Event('change'));
+    inputNuevoPerfil.value = '';
+  });
+
+  btnRenombrarPerfil.addEventListener('click', ()=>{
+    const nuevo = prompt('Nuevo nombre para el perfil:', perfil);
+    if (!nuevo) return;
+    const list = getProfiles();
+    if (list.includes(nuevo) && nuevo !== perfil) { alert('Ya existe un perfil con ese nombre.'); return; }
+    // Renombrar: copiar datos y borrar la clave vieja
+    const oldKey = dataKeyFor(perfil);
+    const newKey = dataKeyFor(nuevo);
+    const data = localStorage.getItem(oldKey) || '[]';
+    localStorage.setItem(newKey, data);
+    if (nuevo !== perfil) localStorage.removeItem(oldKey);
+    // actualizar lista
+    const idx = list.indexOf(perfil);
+    if (idx >= 0) list[idx] = nuevo; else list.push(nuevo);
+    setProfiles(list);
+    perfil = nuevo; setCurrentProfile(perfil);
+    refreshPerfilSelect();
+    actualizarVista();
+  });
+
+  btnBorrarPerfil.addEventListener('click', ()=>{
+    const list = getProfiles();
+    if (list.length <= 1) { alert('Debe existir al menos un perfil.'); return; }
+    if (!confirm(`¿Eliminar el perfil "${perfil}" y todos sus datos?`)) return;
+    // borrar datos y nombre
+    localStorage.removeItem(dataKeyFor(perfil));
+    const nuevaLista = list.filter(x=>x!==perfil);
+    setProfiles(nuevaLista);
+    // cambiar a el primero disponible
+    perfil = nuevaLista[0]; setCurrentProfile(perfil);
+    refreshPerfilSelect();
+    actualizarVista();
+  });
+
+  /* ==========================
+     INICIALIZACIÓN
+     ========================== */
+  function actualizarVista() {
+    renderizarTabla();
+    actualizarResumen();
+    actualizarGraficas();
+  }
+
+  function init() {
+    refreshPerfilSelect();   // asegura perfiles + migración + carga datos
     actualizarVista();
   }
   init();
