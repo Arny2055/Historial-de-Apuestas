@@ -143,7 +143,6 @@
         <option value="Ambos Anotan">Ambos Anotan</option>
         <option value="BTTS NO">BTTS NO</option>
         <option value="Hándicap">Hándicap</option>
-        <option value=""></option>
       </select>
     </div>
     <div>
@@ -195,7 +194,6 @@
       <option value="Ambos Anotan">Ambos Anotan</option>
       <option value="BTTS NO">BTTS NO</option>
       <option value="Hándicap">Hándicap</option>
-      <option value=""></option>
     </select>
 
     <select id="filtroEstado" aria-label="Filtro por estado de apuesta">
@@ -293,8 +291,8 @@
   const filtroVisita = document.getElementById('filtroVisita');
   const filtroMercado = document.getElementById('filtroMercado');
   const filtroEstado = document.getElementById('filtroEstado');
-  const filtroProbMin = document.getElementById('filtroProbMin'); // NUEVO
-  const filtroProbMax = document.getElementById('filtroProbMax'); // NUEVO
+  const filtroProbMin = document.getElementById('filtroProbMin');
+  const filtroProbMax = document.getElementById('filtroProbMax');
   const filtroFechaInicio = document.getElementById('filtroFechaInicio');
   const filtroFechaFin = document.getElementById('filtroFechaFin');
   const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
@@ -313,7 +311,7 @@
   const btnExportarCSV = document.getElementById('btnExportarCSV');
   const btnImportarJSON = document.getElementById('btnImportarJSON');
   const inputImportJSON = document.getElementById('inputImportJSON');
-  const btnEliminarTodo = document.getElementById('btnEliminarTodo'); // NUEVO
+  const btnEliminarTodo = document.getElementById('btnEliminarTodo');
 
   const ctxBankroll = document.getElementById('graficaBankroll').getContext('2d');
   const ctxKelly = document.getElementById('graficaKelly').getContext('2d');
@@ -325,25 +323,174 @@
   // Array para guardar apuestas
   let historial = [];
 
-  // Funciones auxiliares
+  // ------------------ Funciones auxiliares base ------------------
   function calcularCuotaImplicita(prob) {
-    if (!prob || prob <= 0) return '';
+    if (!(prob > 0)) return '';
     return (100 / prob).toFixed(2);
   }
   function calcularEV(prob, cuotaBookie) {
     if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const probDec = prob / 100;
-    return probDec * cuotaBookie - 1;
+    const p = prob / 100;
+    return p * cuotaBookie - 1; // decimal (0.05 = 5%)
   }
   function calcularKelly(prob, cuotaBookie) {
     if (!(prob > 0 && cuotaBookie > 1)) return 0;
     const p = prob / 100;
-    return (p * (cuotaBookie - 1) - (1 - p)) / (cuotaBookie - 1);
+    const b = cuotaBookie - 1;
+    return (p * b - (1 - p)) / b; // decimal (0.05 = 5%)
   }
   function stakeSugerido(bankroll, kellyFull, kellyFrac) {
     if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
     const stake = bankroll * kellyFull * kellyFrac;
     return stake > bankroll ? bankroll : stake;
+  }
+
+  // ------------------ Utilidades de normalización para import ------------------
+  const removeDiacritics = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normalizeKey = (k) => removeDiacritics(String(k)).toLowerCase().replace(/[^a-z0-9]+/g,'');
+  function getVal(obj, candidates) {
+    const map = new Map(Object.keys(obj).map(k => [normalizeKey(k), k]));
+    for (const c of candidates) {
+      const nk = normalizeKey(c);
+      if (map.has(nk)) return obj[map.get(nk)];
+    }
+    return undefined;
+  }
+  function toNumber(val) {
+    if (typeof val === 'number') return val;
+    if (val === null || val === undefined) return NaN;
+    let s = String(val).trim();
+    s = s.replace(/%/g,'').replace(/\s+/g,'').replace(/,/g,'.');
+    if (s === '') return NaN;
+    const n = parseFloat(s);
+    return isNaN(n) ? NaN : n;
+  }
+  const monthMap = {
+    ene:0, enero:0,
+    feb:1, febrero:1,
+    mar:2, marzo:2,
+    abr:3, abril:3,
+    may:4, mayo:4,
+    jun:5, junio:5,
+    jul:6, julio:6,
+    ago:7, agosto:7,
+    sep:8, set:8, sept:8, septiembre:8, setiembre:8,
+    oct:9, octubre:9,
+    nov:10, noviembre:10,
+    dic:11, diciembre:11
+  };
+  function parseSpanishDate(str) {
+    if (!str) return new Date();
+    const raw = removeDiacritics(String(str)).toLowerCase().replace(/\./g,' ').replace(/,/g,' ').replace(/\s+/g,' ').trim();
+    // Intenta "20 sept 2023 12:15"
+    const m = raw.match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if (m) {
+      const day = parseInt(m[1],10);
+      const monToken = m[2];
+      const monKey = (monthMap[monToken] !== undefined) ? monToken
+                      : monthMap[monToken.slice(0,4)] !== undefined ? monToken.slice(0,4)
+                      : monthMap[monToken.slice(0,3)] !== undefined ? monToken.slice(0,3)
+                      : null;
+      const month = monKey !== null ? monthMap[monKey] : undefined;
+      if (month !== undefined) {
+        const year = parseInt(m[3],10);
+        const hh = m[4] ? parseInt(m[4],10) : 12;
+        const mm = m[5] ? parseInt(m[5],10) : 0;
+        return new Date(year, month, day, hh, mm, 0);
+      }
+    }
+    const d2 = new Date(str);
+    return isNaN(d2) ? new Date() : d2;
+  }
+  function splitMatch(what) {
+    if (!what) return ['', ''];
+    const s = String(what).replace(/vs\.?|v\.s\.?/gi, '-');
+    const parts = s.split('-');
+    if (parts.length >= 2) return [parts[0].trim(), parts.slice(1).join('-').trim()];
+    return [String(what).trim(), ''];
+  }
+  function mapOutcome(x) {
+    const s = String(x || '').toLowerCase();
+    if (/gg\b|btts\s*si|btts\s*s[ií]|ambos/.test(s)) return 'Ambos Anotan';
+    if (/ng\b|btts\s*no/.test(s)) return 'BTTS NO';
+    if ((/over/.test(s) || /\bo\d+(\.\d+)?\b/.test(s)) && /2(\.|,)?5/.test(s)) return 'Over 2.5 FT';
+    if ((/under/.test(s) || /\bu\d+(\.\d+)?\b/.test(s)) && /2(\.|,)?5/.test(s)) return 'Under 2.5 FT';
+    if (/handicap|h.ndicap/i.test(s)) return 'Hándicap';
+    return x || '';
+  }
+  function mapEstado(x) {
+  const s = String(x || '').trim().toLowerCase();
+
+  // GANADA
+  if (
+    /\bwin(n?ing)?\b/.test(s) ||   // win, winning
+    /\bwon\b/.test(s) ||
+    /ganad[ao]s?/.test(s) ||       // ganada, ganadas, ganado, ganados
+    /\bgreen\b/.test(s)            // a veces usan "green"
+  ) return 'ganada';
+
+  // PERDIDA
+  if (
+    /\blos(e|ing|t)\b/.test(s) ||  // lose, losing, lost
+    /\bloss\b/.test(s) ||
+    /perdid[ao]s?/.test(s) ||      // perdida, perdidas, perdido, perdidos
+    /\bred\b/.test(s)              // a veces usan "red"
+  ) return 'perdida';
+
+  // NULA / CANCELADA → lo dejamos como pendiente en este sistema
+  if (
+    /\bvoid(ed)?\b/.test(s) ||
+    /cancel(l?ed|ar|ada)/.test(s) ||
+    /\bpush\b/.test(s) ||
+    /\brefund(ed)?\b/.test(s) ||
+    /nula|anulada/.test(s)
+  ) return 'pendiente';
+
+  // Desconocido → pendiente
+  return 'pendiente';
+}
+
+  function recordFromExternal(rec) {
+    // Lee valores
+    const rawDate = getVal(rec, ['Date','Fecha']);
+    const rawLeague = getVal(rec, ['League','Liga']);
+    const rawMatch  = getVal(rec, ['Match','Partido']);
+    const rawOutcome = getVal(rec, ['Desired Outcome','Outcome','Mercado']);
+    let prob = toNumber(getVal(rec, ['Prob(%)','Prob','Probability','Probabilidad']));
+    const implied = toNumber(getVal(rec, ['Cuota Implícita','Cuota Implicita','Cuota Impl�cita','Implied Odds']));
+    const odd = toNumber(getVal(rec, ['Odd','Cuota','Cuota Bookie','Precio','Decimal Odds']));
+    const result = getVal(rec, ['Result','Estado','Resultado']);
+
+    // Si no viene probabilidad, intenta desde cuota implícita
+    if (!(prob > 0) && implied > 0) prob = 100 / implied;
+
+    // Parseos
+    const fechaISO = parseSpanishDate(rawDate).toISOString();
+    const liga = (rawLeague ? String(rawLeague) : 'Sin liga').trim();
+    const [local, visita] = splitMatch(rawMatch);
+    const mercado = mapOutcome(rawOutcome);
+
+    // Parámetros actuales de stake
+    const bankrollActual = parseFloat(document.getElementById('bankroll').value) || 100;
+    const kellyFracActual = parseFloat(document.getElementById('kellyFrac').value) || 0.25;
+
+    // Cálculos
+    const cuotaImplicitaCalc = prob > 0 ? parseFloat((100 / prob).toFixed(2)) : '';
+    const ev = calcularEV(prob, odd);
+    const kellyFull = calcularKelly(prob, odd);
+
+    return {
+      id: Date.now() + Math.random(),
+      fecha: fechaISO,
+      liga, local, visita, mercado,
+      probabilidad: prob > 0 ? prob : 0,
+      cuotaImplicita: cuotaImplicitaCalc || '',
+      cuotaBookie: odd > 0 ? odd : 0,
+      ev, kellyFull,
+      bankroll: bankrollActual,
+      kellyFrac: kellyFracActual,
+      estado: mapEstado(result)
+    };
   }
 
   // Guardar y cargar localStorage
@@ -357,7 +504,7 @@
     }
   }
 
-  // Limpiar filtros (incluye probabilidad)
+  // Limpiar filtros
   function limpiarFiltros() {
     filtroLiga.value = '';
     filtroLocal.value = '';
@@ -370,7 +517,7 @@
     filtroFechaFin.value = '';
   }
 
-  // Filtrar apuestas (se agregó rango de probabilidad)
+  // Filtrar apuestas
   function filtrarHistorial() {
     return historial.filter(a => {
       if (filtroLiga.value && !a.liga.toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
@@ -379,14 +526,12 @@
       if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
       if (filtroEstado.value && a.estado !== filtroEstado.value) return false;
 
-      // Rango de probabilidad
       const p = Number(a.probabilidad) || 0;
       const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
       const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
       if (min !== null && p < min) return false;
       if (max !== null && p > max) return false;
 
-      // Rango de fechas
       if (filtroFechaInicio.value) {
         const fechaIni = new Date(filtroFechaInicio.value);
         if (new Date(a.fecha) < fechaIni) return false;
@@ -413,7 +558,6 @@
       tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
       tr.appendChild(tdFecha);
 
-      // LIGA editable con doble clic
       const tdLiga = document.createElement('td');
       tdLiga.textContent = a.liga;
       tdLiga.addEventListener('dblclick', () => {
@@ -429,17 +573,18 @@
       const tdVisita = document.createElement('td'); tdVisita.textContent = a.visita; tr.appendChild(tdVisita);
       const tdMercado = document.createElement('td'); tdMercado.textContent = a.mercado; tr.appendChild(tdMercado);
 
-      const tdProb = document.createElement('td'); tdProb.textContent = a.probabilidad.toFixed(2); tr.appendChild(tdProb);
+      const tdProb = document.createElement('td'); tdProb.textContent = (Number(a.probabilidad) || 0).toFixed(2); tr.appendChild(tdProb);
 
       const tdCuotaImpl = document.createElement('td');
-      tdCuotaImpl.textContent = a.cuotaImplicita ? a.cuotaImplicita.toFixed(2) : calcularCuotaImplicita(a.probabilidad);
+      const impl = a.cuotaImplicita !== '' && a.cuotaImplicita !== null ? a.cuotaImplicita : calcularCuotaImplicita(a.probabilidad);
+      tdCuotaImpl.textContent = impl !== '' ? Number(impl).toFixed(2) : '-';
       tr.appendChild(tdCuotaImpl);
 
-      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = a.cuotaBookie.toFixed(2); tr.appendChild(tdCuotaBookie);
+      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = (Number(a.cuotaBookie) || 0).toFixed(2); tr.appendChild(tdCuotaBookie);
 
       const tdEV = document.createElement('td');
-      tdEV.textContent = (a.ev * 100).toFixed(2);
-      tdEV.style.color = a.ev >= 0 ? '#4caf50' : '#ef4444';
+      tdEV.textContent = ((a.ev || 0) * 100).toFixed(2);
+      tdEV.style.color = (a.ev || 0) >= 0 ? '#4caf50' : '#ef4444';
       tr.appendChild(tdEV);
 
       const tdKelly = document.createElement('td');
@@ -487,14 +632,19 @@
     actualizarVista();
   }
 
-  // ---- NUEVO: Eliminar TODO el historial ----
-  btnEliminarTodo.addEventListener('click', () => {
-    if (!confirm('⚠️ ¿Seguro que quieres eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
-    historial = [];
-    localStorage.removeItem(STORAGE_KEY);
-    actualizarVista();
-    alert('Historial eliminado ✅');
-  });
+// ---- Eliminar TODO el historial ----
+btnEliminarTodo.addEventListener('click', () => {
+  if (!confirm('⚠️ ¿Seguro que quieres eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
+  
+  historial = []; // vaciar array
+  localStorage.removeItem(STORAGE_KEY); // borrar del storage
+  actualizarVista(); // refrescar tabla, resumen y gráficas
+
+  // por si había archivo seleccionado en el input de importación
+  inputImportJSON.value = '';
+
+  alert('Historial eliminado ✅');
+});
 
   // Actualizar resumen estadístico
   function actualizarResumen() {
@@ -525,19 +675,19 @@
     const tasaExito = numApuestas > 0 ? (ganadas / numApuestas) * 100 : 0;
     resumenTasaExito.textContent = tasaExito.toFixed(2) + '%';
 
-    // Yield: (Ganancias netas / total apostado) * 100
+    // Yield y ROI usando stakes calculados
     let totalGanado = 0;
     let totalApostado = 0;
     apuestasFiltradas.forEach(a => {
       const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
       totalApostado += stake;
       if (a.estado === 'ganada') totalGanado += stake * a.cuotaBookie;
+      if (a.estado === 'perdida') totalGanado += 0;
     });
     const neto = totalGanado - totalApostado;
     const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
     resumenYield.textContent = yieldPct.toFixed(2) + '%';
 
-    // ROI: (Ganancia neta / bankroll inicial) * 100
     const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
     resumenROI.textContent = roiPct.toFixed(2) + '%';
     resumenUnidades.textContent = neto.toFixed(2);
@@ -707,7 +857,7 @@
     kellyFracInput.addEventListener(evt, actualizarStakePreview);
   });
 
-  // Filtros (incluye probabilidad y fechas)
+  // Filtros
   [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado,
    filtroProbMin, filtroProbMax, filtroFechaInicio, filtroFechaFin].forEach(el => {
     el.addEventListener('input', actualizarVista);
@@ -720,7 +870,7 @@
     actualizarVista();
   });
 
-  // Exportar CSV
+  // --------- Exportar CSV ----------
   btnExportarCSV.addEventListener('click', () => {
     if (historial.length === 0) { alert('No hay datos para exportar'); return; }
     const csvRows = [];
@@ -734,7 +884,7 @@
       csvRows.push([
         a.id, a.fecha,
         `"${a.liga}"`, `"${a.local}"`, `"${a.visita}"`,
-        a.mercado, a.probabilidad, a.cuotaImplicita, a.cuotaBookie,
+        `"${a.mercado}"`, a.probabilidad, a.cuotaImplicita, a.cuotaBookie,
         a.ev, a.kellyFull, a.bankroll, a.kellyFrac, a.estado
       ].join(','));
     });
@@ -747,41 +897,65 @@
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   });
 
-  // Importar JSON (arreglado para usar actualizarVista)
-  btnImportarJSON.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file'; input.accept = '.json';
+  // ---------- Importar JSON (con mapeo y cálculos) ----------
+  btnImportarJSON.addEventListener('click', () => inputImportJSON.click());
 
-    input.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+  inputImportJSON.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target.result);
-          if (!Array.isArray(data)) { alert('El archivo no contiene un historial válido'); return; }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        let data = JSON.parse(event.target.result);
 
-          // Validar y normalizar
-          data.forEach(apuesta => {
-            if (!apuesta.id) apuesta.id = Date.now() + Math.random();
-            if (!apuesta.estado) apuesta.estado = 'pendiente';
-            if (!apuesta.fecha) apuesta.fecha = new Date().toISOString();
-          });
+        // Acepta objeto único
+        if (!Array.isArray(data)) data = [data];
 
-          historial = [...historial, ...data];
-          guardarHistorial();
-          actualizarVista(); // <-- fix
-          alert('Importación exitosa ✅');
-        } catch (err) {
-          console.error(err);
-          alert('Error al importar el archivo JSON');
-        }
-      };
-      reader.readAsText(file);
-    });
+        // Detecta si ya está en formato interno (tiene 'liga' y 'cuotaBookie') o es externo
+        let importados = 0;
+        data.forEach(item => {
+          let apuesta;
+          const isInternal =
+            ('liga' in item) && ('cuotaBookie' in item) && ('probabilidad' in item);
 
-    input.click();
+          if (isInternal) {
+            // Normaliza mínimos
+            apuesta = {
+              id: item.id || Date.now() + Math.random(),
+              fecha: item.fecha || new Date().toISOString(),
+              liga: item.liga || 'Sin liga',
+              local: item.local || '',
+              visita: item.visita || '',
+              mercado: item.mercado || '',
+              probabilidad: Number(item.probabilidad) || 0,
+              cuotaImplicita: item.cuotaImplicita !== undefined ? item.cuotaImplicita : (Number(item.probabilidad) ? Number((100/Number(item.probabilidad)).toFixed(2)) : ''),
+              cuotaBookie: Number(item.cuotaBookie) || 0,
+              ev: (typeof item.ev === 'number') ? item.ev : calcularEV(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
+              kellyFull: (typeof item.kellyFull === 'number') ? item.kellyFull : calcularKelly(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
+              bankroll: Number(item.bankroll) || (parseFloat(bankrollInput.value)||100),
+              kellyFrac: Number(item.kellyFrac) || (parseFloat(kellyFracInput.value)||0.25),
+              estado: item.estado || 'pendiente'
+            };
+          } else {
+            // Formato externo (como el ejemplo del usuario)
+            apuesta = recordFromExternal(item);
+          }
+
+          historial.push(apuesta);
+          importados++;
+        });
+
+        guardarHistorial();
+        actualizarVista();
+        alert(`Importación exitosa ✅  Registros añadidos: ${importados}`);
+        inputImportJSON.value = '';
+      } catch (err) {
+        console.error(err);
+        alert('Error al importar el archivo JSON. Verifica el formato.');
+      }
+    };
+    reader.readAsText(file);
   });
 
   // Inicialización
