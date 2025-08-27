@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Historial por Equipos (Rol)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  /* --- Reset y base --- */
+  *, *::before, *::after { box-sizing: border-box; }
+  body{
+    margin:0; padding:0; font-family:'Inter',sans-serif;
+    background:#121214; color:#e1e1e6; min-height:100vh; display:flex; flex-direction:column; align-items:center;
+  }
+  main{ max-width:1200px; width:95%; margin:20px auto 40px auto; }
+  h1{ font-weight:600; color:#8257e6; margin:0 0 12px 0; text-align:center; }
+
+  /* Navegación */
+  .nav{
+    display:flex; flex-wrap:wrap; gap:12px; margin-bottom:18px; justify-content:center;
+  }
+  .nav a, .nav button{
+    background:#8257e6; color:#fff; border:none; border-radius:10px; padding:10px 14px;
+    font-weight:600; cursor:pointer; box-shadow:0 4px 8px #6b45d9; text-decoration:none;
+  }
+  .nav a:hover, .nav button:hover{ background:#6b45d9; }
+
+  /* Filtros */
+  .filtros{ display:flex; flex-wrap:wrap; gap:12px 14px; align-items:center; margin:18px 0 22px 0; }
+  .filtros input, .filtros select{
+    min-width:160px; padding:9px 12px; border:none; border-radius:8px; background:#121214; color:#e1e1e6;
+    box-shadow:inset 0 0 5px rgb(255 255 255 / .1);
+  }
+  .filtros input:focus, .filtros select:focus{ outline:none; box-shadow:inset 0 0 8px #8257e6; }
+  #btnLimpiarFiltros{
+    background:#ef4444; color:#fff; font-weight:700; border:none; border-radius:10px; cursor:pointer; padding:8px 14px;
+  }
+  #btnLimpiarFiltros:hover{ background:#dc2626; }
+
+  /* Tabla */
+  #tablaWrapper{ overflow:auto; max-height:70vh; border-radius:12px; box-shadow:0 6px 12px rgba(0,0,0,.4); }
+  table{ width:100%; border-collapse:separate; border-spacing:0 5px; min-width:950px; font-size:.9rem; }
+  thead th{
+    position:sticky; top:0; background:#29292e; color:#bbb; font-weight:700; text-align:left; padding:14px 16px; white-space:nowrap;
+  }
+  tbody tr{ background:#202024; transition:background .25s ease; }
+  tbody tr:hover{ background:#333339; }
+  tbody td{ padding:12px 16px; white-space:nowrap; }
+
+  /* Chips */
+  .chip{ padding:4px 8px; border-radius:999px; font-weight:700; font-size:.8rem; }
+  .ok{ background:rgba(76,175,80,.15); color:#4caf50; }
+  .bad{ background:rgba(239,68,68,.15); color:#ef4444; }
+  .muted{ background:#2a2f55; color:#a7acc8; }
+
+  /* Export */
+  .acciones{ display:flex; gap:12px; margin-top:16px; }
+
+  /* Responsive */
+  @media (max-width:900px){
+    .filtros{ flex-direction:column; align-items:stretch; }
+    thead th, tbody td{ font-size:.8rem; padding:10px 12px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Historial por Equipos (Rol)</h1>
+
+  <div class="nav">
+    <a href="index.html" title="Volver">← Volver</a>
+    <a href="historial_ligas.html" title="Historial por Ligas">Historial por Ligas</a>
+  </div>
+
+  <!-- Filtros -->
+  <section class="filtros" aria-label="Filtros">
+    <input type="text" id="filtroEquipo" placeholder="Filtrar por equipo..." aria-label="Filtro por equipo" />
+    <select id="filtroRol" aria-label="Filtro por rol">
+      <option value="">Todos los roles</option>
+      <option value="Local">Local</option>
+      <option value="Visitante">Visitante</option>
+    </select>
+    <input type="text" id="filtroLiga" placeholder="Filtrar por liga..." aria-label="Filtro por liga" />
+    <select id="filtroMercado" aria-label="Filtro por mercado">
+      <option value="">Todos los mercados</option>
+      <option value="Over 2.5 FT">Over 2.5 FT</option>
+      <option value="Under 2.5 FT">Under 2.5 FT</option>
+      <option value="Ambos Anotan">Ambos Anotan</option>
+      <option value="BTTS NO">BTTS NO</option>
+      <option value="Hándicap">Hándicap</option>
+    </select>
+    <input type="number" id="filtroProbMin" placeholder="Prob. mín (%)" min="0" max="100" step="0.01" />
+    <input type="number" id="filtroProbMax" placeholder="Prob. máx (%)" min="0" max="100" step="0.01" />
+    <input type="date" id="filtroFechaIni" />
+    <input type="date" id="filtroFechaFin" />
+    <button id="btnLimpiarFiltros">✖</button>
+  </section>
+
+  <!-- Tabla -->
+  <section aria-label="Tabla de equipos por rol">
+    <div id="tablaWrapper">
+      <table id="tablaEquiposRol" role="grid" aria-describedby="descTabla">
+        <caption id="descTabla" style="text-align:left; margin-bottom:12px; font-weight:700; font-size:1.1rem;">
+          Rendimiento por equipo según su rol (Local/Visitante)
+        </caption>
+        <thead>
+          <tr>
+            <th>Equipo</th>
+            <th>Rol</th>
+            <th>Apuestas</th>
+            <th>Ganadas</th>
+            <th>Perdidas</th>
+            <th>Tasa Éxito (%)</th>
+            <th>EV medio (%)</th>
+            <th>Kelly medio (%)</th>
+            <th>Yield (%)</th>
+            <th>ROI (%)</th>
+            <th>Unids.</th>
+          </tr>
+        </thead>
+        <tbody><!-- Relleno por JS --></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="acciones">
+    <button id="btnExportarCSV" title="Exportar CSV">Exportar CSV</button>
+  </div>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const STORAGE_KEY = 'historialApuestasProfesionalCompleto';
+
+  // Filtros
+  const filtroEquipo = document.getElementById('filtroEquipo');
+  const filtroRol = document.getElementById('filtroRol');
+  const filtroLiga = document.getElementById('filtroLiga');
+  const filtroMercado = document.getElementById('filtroMercado');
+  const filtroProbMin = document.getElementById('filtroProbMin');
+  const filtroProbMax = document.getElementById('filtroProbMax');
+  const filtroFechaIni = document.getElementById('filtroFechaIni');
+  const filtroFechaFin = document.getElementById('filtroFechaFin');
+  const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+
+  const tbody = document.querySelector('#tablaEquiposRol tbody');
+  const btnExportarCSV = document.getElementById('btnExportarCSV');
+
+  // Utilidades (idénticas a tu página principal)
+  function calcularEV(prob, cuotaBookie) {
+    if (!(prob > 0 && cuotaBookie > 1)) return 0;
+    const p = prob / 100;
+    return p * cuotaBookie - 1;
+  }
+  function calcularKelly(prob, cuotaBookie) {
+    if (!(prob > 0 && cuotaBookie > 1)) return 0;
+    const p = prob / 100;
+    const b = cuotaBookie - 1;
+    return (p * b - (1 - p)) / b;
+  }
+  function stakeSugerido(bankroll, kellyFull, kellyFrac) {
+    if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
+    const stake = bankroll * kellyFull * kellyFrac;
+    return stake > bankroll ? bankroll : stake;
+  }
+
+  function cargarHistorial() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+
+  // Filtro a nivel de registro (igual que usas en la principal)
+  function pasaFiltros(a){
+    if (filtroLiga.value && !String(a.liga||'').toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
+    if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
+
+    const p = Number(a.probabilidad) || 0;
+    const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
+    const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
+    if (min !== null && p < min) return false;
+    if (max !== null && p > max) return false;
+
+    if (filtroFechaIni.value) {
+      const ini = new Date(filtroFechaIni.value);
+      if (new Date(a.fecha) < ini) return false;
+    }
+    if (filtroFechaFin.value) {
+      const fin = new Date(filtroFechaFin.value);
+      fin.setHours(23,59,59,999);
+      if (new Date(a.fecha) > fin) return false;
+    }
+    return true;
+  }
+
+  // Agrupar por equipo+rol
+  function agruparPorEquipoRol(registros){
+    // Estructura: { 'Equipo|Rol': { equipo, rol, ...acum } }
+    const map = new Map();
+
+    registros.forEach(a => {
+      if (!pasaFiltros(a)) return;
+
+      // Para cada registro generamos dos vistas:
+      // 1) Equipo local con Rol=Local
+      // 2) Equipo visita con Rol=Visitante
+      [
+        { equipo: a.local, rol: 'Local' },
+        { equipo: a.visita, rol: 'Visitante' }
+      ].forEach(view => {
+        // Si filtras por equipo/rol, verifica aquí:
+        if (filtroEquipo.value && !String(view.equipo||'').toLowerCase().includes(filtroEquipo.value.toLowerCase())) return;
+        if (filtroRol.value && view.rol !== filtroRol.value) return;
+
+        const key = `${view.equipo}|${view.rol}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            equipo: view.equipo || '',
+            rol: view.rol,
+            n: 0, gan: 0, per: 0,
+            sumEV: 0, sumKelly: 0,
+            totalApostado: 0, totalDevuelto: 0,
+            bankrollInicial: a.bankroll || 0 // tomamos el primero que veamos
+          });
+        }
+        const g = map.get(key);
+
+        // stake estimado según tu misma lógica
+        const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+        const devuelto = a.estado === 'ganada' ? stake * a.cuotaBookie
+                        : a.estado === 'perdida' ? 0
+                        : 0; // pendiente se considera 0 en el flujo
+
+        g.n += 1;
+        if (a.estado === 'ganada') g.gan += 1;
+        if (a.estado === 'perdida') g.per += 1;
+        g.sumEV += (a.ev || calcularEV(a.probabilidad, a.cuotaBookie));
+        g.sumKelly += ((a.kellyFull != null) ? a.kellyFull : calcularKelly(a.probabilidad, a.cuotaBookie));
+        g.totalApostado += stake;
+        g.totalDevuelto += devuelto;
+        if (!g.bankrollInicial && a.bankroll) g.bankrollInicial = a.bankroll;
+      });
+    });
+
+    // Transformar a array con métricas
+    const arr = [];
+    map.forEach(g => {
+      const tasa = g.n > 0 ? (g.gan / g.n) * 100 : 0;
+      const evMed = g.n > 0 ? (g.sumEV / g.n) * 100 : 0;
+      const kellyMed = g.n > 0 ? (g.sumKelly / g.n) * 100 : 0;
+      const neto = g.totalDevuelto - g.totalApostado;
+      const yieldPct = g.totalApostado > 0 ? (neto / g.totalApostado) * 100 : 0;
+      const roiPct = g.bankrollInicial > 0 ? (neto / g.bankrollInicial) * 100 : 0;
+
+      arr.push({
+        equipo: g.equipo,
+        rol: g.rol,
+        n: g.n, gan: g.gan, per: g.per,
+        tasa: tasa, evMed: evMed, kellyMed: kellyMed,
+        yieldPct: yieldPct, roiPct: roiPct, unidades: neto
+      });
+    });
+
+    // Orden por defecto: más apuestas
+    arr.sort((a,b)=> b.n - a.n || a.equipo.localeCompare(b.equipo));
+    return arr;
+  }
+
+  function renderTabla(){
+    const historial = cargarHistorial();
+    const datos = agruparPorEquipoRol(historial);
+
+    tbody.innerHTML = '';
+    datos.forEach(d => {
+      const tr = document.createElement('tr');
+
+      const tdEq = document.createElement('td'); tdEq.textContent = d.equipo || '-'; tr.appendChild(tdEq);
+      const tdRol = document.createElement('td');
+      tdRol.innerHTML = `<span class="chip muted">${d.rol}</span>`;
+      tr.appendChild(tdRol);
+
+      const tdN = document.createElement('td'); tdN.textContent = d.n; tr.appendChild(tdN);
+      const tdG = document.createElement('td'); tdG.innerHTML = `<span class="chip ok">${d.gan}</span>`; tr.appendChild(tdG);
+      const tdP = document.createElement('td'); tdP.innerHTML = `<span class="chip bad">${d.per}</span>`; tr.appendChild(tdP);
+
+      const tdTasa = document.createElement('td'); tdTasa.textContent = d.tasa.toFixed(2); tr.appendChild(tdTasa);
+      const tdEVm = document.createElement('td'); tdEVm.textContent = d.evMed.toFixed(2); tr.appendChild(tdEVm);
+      const tdKm = document.createElement('td'); tdKm.textContent = d.kellyMed.toFixed(2); tr.appendChild(tdKm);
+
+      const tdYield = document.createElement('td'); tdYield.textContent = d.yieldPct.toFixed(2); tr.appendChild(tdYield);
+      const tdROI = document.createElement('td'); tdROI.textContent = d.roiPct.toFixed(2); tr.appendChild(tdROI);
+      const tdUnids = document.createElement('td'); tdUnids.textContent = d.unidades.toFixed(2); tr.appendChild(tdUnids);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function limpiar(){
+    filtroEquipo.value = '';
+    filtroRol.value = '';
+    filtroLiga.value = '';
+    filtroMercado.value = '';
+    filtroProbMin.value = '';
+    filtroProbMax.value = '';
+    filtroFechaIni.value = '';
+    filtroFechaFin.value = '';
+  }
+
+  // Exportar CSV
+  function exportarCSV(){
+    const historial = cargarHistorial();
+    const datos = agruparPorEquipoRol(historial);
+    if (datos.length === 0) { alert('No hay datos para exportar'); return; }
+
+    const headers = ['equipo','rol','apuestas','ganadas','perdidas','tasa_exito_%','ev_medio_%','kelly_medio_%','yield_%','roi_%','unidades'];
+    const rows = [headers.join(',')];
+
+    datos.forEach(d=>{
+      rows.push([
+        `"${d.equipo}"`,
+        d.rol,
+        d.n, d.gan, d.per,
+        d.tasa.toFixed(2),
+        d.evMed.toFixed(2),
+        d.kellyMed.toFixed(2),
+        d.yieldPct.toFixed(2),
+        d.roiPct.toFixed(2),
+        d.unidades.toFixed(2)
+      ].join(','));
+    });
+
+    const blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'equipos_por_rol.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  // Eventos
+  [filtroEquipo, filtroRol, filtroLiga, filtroMercado, filtroProbMin, filtroProbMax, filtroFechaIni, filtroFechaFin].forEach(el=>{
+    el.addEventListener('input', renderTabla);
+    el.addEventListener('change', renderTabla);
+  });
+  btnLimpiarFiltros.addEventListener('click', (e)=>{
+    e.preventDefault(); limpiar(); renderTabla();
+  });
+  btnExportarCSV.addEventListener('click', exportarCSV);
+
+  // Init
+  renderTabla();
+})();
+</script>
+</body>
+</html>
