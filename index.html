@@ -125,14 +125,29 @@
   #graficas{margin-top:45px; display:flex; flex-direction:column; gap:40px;}
   canvas{background-color:#202024; border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,0.5); max-width:100%; height:320px !important;}
 
-  /* --- Responsive --- */
-  @media (max-width: 900px){
-    form#formApuesta{grid-template-columns:1fr !important;}
-    section.filtros{flex-direction:column !important; gap:15px !important;}
-    .botones-utiles{flex-direction:column; gap:15px;}
-    #resumen{flex-direction:column; gap:20px; text-align:center;}
-    tbody td, thead th{font-size:0.8rem; padding:10px 12px;}
+  /* --- Análisis por días de la semana (nuevo) --- */
+  #analisisSemana{
+    margin-top:40px; background:#29292e; border-radius:12px; padding:18px;
+    box-shadow:0 6px 18px rgba(0,0,0,.45); display:none;
   }
+  #analisisSemana .hdr{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;
+  }
+  #analisisSemana .hdr h2{margin:0; color:#e1e1e6; font-size:1.25rem}
+  #analisisSemana .hdr .actions{display:flex; gap:8px}
+  #analisisSemana .hdr .actions button{
+    background:#202024; color:#e1e1e6; border:none; border-radius:8px; padding:8px 12px; cursor:pointer;
+    box-shadow:0 2px 6px rgba(0,0,0,.3);
+  }
+  #tablaSemana{
+    width:100%; border-collapse:separate; border-spacing:0 6px; margin-top:8px; min-width:700px;
+  }
+  #tablaSemana thead th{
+    position:sticky; top:0; background:#202024; color:#c4c4cc; padding:10px 12px; text-align:left;
+  }
+  #tablaSemana tbody tr{background:#202024;}
+  #tablaSemana td{padding:10px 12px; white-space:nowrap;}
+  #tablaSemana tfoot td{padding:10px 12px; font-weight:700; background:#202024; color:#e1e1e6;}
 </style>
 </head>
 <body>
@@ -252,6 +267,8 @@
     <button id="btnIrLigas" title="Ver historial por ligas">Historial por Ligas</button>
     <button id="btnIrEquiposRol" title="Ver historial por equipo (rol)">Historial por Equipos (Rol)</button>
     <button id="btnIrProbabilidades" title="Ver estadísticas por probabilidad">Probabilidades</button>
+    <!-- NUEVO BOTÓN -->
+    <button id="btnAnalizarSemana" title="Ver análisis por días de la semana">Días de la Semana</button>
     <!-- NUEVO: borrar todo -->
     <button id="btnEliminarTodo" class="btn-danger" title="Eliminar todo el historial">Eliminar todo</button>
   </section>
@@ -303,6 +320,53 @@
     <canvas id="graficaBankroll" aria-label="Gráfica de evolución de bankroll"></canvas>
     <canvas id="graficaKelly" aria-label="Gráfica de Kelly Full"></canvas>
   </section>
+
+  <!-- NUEVO: ANÁLISIS POR DÍAS DE LA SEMANA -->
+  <section id="analisisSemana" aria-label="Análisis por días de la semana">
+    <div class="hdr">
+      <h2>Análisis por días de la semana</h2>
+      <div class="actions">
+        <button id="btnRefrescarSemana" title="Refrescar con filtros actuales">Refrescar</button>
+        <button id="btnCerrarAnalisis" title="Ocultar panel">Cerrar</button>
+      </div>
+    </div>
+
+    <div style="overflow:auto; border-radius:10px; box-shadow:0 6px 12px rgba(0,0,0,.35);">
+      <table id="tablaSemana">
+        <thead>
+          <tr>
+            <th>Día</th>
+            <th>Apuestas</th>
+            <th>Ganadas</th>
+            <th>Perdidas</th>
+            <th>Pendientes</th>
+            <th>Winrate %</th>
+            <th>Yield %</th>
+            <th>Unidades</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td>TOTAL</td>
+            <td id="dwTotApu">0</td>
+            <td id="dwTotGan">0</td>
+            <td id="dwTotPer">0</td>
+            <td id="dwTotPen">0</td>
+            <td id="dwTotWr">0.00</td>
+            <td id="dwTotYield">0.00</td>
+            <td id="dwTotUnid">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <canvas id="graficaDiasSemana" aria-label="Unidades por día de la semana" style="margin-top:16px;"></canvas>
+    <small style="color:#c4c4cc; display:block; margin-top:8px;">
+      Nota: usa los filtros de arriba para recalcular este análisis y pulsa “Refrescar”.
+    </small>
+  </section>
+
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -317,35 +381,24 @@
   const PROFILE_LIST_KEY = STORAGE_ROOT + '_profiles';
   const CURRENT_PROFILE_KEY = STORAGE_ROOT + '_currentProfile';
   const dataKeyFor = (perfil) => `${STORAGE_ROOT}_data_${perfil}`;
-
-  // Compatibilidad con tu clave anterior (migración 1 vez)
   const OLD_STORAGE_KEY = 'historialApuestasProfesionalCompleto';
 
   function getProfiles(){
-    try {
-      const v = JSON.parse(localStorage.getItem(PROFILE_LIST_KEY) || '[]');
-      return Array.isArray(v) ? v : [];
-    } catch { return []; }
+    try { const v = JSON.parse(localStorage.getItem(PROFILE_LIST_KEY) || '[]'); return Array.isArray(v) ? v : []; }
+    catch { return []; }
   }
-  function setProfiles(list){
-    localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify(list));
-  }
+  function setProfiles(list){ localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify(list)); }
   function getCurrentProfile(){
     const urlP = new URLSearchParams(location.search).get('perfil');
     if (urlP && urlP.trim()) return urlP.trim();
     return localStorage.getItem(CURRENT_PROFILE_KEY) || 'default';
   }
-  function setCurrentProfile(p){
-    localStorage.setItem(CURRENT_PROFILE_KEY, p);
-  }
+  function setCurrentProfile(p){ localStorage.setItem(CURRENT_PROFILE_KEY, p); }
   function ensureInitialProfiles(){
     let list = getProfiles();
     if (list.length === 0){
-      list = ['default'];
-      setProfiles(list);
-      if (!localStorage.getItem(dataKeyFor('default'))) {
-        localStorage.setItem(dataKeyFor('default'), '[]');
-      }
+      list = ['default']; setProfiles(list);
+      if (!localStorage.getItem(dataKeyFor('default'))) localStorage.setItem(dataKeyFor('default'), '[]');
     }
     return list;
   }
@@ -353,14 +406,10 @@
     const old = localStorage.getItem(OLD_STORAGE_KEY);
     const destKey = dataKeyFor(perfil);
     if (old && !localStorage.getItem(destKey)){
-      // Mueve los datos antiguos al perfil actual (1 sola vez)
       localStorage.setItem(destKey, old);
-      // No borramos la clave vieja por si quieres volver, pero puedes descomentar:
-      // localStorage.removeItem(OLD_STORAGE_KEY);
     }
   }
 
-  // Estado de perfil actual y dataset
   let perfil = 'default';
   let historial = [];
 
@@ -413,23 +462,31 @@
   let graficaBankroll = null;
   let graficaKelly = null;
 
+  /* NUEVO: elementos del análisis por días */
+  const btnAnalizarSemana = document.getElementById('btnAnalizarSemana');
+  const panelSemana = document.getElementById('analisisSemana');
+  const btnCerrarAnalisis = document.getElementById('btnCerrarAnalisis');
+  const btnRefrescarSemana = document.getElementById('btnRefrescarSemana');
+  const tbodySemana = panelSemana.querySelector('tbody');
+  const dwTotApu = document.getElementById('dwTotApu');
+  const dwTotGan = document.getElementById('dwTotGan');
+  const dwTotPer = document.getElementById('dwTotPer');
+  const dwTotPen = document.getElementById('dwTotPen');
+  const dwTotWr = document.getElementById('dwTotWr');
+  const dwTotYield = document.getElementById('dwTotYield');
+  const dwTotUnid = document.getElementById('dwTotUnid');
+  const ctxDias = document.getElementById('graficaDiasSemana').getContext('2d');
+  let graficaDias = null;
+
   /* ==========================
      FUNCIONES AUXILIARES BASE
      ========================== */
-  function calcularCuotaImplicita(prob) {
-    if (!(prob > 0)) return '';
-    return (100 / prob).toFixed(2);
-  }
-  function calcularEV(prob, cuotaBookie) {
-    if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const p = prob / 100;
-    return p * cuotaBookie - 1; // decimal (0.05 = 5%)
-  }
+  function calcularCuotaImplicita(prob) { if (!(prob > 0)) return ''; return (100 / prob).toFixed(2); }
+  function calcularEV(prob, cuotaBookie) { if (!(prob > 0 && cuotaBookie > 1)) return 0; const p = prob / 100; return p * cuotaBookie - 1; }
   function calcularKelly(prob, cuotaBookie) {
     if (!(prob > 0 && cuotaBookie > 1)) return 0;
-    const p = prob / 100;
-    const b = cuotaBookie - 1;
-    return (p * b - (1 - p)) / b; // decimal (0.05 = 5%)
+    const p = prob / 100, b = cuotaBookie - 1;
+    return (p * b - (1 - p)) / b;
   }
   function stakeSugerido(bankroll, kellyFull, kellyFrac) {
     if (!(bankroll > 0 && kellyFull > 0 && kellyFrac > 0)) return 0;
@@ -437,40 +494,342 @@
     return stake > bankroll ? bankroll : stake;
   }
 
-  // ------------------ Utilidades de normalización para import ------------------
+  /* ==========================
+     CARGA/GUARDADO
+     ========================== */
+  function guardarHistorial() { localStorage.setItem(dataKeyFor(perfil), JSON.stringify(historial)); }
+  function cargarHistorial() {
+    const raw = localStorage.getItem(dataKeyFor(perfil));
+    if (raw) { try { historial = JSON.parse(raw); } catch { historial = []; } }
+    else { historial = []; localStorage.setItem(dataKeyFor(perfil), '[]'); }
+  }
+
+  /* ==========================
+     FILTROS + RENDER TABLA/RESUMEN/GRAFICAS
+     ========================== */
+  function limpiarFiltros() {
+    filtroLiga.value = ''; filtroLocal.value = ''; filtroVisita.value = '';
+    filtroMercado.value = ''; filtroEstado.value = '';
+    filtroProbMin.value = ''; filtroProbMax.value = '';
+    filtroFechaInicio.value = ''; filtroFechaFin.value = '';
+  }
+
+  function filtrarHistorial() {
+    return historial.filter(a => {
+      if (filtroLiga.value && !a.liga.toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
+      if (filtroLocal.value && !a.local.toLowerCase().includes(filtroLocal.value.toLowerCase())) return false;
+      if (filtroVisita.value && !a.visita.toLowerCase().includes(filtroVisita.value.toLowerCase())) return false;
+      if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
+      if (filtroEstado.value && a.estado !== filtroEstado.value) return false;
+
+      const p = Number(a.probabilidad) || 0;
+      const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
+      const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
+      if (min !== null && p < min) return false;
+      if (max !== null && p > max) return false;
+
+      if (filtroFechaInicio.value) {
+        const fechaIni = new Date(filtroFechaInicio.value);
+        if (new Date(a.fecha) < fechaIni) return false;
+      }
+      if (filtroFechaFin.value) {
+        const fechaFin = new Date(filtroFechaFin.value);
+        fechaFin.setHours(23, 59, 59, 999);
+        if (new Date(a.fecha) > fechaFin) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderizarTabla() {
+    const apuestas = filtrarHistorial().slice().reverse();
+    tablaBody.innerHTML = '';
+    apuestas.forEach((a, i) => {
+      const tr = document.createElement('tr');
+      const tdIndex = document.createElement('td'); tdIndex.textContent = i + 1; tr.appendChild(tdIndex);
+
+      const tdFecha = document.createElement('td'); tdFecha.textContent = new Date(a.fecha).toLocaleDateString(); tr.appendChild(tdFecha);
+
+      const tdLiga = document.createElement('td'); tdLiga.textContent = a.liga;
+      tdLiga.addEventListener('dblclick', () => {
+        const input = document.createElement('input'); input.type = 'text'; input.value = a.liga; input.style.width = "100%";
+        tdLiga.textContent = ''; tdLiga.appendChild(input); input.focus();
+        input.addEventListener('blur', () => { a.liga = input.value.trim() || a.liga; guardarHistorial(); actualizarVista(); });
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+      });
+      tr.appendChild(tdLiga);
+
+      const tdLocal = document.createElement('td'); tdLocal.textContent = a.local; tr.appendChild(tdLocal);
+      const tdVisita = document.createElement('td'); tdVisita.textContent = a.visita; tr.appendChild(tdVisita);
+      const tdMercado = document.createElement('td'); tdMercado.textContent = a.mercado; tr.appendChild(tdMercado);
+
+      const tdProb = document.createElement('td'); tdProb.textContent = (Number(a.probabilidad) || 0).toFixed(2); tr.appendChild(tdProb);
+
+      const tdCuotaImpl = document.createElement('td');
+      const impl = a.cuotaImplicita !== '' && a.cuotaImplicita !== null ? a.cuotaImplicita : calcularCuotaImplicita(a.probabilidad);
+      tdCuotaImpl.textContent = impl !== '' ? Number(impl).toFixed(2) : '-'; tr.appendChild(tdCuotaImpl);
+
+      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = (Number(a.cuotaBookie) || 0).toFixed(2); tr.appendChild(tdCuotaBookie);
+
+      const tdEV = document.createElement('td'); tdEV.textContent = ((a.ev || 0) * 100).toFixed(2);
+      tdEV.style.color = (a.ev || 0) >= 0 ? '#4caf50' : '#ef4444'; tr.appendChild(tdEV);
+
+      const tdKelly = document.createElement('td');
+      tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(2) : '-';
+      tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc'; tr.appendChild(tdKelly);
+
+      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+      const tdStake = document.createElement('td'); tdStake.textContent = stake.toFixed(2); tr.appendChild(tdStake);
+
+      const tdEstado = document.createElement('td'); tdEstado.textContent = a.estado; tdEstado.className = `status-${a.estado}`; tr.appendChild(tdEstado);
+
+      const tdAcciones = document.createElement('td'); tdAcciones.className = 'acciones';
+      const btnGanada = document.createElement('button'); btnGanada.title='Marcar como ganada'; btnGanada.innerHTML='✅';
+      btnGanada.addEventListener('click', () => cambiarEstado(a.id, 'ganada'));
+      const btnPerdida = document.createElement('button'); btnPerdida.title='Marcar como perdida'; btnPerdida.innerHTML='❌';
+      btnPerdida.addEventListener('click', () => cambiarEstado(a.id, 'perdida'));
+      const btnPendiente = document.createElement('button'); btnPendiente.title='Marcar como pendiente'; btnPendiente.innerHTML='⏳';
+      btnPendiente.addEventListener('click', () => cambiarEstado(a.id, 'pendiente'));
+      const btnBorrar = document.createElement('button'); btnBorrar.title='Eliminar apuesta'; btnBorrar.innerHTML='🗑️';
+      btnBorrar.addEventListener('click', () => eliminarApuesta(a.id));
+      tdAcciones.append(btnGanada, btnPerdida, btnPendiente, btnBorrar);
+      tr.appendChild(tdAcciones);
+
+      tablaBody.appendChild(tr);
+    });
+  }
+
+  function cambiarEstado(id, nuevoEstado) {
+    const index = historial.findIndex(a => a.id === id);
+    if (index !== -1) {
+      historial[index].estado = nuevoEstado;
+      guardarHistorial();
+      actualizarVista();
+    }
+  }
+
+  function eliminarApuesta(id) {
+    if (!confirm('¿Estás seguro de eliminar esta apuesta?')) return;
+    historial = historial.filter(a => a.id !== id);
+    guardarHistorial();
+    actualizarVista();
+  }
+
+  btnEliminarTodo.addEventListener('click', () => {
+    if (!confirm(`⚠️ ¿Seguro que quieres eliminar TODO el historial del perfil "${perfil}"? Esta acción no se puede deshacer.`)) return;
+    historial = []; localStorage.setItem(dataKeyFor(perfil), '[]');
+    actualizarVista(); inputImportJSON.value = '';
+    alert('Historial eliminado ✅');
+  });
+
+  function actualizarResumen() {
+    const apuestasFiltradas = filtrarHistorial();
+    if (apuestasFiltradas.length === 0) {
+      resumenBankroll.textContent = '-';
+      resumenNumApuestas.textContent = '0';
+      resumenGanadas.textContent = '0';
+      resumenPerdidas.textContent = '0';
+      resumenYield.textContent = '0.00%';
+      resumenROI.textContent = '0.00%';
+      resumenTasaExito.textContent = '0.00%';
+      resumenUnidades.textContent = '0.00';
+      return;
+    }
+
+    const bankrollInicial = apuestasFiltradas[0].bankroll || 0;
+    resumenBankroll.textContent = bankrollInicial.toFixed(2);
+
+    const numApuestas = apuestasFiltradas.length;
+    resumenNumApuestas.textContent = numApuestas;
+
+    const ganadas = apuestasFiltradas.filter(a => a.estado === 'ganada').length;
+    const perdidas = apuestasFiltradas.filter(a => a.estado === 'perdida').length;
+    resumenGanadas.textContent = ganadas;
+    resumenPerdidas.textContent = perdidas;
+
+    const tasaExito = numApuestas > 0 ? (ganadas / numApuestas) * 100 : 0;
+    resumenTasaExito.textContent = tasaExito.toFixed(2) + '%';
+
+    let totalGanado = 0, totalApostado = 0;
+    apuestasFiltradas.forEach(a => {
+      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+      totalApostado += stake;
+      if (a.estado === 'ganada') totalGanado += stake * a.cuotaBookie;
+      if (a.estado === 'perdida') totalGanado += 0;
+    });
+    const neto = totalGanado - totalApostado;
+    const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
+    resumenYield.textContent = yieldPct.toFixed(2) + '%';
+    const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
+    resumenROI.textContent = roiPct.toFixed(2) + '%';
+    resumenUnidades.textContent = neto.toFixed(2);
+  }
+
+  function actualizarGraficas() {
+    const apuestasFiltradas = filtrarHistorial();
+    if (graficaBankroll) graficaBankroll.destroy();
+    if (graficaKelly) graficaKelly.destroy();
+    if (apuestasFiltradas.length === 0) return;
+
+    let bankInicial = apuestasFiltradas[0].bankroll || 100;
+    let bankData = [bankInicial];
+    let labels = ['Inicio'];
+
+    apuestasFiltradas.forEach((a, i) => {
+      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+      let lastBank = bankData[bankData.length - 1];
+      let nuevoBank = lastBank;
+      if (a.estado === 'ganada') nuevoBank += stake * (a.cuotaBookie - 1);
+      else if (a.estado === 'perdida') nuevoBank -= stake;
+      bankData.push(nuevoBank);
+      labels.push(`Apuesta ${i + 1}`);
+    });
+
+    graficaBankroll = new Chart(ctxBankroll, {
+      type: 'line',
+      data: { labels, datasets: [{ label: 'Bankroll', data: bankData, borderColor: '#8257e6', backgroundColor: 'rgba(130,87,230,.3)', fill: true, tension: .3, pointRadius:3, pointHoverRadius:6, borderWidth:3 }]},
+      options: {
+        responsive:true, interaction:{mode:'nearest', intersect:false},
+        plugins:{ legend:{labels:{color:'#ddd', font:{size:14, weight:'600'}}}, tooltip:{callbacks:{label: ctx => `Bankroll: ${ctx.parsed.y.toFixed(2)}`}}},
+        scales:{ y:{beginAtZero:false, ticks:{color:'#ddd'}, grid:{color:'#444'}}, x:{ticks:{color:'#ddd'}, grid:{color:'#444'}} }
+      }
+    });
+
+    const kellyData = apuestasFiltradas.map(a => a.kellyFull ? a.kellyFull * 100 : 0);
+    graficaKelly = new Chart(ctxKelly, {
+      type:'bar',
+      data:{ labels: labels.slice(1), datasets:[{ label:'Kelly FULL (%)', data: kellyData, backgroundColor:'#ffba08', borderRadius:4 }]},
+      options:{
+        responsive:true,
+        scales:{ y:{beginAtZero:true, max:100, ticks:{color:'#ddd'}, grid:{color:'#444'}}, x:{ticks:{color:'#ddd'}, grid:{color:'#444'}} },
+        plugins:{ legend:{labels:{color:'#ddd', font:{size:14, weight:'600'}}}}
+      }
+    });
+  }
+
+  /* ==========================
+     NUEVO: ANÁLISIS POR DÍAS
+     ========================== */
+  const DOW_LABELS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  function mondayIndex(date){ return (date.getDay() + 6) % 7; } // 0=Lun ... 6=Dom
+
+  function statsPorDia(apuestas){
+    const base = Array.from({length:7}, ()=>({count:0, wins:0, losses:0, pending:0, apostado:0, net:0}));
+    apuestas.forEach(a=>{
+      const d = new Date(a.fecha);
+      const idx = mondayIndex(d);
+      const s = base[idx];
+      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
+      s.count++; s.apostado += stake;
+      if (a.estado === 'ganada'){ s.wins++; s.net += stake * (a.cuotaBookie - 1); }
+      else if (a.estado === 'perdida'){ s.losses++; s.net -= stake; }
+      else { s.pending++; }
+    });
+    return base.map(s=>({
+      ...s,
+      wr: s.count ? (s.wins / s.count * 100) : 0,
+      yld: s.apostado ? (s.net / s.apostado * 100) : 0
+    }));
+  }
+
+  function renderAnalisisSemana(){
+    const apuestas = filtrarHistorial();
+    const st = statsPorDia(apuestas);
+
+    // Tabla
+    tbodySemana.innerHTML = '';
+    let tCount=0, tWins=0, tLoss=0, tPend=0, tApost=0, tNet=0;
+    st.forEach((s, i)=>{
+      tCount += s.count; tWins += s.wins; tLoss += s.losses; tPend += s.pending; tApost += s.apostado; tNet += s.net;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${DOW_LABELS[i]}</td>
+        <td>${s.count}</td>
+        <td>${s.wins}</td>
+        <td>${s.losses}</td>
+        <td>${s.pending}</td>
+        <td>${s.wr.toFixed(2)}</td>
+        <td>${s.yld.toFixed(2)}</td>
+        <td style="font-weight:700; color:${s.net>=0?'#4caf50':'#ef4444'}">${s.net.toFixed(2)}</td>`;
+      tbodySemana.appendChild(tr);
+    });
+
+    const tWr = tCount ? (tWins / tCount * 100) : 0;
+    const tYield = tApost ? (tNet / tApost * 100) : 0;
+    dwTotApu.textContent = tCount;
+    dwTotGan.textContent = tWins;
+    dwTotPer.textContent = tLoss;
+    dwTotPen.textContent = tPend;
+    dwTotWr.textContent = tWr.toFixed(2);
+    dwTotYield.textContent = tYield.toFixed(2);
+    dwTotUnid.textContent = tNet.toFixed(2);
+
+    // Gráfica
+    if (graficaDias) graficaDias.destroy();
+    graficaDias = new Chart(ctxDias, {
+      type:'bar',
+      data:{
+        labels:DOW_LABELS,
+        datasets:[
+          { label:'Unidades netas', data: st.map(s=>s.net), backgroundColor:'#36a2eb', borderRadius:6 },
+          { label:'Winrate (%)', data: st.map(s=>s.wr), type:'line', yAxisID:'y1', tension:.3, borderColor:'#ff6384', fill:false, pointRadius:4 }
+        ]
+      },
+      options:{
+        responsive:true,
+        scales:{
+          y:{ beginAtZero:true, ticks:{color:'#ddd'}, grid:{color:'#444'}, title:{display:true, text:'Unidades', color:'#ddd'} },
+          y1:{ position:'right', beginAtZero:true, ticks:{color:'#ddd'}, grid:{display:false}, title:{display:true, text:'%', color:'#ddd'} },
+          x:{ ticks:{color:'#ddd'}, grid:{color:'#444'} }
+        },
+        plugins:{ legend:{labels:{color:'#ddd'}} }
+      }
+    });
+  }
+
+  btnAnalizarSemana.addEventListener('click', ()=>{
+    panelSemana.style.display = 'block';
+    renderAnalisisSemana();
+    panelSemana.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+  btnCerrarAnalisis.addEventListener('click', ()=>{ panelSemana.style.display = 'none'; });
+  btnRefrescarSemana.addEventListener('click', renderAnalisisSemana);
+
+  /* ==========================
+     EXPORT / IMPORT
+     ========================== */
+  btnExportarCSV.addEventListener('click', () => {
+    if (historial.length === 0) { alert('No hay datos para exportar'); return; }
+    const csvRows = [];
+    const headers = ['id','fecha','liga','local','visita','mercado','probabilidad','cuotaImplicita','cuotaBookie','ev','kellyFull','bankroll','kellyFrac','estado'];
+    csvRows.push(headers.join(','));
+    historial.forEach(a => {
+      csvRows.push([ a.id, a.fecha, `"${a.liga}"`, `"${a.local}"`, `"${a.visita}"`, `"${a.mercado}"`, a.probabilidad, a.cuotaImplicita, a.cuotaBookie, a.ev, a.kellyFull, a.bankroll, a.kellyFrac, a.estado ].join(','));
+    });
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); link.href = url; link.download = `historial_apuestas_${perfil}.csv`;
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  });
+
+  btnImportarJSON.addEventListener('click', () => inputImportJSON.click());
+
+  // -------- utilidades de import (sin cambios de fondo) --------
   const removeDiacritics = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const normalizeKey = (k) => removeDiacritics(String(k)).toLowerCase().replace(/[^a-z0-9]+/g,'');
   function getVal(obj, candidates) {
     const map = new Map(Object.keys(obj).map(k => [normalizeKey(k), k]));
-    for (const c of candidates) {
-      const nk = normalizeKey(c);
-      if (map.has(nk)) return obj[map.get(nk)];
-    }
+    for (const c of candidates) { const nk = normalizeKey(c); if (map.has(nk)) return obj[map.get(nk)]; }
     return undefined;
   }
   function toNumber(val) {
     if (typeof val === 'number') return val;
     if (val === null || val === undefined) return NaN;
-    let s = String(val).trim();
-    s = s.replace(/%/g,'').replace(/\s+/g,'').replace(/,/g,'.');
-    if (s === '') return NaN;
-    const n = parseFloat(s);
-    return isNaN(n) ? NaN : n;
+    let s = String(val).trim().replace(/%/g,'').replace(/\s+/g,'').replace(/,/g,'.');
+    if (s === '') return NaN; const n = parseFloat(s); return isNaN(n) ? NaN : n;
   }
-  const monthMap = {
-    ene:0, enero:0,
-    feb:1, febrero:1,
-    mar:2, marzo:2,
-    abr:3, abril:3,
-    may:4, mayo:4,
-    jun:5, junio:5,
-    jul:6, julio:6,
-    ago:7, agosto:7,
-    sep:8, set:8, sept:8, septiembre:8, setiembre:8,
-    oct:9, octubre:9,
-    nov:10, noviembre:10,
-    dic:11, diciembre:11
-  };
+  const monthMap = {ene:0, enero:0, feb:1, febrero:1, mar:2, marzo:2, abr:3, abril:3, may:4, mayo:4, jun:5, junio:5, jul:6, julio:6, ago:7, agosto:7, sep:8, set:8, sept:8, septiembre:8, setiembre:8, oct:9, octubre:9, nov:10, noviembre:10, dic:11, diciembre:11};
   function parseSpanishDate(str) {
     if (!str) return new Date();
     const raw = removeDiacritics(String(str)).toLowerCase().replace(/\./g,' ').replace(/,/g,' ').replace(/\s+/g,' ').trim();
@@ -479,9 +838,9 @@
       const day = parseInt(m[1],10);
       const monToken = m[2];
       const monKey = (monthMap[monToken] !== undefined) ? monToken
-                      : monthMap[monToken.slice(0,4)] !== undefined ? monToken.slice(0,4)
-                      : monthMap[monToken.slice(0,3)] !== undefined ? monToken.slice(0,3)
-                      : null;
+                    : monthMap[monToken.slice(0,4)] !== undefined ? monToken.slice(0,4)
+                    : monthMap[monToken.slice(0,3)] !== undefined ? monToken.slice(0,3)
+                    : null;
       const month = monKey !== null ? monthMap[monKey] : undefined;
       if (month !== undefined) {
         const year = parseInt(m[3],10);
@@ -517,342 +876,139 @@
     return 'pendiente';
   }
 
-  /* ==========================
-     CARGA/GUARDADO POR PERFIL
-     ========================== */
-  function guardarHistorial() {
-    localStorage.setItem(dataKeyFor(perfil), JSON.stringify(historial));
-  }
-  function cargarHistorial() {
-    const raw = localStorage.getItem(dataKeyFor(perfil));
-    if (raw) {
-      try { historial = JSON.parse(raw); } catch { historial = []; }
-    } else {
-      historial = [];
-      localStorage.setItem(dataKeyFor(perfil), '[]');
-    }
-  }
-
-  /* ==========================
-     FILTROS Y RENDER
-     ========================== */
-  function limpiarFiltros() {
-    filtroLiga.value = '';
-    filtroLocal.value = '';
-    filtroVisita.value = '';
-    filtroMercado.value = '';
-    filtroEstado.value = '';
-    filtroProbMin.value = '';
-    filtroProbMax.value = '';
-    filtroFechaInicio.value = '';
-    filtroFechaFin.value = '';
-  }
-
-  function filtrarHistorial() {
-    return historial.filter(a => {
-      if (filtroLiga.value && !a.liga.toLowerCase().includes(filtroLiga.value.toLowerCase())) return false;
-      if (filtroLocal.value && !a.local.toLowerCase().includes(filtroLocal.value.toLowerCase())) return false;
-      if (filtroVisita.value && !a.visita.toLowerCase().includes(filtroVisita.value.toLowerCase())) return false;
-      if (filtroMercado.value && a.mercado !== filtroMercado.value) return false;
-      if (filtroEstado.value && a.estado !== filtroEstado.value) return false;
-
-      const p = Number(a.probabilidad) || 0;
-      const min = filtroProbMin.value !== '' ? parseFloat(filtroProbMin.value) : null;
-      const max = filtroProbMax.value !== '' ? parseFloat(filtroProbMax.value) : null;
-      if (min !== null && p < min) return false;
-      if (max !== null && p > max) return false;
-
-      if (filtroFechaInicio.value) {
-        const fechaIni = new Date(filtroFechaInicio.value);
-        if (new Date(a.fecha) < fechaIni) return false;
-      }
-      if (filtroFechaFin.value) {
-        const fechaFin = new Date(filtroFechaFin.value);
-        fechaFin.setHours(23, 59, 59, 999);
-        if (new Date(a.fecha) > fechaFin) return false;
-      }
-      return true;
-    });
-  }
-
-  function renderizarTabla() {
-    const apuestas = filtrarHistorial().slice().reverse();
-    tablaBody.innerHTML = '';
-    apuestas.forEach((a, i) => {
-      const tr = document.createElement('tr');
-
-      const tdIndex = document.createElement('td'); tdIndex.textContent = i + 1; tr.appendChild(tdIndex);
-
-      const tdFecha = document.createElement('td');
-      tdFecha.textContent = new Date(a.fecha).toLocaleDateString();
-      tr.appendChild(tdFecha);
-
-      const tdLiga = document.createElement('td');
-      tdLiga.textContent = a.liga;
-      tdLiga.addEventListener('dblclick', () => {
-        const input = document.createElement('input');
-        input.type = 'text'; input.value = a.liga; input.style.width = "100%";
-        tdLiga.textContent = ''; tdLiga.appendChild(input); input.focus();
-        input.addEventListener('blur', () => { a.liga = input.value.trim() || a.liga; guardarHistorial(); actualizarVista(); });
-        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
-      });
-      tr.appendChild(tdLiga);
-
-      const tdLocal = document.createElement('td'); tdLocal.textContent = a.local; tr.appendChild(tdLocal);
-      const tdVisita = document.createElement('td'); tdVisita.textContent = a.visita; tr.appendChild(tdVisita);
-      const tdMercado = document.createElement('td'); tdMercado.textContent = a.mercado; tr.appendChild(tdMercado);
-
-      const tdProb = document.createElement('td'); tdProb.textContent = (Number(a.probabilidad) || 0).toFixed(2); tr.appendChild(tdProb);
-
-      const tdCuotaImpl = document.createElement('td');
-      const impl = a.cuotaImplicita !== '' && a.cuotaImplicita !== null ? a.cuotaImplicita : calcularCuotaImplicita(a.probabilidad);
-      tdCuotaImpl.textContent = impl !== '' ? Number(impl).toFixed(2) : '-';
-      tr.appendChild(tdCuotaImpl);
-
-      const tdCuotaBookie = document.createElement('td'); tdCuotaBookie.textContent = (Number(a.cuotaBookie) || 0).toFixed(2); tr.appendChild(tdCuotaBookie);
-
-      const tdEV = document.createElement('td');
-      tdEV.textContent = ((a.ev || 0) * 100).toFixed(2);
-      tdEV.style.color = (a.ev || 0) >= 0 ? '#4caf50' : '#ef4444';
-      tr.appendChild(tdEV);
-
-      const tdKelly = document.createElement('td');
-      tdKelly.textContent = a.kellyFull ? (a.kellyFull * 100).toFixed(2) : '-';
-      tdKelly.style.color = a.kellyFull && a.kellyFull > 0 ? '#4caf50' : '#c4c4cc';
-      tr.appendChild(tdKelly);
-
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      const tdStake = document.createElement('td'); tdStake.textContent = stake.toFixed(2); tr.appendChild(tdStake);
-
-      const tdEstado = document.createElement('td');
-      tdEstado.textContent = a.estado; tdEstado.className = `status-${a.estado}`; tr.appendChild(tdEstado);
-
-      const tdAcciones = document.createElement('td'); tdAcciones.className = 'acciones';
-      const btnGanada = document.createElement('button'); btnGanada.title='Marcar como ganada'; btnGanada.innerHTML='✅';
-      btnGanada.addEventListener('click', () => cambiarEstado(a.id, 'ganada'));
-      const btnPerdida = document.createElement('button'); btnPerdida.title='Marcar como perdida'; btnPerdida.innerHTML='❌';
-      btnPerdida.addEventListener('click', () => cambiarEstado(a.id, 'perdida'));
-      const btnPendiente = document.createElement('button'); btnPendiente.title='Marcar como pendiente'; btnPendiente.innerHTML='⏳';
-      btnPendiente.addEventListener('click', () => cambiarEstado(a.id, 'pendiente'));
-      const btnBorrar = document.createElement('button'); btnBorrar.title='Eliminar apuesta'; btnBorrar.innerHTML='🗑️';
-      btnBorrar.addEventListener('click', () => eliminarApuesta(a.id));
-      tdAcciones.append(btnGanada, btnPerdida, btnPendiente, btnBorrar);
-      tr.appendChild(tdAcciones);
-
-      tablaBody.appendChild(tr);
-    });
-  }
-
-  function cambiarEstado(id, nuevoEstado) {
-    const index = historial.findIndex(a => a.id === id);
-    if (index !== -1) {
-      historial[index].estado = nuevoEstado;
-      guardarHistorial();
-      actualizarVista();
-    }
-  }
-
-  function eliminarApuesta(id) {
-    if (!confirm('¿Estás seguro de eliminar esta apuesta?')) return;
-    historial = historial.filter(a => a.id !== id);
-    guardarHistorial();
-    actualizarVista();
-  }
-
-  // ---- Eliminar TODO el historial (del perfil actual) ----
-  btnEliminarTodo.addEventListener('click', () => {
-    if (!confirm(`⚠️ ¿Seguro que quieres eliminar TODO el historial del perfil "${perfil}"? Esta acción no se puede deshacer.`)) return;
-    historial = [];
-    localStorage.setItem(dataKeyFor(perfil), '[]');
-    actualizarVista();
-    inputImportJSON.value = '';
-    alert('Historial eliminado ✅');
+  btnImportarJSON.addEventListener('click', () => inputImportJSON.click());
+  inputImportJSON.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        let data = JSON.parse(event.target.result); if (!Array.isArray(data)) data = [data];
+        let importados = 0;
+        data.forEach(item => {
+          let apuesta;
+          const isInternal = ('liga' in item) && ('cuotaBookie' in item) && ('probabilidad' in item);
+          if (isInternal) {
+            apuesta = {
+              id: item.id || Date.now() + Math.random(),
+              fecha: item.fecha || new Date().toISOString(),
+              liga: item.liga || 'Sin liga',
+              local: item.local || '',
+              visita: item.visita || '',
+              mercado: item.mercado || '',
+              probabilidad: Number(item.probabilidad) || 0,
+              cuotaImplicita: item.cuotaImplicita !== undefined ? item.cuotaImplicita : (Number(item.probabilidad) ? Number((100/Number(item.probabilidad)).toFixed(2)) : ''),
+              cuotaBookie: Number(item.cuotaBookie) || 0,
+              ev: (typeof item.ev === 'number') ? item.ev : calcularEV(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
+              kellyFull: (typeof item.kellyFull === 'number') ? item.kellyFull : calcularKelly(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
+              bankroll: Number(item.bankroll) || (parseFloat(document.getElementById('bankroll').value)||100),
+              kellyFrac: Number(item.kellyFrac) || (parseFloat(document.getElementById('kellyFrac').value)||0.25),
+              estado: item.estado || 'pendiente'
+            };
+          } else {
+            const rawDate = getVal(item, ['Date','Fecha']);
+            const rawLeague = getVal(item, ['League','Liga']);
+            const rawMatch  = getVal(item, ['Match','Partido']);
+            const rawOutcome = getVal(item, ['Desired Outcome','Outcome','Mercado']);
+            let prob = toNumber(getVal(item, ['Prob(%)','Prob','Probability','Probabilidad']));
+            const implied = toNumber(getVal(item, ['Cuota Implícita','Cuota Implicita','Cuota Implcita','Implied Odds']));
+            const odd = toNumber(getVal(item, ['Odd','Cuota','Cuota Bookie','Precio','Decimal Odds']));
+            const result = getVal(item, ['Result','Estado','Resultado']);
+            if (!(prob > 0) && implied > 0) prob = 100 / implied;
+            const fechaISO = parseSpanishDate(rawDate).toISOString();
+            const liga = (rawLeague ? String(rawLeague) : 'Sin liga').trim();
+            const [local, visita] = splitMatch(rawMatch);
+            const mercado = mapOutcome(rawOutcome);
+            const bankrollActual = parseFloat(document.getElementById('bankroll').value) || 100;
+            const kellyFracActual = parseFloat(document.getElementById('kellyFrac').value) || 0.25;
+            const ev = calcularEV(prob, odd);
+            const kellyFull = calcularKelly(prob, odd);
+            apuesta = {
+              id: Date.now() + Math.random(), fecha: fechaISO,
+              liga, local, visita, mercado, probabilidad: prob > 0 ? prob : 0,
+              cuotaImplicita: prob > 0 ? parseFloat((100/prob).toFixed(2)) : '',
+              cuotaBookie: odd > 0 ? odd : 0, ev, kellyFull,
+              bankroll: bankrollActual, kellyFrac: kellyFracActual,
+              estado: mapEstado(result)
+            };
+          }
+          historial.push(apuesta); importados++;
+        });
+        guardarHistorial(); actualizarVista();
+        alert(`Importación exitosa ✅  Registros añadidos: ${importados}`);
+        inputImportJSON.value = '';
+      } catch (err) { console.error(err); alert('Error al importar el archivo JSON. Verifica el formato.'); }
+    };
+    reader.readAsText(file);
   });
 
-  function actualizarResumen() {
-    const apuestasFiltradas = filtrarHistorial();
-    if (apuestasFiltradas.length === 0) {
-      resumenBankroll.textContent = '-';
-      resumenNumApuestas.textContent = '0';
-      resumenGanadas.textContent = '0';
-      resumenPerdidas.textContent = '0';
-      resumenYield.textContent = '0.00%';
-      resumenROI.textContent = '0.00%';
-      resumenTasaExito.textContent = '0.00%';
-      resumenUnidades.textContent = '0.00';
-      return;
-    }
-
-    const bankrollInicial = apuestasFiltradas[0].bankroll || 0;
-    resumenBankroll.textContent = bankrollInicial.toFixed(2);
-
-    const numApuestas = apuestasFiltradas.length;
-    resumenNumApuestas.textContent = numApuestas;
-
-    const ganadas = apuestasFiltradas.filter(a => a.estado === 'ganada').length;
-    const perdidas = apuestasFiltradas.filter(a => a.estado === 'perdida').length;
-    resumenGanadas.textContent = ganadas;
-    resumenPerdidas.textContent = perdidas;
-
-    const tasaExito = numApuestas > 0 ? (ganadas / numApuestas) * 100 : 0;
-    resumenTasaExito.textContent = tasaExito.toFixed(2) + '%';
-
-    // Yield y ROI usando stakes calculados
-    let totalGanado = 0;
-    let totalApostado = 0;
-    apuestasFiltradas.forEach(a => {
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      totalApostado += stake;
-      if (a.estado === 'ganada') totalGanado += stake * a.cuotaBookie;
-      if (a.estado === 'perdida') totalGanado += 0;
+  /* ==========================
+     PERFILES: UI Y NAVEGACIÓN
+     ========================== */
+  function refreshPerfilSelect(){
+    const list = ensureInitialProfiles();
+    let p = getCurrentProfile();
+    if (!list.includes(p)) { p = list[0]; setCurrentProfile(p); }
+    perfil = p; migrateIfNeeded(perfil);
+    selectPerfil.innerHTML = '';
+    list.forEach(name=>{
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name; if (name === perfil) opt.selected = true;
+      selectPerfil.appendChild(opt);
     });
-    const neto = totalGanado - totalApostado;
-    const yieldPct = totalApostado > 0 ? (neto / totalApostado) * 100 : 0;
-    resumenYield.textContent = yieldPct.toFixed(2) + '%';
-
-    const roiPct = bankrollInicial > 0 ? (neto / bankrollInicial) * 100 : 0;
-    resumenROI.textContent = roiPct.toFixed(2) + '%';
-    resumenUnidades.textContent = neto.toFixed(2);
+    cargarHistorial();
+    btnIrLigas.onclick = () => location.href = `historial_ligas.html?perfil=${encodeURIComponent(perfil)}`;
+    btnIrEquiposRol.onclick = () => location.href = `historial_equipos_rol.html?perfil=${encodeURIComponent(perfil)}`;
+    btnIrProbabilidades.onclick = () => location.href = `probabilidades.html?perfil=${encodeURIComponent(perfil)}`;
   }
 
-  function actualizarGraficas() {
-    const apuestasFiltradas = filtrarHistorial();
+  selectPerfil.addEventListener('change', ()=>{
+    perfil = selectPerfil.value; setCurrentProfile(perfil); cargarHistorial(); actualizarVista();
+    btnIrLigas.onclick = () => location.href = `historial_ligas.html?perfil=${encodeURIComponent(perfil)}`;
+    btnIrEquiposRol.onclick = () => location.href = `historial_equipos_rol.html?perfil=${encodeURIComponent(perfil)}`;
+    btnIrProbabilidades.onclick = () => location.href = `probabilidades.html?perfil=${encodeURIComponent(perfil)}`;
+  });
 
-    if (graficaBankroll) graficaBankroll.destroy();
-    if (graficaKelly) graficaKelly.destroy();
+  btnCrearPerfil.addEventListener('click', ()=>{
+    const name = (inputNuevoPerfil.value || '').trim(); if (!name) { alert('Escribe un nombre para el nuevo perfil.'); return; }
+    const list = getProfiles(); if (list.includes(name)) { alert('Ese perfil ya existe.'); return; }
+    list.push(name); setProfiles(list); localStorage.setItem(dataKeyFor(name), '[]');
+    selectPerfil.insertAdjacentHTML('beforeend', `<option value="${name}">${name}</option>`);
+    selectPerfil.value = name; selectPerfil.dispatchEvent(new Event('change')); inputNuevoPerfil.value = '';
+  });
 
-    if (apuestasFiltradas.length === 0) return;
+  btnRenombrarPerfil.addEventListener('click', ()=>{
+    const nuevo = prompt('Nuevo nombre para el perfil:', perfil); if (!nuevo) return;
+    const list = getProfiles(); if (list.includes(nuevo) && nuevo !== perfil) { alert('Ya existe un perfil con ese nombre.'); return; }
+    const oldKey = dataKeyFor(perfil), newKey = dataKeyFor(nuevo);
+    const data = localStorage.getItem(oldKey) || '[]'; localStorage.setItem(newKey, data);
+    if (nuevo !== perfil) localStorage.removeItem(oldKey);
+    const idx = list.indexOf(perfil); if (idx >= 0) list[idx] = nuevo; else list.push(nuevo);
+    setProfiles(list); perfil = nuevo; setCurrentProfile(perfil);
+    refreshPerfilSelect(); actualizarVista();
+  });
 
-    // Datos para gráfica de bankroll
-    let bankInicial = apuestasFiltradas[0].bankroll || 100;
-    let bankData = [bankInicial];
-    let labels = ['Inicio'];
+  btnBorrarPerfil.addEventListener('click', ()=>{
+    const list = getProfiles(); if (list.length <= 1) { alert('Debe existir al menos un perfil.'); return; }
+    if (!confirm(`¿Eliminar el perfil "${perfil}" y todos sus datos?`)) return;
+    localStorage.removeItem(dataKeyFor(perfil));
+    const nuevaLista = list.filter(x=>x!==perfil); setProfiles(nuevaLista);
+    perfil = nuevaLista[0]; setCurrentProfile(perfil); refreshPerfilSelect(); actualizarVista();
+  });
 
-    apuestasFiltradas.forEach((a, i) => {
-      const stake = stakeSugerido(a.bankroll, a.kellyFull, a.kellyFrac);
-      let lastBank = bankData[bankData.length - 1];
-      let nuevoBank = lastBank;
-      if (a.estado === 'ganada') {
-        nuevoBank += stake * (a.cuotaBookie - 1);
-      } else if (a.estado === 'perdida') {
-        nuevoBank -= stake;
-      }
-      bankData.push(nuevoBank);
-      labels.push(`Apuesta ${i + 1}`);
-    });
-
-    graficaBankroll = new Chart(ctxBankroll, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Bankroll',
-          data: bankData,
-          borderColor: '#8257e6',
-          backgroundColor: 'rgba(130, 87, 230, 0.3)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 3,
-        }]
-      },
-      options: {
-        responsive: true,
-        interaction: { mode: 'nearest', intersect: false },
-        plugins: {
-          legend: { labels: { color: '#ddd', font: { size: 14, weight: '600' } } },
-          tooltip: { callbacks: { label: ctx => `Bankroll: ${ctx.parsed.y.toFixed(2)}` } }
-        },
-        scales: {
-          y: { beginAtZero: false, ticks: { color: '#ddd' }, grid: { color: '#444' } },
-          x: { ticks: { color: '#ddd' }, grid: { color: '#444' } }
-        }
-      }
-    });
-
-    // Datos para gráfica Kelly Full
-    let kellyData = apuestasFiltradas.map(a => a.kellyFull ? a.kellyFull * 100 : 0);
-
-    graficaKelly = new Chart(ctxKelly, {
-      type: 'bar',
-      data: {
-        labels: labels.slice(1),
-        datasets: [{ label: 'Kelly FULL (%)', data: kellyData, backgroundColor: '#ffba08', borderRadius: 4 }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: true, max: 100, ticks: { color: '#ddd' }, grid: { color: '#444' } },
-          x: { ticks: { color: '#ddd' }, grid: { color: '#444' } }
-        },
-        plugins: { legend: { labels: { color: '#ddd', font: { size: 14, weight: '600' } } } }
-      }
-    });
-  }
-
+  /* ==========================
+     INICIALIZACIÓN
+     ========================== */
   function actualizarVista() {
     renderizarTabla();
     actualizarResumen();
     actualizarGraficas();
+    if (panelSemana.style.display !== 'none') { renderAnalisisSemana(); } // si está abierto, refresca
   }
 
-  /* ==========================
-     FORM / PREVIEW
-     ========================== */
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const formData = new FormData(form);
-    try {
-      const liga = formData.get('liga').trim();
-      const local = formData.get('local').trim();
-      const visita = formData.get('visita').trim();
-      const mercado = formData.get('mercado');
-      const prob = parseFloat(formData.get('probabilidad'));
-      const cuotaBookie = parseFloat(formData.get('cuotaBookie'));
-      const bankroll = parseFloat(formData.get('bankroll'));
-      const kellyFrac = parseFloat(formData.get('kellyFrac'));
+  function init() { refreshPerfilSelect(); actualizarVista(); }
+  init();
 
-      if (!liga) throw new Error('La liga es requerida');
-      if (!local) throw new Error('Equipo local es requerido');
-      if (!visita) throw new Error('Equipo visitante es requerido');
-      if (!mercado) throw new Error('Selecciona un mercado');
-      if (!(prob > 0 && prob <= 100)) throw new Error('Probabilidad debe estar entre 0 y 100');
-      if (!(cuotaBookie > 1)) throw new Error('Cuota bookie debe ser mayor que 1');
-      if (!(bankroll > 0)) throw new Error('Bankroll debe ser mayor que 0');
-      if (!(kellyFrac > 0 && kellyFrac <= 1)) throw new Error('Fracción Kelly inválida');
-
-      const cuotaImplicitaCalc = parseFloat(calcularCuotaImplicita(prob));
-      const ev = calcularEV(prob, cuotaBookie);
-      const kellyFull = calcularKelly(prob, cuotaBookie);
-
-      const apuesta = {
-        id: Date.now(),
-        fecha: new Date().toISOString(),
-        liga, local, visita, mercado,
-        probabilidad: prob,
-        cuotaImplicita: cuotaImplicitaCalc,
-        cuotaBookie, ev, kellyFull,
-        bankroll, kellyFrac,
-        estado: 'pendiente'
-      };
-
-      historial.push(apuesta);
-      guardarHistorial();
-      form.reset();
-      cuotaImplicitaInput.value = '';
-      actualizarVista();
-      alert('Apuesta agregada correctamente');
-    } catch (error) {
-      alert('Error al agregar apuesta: ' + error.message);
-    }
-  });
-
-  document.getElementById('probabilidad').addEventListener('input', e => {
-    const valorProb = parseFloat(e.target.value);
-    cuotaImplicitaInput.value = calcularCuotaImplicita(valorProb);
-  });
-
+  /* Stake preview */
   const cuotaBookieInput = document.getElementById('cuotaBookie');
   const bankrollInput = document.getElementById('bankroll');
   const kellyFracInput = document.getElementById('kellyFrac');
@@ -868,255 +1024,20 @@
     const stake = stakeSugerido(bankroll, kellyFull, kellyFrac);
     stakePreviewInput.value = stake.toFixed(2);
   }
-
+  document.getElementById('probabilidad').addEventListener('input', e => { cuotaImplicitaInput.value = calcularCuotaImplicita(parseFloat(e.target.value)); actualizarStakePreview(); });
   ['input','change'].forEach(evt => {
-    document.getElementById('probabilidad').addEventListener(evt, actualizarStakePreview);
     cuotaBookieInput.addEventListener(evt, actualizarStakePreview);
     bankrollInput.addEventListener(evt, actualizarStakePreview);
     kellyFracInput.addEventListener(evt, actualizarStakePreview);
   });
 
-  // Filtros
+  // Filtros listeners
   [filtroLiga, filtroLocal, filtroVisita, filtroMercado, filtroEstado,
    filtroProbMin, filtroProbMax, filtroFechaInicio, filtroFechaFin].forEach(el => {
     el.addEventListener('input', actualizarVista);
     el.addEventListener('change', actualizarVista);
   });
-
-  btnLimpiarFiltros.addEventListener('click', e => {
-    e.preventDefault();
-    limpiarFiltros();
-    actualizarVista();
-  });
-
-  // --------- Exportar CSV ----------
-  btnExportarCSV.addEventListener('click', () => {
-    if (historial.length === 0) { alert('No hay datos para exportar'); return; }
-    const csvRows = [];
-    const headers = [
-      'id','fecha','liga','local','visita','mercado',
-      'probabilidad','cuotaImplicita','cuotaBookie','ev','kellyFull','bankroll','kellyFrac','estado'
-    ];
-    csvRows.push(headers.join(','));
-
-    historial.forEach(a => {
-      csvRows.push([
-        a.id, a.fecha,
-        `"${a.liga}"`, `"${a.local}"`, `"${a.visita}"`,
-        `"${a.mercado}"`, a.probabilidad, a.cuotaImplicita, a.cuotaBookie,
-        a.ev, a.kellyFull, a.bankroll, a.kellyFrac, a.estado
-      ].join(','));
-    });
-
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = `historial_apuestas_${perfil}.csv`;
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  });
-
-  // ---------- Importar JSON (con mapeo y cálculos) ----------
-  btnImportarJSON.addEventListener('click', () => inputImportJSON.click());
-
-  function recordFromExternal(rec) {
-    const rawDate = getVal(rec, ['Date','Fecha']);
-    const rawLeague = getVal(rec, ['League','Liga']);
-    const rawMatch  = getVal(rec, ['Match','Partido']);
-    const rawOutcome = getVal(rec, ['Desired Outcome','Outcome','Mercado']);
-    let prob = toNumber(getVal(rec, ['Prob(%)','Prob','Probability','Probabilidad']));
-    const implied = toNumber(getVal(rec, ['Cuota Implícita','Cuota Implicita','Cuota Implcita','Implied Odds']));
-    const odd = toNumber(getVal(rec, ['Odd','Cuota','Cuota Bookie','Precio','Decimal Odds']));
-    const result = getVal(rec, ['Result','Estado','Resultado']);
-
-    if (!(prob > 0) && implied > 0) prob = 100 / implied;
-
-    const fechaISO = parseSpanishDate(rawDate).toISOString();
-    const liga = (rawLeague ? String(rawLeague) : 'Sin liga').trim();
-    const [local, visita] = splitMatch(rawMatch);
-    const mercado = mapOutcome(rawOutcome);
-
-    const bankrollActual = parseFloat(document.getElementById('bankroll').value) || 100;
-    const kellyFracActual = parseFloat(document.getElementById('kellyFrac').value) || 0.25;
-
-    const cuotaImplicitaCalc = prob > 0 ? parseFloat((100 / prob).toFixed(2)) : '';
-    const ev = calcularEV(prob, odd);
-    const kellyFull = calcularKelly(prob, odd);
-
-    return {
-      id: Date.now() + Math.random(),
-      fecha: fechaISO,
-      liga, local, visita, mercado,
-      probabilidad: prob > 0 ? prob : 0,
-      cuotaImplicita: cuotaImplicitaCalc || '',
-      cuotaBookie: odd > 0 ? odd : 0,
-      ev, kellyFull,
-      bankroll: bankrollActual,
-      kellyFrac: kellyFracActual,
-      estado: mapEstado(result)
-    };
-  }
-
-  inputImportJSON.addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        let data = JSON.parse(event.target.result);
-
-        if (!Array.isArray(data)) data = [data];
-
-        let importados = 0;
-        data.forEach(item => {
-          let apuesta;
-          const isInternal = ('liga' in item) && ('cuotaBookie' in item) && ('probabilidad' in item);
-
-          if (isInternal) {
-            apuesta = {
-              id: item.id || Date.now() + Math.random(),
-              fecha: item.fecha || new Date().toISOString(),
-              liga: item.liga || 'Sin liga',
-              local: item.local || '',
-              visita: item.visita || '',
-              mercado: item.mercado || '',
-              probabilidad: Number(item.probabilidad) || 0,
-              cuotaImplicita: item.cuotaImplicita !== undefined ? item.cuotaImplicita : (Number(item.probabilidad) ? Number((100/Number(item.probabilidad)).toFixed(2)) : ''),
-              cuotaBookie: Number(item.cuotaBookie) || 0,
-              ev: (typeof item.ev === 'number') ? item.ev : calcularEV(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
-              kellyFull: (typeof item.kellyFull === 'number') ? item.kellyFull : calcularKelly(Number(item.probabilidad)||0, Number(item.cuotaBookie)||0),
-              bankroll: Number(item.bankroll) || (parseFloat(bankrollInput.value)||100),
-              kellyFrac: Number(item.kellyFrac) || (parseFloat(kellyFracInput.value)||0.25),
-              estado: item.estado || 'pendiente'
-            };
-          } else {
-            apuesta = recordFromExternal(item);
-          }
-
-          historial.push(apuesta);
-          importados++;
-        });
-
-        guardarHistorial();
-        actualizarVista();
-        alert(`Importación exitosa ✅  Registros añadidos: ${importados}`);
-        inputImportJSON.value = '';
-      } catch (err) {
-        console.error(err);
-        alert('Error al importar el archivo JSON. Verifica el formato.');
-      }
-    };
-    reader.readAsText(file);
-  });
-
-  /* ==========================
-     PERFILES: UI Y NAVEGACIÓN
-     ========================== */
-  function refreshPerfilSelect(){
-    const list = ensureInitialProfiles();
-    // perfil actual
-    let p = getCurrentProfile();
-    if (!list.includes(p)) {
-      p = list[0];
-      setCurrentProfile(p);
-    }
-    perfil = p;
-
-    // migración 1ª vez
-    migrateIfNeeded(perfil);
-
-    // poblar select
-    selectPerfil.innerHTML = '';
-    list.forEach(name=>{
-      const opt = document.createElement('option');
-      opt.value = name; opt.textContent = name;
-      if (name === perfil) opt.selected = true;
-      selectPerfil.appendChild(opt);
-    });
-
-    // cargar datos del perfil actual
-    cargarHistorial();
-
-    // actualizar botones de navegación con ?perfil=...
-    btnIrLigas.onclick = () => location.href = `historial_ligas.html?perfil=${encodeURIComponent(perfil)}`;
-    btnIrEquiposRol.onclick = () => location.href = `historial_equipos_rol.html?perfil=${encodeURIComponent(perfil)}`;
-    btnIrProbabilidades.onclick = () => location.href = `probabilidades.html?perfil=${encodeURIComponent(perfil)}`;
-  }
-
-  selectPerfil.addEventListener('change', ()=>{
-    perfil = selectPerfil.value;
-    setCurrentProfile(perfil);
-    cargarHistorial();
-    actualizarVista();
-    // actualizar enlaces
-    btnIrLigas.onclick = () => location.href = `historial_ligas.html?perfil=${encodeURIComponent(perfil)}`;
-    btnIrEquiposRol.onclick = () => location.href = `historial_equipos_rol.html?perfil=${encodeURIComponent(perfil)}`;
-    btnIrProbabilidades.onclick = () => location.href = `probabilidades.html?perfil=${encodeURIComponent(perfil)}`;
-  });
-
-  btnCrearPerfil.addEventListener('click', ()=>{
-    const name = (inputNuevoPerfil.value || '').trim();
-    if (!name) { alert('Escribe un nombre para el nuevo perfil.'); return; }
-    const list = getProfiles();
-    if (list.includes(name)) { alert('Ese perfil ya existe.'); return; }
-    list.push(name);
-    setProfiles(list);
-    localStorage.setItem(dataKeyFor(name), '[]');
-    selectPerfil.insertAdjacentHTML('beforeend', `<option value="${name}">${name}</option>`);
-    selectPerfil.value = name;
-    selectPerfil.dispatchEvent(new Event('change'));
-    inputNuevoPerfil.value = '';
-  });
-
-  btnRenombrarPerfil.addEventListener('click', ()=>{
-    const nuevo = prompt('Nuevo nombre para el perfil:', perfil);
-    if (!nuevo) return;
-    const list = getProfiles();
-    if (list.includes(nuevo) && nuevo !== perfil) { alert('Ya existe un perfil con ese nombre.'); return; }
-    // Renombrar: copiar datos y borrar la clave vieja
-    const oldKey = dataKeyFor(perfil);
-    const newKey = dataKeyFor(nuevo);
-    const data = localStorage.getItem(oldKey) || '[]';
-    localStorage.setItem(newKey, data);
-    if (nuevo !== perfil) localStorage.removeItem(oldKey);
-    // actualizar lista
-    const idx = list.indexOf(perfil);
-    if (idx >= 0) list[idx] = nuevo; else list.push(nuevo);
-    setProfiles(list);
-    perfil = nuevo; setCurrentProfile(perfil);
-    refreshPerfilSelect();
-    actualizarVista();
-  });
-
-  btnBorrarPerfil.addEventListener('click', ()=>{
-    const list = getProfiles();
-    if (list.length <= 1) { alert('Debe existir al menos un perfil.'); return; }
-    if (!confirm(`¿Eliminar el perfil "${perfil}" y todos sus datos?`)) return;
-    // borrar datos y nombre
-    localStorage.removeItem(dataKeyFor(perfil));
-    const nuevaLista = list.filter(x=>x!==perfil);
-    setProfiles(nuevaLista);
-    // cambiar a el primero disponible
-    perfil = nuevaLista[0]; setCurrentProfile(perfil);
-    refreshPerfilSelect();
-    actualizarVista();
-  });
-
-  /* ==========================
-     INICIALIZACIÓN
-     ========================== */
-  function actualizarVista() {
-    renderizarTabla();
-    actualizarResumen();
-    actualizarGraficas();
-  }
-
-  function init() {
-    refreshPerfilSelect();   // asegura perfiles + migración + carga datos
-    actualizarVista();
-  }
-  init();
+  btnLimpiarFiltros.addEventListener('click', e => { e.preventDefault(); limpiarFiltros(); actualizarVista(); });
 
 })();
 </script>
