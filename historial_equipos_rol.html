@@ -26,6 +26,7 @@
   canvas{background:var(--panel);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.5);height:360px !important;margin-top:22px}
   .links{margin-top:14px}
   .links a{color:#fff;background:#3b82f6;text-decoration:none;padding:8px 12px;border-radius:8px;margin-right:8px;display:inline-block}
+  .label{opacity:.9}
 </style>
 </head>
 <body>
@@ -35,13 +36,15 @@
   <section class="bar" aria-label="Perfiles y filtros">
     <strong>Perfil:</strong>
     <select id="selectPerfil"></select>
-    <input id="filtroEquipo" placeholder="Filtrar equipo..." />
-    <select id="filtroRol">
-      <option value="">Todos los roles</option>
-      <option value="Local">Local</option>
-      <option value="Visita">Visita</option>
-    </select>
+
+    <span class="label">Local:</span>
+    <input id="filtroLocal" placeholder="Equipo Local..." />
+
+    <span class="label">Visita:</span>
+    <input id="filtroVisita" placeholder="Equipo Visita..." />
+
     <input id="filtroLiga" placeholder="Filtrar liga..." />
+
     <button id="btnExportCSV">Exportar CSV</button>
     <button id="btnVolver">⬅ Volver</button>
   </section>
@@ -74,7 +77,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (()=>{'use strict';
-  // Perfiles
+  // ===== Perfiles / Storage =====
   const STORAGE_ROOT='HAPC', PROFILE_LIST_KEY=STORAGE_ROOT+'_profiles', CURRENT_PROFILE_KEY=STORAGE_ROOT+'_currentProfile';
   const dataKeyFor=p=>`${STORAGE_ROOT}_data_${p}`;
   const getProfiles=()=>{try{const a=JSON.parse(localStorage.getItem(PROFILE_LIST_KEY)||'[]');return Array.isArray(a)?a:[]}catch{return[]}};
@@ -82,10 +85,10 @@
   const setCurrent=p=>localStorage.setItem(CURRENT_PROFILE_KEY,p);
   const getUrlPerfil=()=>{const s=new URLSearchParams(location.search).get('perfil'); return s&&s.trim()?s.trim():null;}
 
-  // DOM
+  // ===== DOM =====
   const sel=document.getElementById('selectPerfil');
-  const fEq=document.getElementById('filtroEquipo');
-  const fRol=document.getElementById('filtroRol');
+  const fLocal=document.getElementById('filtroLocal');
+  const fVisita=document.getElementById('filtroVisita');
   const fLiga=document.getElementById('filtroLiga');
   const tbody=document.querySelector('#tabla tbody');
   const ctx=document.getElementById('grafica').getContext('2d');
@@ -98,40 +101,44 @@
   function refreshSelect(){
     const list=getProfiles(); perfil=getUrlPerfil()||getCurrent();
     if(!list.includes(perfil)){ if(list.length){perfil=list[0];} else {perfil='default';} setCurrent(perfil); }
-    sel.innerHTML=''; list.forEach(p=>{ const o=document.createElement('option'); o.value=p; o.textContent=p; if(p===perfil)o.selected=true; sel.appendChild(o); });
+    sel.innerHTML='';
+    list.forEach(p=>{
+      const o=document.createElement('option');
+      o.value=p; o.textContent=p; if(p===perfil)o.selected=true;
+      sel.appendChild(o);
+    });
   }
   function load(){ data=JSON.parse(localStorage.getItem(dataKeyFor(perfil))||'[]'); }
+
   const stake=(b,kf,kfr)=> (b>0&&kf>0&&kfr>0)? Math.min(b, b*kf*kfr):0;
 
+  // ===== Agrupar por Equipo + Rol (Local/Visita) y por Liga =====
   function agrupar(rows){
-    // clave: liga|equipo|rol
-    const map=new Map();
+    const map=new Map(); // key = liga|equipo|rol
     rows.forEach(a=>{
       const liga=(a.liga||'Sin liga').trim();
       const eqLocal=(a.local||'').trim();
       const eqVisita=(a.visita||'').trim();
+      const st=stake(a.bankroll,a.kellyFull,a.kellyFrac);
 
       // Local
       {
         const key=`${liga}|${eqLocal}|Local`;
-        const st=stake(a.bankroll,a.kellyFull,a.kellyFrac);
-        let m=map.get(key)||{liga, equipo:eqLocal, rol:'Local', n:0,g:0,p:0,apostado:0,ganado:0};
+        const m=map.get(key)||{liga, equipo:eqLocal, rol:'Local', n:0,g:0,p:0,apostado:0,ganado:0};
         m.n++; m.apostado+=st;
-        if(a.estado==='ganada'){m.g++; m.ganado += st*(a.cuotaBookie||0);}
-        else if(a.estado==='perdida'){m.p++;}
+        if((a.estado||'').toLowerCase()==='ganada'){m.g++; m.ganado += st*(Number(a.cuotaBookie)||0);} else if((a.estado||'').toLowerCase()==='perdida'){m.p++;}
         map.set(key,m);
       }
       // Visita
       {
         const key=`${liga}|${eqVisita}|Visita`;
-        const st=stake(a.bankroll,a.kellyFull,a.kellyFrac);
-        let m=map.get(key)||{liga, equipo:eqVisita, rol:'Visita', n:0,g:0,p:0,apostado:0,ganado:0};
+        const m=map.get(key)||{liga, equipo:eqVisita, rol:'Visita', n:0,g:0,p:0,apostado:0,ganado:0};
         m.n++; m.apostado+=st;
-        if(a.estado==='ganada'){m.g++; m.ganado += st*(a.cuotaBookie||0);}
-        else if(a.estado==='perdida'){m.p++;}
+        if((a.estado||'').toLowerCase()==='ganada'){m.g++; m.ganado += st*(Number(a.cuotaBookie)||0);} else if((a.estado||'').toLowerCase()==='perdida'){m.p++;}
         map.set(key,m);
       }
     });
+
     return [...map.values()].map(m=>{
       const neto=m.ganado - m.apostado;
       const wr=m.n? m.g/m.n*100:0;
@@ -140,17 +147,33 @@
     });
   }
 
-  function render(){
-    const fEqv=(fEq.value||'').toLowerCase();
-    const fLigaV=(fLiga.value||'').toLowerCase();
-    const fRolV=fRol.value||'';
-    const agg=agrupar(data).filter(m=>{
-      if(fEqv && !m.equipo.toLowerCase().includes(fEqv)) return false;
-      if(fLigaV && !m.liga.toLowerCase().includes(fLigaV)) return false;
-      if(fRolV && m.rol!==fRolV) return false;
-      return true;
-    }).sort((a,b)=> b.neto - a.neto);
+  // ===== Filtro combinado Local + Visita (al mismo tiempo) =====
+  function filtrarAgg(agg){
+    const qLoc=(fLocal.value||'').toLowerCase().trim();
+    const qVis=(fVisita.value||'').toLowerCase().trim();
+    const qLiga=(fLiga.value||'').toLowerCase().trim();
 
+    return agg.filter(m=>{
+      if(qLiga && !m.liga.toLowerCase().includes(qLiga)) return false;
+
+      // Si el usuario escribe alguno de los dos (o ambos), aplicamos el filtro por rol correspondiente.
+      if(qLoc || qVis){
+        const matchLocal  = qLoc  ? (m.rol==='Local'  && m.equipo.toLowerCase().includes(qLoc))   : false;
+        const matchVisita = qVis  ? (m.rol==='Visita' && m.equipo.toLowerCase().includes(qVis))   : false;
+
+        // Si ambos están vacíos no se entra; si alguno está presente, exigimos que se cumpla al menos uno.
+        if(!(matchLocal || matchVisita)) return false;
+      }
+      return true;
+    });
+  }
+
+  // ===== Render =====
+  function render(){
+    const aggTodo = agrupar(data);
+    const agg = filtrarAgg(aggTodo).sort((a,b)=> b.neto - a.neto);
+
+    // Tabla
     tbody.innerHTML='';
     agg.forEach((m,i)=>{
       const tr=document.createElement('tr');
@@ -168,14 +191,20 @@
       tbody.appendChild(tr);
     });
 
-    // Gráfica: Top 12 equipos por unidades (filtrados)
+    // Gráfica Top 12 (según filtro actual)
     if(chart) chart.destroy();
     const top=agg.slice(0,12);
     chart=new Chart(ctx,{
       type:'bar',
-      data:{labels:top.map(x=>`${x.equipo} (${x.rol[0]})`), datasets:[{label:'Unidades por equipo/rol', data:top.map(x=>x.neto)}]},
-      options:{responsive:true, scales:{x:{ticks:{color:'#ddd'},grid:{color:'#444'}},y:{ticks:{color:'#ddd'},grid:{color:'#444'}}},
-               plugins:{legend:{labels:{color:'#ddd'}}}}
+      data:{
+        labels:top.map(x=>`${x.equipo} (${x.rol[0]})`),
+        datasets:[{label:'Unidades por equipo/rol', data:top.map(x=>x.neto)}]
+      },
+      options:{
+        responsive:true,
+        scales:{x:{ticks:{color:'#ddd'},grid:{color:'#444'}},y:{ticks:{color:'#ddd'},grid:{color:'#444'}}},
+        plugins:{legend:{labels:{color:'#ddd'}}}
+      }
     });
 
     // Links
@@ -188,22 +217,27 @@
     );
   }
 
-  // eventos
+  // ===== Eventos =====
   sel.addEventListener('change',()=>{ setCurrent(sel.value); perfil=sel.value; load(); render(); });
-  [fEq,fRol,fLiga].forEach(el=>el.addEventListener('input',render));
+  [fLocal,fVisita,fLiga].forEach(el=> el.addEventListener('input', render));
+
   btnCSV.addEventListener('click', ()=>{
-    const agg=agrupar(data).sort((a,b)=> b.neto - a.neto);
+    const agg=filtrarAgg(agrupar(data)).sort((a,b)=> b.neto - a.neto);
     const rows=[['Equipo','Rol','Liga','Apuestas','Ganadas','Perdidas','Winrate %','Yield %','Unidades']];
     agg.forEach(m=> rows.push([m.equipo,m.rol,m.liga,m.n,m.g,m.p,m.wr.toFixed(2),m.yld.toFixed(2),m.neto.toFixed(2)]));
     const csv=rows.map(r=>r.join(',')).join('\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download=`equipos_rol_${perfil}.csv`; document.body.appendChild(a); a.click(); a.remove();
   });
+
   btnVolver.addEventListener('click',()=> location.href=`index.html?perfil=${encodeURIComponent(perfil)}`);
 
-  // init
+  // ===== Init =====
   (function init(){
-    if(getProfiles().length===0){ localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify(['default'])); localStorage.setItem(dataKeyFor('default'),'[]'); }
+    if(getProfiles().length===0){
+      localStorage.setItem(PROFILE_LIST_KEY, JSON.stringify(['default']));
+      localStorage.setItem(dataKeyFor('default'),'[]');
+    }
     refreshSelect(); load(); render();
   })();
 })();
