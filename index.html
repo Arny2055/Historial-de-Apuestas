@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backtester Semanal: BTTS Sí & Over 2.5 (Prioridad GG)</title>
+    <title>Backtester Semanal DEBUG: BTTS Sí & Over 2.5</title>
     <style>
         body { font-family: 'Roboto', sans-serif; margin: 20px; background: #f9f9f9; color: #333; line-height: 1.6; }
         #container { max-width: 1200px; margin: auto; padding: 20px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; }
@@ -32,19 +32,19 @@
 </head>
 <body>
 <div id="container">
-    <h1>Backtester Semanal: Prioridad BTTS Sí (usa Odd real de GG)</h1>
-    <p>Carga tu JSON (para GG). Simula BTTS con cuota real; Over 2.5 opcional (simulada). Filtros relajados para más bets.</p>
+    <h1>Backtester Semanal DEBUG: Prioridad BTTS (Odd real)</h1>
+    <p>Carga JSON. Logs en Console (F12). Filtros relajados para generar bets. Si 0 resultados, copia logs aquí.</p>
     
     <input type="file" id="json-input" accept=".json" onchange="loadJSON()">
     <label><input type="checkbox" id="include-over" checked> Incluir Over 2.5 (simulado)</label>
-    <button id="run-btn" onclick="runSimulation()" disabled>🔬 Simular Backtests Semanales</button>
+    <button id="run-btn" onclick="runSimulation()" disabled>🔬 Simular (DEBUG)</button>
     <div id="status">Estatus: Esperando JSON...</div>
     
     <section id="results-section" style="display: none;">
         <h2>📊 Resultados Agregados</h2>
         <div class="stats-grid">
             <div class="stat-box"><span>Semanas Simuladas</span><p id="total-weeks">0</p></div>
-            <div class="stat-box"><span>Unidades Netas Totales</span><p id="net-units" class="positive">0.00</p></div>
+            <div class="stat-box"><span>Unidades Netas</span><p id="net-units" class="positive">0.00</p></div>
             <div class="stat-box"><span>Yield Promedio (%)</span><p id="avg-yield" class="positive">0.00%</p></div>
             <div class="stat-box"><span>Tasa de Acierto (%)</span><p id="win-rate">0.00%</p></div>
         </div>
@@ -53,9 +53,9 @@
         <table id="weekly-table">
             <thead>
                 <tr>
-                    <th>Semana (Domingo Inicio)</th>
-                    <th>Mercados Analizados</th>
-                    <th>Unidades Netas</th>
+                    <th>Semana (Domingo)</th>
+                    <th>Mercados</th>
+                    <th>Unidades</th>
                     <th>Yield (%)</th>
                     <th>EV Promedio (%)</th>
                     <th>Acciones</th>
@@ -69,17 +69,18 @@
 </div>
 
 <script>
-    let allData = []; // Array de partidos parseados
+    let allData = [];
     const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    const MIN_MATCHES = 10; // Relajado
-    const EDGE_MARGIN = 0.10;
-    const PROB_MIN = 0.60; const PROB_MAX = 0.75;
+    const MIN_MATCHES = 5; // Relajado
+    const EDGE_MARGIN = 0.05; // Relajado
+    const PROB_MIN = 0.50; // Relajado para debug
+    const PROB_MAX = 0.85; // Relajado
     const CORRELATION_FACTOR = 0.04;
     const DECAY_FACTOR = 0.95;
-    const MATCHES_LIMIT = 5; // Relajado
+    const MATCHES_LIMIT = 3; // Relajado
 
-    // Poisson (mismo que antes)
+    // Poisson (mismo)
     const factorialCache = { 0: 1, 1: 1 };
     function factorial(n) {
         if (n in factorialCache) return factorialCache[n];
@@ -156,7 +157,7 @@
                 let rawData = JSON.parse(e.target.result);
                 if (!Array.isArray(rawData)) rawData = [rawData];
 
-                allData = rawData.map(match => {
+                allData = rawData.map((match, idx) => {
                     const [localTeam, visitantTeam] = match.Match.split(' - ');
                     const [homeGoalsStr, awayGoalsStr] = match['Result FT'] ? match['Result FT'].split('-') : ['0', '0'];
                     const homeGoals = parseInt(homeGoalsStr) || 0;
@@ -165,14 +166,17 @@
                     const date = new Date(dateStr);
 
                     let outcome = 'UNKNOWN';
-                    if (match['Desired Outcome'] === 'GG') outcome = 'BTTS';
-                    else if (match['Desired Outcome'] === 'Over 2.5') outcome = 'OVER';
+                    const desired = (match['Desired Outcome'] || '').toUpperCase();
+                    if (desired === 'GG') outcome = 'BTTS';
+                    else if (desired === 'OVER 2.5') outcome = 'OVER';
+
+                    console.log(`Parse partido ${idx}: ${match.Match}, Date: ${dateStr} → ${date.toLocaleString()}, Outcome: ${outcome}, Odd: ${match.Odd}, Goles: ${homeGoals}-${awayGoals}`);
 
                     return {
                         date: isNaN(date.getTime()) ? new Date(0) : date,
                         league: match.League,
-                        localTeam: localTeam.trim(),
-                        visitantTeam: visitantTeam.trim(),
+                        localTeam: localTeam ? localTeam.trim() : 'Unknown L',
+                        visitantTeam: visitantTeam ? visitantTeam.trim() : 'Unknown V',
                         homeGoals,
                         awayGoals,
                         odd: parseFloat(match.Odd) || 2.0,
@@ -181,16 +185,19 @@
                         homeShots: parseInt(match['Home OnGoal Shots at FT']) || 3,
                         awayShots: parseInt(match['Away OnGoal Shots at FT']) || 3
                     };
-                }).filter(m => !isNaN(m.date.getTime()))
+                }).filter(m => m.date.getTime() > 0) // Fechas válidas
                   .sort((a, b) => a.date - b.date);
 
-                if (allData.length === 0) throw new Error('No hay datos válidos con fechas parseables.');
+                if (allData.length === 0) throw new Error('No fechas válidas. Formato: "lun., 31 mar. 2025 18:00".');
                 
-                document.getElementById('status').innerHTML = `<span class="positive">✅ Cargados ${allData.length} partidos (BTTS: ${allData.filter(m => m.outcome === 'BTTS').length}, Over: ${allData.filter(m => m.outcome === 'OVER').length}).</span>`;
+                console.log(`Total partidos parseados: ${allData.length}. Rango fechas: ${allData[0].date.toLocaleDateString()} a ${allData[allData.length-1].date.toLocaleDateString()}`);
+                
+                document.getElementById('status').innerHTML = `<span class="positive">✅ ${allData.length} partidos cargados. BTTS: ${allData.filter(m => m.outcome === 'BTTS').length}. Ver Console para parse.</span>`;
                 document.getElementById('run-btn').disabled = false;
             } catch (err) {
+                console.error('Error parse JSON:', err);
                 document.getElementById('status').id = 'error';
-                document.getElementById('status').innerHTML = `<span class="negative">❌ Error: ${err.message}.</span>`;
+                document.getElementById('status').innerHTML = `<span class="negative">❌ ${err.message}. Ver Console.</span>`;
             }
         };
         reader.readAsText(file);
@@ -199,7 +206,8 @@
     function runSimulation() {
         if (allData.length === 0) return;
         document.getElementById('results-section').style.display = 'block';
-        document.getElementById('status').innerHTML = '<span class="positive">Simulando (prioridad BTTS con odd real)...</span>';
+        document.getElementById('status').innerHTML = '<span class="positive">DEBUG: Simulando. Ver Console para cada paso.</span>';
+        let skippedFixtures = 0, skippedReasons = {};
 
         const includeOver = document.getElementById('include-over').checked;
         const startDate = allData[0].date;
@@ -210,7 +218,9 @@
         const weeklyResults = [];
         let totalUnits = 0, totalBets = 0, totalWins = 0, totalEVSum = 0;
 
-        while (currentSunday < endDate) {
+        let weekCount = 0;
+        while (currentSunday < endDate && weekCount < 20) { // Límite 20 semanas para debug
+            weekCount++;
             const windowStart = new Date(currentSunday.getTime() - SIX_MONTHS_MS);
             const nextWeekStart = new Date(currentSunday.getTime() + 24 * 60 * 60 * 1000);
             const nextWeekEnd = new Date(currentSunday.getTime() + ONE_WEEK_MS);
@@ -218,8 +228,15 @@
             const statsData = allData.filter(m => m.date >= windowStart && m.date < currentSunday);
             const fixtures = allData.filter(m => m.date >= nextWeekStart && m.date < nextWeekEnd);
 
+            console.log(`\n=== SEMANA ${weekCount} (${currentSunday.toLocaleDateString()}) ===`);
+            console.log(`  Ventana stats: ${statsData.length} partidos (desde ${windowStart.toLocaleDateString()})`);
+            console.log(`  Fixtures semana: ${fixtures.length} partidos`);
+
             if (statsData.length < MIN_MATCHES || fixtures.length === 0) {
-                console.log(`Semana ${currentSunday.toLocaleDateString()}: Saltada (stats: ${statsData.length}, fixtures: ${fixtures.length})`);
+                const reason = statsData.length < MIN_MATCHES ? 'pocos stats' : 'sin fixtures';
+                skippedReasons[reason] = (skippedReasons[reason] || 0) + 1;
+                skippedFixtures += fixtures.length;
+                console.log(`  SKIP: ${reason} (stats:${statsData.length}, fixtures:${fixtures.length})`);
                 currentSunday = new Date(currentSunday.getTime() + ONE_WEEK_MS);
                 continue;
             }
@@ -239,11 +256,17 @@
             totalWins += weekResults.wins;
             totalEVSum += weekResults.evAvg * weekResults.bets;
 
+            console.log(`  RESULTADO: ${weekResults.bets} bets, units ${weekResults.units.toFixed(2)}, yield ${weekResults.yield.toFixed(2)}%`);
+
             currentSunday = new Date(currentSunday.getTime() + ONE_WEEK_MS);
         }
 
+        console.log(`\n=== RESUMEN DEBUG ===`);
+        console.log(`Semanas totales: ${weeklyResults.length}, Bets totales: ${totalBets}`);
+        console.log('Skipped reasons:', skippedReasons);
+
         updateUI(weeklyResults, totalUnits, totalBets, totalWins, totalEVSum / (totalBets || 1));
-        document.getElementById('status').innerHTML = `<span class="positive">✅ Completa: ${weeklyResults.length} semanas (${totalBets} mercados totales).</span>`;
+        document.getElementById('status').innerHTML = `<span class="positive">✅ Completa. Bets: ${totalBets}. Skipped: ${skippedFixtures} fixtures (${Object.entries(skippedReasons).map(([k,v]) => `${k}:${v}`).join(', ')}). Ver Console.</span>`;
     }
 
     function simulateWeekBacktest(stats, fixtures, includeOver) {
@@ -252,51 +275,51 @@
 
         const globalAvgHomeShots = stats.reduce((sum, m) => sum + m.homeShots, 0) / stats.length || 3;
         const globalAvgAwayShots = stats.reduce((sum, m) => sum + m.awayShots, 0) / stats.length || 3;
+        console.log(`  Globals: Avg home shots ${globalAvgHomeShots.toFixed(1)}, away ${globalAvgAwayShots.toFixed(1)}`);
 
         fixtures.forEach((fixture, fixIndex) => {
-            const teamLHomeStats = stats.filter(m => m.localTeam === fixture.localTeam && m.league === fixture.league).slice(-MATCHES_LIMIT);
-            const teamVAwayStats = stats.filter(m => m.visitantTeam === fixture.visitantTeam && m.league === fixture.league).slice(-MATCHES_LIMIT);
+            console.log(`  Fixture ${fixIndex + 1}: ${fixture.localTeam} vs ${fixture.visitantTeam} (${fixture.outcome}), Odd ${fixture.odd}, Goles real ${fixture.homeGoals}-${fixture.awayGoals}`);
 
-            if (teamLHomeStats.length < MATCHES_LIMIT || teamVAwayStats.length < MATCHES_LIMIT) {
-                console.log(`Fixture ${fixIndex} (${fixture.localTeam} vs ${fixture.visitantTeam}): Pocos matches (${teamLHomeStats.length}/${teamVAwayStats.length})`);
-                return;
+            let teamLHomeStats = stats.filter(m => m.localTeam === fixture.localTeam && m.league === fixture.league).slice(-MATCHES_LIMIT);
+            let teamVAwayStats = stats.filter(m => m.visitantTeam === fixture.visitantTeam && m.league === fixture.league).slice(-MATCHES_LIMIT);
+
+            // Fallback si pocos stats
+            if (teamLHomeStats.length < MATCHES_LIMIT) {
+                console.log(`    Fallback stats local: usando global avg`);
+                teamLHomeStats = Array(MATCHES_LIMIT).fill(globalAvgHomeShots);
+            }
+            if (teamVAwayStats.length < MATCHES_LIMIT) {
+                console.log(`    Fallback stats visit: usando global avg`);
+                teamVAwayStats = Array(MATCHES_LIMIT).fill(globalAvgAwayShots);
             }
 
-            const GF_L = weightedAvg(teamLHomeStats.map(m => m.homeShots));
-            const GF_V = weightedAvg(teamVAwayStats.map(m => m.awayShots));
+            const GF_L = weightedAvg(teamLHomeStats.map(m => m.homeShots || globalAvgHomeShots));
+            const GF_V = weightedAvg(teamVAwayStats.map(m => m.awayShots || globalAvgAwayShots));
 
             const lambdaL = (GF_L / globalAvgHomeShots) * globalAvgAwayShots;
             const lambdaV = (GF_V / globalAvgAwayShots) * globalAvgHomeShots;
 
-            if (lambdaL <= 0 || lambdaV <= 0) {
-                console.log(`Fixture ${fixIndex}: Lambdas inválidas (${lambdaL.toFixed(2)}/${lambdaV.toFixed(2)})`);
-                return;
-            }
+            console.log(`    Lambdas: L=${lambdaL.toFixed(2)} (GF_L=${GF_L.toFixed(1)}), V=${lambdaV.toFixed(2)} (GF_V=${GF_V.toFixed(1)})`);
 
             const sim = runPoissonSimulation(lambdaL, lambdaV, CORRELATION_FACTOR);
+            console.log(`    Probs: BTTS=${(sim.probBTTS*100).toFixed(1)}%, Over25=${(sim.probOU25*100).toFixed(1)}%`);
 
-            // Evaluar mercados según outcome y toggle
+            // Mercados
             const marketsToEval = [];
-            if (fixture.outcome === 'BTTS') {
+            if (fixture.outcome === 'BTTS' || fixture.outcome === 'UNKNOWN') { // Siempre BTTS para tu JSON
                 marketsToEval.push({ name: 'BTTS Sí', prob: sim.probBTTS, isWin: fixture.homeGoals > 0 && fixture.awayGoals > 0, odd: fixture.odd, source: 'real' });
             }
-            if (includeOver && fixture.outcome === 'OVER') {
-                marketsToEval.push({ name: 'Over 2.5', prob: sim.probOU25, isWin: (fixture.homeGoals + fixture.awayGoals) > 2, odd: fixture.odd, source: 'real' });
-            }
-            if (includeOver && fixture.outcome !== 'BTTS') { // Simular Over si toggle y no es GG
-                marketsToEval.push({ name: 'Over 2.5', prob: sim.probOU25, isWin: (fixture.homeGoals + fixture.awayGoals) > 2, odd: 1 / sim.probOU25 + 0.1, source: 'simulada' });
+            if (includeOver) {
+                marketsToEval.push({ name: 'Over 2.5', prob: sim.probOU25, isWin: (fixture.homeGoals + fixture.awayGoals) > 2, odd: fixture.outcome === 'OVER' ? fixture.odd : (1 / sim.probOU25 + 0.05), source: fixture.outcome === 'OVER' ? 'real' : 'simulada' });
             }
 
             marketsToEval.forEach(market => {
                 if (market.prob < PROB_MIN || market.prob > PROB_MAX) {
-                    console.log(`Fixture ${fixIndex} - ${market.name}: Prob ${ (market.prob*100).toFixed(2) }% fuera de rango`);
+                    console.log(`    ${market.name} SKIP: Prob ${(market.prob*100).toFixed(1)}% fuera de ${PROB_MIN*100}-${PROB_MAX*100}%`);
                     return;
                 }
 
-                const impliedOdd = 1 / market.prob;
-                const minOdd = impliedOdd + EDGE_MARGIN;
-                const bookieOdd = market.odd; // Real o simulada según source
-
+                const bookieOdd = market.odd;
                 const ev = (bookieOdd * market.prob) - 1;
                 totalEV += ev;
                 bets++;
@@ -308,13 +331,13 @@
                     units -= 1;
                 }
 
-                console.log(`Fixture ${fixIndex} - ${market.name}: Bet! Prob ${(market.prob*100).toFixed(2)}%, Odd ${bookieOdd.toFixed(2)} (source: ${market.source}), EV ${(ev*100).toFixed(2)}%, Win: ${market.isWin}`);
+                console.log(`    ${market.name} BET: Prob ${(market.prob*100).toFixed(1)}%, Odd ${bookieOdd.toFixed(2)} (${market.source}), EV ${(ev*100).toFixed(1)}%, Win: ${market.isWin ? 'Sí' : 'No'}`);
 
                 details.push({
                     match: `${fixture.localTeam} vs ${fixture.visitantTeam}`,
                     market: market.name,
                     prob: (market.prob * 100).toFixed(2) + '%',
-                    bookieOdd: bookieOdd.toFixed(2) + (market.source === 'real' ? ' (real)' : ' (sim)'),
+                    bookieOdd: bookieOdd.toFixed(2) + ` (${market.source})`,
                     ev: (ev * 100).toFixed(2) + '%',
                     outcome: market.isWin ? '✅ Sí' : '❌ No'
                 });
@@ -334,9 +357,10 @@
             sum += values[i] * weight;
             weightSum += weight;
         }
-        return weightSum > 0 ? sum / weightSum : 0;
+        return weightSum > 0 ? sum / weightSum : values[0] || 3; // Fallback
     }
 
+    // updateUI y toggleDetails (mismo que antes, omitido por espacio)
     function updateUI(weekly, totalUnits, totalBets, totalWins, avgEV) {
         document.getElementById('total-weeks').textContent = weekly.length;
         const netEl = document.getElementById('net-units');
@@ -356,7 +380,7 @@
                 <td class="${unitsClass}">${w.units.toFixed(2)}</td>
                 <td class="${w.yield > 0 ? 'positive' : w.yield < 0 ? 'negative' : ''}">${w.yield.toFixed(2)}%</td>
                 <td>${w.evAvg.toFixed(2)}%</td>
-                <td><button onclick="toggleDetails(${i})">Ver Detalles</button></td>
+                <td><button onclick="toggleDetails(${i})">Ver</button></td>
             `;
         });
 
@@ -371,12 +395,11 @@
         const marketClass = (d) => d.market === 'BTTS Sí' ? 'market-btts' : 'market-over';
 
         detailsDiv.innerHTML = `
-            <h3>Detalles Semana ${index + 1} (${window.weeklyDetails[index].weekStart})</h3>
+            <h3>Detalles Semana ${index + 1}</h3>
             <table>
-                <thead><tr><th>Partido</th><th>Mercado</th><th>Prob Modelo</th><th>Cuota Bookie</th><th>EV (%)</th><th>Resultado Real</th></tr></thead>
+                <thead><tr><th>Partido</th><th>Mercado</th><th>Prob</th><th>Odd</th><th>EV (%)</th><th>Resultado</th></tr></thead>
                 <tbody>${details.map(d => `<tr class="${marketClass(d)}"><td>${d.match}</td><td>${d.market}</td><td>${d.prob}</td><td>${d.bookieOdd}</td><td>${d.ev}</td><td>${d.outcome}</td></tr>`).join('')}</tbody>
             </table>
-            <p><em>Colores: Azul=BTTS (odd real), Lila=Over (simulada). Ver console para logs.</em></p>
         `;
         detailsDiv.classList.toggle('show');
     }
