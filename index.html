@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backtester Semanal DEBUG: BTTS Sí & Over 2.5</title>
+    <title>Backtester Semanal Completo: BTTS & Over 2.5 + Patrones</title>
     <style>
         body { font-family: 'Roboto', sans-serif; margin: 20px; background: #f9f9f9; color: #333; line-height: 1.6; }
         #container { max-width: 1200px; margin: auto; padding: 20px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; }
@@ -11,6 +11,8 @@
         button { padding: 10px 20px; background: #3d8bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
         button:hover { background: #2a6bcc; }
         button:disabled { background: #ccc; cursor: not-allowed; }
+        button.pattern { background: #ff9800; }
+        button.pattern:hover { background: #e68900; }
         input[type="checkbox"] { margin-right: 10px; }
         table { width: 100%; border-collapse: collapse; margin: 20px 0; }
         th, td { padding: 8px; border: 1px solid #ddd; text-align: center; }
@@ -24,47 +26,48 @@
         .stat-box span { font-size: 0.9em; color: #56789a; }
         #status { margin: 10px 0; padding: 10px; border-radius: 4px; background: #e8f5e8; color: #2a9d8f; }
         #error { background: #ffebee; color: #c62828; }
-        .details { display: none; margin-top: 10px; }
-        .details.show { display: block; }
+        .details, #patterns-section { display: none; margin-top: 10px; }
+        .details.show, #patterns-section.show { display: block; }
         .market-btts { background: #e3f2fd; }
         .market-over { background: #f3e5f5; }
+        #patterns-table tr.highlight { background: #fff3e0; font-weight: bold; }
     </style>
 </head>
 <body>
 <div id="container">
-    <h1>Backtester Semanal DEBUG: Prioridad BTTS (Odd real)</h1>
-    <p>Carga JSON. Logs en Console (F12). Filtros relajados para generar bets. Si 0 resultados, copia logs aquí.</p>
+    <h1>Backtester Semanal Completo: BTTS & Over 2.5 + Patrones</h1>
+    <p>Carga JSON. Simula backtests, luego busca patrones (ligas, días, etc.). Logs en Console (F12).</p>
     
     <input type="file" id="json-input" accept=".json" onchange="loadJSON()">
     <label><input type="checkbox" id="include-over" checked> Incluir Over 2.5 (simulado)</label>
-    <button id="run-btn" onclick="runSimulation()" disabled>🔬 Simular (DEBUG)</button>
+    <button id="run-btn" onclick="runSimulation()" disabled>🔬 Simular Backtests</button>
+    <button id="patterns-btn" onclick="analyzePatterns()" disabled class="pattern">🔍 Buscar Patrones</button>
     <div id="status">Estatus: Esperando JSON...</div>
     
     <section id="results-section" style="display: none;">
-        <h2>📊 Resultados Agregados</h2>
+        <h2>📊 Resultados Backtest</h2>
         <div class="stats-grid">
-            <div class="stat-box"><span>Semanas Simuladas</span><p id="total-weeks">0</p></div>
+            <div class="stat-box"><span>Semanas</span><p id="total-weeks">0</p></div>
             <div class="stat-box"><span>Unidades Netas</span><p id="net-units" class="positive">0.00</p></div>
-            <div class="stat-box"><span>Yield Promedio (%)</span><p id="avg-yield" class="positive">0.00%</p></div>
-            <div class="stat-box"><span>Tasa de Acierto (%)</span><p id="win-rate">0.00%</p></div>
+            <div class="stat-box"><span>Yield (%)</span><p id="avg-yield" class="positive">0.00%</p></div>
+            <div class="stat-box"><span>Acierto (%)</span><p id="win-rate">0.00%</p></div>
         </div>
         
         <h2>Detalles por Semana</h2>
         <table id="weekly-table">
-            <thead>
-                <tr>
-                    <th>Semana (Domingo)</th>
-                    <th>Mercados</th>
-                    <th>Unidades</th>
-                    <th>Yield (%)</th>
-                    <th>EV Promedio (%)</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
+            <thead><tr><th>Semana</th><th>Mercados</th><th>Unidades</th><th>Yield (%)</th><th>EV (%)</th><th>Acciones</th></tr></thead>
             <tbody></tbody>
         </table>
-        
-        <div id="details-section"></div>
+        <div id="details-section" class="details"></div>
+    </section>
+    
+    <section id="patterns-section">
+        <h2>🔍 Patrones Encontrados</h2>
+        <p>Análisis basado en datos cargados. Highlights en naranja.</p>
+        <table id="patterns-table">
+            <thead><tr><th>Categoría</th><th>Patrón</th><th>Estadística</th><th>Insight</th></tr></thead>
+            <tbody></tbody>
+        </table>
     </section>
 </div>
 
@@ -72,15 +75,15 @@
     let allData = [];
     const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    const MIN_MATCHES = 5; // Relajado
-    const EDGE_MARGIN = 0.05; // Relajado
-    const PROB_MIN = 0.50; // Relajado para debug
-    const PROB_MAX = 0.85; // Relajado
+    const MIN_MATCHES = 5;
+    const EDGE_MARGIN = 0.05;
+    const PROB_MIN = 0.50;
+    const PROB_MAX = 0.85;
     const CORRELATION_FACTOR = 0.04;
     const DECAY_FACTOR = 0.95;
-    const MATCHES_LIMIT = 3; // Relajado
+    const MATCHES_LIMIT = 3;
 
-    // Poisson (mismo)
+    // Poisson functions
     const factorialCache = { 0: 1, 1: 1 };
     function factorial(n) {
         if (n in factorialCache) return factorialCache[n];
@@ -183,16 +186,20 @@
                         outcome,
                         result: match.Result === 'Winning' ? 'Ganada' : 'Perdida',
                         homeShots: parseInt(match['Home OnGoal Shots at FT']) || 3,
-                        awayShots: parseInt(match['Away OnGoal Shots at FT']) || 3
+                        awayShots: parseInt(match['Away OnGoal Shots at FT']) || 3,
+                        possessionHome: parseInt(match['Home Ball Possession at FT']) || 50,
+                        possessionAway: parseInt(match['Away Ball Possession at FT']) || 50,
+                        homePosition: parseInt(match['Home Position']) || 5,
+                        awayPosition: parseInt(match['Away Position']) || 5
                     };
-                }).filter(m => m.date.getTime() > 0) // Fechas válidas
+                }).filter(m => m.date.getTime() > 0)
                   .sort((a, b) => a.date - b.date);
 
                 if (allData.length === 0) throw new Error('No fechas válidas. Formato: "lun., 31 mar. 2025 18:00".');
                 
                 console.log(`Total partidos parseados: ${allData.length}. Rango fechas: ${allData[0].date.toLocaleDateString()} a ${allData[allData.length-1].date.toLocaleDateString()}`);
                 
-                document.getElementById('status').innerHTML = `<span class="positive">✅ ${allData.length} partidos cargados. BTTS: ${allData.filter(m => m.outcome === 'BTTS').length}. Ver Console para parse.</span>`;
+                document.getElementById('status').innerHTML = `<span class="positive">✅ ${allData.length} partidos cargados. BTTS: ${allData.filter(m => m.outcome === 'BTTS').length}. Ver Console.</span>`;
                 document.getElementById('run-btn').disabled = false;
             } catch (err) {
                 console.error('Error parse JSON:', err);
@@ -206,7 +213,7 @@
     function runSimulation() {
         if (allData.length === 0) return;
         document.getElementById('results-section').style.display = 'block';
-        document.getElementById('status').innerHTML = '<span class="positive">DEBUG: Simulando. Ver Console para cada paso.</span>';
+        document.getElementById('status').innerHTML = '<span class="positive">DEBUG: Simulando. Ver Console.</span>';
         let skippedFixtures = 0, skippedReasons = {};
 
         const includeOver = document.getElementById('include-over').checked;
@@ -219,7 +226,7 @@
         let totalUnits = 0, totalBets = 0, totalWins = 0, totalEVSum = 0;
 
         let weekCount = 0;
-        while (currentSunday < endDate && weekCount < 20) { // Límite 20 semanas para debug
+        while (currentSunday < endDate && weekCount < 20) {
             weekCount++;
             const windowStart = new Date(currentSunday.getTime() - SIX_MONTHS_MS);
             const nextWeekStart = new Date(currentSunday.getTime() + 24 * 60 * 60 * 1000);
@@ -229,14 +236,14 @@
             const fixtures = allData.filter(m => m.date >= nextWeekStart && m.date < nextWeekEnd);
 
             console.log(`\n=== SEMANA ${weekCount} (${currentSunday.toLocaleDateString()}) ===`);
-            console.log(`  Ventana stats: ${statsData.length} partidos (desde ${windowStart.toLocaleDateString()})`);
+            console.log(`  Ventana stats: ${statsData.length} partidos`);
             console.log(`  Fixtures semana: ${fixtures.length} partidos`);
 
             if (statsData.length < MIN_MATCHES || fixtures.length === 0) {
                 const reason = statsData.length < MIN_MATCHES ? 'pocos stats' : 'sin fixtures';
                 skippedReasons[reason] = (skippedReasons[reason] || 0) + 1;
                 skippedFixtures += fixtures.length;
-                console.log(`  SKIP: ${reason} (stats:${statsData.length}, fixtures:${fixtures.length})`);
+                console.log(`  SKIP: ${reason}`);
                 currentSunday = new Date(currentSunday.getTime() + ONE_WEEK_MS);
                 continue;
             }
@@ -261,12 +268,13 @@
             currentSunday = new Date(currentSunday.getTime() + ONE_WEEK_MS);
         }
 
-        console.log(`\n=== RESUMEN DEBUG ===`);
-        console.log(`Semanas totales: ${weeklyResults.length}, Bets totales: ${totalBets}`);
-        console.log('Skipped reasons:', skippedReasons);
+        console.log(`\n=== RESUMEN ===`);
+        console.log(`Semanas: ${weeklyResults.length}, Bets: ${totalBets}`);
+        console.log('Skipped:', skippedReasons);
 
         updateUI(weeklyResults, totalUnits, totalBets, totalWins, totalEVSum / (totalBets || 1));
-        document.getElementById('status').innerHTML = `<span class="positive">✅ Completa. Bets: ${totalBets}. Skipped: ${skippedFixtures} fixtures (${Object.entries(skippedReasons).map(([k,v]) => `${k}:${v}`).join(', ')}). Ver Console.</span>`;
+        document.getElementById('patterns-btn').disabled = false;
+        document.getElementById('status').innerHTML = `<span class="positive">✅ Completa. Bets: ${totalBets}. Skipped: ${skippedFixtures}. Patrones listos.</span>`;
     }
 
     function simulateWeekBacktest(stats, fixtures, includeOver) {
@@ -275,47 +283,40 @@
 
         const globalAvgHomeShots = stats.reduce((sum, m) => sum + m.homeShots, 0) / stats.length || 3;
         const globalAvgAwayShots = stats.reduce((sum, m) => sum + m.awayShots, 0) / stats.length || 3;
-        console.log(`  Globals: Avg home shots ${globalAvgHomeShots.toFixed(1)}, away ${globalAvgAwayShots.toFixed(1)}`);
+        console.log(`  Globals: Avg home ${globalAvgHomeShots.toFixed(1)}, away ${globalAvgAwayShots.toFixed(1)}`);
 
         fixtures.forEach((fixture, fixIndex) => {
-            console.log(`  Fixture ${fixIndex + 1}: ${fixture.localTeam} vs ${fixture.visitantTeam} (${fixture.outcome}), Odd ${fixture.odd}, Goles real ${fixture.homeGoals}-${fixture.awayGoals}`);
+            console.log(`  Fixture ${fixIndex + 1}: ${fixture.localTeam} vs ${fixture.visitantTeam} (${fixture.outcome}), Odd ${fixture.odd}, Goles ${fixture.homeGoals}-${fixture.awayGoals}`);
 
             let teamLHomeStats = stats.filter(m => m.localTeam === fixture.localTeam && m.league === fixture.league).slice(-MATCHES_LIMIT);
             let teamVAwayStats = stats.filter(m => m.visitantTeam === fixture.visitantTeam && m.league === fixture.league).slice(-MATCHES_LIMIT);
 
-            // Fallback si pocos stats
-            if (teamLHomeStats.length < MATCHES_LIMIT) {
-                console.log(`    Fallback stats local: usando global avg`);
-                teamLHomeStats = Array(MATCHES_LIMIT).fill(globalAvgHomeShots);
-            }
-            if (teamVAwayStats.length < MATCHES_LIMIT) {
-                console.log(`    Fallback stats visit: usando global avg`);
-                teamVAwayStats = Array(MATCHES_LIMIT).fill(globalAvgAwayShots);
-            }
+            if (teamLHomeStats.length < MATCHES_LIMIT) teamLHomeStats = Array(MATCHES_LIMIT).fill(globalAvgHomeShots);
+            if (teamVAwayStats.length < MATCHES_LIMIT) teamVAwayStats = Array(MATCHES_LIMIT).fill(globalAvgAwayShots);
 
-            const GF_L = weightedAvg(teamLHomeStats.map(m => m.homeShots || globalAvgHomeShots));
-            const GF_V = weightedAvg(teamVAwayStats.map(m => m.awayShots || globalAvgAwayShots));
+            const GF_L = weightedAvg(teamLHomeStats.map(m => m));
+            const GF_V = weightedAvg(teamVAwayStats.map(m => m));
 
             const lambdaL = (GF_L / globalAvgHomeShots) * globalAvgAwayShots;
             const lambdaV = (GF_V / globalAvgAwayShots) * globalAvgHomeShots;
 
-            console.log(`    Lambdas: L=${lambdaL.toFixed(2)} (GF_L=${GF_L.toFixed(1)}), V=${lambdaV.toFixed(2)} (GF_V=${GF_V.toFixed(1)})`);
+            console.log(`    Lambdas: L=${lambdaL.toFixed(2)}, V=${lambdaV.toFixed(2)}`);
 
             const sim = runPoissonSimulation(lambdaL, lambdaV, CORRELATION_FACTOR);
             console.log(`    Probs: BTTS=${(sim.probBTTS*100).toFixed(1)}%, Over25=${(sim.probOU25*100).toFixed(1)}%`);
 
-            // Mercados
             const marketsToEval = [];
-            if (fixture.outcome === 'BTTS' || fixture.outcome === 'UNKNOWN') { // Siempre BTTS para tu JSON
+            if (fixture.outcome === 'BTTS' || fixture.outcome === 'UNKNOWN') {
                 marketsToEval.push({ name: 'BTTS Sí', prob: sim.probBTTS, isWin: fixture.homeGoals > 0 && fixture.awayGoals > 0, odd: fixture.odd, source: 'real' });
             }
             if (includeOver) {
-                marketsToEval.push({ name: 'Over 2.5', prob: sim.probOU25, isWin: (fixture.homeGoals + fixture.awayGoals) > 2, odd: fixture.outcome === 'OVER' ? fixture.odd : (1 / sim.probOU25 + 0.05), source: fixture.outcome === 'OVER' ? 'real' : 'simulada' });
+                const overOdd = fixture.outcome === 'OVER' ? fixture.odd : (1 / sim.probOU25 + 0.05);
+                marketsToEval.push({ name: 'Over 2.5', prob: sim.probOU25, isWin: (fixture.homeGoals + fixture.awayGoals) > 2, odd: overOdd, source: fixture.outcome === 'OVER' ? 'real' : 'simulada' });
             }
 
             marketsToEval.forEach(market => {
                 if (market.prob < PROB_MIN || market.prob > PROB_MAX) {
-                    console.log(`    ${market.name} SKIP: Prob ${(market.prob*100).toFixed(1)}% fuera de ${PROB_MIN*100}-${PROB_MAX*100}%`);
+                    console.log(`    ${market.name} SKIP: Prob ${(market.prob*100).toFixed(1)}% fuera de rango`);
                     return;
                 }
 
@@ -357,10 +358,9 @@
             sum += values[i] * weight;
             weightSum += weight;
         }
-        return weightSum > 0 ? sum / weightSum : values[0] || 3; // Fallback
+        return weightSum > 0 ? sum / weightSum : values[0] || 3;
     }
 
-    // updateUI y toggleDetails (mismo que antes, omitido por espacio)
     function updateUI(weekly, totalUnits, totalBets, totalWins, avgEV) {
         document.getElementById('total-weeks').textContent = weekly.length;
         const netEl = document.getElementById('net-units');
@@ -402,6 +402,104 @@
             </table>
         `;
         detailsDiv.classList.toggle('show');
+    }
+
+    function analyzePatterns() {
+        if (allData.length === 0) {
+            alert('Carga datos primero.');
+            return;
+        }
+
+        console.log('🔍 Iniciando análisis de patrones...');
+        document.getElementById('patterns-section').classList.add('show');
+
+        // Enriquecer datos
+        const enrichedData = allData.map(p => ({
+            ...p,
+            isBTTS: p.homeGoals > 0 && p.awayGoals > 0,
+            isOver25: (p.homeGoals + p.awayGoals) > 2,
+            dayOfWeek: p.date.getDay(),
+            possessionDiff: p.possessionHome - p.possessionAway,
+            shotsDiff: p.homeShots - p.awayShots,
+            positionAvg: (p.homePosition + p.awayPosition) / 2 || 5
+        }));
+
+        const tbody = document.querySelector('#patterns-table tbody');
+        tbody.innerHTML = '';
+
+        // Patrón 1: BTTS por Liga (top 3)
+        const byLeague = {};
+        enrichedData.forEach(p => {
+            if (!byLeague[p.league]) byLeague[p.league] = { total: 0, btts: 0, over: 0 };
+            byLeague[p.league].total++;
+            if (p.isBTTS) byLeague[p.league].btts++;
+            if (p.isOver25) byLeague[p.league].over++;
+        });
+        const leaguePatterns = Object.entries(byLeague)
+            .map(([liga, data]) => ({
+                liga,
+                bttsRate: (data.btts / data.total * 100).toFixed(1),
+                overRate: (data.over / data.total * 100).toFixed(1),
+                total: data.total
+            }))
+            .sort((a, b) => parseFloat(b.bttsRate) - parseFloat(a.bttsRate))
+            .slice(0, 3);
+
+        leaguePatterns.forEach(pat => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>Liga</td>
+                <td>${pat.liga}: ${pat.bttsRate}% BTTS</td>
+                <td>${pat.total} partidos</td>
+                <td>Alta BTTS – buena para bets</td>
+            `;
+            if (parseFloat(pat.bttsRate) > 60) row.classList.add('highlight');
+        });
+
+        // Patrón 2: Día de Semana (BTTS)
+        const byDay = [0,0,0,0,0,0,0];
+        enrichedData.forEach(p => if (p.isBTTS) byDay[p.dayOfWeek]++);
+        const totalByDay = [0,0,0,0,0,0,0];
+        enrichedData.forEach(p => totalByDay[p.dayOfWeek]++);
+        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const topDay = days.map((day, i) => ({ day, rate: totalByDay[i] > 0 ? (byDay[i] / totalByDay[i] * 100).toFixed(1) : 0 }))
+            .sort((a, b) => parseFloat(b.rate) - parseFloat(a.rate))[0];
+
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>Día Semana</td>
+            <td>${topDay.day}: ${topDay.rate}% BTTS</td>
+            <td>${totalByDay[days.indexOf(topDay.day)]} partidos</td>
+            <td>Mejor día para BTTS</td>
+        `;
+        if (parseFloat(topDay.rate) > 60) row.classList.add('highlight');
+
+        // Patrón 3: Posesión vs Over
+        const highPoss = enrichedData.filter(p => p.possessionDiff > 20);
+        const overHighPoss = highPoss.length > 0 ? highPoss.filter(p => p.isOver25).length / highPoss.length * 100 : 0;
+        const row2 = tbody.insertRow();
+        row2.innerHTML = `
+            <td>Posesión</td>
+            <td>Local +20% posesión → ${overHighPoss.toFixed(1)}% Over 2.5</td>
+            <td>${highPoss.length} casos</td>
+            <td>Dominio = más goles</td>
+        `;
+        if (overHighPoss > 60) row2.classList.add('highlight');
+
+        // Patrón 4: Posición vs BTTS
+        const topTeams = enrichedData.filter(p => p.positionAvg <= 4);
+        const bttsTop = topTeams.length > 0 ? topTeams.filter(p => p.isBTTS).length / topTeams.length * 100 : 0;
+        const row3 = tbody.insertRow();
+        row3.innerHTML = `
+            <td>Posición</td>
+            <td>Equipos top (pos ≤4): ${bttsTop.toFixed(1)}% BTTS</td>
+            <td>${topTeams.length} partidos</td>
+            <td>Más defensivos?</td>
+        `;
+        if (bttsTop < 50) row3.classList.add('highlight');
+
+        console.log('🔍 Patrones:', { leaguePatterns, topDay, overHighPoss, bttsTop });
+        document.getElementById('status').innerHTML = `<span class="positive">✅ Patrones listos (${allData.length} partidos).</span>`;
     }
 
     // Inicial
