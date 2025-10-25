@@ -1,143 +1,715 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backtester Semanal Completo: BTTS & Over 2.5 + Patrones</title>
-    <style>
-        body { font-family: 'Roboto', sans-serif; margin: 20px; background: #f9f9f9; color: #333; line-height: 1.6; }
-        #container { max-width: 1200px; margin: auto; padding: 20px; background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; }
-        h1, h2 { color: #123456; }
-        button { padding: 10px 20px; background: #3d8bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
-        button:hover { background: #2a6bcc; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        button.pattern { background: #ff9800; }
-        button.pattern:hover { background: #e68900; }
-        input[type="checkbox"] { margin-right: 10px; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { padding: 8px; border: 1px solid #ddd; text-align: center; }
-        th { background: #123456; color: white; }
-        tr:nth-child(even) { background: #f5f5f5; }
-        .positive { color: #2a9d8f; font-weight: bold; }
-        .negative { color: #e63946; font-weight: bold; }
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
-        .stat-box { padding: 15px; background: #f0f8ff; border-radius: 6px; text-align: center; }
-        .stat-box p { font-size: 1.4em; font-weight: bold; margin: 5px 0 0; }
-        .stat-box span { font-size: 0.9em; color: #56789a; }
-        #status { margin: 10px 0; padding: 10px; border-radius: 4px; background: #e8f5e8; color: #2a9d8f; }
-        #error { background: #ffebee; color: #c62828; }
-        .details, #patterns-section { display: none; margin-top: 10px; }
-        .details.show, #patterns-section.show { display: block; }
-        .market-btts { background: #e3f2fd; }
-        .market-over { background: #f3e5f5; }
-        #patterns-table tr.highlight { background: #fff3e0; font-weight: bold; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calculadora Poisson Pro • Over/Under 2.5 & BTTS</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#9aa4b2; --white:#e6eef6;
+      --glass: rgba(255,255,255,0.03);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%; margin:0; background:linear-gradient(180deg,#071025 0%, #051223 100%); color:var(--white);}
+    .container{max-width:1100px; margin:28px auto; padding:22px; background:var(--card); border-radius:12px; box-shadow: 0 8px 30px rgba(2,6,23,0.6);}
+    h1{margin:0 0 12px; font-size:20px;}
+    p.lead{margin:0 0 18px; color:var(--muted);}
+    .row{display:flex; gap:16px; flex-wrap:wrap;}
+    .col{flex:1 1 320px;}
+    .panel{background:var(--glass); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.03);}
+    label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px;}
+    input[type="file"]{color:var(--muted);}
+    select,input,textarea,button{width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:var(--white); font-size:14px;}
+    textarea{min-height:120px; resize:vertical;}
+    .btn{background:linear-gradient(90deg,var(--accent), #3b82f6); color:#042028; border:none; cursor:pointer; padding:10px 14px; font-weight:600;}
+    .btn.secondary{background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--white);}
+    .small{font-size:13px; color:var(--muted);}
+    table{width:100%; border-collapse:collapse; margin-top:8px;}
+    th,td{padding:8px; text-align:left; border-bottom:1px dashed rgba(255,255,255,0.03); font-size:13px;}
+    .result-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:10px; border-radius:8px; min-width:160px; flex:1;}
+    .prob{font-size:18px; font-weight:700;}
+    .muted{color:var(--muted);}
+    .warning{background:#3b2b00; color:#fff; padding:8px; border-radius:6px; margin-top:8px;}
+    .flex-between{display:flex; justify-content:space-between; align-items:center;}
+    .export-row{display:flex; gap:8px; margin-top:10px;}
+    canvas{background:transparent; border-radius:8px;}
+    .footer{margin-top:18px; color:var(--muted); font-size:13px;}
+    .input-inline{display:flex; gap:8px;}
+    .input-inline input{flex:1;}
+    .small-muted{font-size:12px; color:var(--muted);}
+    .score-table{margin-top:10px; border:1px solid rgba(255,255,255,0.03); border-radius:8px;}
+    .score-table th{background:rgba(255,255,255,0.04);}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<div id="container">
-    <h1>Backtester Semanal Completo: BTTS & Over 2.5 + Patrones</h1>
-    <p>Carga JSON. Simula backtests, luego busca patrones. Logs en Console (F12).</p>
-    
-    <input type="file" id="json-input" accept=".json" onchange="loadJSON()">
-    <label><input type="checkbox" id="include-over" checked> Incluir Over 2.5 (simulado)</label>
-    <button id="run-btn" onclick="runSimulation()" disabled>🔬 Simular Backtests</button>
-    <button id="patterns-btn" onclick="analyzePatterns()" disabled class="pattern">🔍 Buscar Patrones</button>
-    <div id="status">Estatus: Esperando JSON...</div>
-    
-    <section id="results-section" style="display: none;">
-        <h2>📊 Resultados Backtest</h2>
-        <div class="stats-grid">
-            <div class="stat-box"><span>Semanas</span><p id="total-weeks">0</p></div>
-            <div class="stat-box"><span>Unidades Netas</span><p id="net-units" class="positive">0.00</p></div>
-            <div class="stat-box"><span>Yield (%)</span><p id="avg-yield" class="positive">0.00%</p></div>
-            <div class="stat-box"><span>Acierto (%)</span><p id="win-rate">0.00%</p></div>
+  <div class="container">
+    <h1>Calculadora Poisson Pro — Métricas Avanzadas</h1>
+    <p class="lead">Carga un JSON con partidos, selecciona liga, local y visita. ¡La predicción es mejorada!</p>
+
+    <div class="row">
+      <div class="col panel">
+        <label>1) Cargar JSON (archivo .json) o pegar el texto</label>
+        <input type="file" id="fileInput" accept=".json,text/plain" />
+        <div style="height:8px"></div>
+        <label>o pegar JSON aquí</label>
+        <textarea id="jsonText" placeholder='Pega aquí el JSON (array de objetos) o varios objetos separados por saltos'></textarea>
+        <div style="height:8px"></div>
+        <div class="row" style="margin-top:8px;">
+          <div style="flex:1">
+            <button class="btn" id="loadJsonBtn">Cargar y Analizar</button>
+          </div>
+          <div style="width:160px">
+            <button class="btn secondary" id="clearBtn">Limpiar</button>
+          </div>
         </div>
-        
-        <h2>Detalles por Semana</h2>
-        <table id="weekly-table">
-            <thead><tr><th>Semana</th><th>Mercados</th><th>Unidades</th><th>Yield (%)</th><th>EV (%)</th><th>Acciones</th></tr></thead>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
+
+        <label>2) Filtros</label>
+        <select id="leagueSelect"><option value="">-- Elige una liga --</option></select>
+        <div style="height:8px"></div>
+        <div class="row">
+          <div style="flex:1">
+            <label>Local</label>
+            <select id="homeSelect"><option value="">-- Local --</option></select>
+          </div>
+          <div style="flex:1">
+            <label>Visita</label>
+            <select id="awaySelect"><option value="">-- Visita --</option></select>
+          </div>
+        </div>
+
+        <div style="height:8px"></div>
+        <label>3) Ajustes (opcional)</label>
+        <div class="input-inline">
+          <input id="lambdaHomeInput" placeholder="Sobrescribir λ_home" />
+          <input id="lambdaAwayInput" placeholder="Sobrescribir λ_away" />
+        </div>
+        <div style="height:8px"></div>
+        <div class="row">
+          <div style="flex:1">
+            <button class="btn" id="calcBtn">Calcular Probabilidades</button>
+          </div>
+          <div style="width:160px">
+            <button class="btn secondary" id="exportBtn">Exportar JSON</button>
+          </div>
+        </div>
+
+        <div id="warnings"></div>
+      </div>
+
+      <div class="col panel">
+        <div class="flex-between">
+          <div>
+            <label>Resultados del Modelo Poisson</label>
+            <div class="small-muted">Probabilidades, métricas y predicción</div>
+          </div>
+          <div class="small-muted" id="metaInfo">Sin datos aún</div>
+        </div>
+
+        <div id="resultsArea" style="margin-top:8px; display:none;">
+          <table id="teamsTable">
+            <thead>
+              <tr>
+                <th>Equipo</th><th>Partidos</th><th>GF p/p</th><th>GA p/p</th><th>AtkStr</th><th>DefStr</th>
+              </tr>
+            </thead>
             <tbody></tbody>
-        </table>
-        <div id="details-section" class="details"></div>
-    </section>
-    
-    <section id="patterns-section">
-        <h2>🔍 Patrones Encontrados</h2>
-        <p>Análisis basado en datos cargados. Highlights en naranja.</p>
-        <table id="patterns-table">
-            <thead><tr><th>Categoría</th><th>Patrón</th><th>Estadística</th><th>Insight</th></tr></thead>
+          </table>
+
+          <div style="height:10px"></div>
+          <div class="result-row">
+            <div class="card" style="min-width:120px;">
+              <div class="small muted">λ_home</div>
+              <div id="lambdaHome" class="prob">—</div>
+              <div class="small-muted">λ_away</div>
+              <div id="lambdaAway" class="prob">—</div>
+            </div>
+
+            <div class="card">
+              <div class="small muted">P(Over 2.5)</div>
+              <div id="probOver" class="prob">—</div>
+              <div class="small-muted">P(Under 2.5): <span id="probUnder">—</span></div>
+            </div>
+
+            <div class="card">
+              <div class="small muted">P(BTTS = Sí)</div>
+              <div id="probBTTS" class="prob">—</div>
+              <div class="small-muted">P(BTTS = No): <span id="probNoBTTS">—</span></div>
+            </div>
+
+            <div class="card">
+              <div class="small muted">1X2: Local Gana</div>
+              <div id="prob1" class="prob">—</div>
+              <div class="small-muted">Empate: <span id="probX">—</span> / Visita: <span id="prob2">—</span></div>
+            </div>
+          </div>
+
+          <div style="height:10px"></div>
+          <canvas id="probChart" width="500" height="250"></canvas>
+
+          <label style="margin-top:15px;">Top 5 Marcadores Exactos</label>
+          <table class="score-table" id="scoreTable">
+            <thead><tr><th>Score</th><th>Prob.</th><th>Score</th><th>Prob.</th></tr></thead>
             <tbody></tbody>
-        </table>
-    </section>
-</div>
+          </table>
+
+          <div class="export-row">
+            <button class="btn secondary" id="downloadJSON">Descargar JSON</button>
+            <button class="btn secondary" id="downloadCSV">Descargar CSV</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="footer">
+      Consejos: Las fortalezas/debilidades se calculan comparando el rendimiento del equipo con el promedio de la liga. Si faltan datos, se usan promedios de liga.
+    </div>
+  </div>
 
 <script>
-    let allData = [];
-    const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
-    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    const MIN_MATCHES = 5;
-    const EDGE_MARGIN = 0.05;
-    const PROB_MIN = 0.50;
-    const PROB_MAX = 0.85;
-    const CORRELATION_FACTOR = 0.04;
-    const DECAY_FACTOR = 0.95;
-    const MATCHES_LIMIT = 3;
+/*
+  Calculadora Poisson Pro (vanilla JS + Chart.js)
+  Mejoras:
+  - Uso de Chart.js para visualización.
+  - Cálculo de Marcadores Exactos.
+  - Cálculo de P(1X2).
+  - Tabla de resultados más clara (Atk/Def Str por equipo).
+*/
 
-    // Poisson functions
-    const factorialCache = { 0: 1, 1: 1 };
-    function factorial(n) {
-        if (n in factorialCache) return factorialCache[n];
-        let result = 1;
-        for (let i = 2; i <= n; i++) result *= i;
-        return factorialCache[n] = result;
+(function(){
+  // --- Helpers ---
+  function safeParseJSON(text){
+    try{
+      const trimmed = text.trim();
+      if(!trimmed) return null;
+      if(trimmed.startsWith("[")){
+        return JSON.parse(trimmed);
+      } else {
+        const lines = trimmed.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+        const items = [];
+        for(const l of lines){
+          try { items.push(JSON.parse(l)); }
+          catch(e){ /* ignore malformed line */ }
+        }
+        if(items.length) return items;
+        return [JSON.parse(trimmed)];
+      }
+    }catch(e){
+      return null;
+    }
+  }
+
+  function downloadBlob(filename, content, mime){
+    mime = mime || 'application/json';
+    const blob = new Blob([content], {type: mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+  }
+
+  function factorial(n){
+    if(n<=1) return 1;
+    let f=1;
+    for(let i=2;i<=n;i++) f*=i;
+    return f;
+  }
+  function poissonP(k, lambda){
+    if (lambda <= 0) return k === 0 ? 1 : 0;
+    return Math.exp(-lambda) * Math.pow(lambda, k) / factorial(k);
+  }
+
+  // --- UI Elements ---
+  const fileInput = document.getElementById('fileInput');
+  const jsonText = document.getElementById('jsonText');
+  const loadJsonBtn = document.getElementById('loadJsonBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const leagueSelect = document.getElementById('leagueSelect');
+  const homeSelect = document.getElementById('homeSelect');
+  const awaySelect = document.getElementById('awaySelect');
+  const calcBtn = document.getElementById('calcBtn');
+  const warningsDiv = document.getElementById('warnings');
+  const resultsArea = document.getElementById('resultsArea');
+  const teamsTableBody = document.querySelector('#teamsTable tbody');
+  const lambdaHomeEl = document.getElementById('lambdaHome');
+  const lambdaAwayEl = document.getElementById('lambdaAway');
+  const probOverEl = document.getElementById('probOver');
+  const probUnderEl = document.getElementById('probUnder');
+  const probBTTSEl = document.getElementById('probBTTS');
+  const probNoBTTSel = document.getElementById('probNoBTTS');
+  const prob1El = document.getElementById('prob1');
+  const probXEl = document.getElementById('probX');
+  const prob2El = document.getElementById('prob2');
+  const probChartCanvas = document.getElementById('probChart');
+  const metaInfo = document.getElementById('metaInfo');
+  const lambdaHomeInput = document.getElementById('lambdaHomeInput');
+  const lambdaAwayInput = document.getElementById('lambdaAwayInput');
+  const exportBtn = document.getElementById('exportBtn');
+  const downloadJSONBtn = document.getElementById('downloadJSON');
+  const downloadCSVBtn = document.getElementById('downloadCSV');
+  const scoreTableBody = document.querySelector('#scoreTable tbody');
+
+  let rawData = [];
+  let derived = {};
+  let probChartInstance = null; // Chart.js instance
+
+  // --- Event Handlers ---
+  fileInput.addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const text = await file.text();
+    jsonText.value = text;
+  });
+
+  clearBtn.addEventListener('click', ()=>{
+    jsonText.value = '';
+    rawData = [];
+    derived = {};
+    leagueSelect.innerHTML = '<option value="">-- Elige una liga --</option>';
+    homeSelect.innerHTML = '<option value="">-- Local --</option>';
+    awaySelect.innerHTML = '<option value="">-- Visita --</option>';
+    resultsArea.style.display = 'none';
+    warningsDiv.innerHTML = '';
+    metaInfo.innerText = 'Sin datos aún';
+    if(probChartInstance) probChartInstance.destroy();
+  });
+
+  loadJsonBtn.addEventListener('click', ()=>{
+    warningsDiv.innerHTML = '';
+    const text = jsonText.value || '';
+    const parsed = safeParseJSON(text);
+    if(!parsed || parsed.length === 0){
+      warningsDiv.innerHTML = '<div class="warning">JSON inválido o vacío. Revisa el formato.</div>';
+      return;
+    }
+    rawData = parsed;
+    analyzeRawData();
+  });
+
+  leagueSelect.addEventListener('change', ()=>{
+    populateTeamsDropdowns();
+  });
+
+  homeSelect.addEventListener('change', ()=>{
+    if(homeSelect.value && awaySelect.value && homeSelect.value === awaySelect.value){
+      awaySelect.value = '';
+    }
+  });
+
+  awaySelect.addEventListener('change', ()=>{
+    if(homeSelect.value && awaySelect.value && homeSelect.value === awaySelect.value){
+      homeSelect.value = '';
+    }
+  });
+
+  calcBtn.addEventListener('click', ()=>{
+    if(!rawData || rawData.length===0){
+      warningsDiv.innerHTML = '<div class="warning">No hay datos cargados.</div>';
+      return;
+    }
+    const league = leagueSelect.value;
+    const home = homeSelect.value;
+    const away = awaySelect.value;
+    if(!league || !home || !away){
+      warningsDiv.innerHTML = '<div class="warning">Selecciona liga, local y visita.</div>';
+      return;
+    }
+    if(home === away){
+      warningsDiv.innerHTML = '<div class="warning">Local y Visita no pueden ser el mismo equipo.</div>';
+      return;
+    }
+    warningsDiv.innerHTML = '';
+    const res = computeForMatch(league, home, away);
+    renderResults(res);
+  });
+
+  exportBtn.addEventListener('click', ()=>{
+    if(window.lastResult){
+      downloadBlob('poisson_result.json', JSON.stringify(window.lastResult, null, 2), 'application/json');
+    } else {
+      warningsDiv.innerHTML = '<div class="warning">No hay cálculo para exportar. Calcula primero.</div>';
+    }
+  });
+
+  downloadJSONBtn.addEventListener('click', ()=>{
+    if(window.lastResult) downloadBlob('poisson_result.json', JSON.stringify(window.lastResult, null, 2));
+  });
+
+  downloadCSVBtn.addEventListener('click', ()=>{
+    if(!window.lastResult){
+      warningsDiv.innerHTML = '<div class="warning">No hay resultado reciente para exportar.</div>';
+      return;
+    }
+    const r = window.lastResult;
+    // Build a more comprehensive CSV
+    const rows = [
+      ['League','Match','lambda_home','lambda_away','prob_1','prob_X','prob_2','prob_over_2_5','prob_btts_yes','top_score_1','prob_score_1', 'top_score_2','prob_score_2'],
+      [r.League, r.Match, r.lambda_home, r.lambda_away, r.prob_1, r.prob_x, r.prob_2, r.prob_over_2_5, r.prob_btts_yes, r.top_scores[0].score, r.top_scores[0].prob, r.top_scores[1].score, r.top_scores[1].prob]
+    ];
+    const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    downloadBlob('poisson_result.csv', csv, 'text/csv');
+  });
+
+  // --- Analysis Logic ---
+  function createEmptyTeam(){
+    return {
+      matches:0, GF:0, GA:0,
+      homeMatches:0, GF_home:0, GA_home:0,
+      awayMatches:0, GF_away:0, GA_away:0,
+      GF_per:null, GA_per:null, GF_home_per:null, GA_home_per:null, GF_away_per:null, GA_away_per:null,
+      AS:null, DS:null // Attack/Defense Strength placeholders
+    };
+  }
+
+  function analyzeRawData(){
+    derived = {};
+    for(const item of rawData){
+      const league = item.League || 'Sin liga';
+      if(!derived[league]) derived[league] = {matches:[], teams:{}, totalHomeGoals:0, totalAwayGoals:0, homeMatches:0};
+      derived[league].matches.push(item);
+
+      // Extract teams
+      let matchStr = item.Match || '';
+      let home = '', away = '';
+      const parts = matchStr.split(/\s+-\s+|vs\.?\s+/i); // Split by ' - ' or ' vs ' or ' vs. '
+      if(parts.length===2){ home = parts[0].trim(); away = parts[1].trim(); }
+
+      if(!home || !away) continue;
+
+      if(!derived[league].teams[home]) derived[league].teams[home] = createEmptyTeam();
+      if(!derived[league].teams[away]) derived[league].teams[away] = createEmptyTeam();
+
+      // Extract result (Result FT)
+      const res = String(item['Result FT'] || item.Result_FT || item.Result || '').trim();
+      const m = res.match(/(\d+)\s*-\s*(\d+)/);
+      if(m){
+        const gfHome = parseInt(m[1],10);
+        const gfAway = parseInt(m[2],10);
+        
+        derived[league].totalHomeGoals += gfHome;
+        derived[league].totalAwayGoals += gfAway;
+        derived[league].homeMatches += 1;
+
+        const homeTeam = derived[league].teams[home];
+        const awayTeam = derived[league].teams[away];
+        
+        homeTeam.matches += 1; homeTeam.GF += gfHome; homeTeam.GA += gfAway;
+        awayTeam.matches += 1; awayTeam.GF += gfAway; awayTeam.GA += gfHome;
+
+        homeTeam.homeMatches += 1; homeTeam.GF_home += gfHome; homeTeam.GA_home += gfAway;
+        awayTeam.awayMatches += 1; awayTeam.GF_away += gfAway; awayTeam.GA_away += gfHome;
+      }
     }
 
-    function poisson(k, lambda) {
-        if (k < 0) return 0;
-        if (lambda <= 0) return k === 0 ? 1 : 0;
-        return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
+    // Calculate league averages and team per-match averages
+    for(const league of Object.keys(derived)){
+      const leagueObj = derived[league];
+      leagueObj.avg_home_goals = leagueObj.homeMatches ? (leagueObj.totalHomeGoals / leagueObj.homeMatches) : 1.4;
+      leagueObj.avg_away_goals = leagueObj.homeMatches ? (leagueObj.totalAwayGoals / leagueObj.homeMatches) : 1.2;
+      
+      for(const tName of Object.keys(leagueObj.teams)){
+        const t = leagueObj.teams[tName];
+        t.GF_per = t.matches? (t.GF / t.matches) : null;
+        t.GA_per = t.matches? (t.GA / t.matches) : null;
+        t.GF_home_per = t.homeMatches? (t.GF_home / t.homeMatches) : null;
+        t.GA_home_per = t.homeMatches? (t.GA_home / t.homeMatches) : null;
+        t.GF_away_per = t.awayMatches? (t.GF_away / t.awayMatches) : null;
+        t.GA_away_per = t.awayMatches? (t.GA_away / t.awayMatches) : null;
+      }
     }
 
-    function runPoissonSimulation(lambdaL, lambdaV, correlationFactor) {
-        const maxGoals = 4;
-        let probMatrix = [];
-        let totalProb = 0;
-        const P_plus = (lambda) => 1 - Array.from({ length: maxGoals }, (_, k) => poisson(k, lambda)).reduce((a, b) => a + b, 0);
+    // Populate UI
+    leagueSelect.innerHTML = '<option value="">-- Elige una liga --</option>';
+    Object.keys(derived).forEach(l=>{
+      const opt = document.createElement('option');
+      opt.value = l; opt.textContent = `${l} (${derived[l].matches.length} regs)`;
+      leagueSelect.appendChild(opt);
+    });
 
-        for (let i = 0; i <= maxGoals; i++) {
-            probMatrix[i] = [];
-            for (let j = 0; j <= maxGoals; j++) {
-                const probL = (i < maxGoals) ? poisson(i, lambdaL) : P_plus(lambdaL);
-                const probV = (j < maxGoals) ? poisson(j, lambdaV) : P_plus(lambdaV);
-                probMatrix[i][j] = probL * probV;
-                totalProb += probMatrix[i][j];
-            }
+    if(Object.keys(derived).length===1){
+      leagueSelect.selectedIndex = 1;
+      populateTeamsDropdowns();
+    }
+
+    metaInfo.innerText = `Cargados ${rawData.length} entradas · Ligas: ${Object.keys(derived).length}`;
+    resultsArea.style.display = 'none';
+  }
+
+  function populateTeamsDropdowns(){
+    const league = leagueSelect.value;
+    homeSelect.innerHTML = '<option value="">-- Local --</option>';
+    awaySelect.innerHTML = '<option value="">-- Visita --</option>';
+    if(!league || !derived[league]) return;
+    const teams = Object.keys(derived[league].teams).sort();
+    for(const t of teams){
+      const o1 = document.createElement('option'); o1.value = t; o1.textContent = t; homeSelect.appendChild(o1);
+      const o2 = document.createElement('option'); o2.value = t; o2.textContent = t; awaySelect.appendChild(o2);
+    }
+  }
+
+  // --- Core Compute ---
+  function computeForMatch(league, home, away){
+    const leagueObj = derived[league];
+    const th = leagueObj.teams[home] || createEmptyTeam();
+    const ta = leagueObj.teams[away] || createEmptyTeam();
+    
+    // Calculate Strengths (AS/DS)
+    const avgHome = leagueObj.avg_home_goals || 1.4;
+    const avgAway = leagueObj.avg_away_goals || 1.2;
+
+    // Use specific home/away per-match avg if available, else overall, else league avg
+    const gfHome_per = th.GF_home_per ?? th.GF_per ?? avgHome;
+    const gaAway_per = ta.GA_away_per ?? ta.GA_per ?? avgAway; // Away team's GA when playing away
+    
+    const gfAway_per = ta.GF_away_per ?? ta.GF_per ?? avgAway;
+    const gaHome_per = th.GA_home_per ?? th.GA_per ?? avgHome; // Home team's GA when playing home
+
+    // Attack Strength (AS) Home: Home team's scoring at home vs league's average home score
+    const AS_home = gfHome_per / avgHome;
+    // Defense Strength (DS) Away: Away team's defense when away vs league's average away score
+    const DS_away = gaAway_per / avgAway; 
+
+    // Attack Strength (AS) Away: Away team's scoring when away vs league's average away score
+    const AS_away = gfAway_per / avgAway;
+    // Defense Strength (DS) Home: Home team's defense when home vs league's average home score
+    const DS_home = gaHome_per / avgHome;
+
+    // Store strengths back into team objects for display
+    th.AS = AS_home; th.DS = DS_home;
+    ta.AS = AS_away; ta.DS = DS_away;
+
+    // Lambdas
+    let lambda_home = AS_home * DS_away * avgHome;
+    let lambda_away = AS_away * DS_home * avgAway;
+
+    // Overrides
+    const lHomeOverride = parseFloat(lambdaHomeInput.value);
+    const lAwayOverride = parseFloat(lambdaAwayInput.value);
+    if(!isNaN(lHomeOverride)) lambda_home = Math.max(0.01, lHomeOverride);
+    if(!isNaN(lAwayOverride)) lambda_away = Math.max(0.01, lAwayOverride);
+
+    // Poisson Distributions (up to 8 goals)
+    const K = 8;
+    const pHome = new Array(K+1).fill(0); 
+    const pAway = new Array(K+1).fill(0);
+    for(let k=0;k<=K;k++){ 
+      pHome[k] = poissonP(k, lambda_home); 
+      pAway[k] = poissonP(k, lambda_away); 
+    }
+
+    // Full Score Matrix (Probabilities P(i,j))
+    const pScore = [];
+    let prob1 = 0, probX = 0, prob2 = 0;
+    const topScores = [];
+
+    for(let i=0;i<=K;i++){ // Home goals (i)
+      pScore[i] = [];
+      for(let j=0;j<=K;j++){ // Away goals (j)
+        const prob = pHome[i] * pAway[j];
+        pScore[i][j] = prob;
+        
+        // Calculate 1X2
+        if(i > j) prob1 += prob;
+        else if(i === j) probX += prob;
+        else prob2 += prob;
+
+        // Collect all score probabilities for Top 5
+        topScores.push({score: `${i}-${j}`, prob: prob});
+      }
+    }
+    
+    // Sort and get Top 5 scores
+    topScores.sort((a,b) => b.prob - a.prob);
+
+    // Total Goals (Convolution)
+    const pTotal = new Array(K*2+1).fill(0);
+    for(let i=0;i<=K;i++) for(let j=0;j<=K;j++) pTotal[i+j] += pScore[i][j];
+
+    // Over/Under 2.5
+    const probUnder25 = (pTotal[0]||0) + (pTotal[1]||0) + (pTotal[2]||0);
+    const probOver25 = Math.max(0, 1 - probUnder25);
+
+    // BTTS
+    const probBTTS_No = (pHome[0]||0) + (pAway[0]||0) - (pHome[0]||0)*(pAway[0]||0); // P(Home=0 U Away=0)
+    const probBTTS_Yes = 1 - probBTTS_No;
+
+    // Compile result object
+    const res = {
+      League: league, Match: home + ' - ' + away,
+      lambda_home: Number(lambda_home.toFixed(3)),
+      lambda_away: Number(lambda_away.toFixed(3)),
+      prob_1: Number(prob1.toFixed(4)),
+      prob_x: Number(probX.toFixed(4)),
+      prob_2: Number(prob2.toFixed(4)),
+      prob_over_2_5: Number(probOver25.toFixed(4)),
+      prob_under_2_5: Number(probUnder25.toFixed(4)),
+      prob_btts_yes: Number(probBTTS_Yes.toFixed(4)),
+      prob_btts_no: Number(probBTTS_No.toFixed(4)),
+      pHome: pHome.slice(0,9).map(x=>Number(x.toFixed(4))),
+      pAway: pAway.slice(0,9).map(x=>Number(x.toFixed(4))),
+      pTotal: pTotal.slice(0,9).map(x=>Number(x.toFixed(4))),
+      top_scores: topScores.slice(0, 5).map(s => ({score: s.score, prob: Number(s.prob.toFixed(4))})),
+      team_home: th,
+      team_away: ta,
+      warnings: []
+    };
+
+    if(th.matches < 6) res.warnings.push(`Pocos partidos para ${home} (${th.matches}) — fiabilidad reducida`);
+    if(ta.matches < 6) res.warnings.push(`Pocos partidos para ${away} (${ta.matches}) — fiabilidad reducida`);
+    if(leagueObj.matches.length < 10) res.warnings.push(`Pocos registros en la liga (${leagueObj.matches.length}) — usar con cautela`);
+
+    return res;
+  }
+
+  // --- Rendering ---
+  function renderResults(res){
+    // 1. Team Stats Table
+    teamsTableBody.innerHTML = '';
+    const rows = [
+      {name: homeSelect.value + ' (Local)', team: res.team_home, AS: res.team_home.AS, DS: res.team_home.DS},
+      {name: awaySelect.value + ' (Visita)', team: res.team_away, AS: res.team_away.AS, DS: res.team_away.DS}
+    ];
+    for(const r of rows){
+      const tr = document.createElement('tr');
+      const matches = r.team.matches || 0;
+      const gf_per = r.team.GF_per !== null ? r.team.GF_per.toFixed(2) : '-';
+      const ga_per = r.team.GA_per !== null ? r.team.GA_per.toFixed(2) : '-';
+      const atk = r.AS !== null ? r.AS.toFixed(3) : '-';
+      const def = r.DS !== null ? r.DS.toFixed(3) : '-';
+      tr.innerHTML = `
+        <td>${r.name}</td>
+        <td>${matches}</td>
+        <td>${gf_per}</td>
+        <td>${ga_per}</td>
+        <td>${atk}</td>
+        <td>${def}</td>
+      `;
+      teamsTableBody.appendChild(tr);
+    }
+
+    // 2. Main Probabilities
+    lambdaHomeEl.textContent = res.lambda_home;
+    lambdaAwayEl.textContent = res.lambda_away;
+    
+    probOverEl.textContent = (res.prob_over_2_5*100).toFixed(2) + '%';
+    probUnderEl.textContent = (res.prob_under_2_5*100).toFixed(2) + '%';
+    
+    probBTTSEl.textContent = (res.prob_btts_yes*100).toFixed(2) + '%';
+    probNoBTTSel.textContent = (res.prob_btts_no*100).toFixed(2) + '%';
+
+    prob1El.textContent = (res.prob_1*100).toFixed(2) + '%';
+    probXEl.textContent = (res.prob_x*100).toFixed(2) + '%';
+    prob2El.textContent = (res.prob_2*100).toFixed(2) + '%';
+
+    metaInfo.innerText = `λs calculadas • ${Object.keys(derived[res.League].teams).length} equipos en liga`;
+
+    // 3. Warnings
+    warningsDiv.innerHTML = '';
+    if(res.warnings && res.warnings.length){
+      for(const w of res.warnings){
+        const d = document.createElement('div');
+        d.className = 'warning'; d.style.marginTop = '6px'; d.textContent = w;
+        warningsDiv.appendChild(d);
+      }
+    }
+
+    // 4. Top Scores Table
+    scoreTableBody.innerHTML = '';
+    const scores = res.top_scores;
+    for(let i=0; i < Math.ceil(scores.length/2); i++){
+      const tr = document.createElement('tr');
+      const score1 = scores[i*2];
+      const score2 = scores[i*2 + 1];
+      tr.innerHTML = `
+        <td>${score1.score}</td>
+        <td>${(score1.prob*100).toFixed(2)}%</td>
+        ${score2 ? `<td>${score2.score}</td><td>${(score2.prob*100).toFixed(2)}%</td>` : '<td></td><td></td>'}
+      `;
+      scoreTableBody.appendChild(tr);
+    }
+
+    // 5. Chart
+    drawChart(res);
+
+    resultsArea.style.display = 'block';
+    window.lastResult = res;
+  }
+
+  function drawChart(res){
+    if(probChartInstance) probChartInstance.destroy();
+    
+    const maxK = 6;
+    const labels = Array.from({length: maxK + 1}, (_, i) => i);
+    const pTotal = res.pTotal.slice(0, maxK + 1).map(p => p*100);
+    const pHome = res.pHome.slice(0, maxK + 1).map(p => p*100);
+    const pAway = res.pAway.slice(0, maxK + 1).map(p => p*100);
+
+    probChartInstance = new Chart(probChartCanvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'P(Goles Totales)',
+          data: pTotal,
+          backgroundColor: 'rgba(6, 182, 212, 0.7)', // var(--accent)
+          borderColor: 'rgba(6, 182, 212, 1)',
+          borderWidth: 1,
+          order: 1
+        },{
+          label: `P(${homeSelect.value} Goles)`,
+          data: pHome,
+          type: 'line',
+          borderColor: 'rgba(59, 130, 246, 1)', // Blue
+          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+          fill: false,
+          tension: 0.2,
+          pointRadius: 3,
+          yAxisID: 'y'
+        },{
+          label: `P(${awaySelect.value} Goles)`,
+          data: pAway,
+          type: 'line',
+          borderColor: 'rgba(239, 68, 68, 1)', // Red
+          backgroundColor: 'rgba(239, 68, 68, 0.2)',
+          fill: false,
+          tension: 0.2,
+          pointRadius: 3,
+          yAxisID: 'y'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: 'var(--white)' } },
+          title: { display: true, text: 'Distribuciones de Probabilidad (Poisson)', color: 'var(--white)' },
+          tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.parsed.y.toFixed(2)}%` } }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: 'Goles', color: 'var(--muted)' },
+            ticks: { color: 'var(--white)' },
+            grid: { color: 'rgba(255,255,255,0.05)' }
+          },
+          y: {
+            title: { display: true, text: 'Probabilidad (%)', color: 'var(--muted)' },
+            beginAtZero: true,
+            ticks: { color: 'var(--white)', callback: (value) => `${value}%` },
+            grid: { color: 'rgba(255,255,255,0.05)' }
+          }
         }
+      }
+    });
+  }
 
-        const normFactor = 1.0 / totalProb;
-        let normalizedProbMatrix = probMatrix.map(row => row.map(p => p * normFactor));
-        let finalProbMatrix = JSON.parse(JSON.stringify(normalizedProbMatrix));
-
-        if (correlationFactor > 0) {
-            const prob00 = normalizedProbMatrix[0][0];
-            const prob11 = normalizedProbMatrix[1][1];
-            const sumDraws = prob00 + prob11;
-            if (sumDraws > 0) {
-                finalProbMatrix[0][0] += correlationFactor * (prob00 / sumDraws);
-                finalProbMatrix[1][1] += correlationFactor * (prob11 / sumDraws);
-                const sumDrawsNew = finalProbMatrix[0][0] + finalProbMatrix[1][1];
-                const sumNonDrawsOrig = 1.0 - sumDraws;
-                const sumNonDrawsReq = 1.0 - sumDrawsNew;
-                const reduction = sumNonDrawsOrig > 0 ? sumNonDrawsReq / sumNonDrawsOrig : 1.0;
-                for (let i = 0; i <= maxGoals; i++) {
-                    for (let j = 0; j <= maxGoals; j++) {
-                        if (!((i === 0 && j === 0) || (i === 1 && j === 1))) {
-                            finalProbMatrix[i][j] = normalizedProbMatrix[i][j] * reduction;
-                        }
-                    }
-                }
-            }
-        }
-
-        let probBTTS = 0, probOU25 = 0;
-        for (let i = 0; i <= maxGoals
+  // Initial setup
+  metaInfo.innerText = 'Carga JSON para comenzar';
+})();
+</script>
+</body>
+</html>
