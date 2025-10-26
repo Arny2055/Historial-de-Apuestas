@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>Calculadora Poisson Bivariante - Entrada de Tablas</title>
+    <title>Calculadora Poisson Bivariante - Cálculo Manual de Fuerzas</title>
     <style>
-        /* Estilos Base (Mantenidos y Ajustados) */
+        /* Estilos Base */
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             margin: 0; 
@@ -31,7 +31,7 @@
         }
         h2 { 
             text-align: center; 
-            color: #ff9800;
+            color: #ff9800; /* Color principal Bivariante */
             margin-bottom: 5px; 
             font-size: 2.2em; 
         }
@@ -41,15 +41,6 @@
             margin-bottom: 20px;
             color: #ccc;
         }
-        .warning-text {
-            color: #ff5722;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 10px;
-            padding: 10px;
-            background-color: #3e3e6b;
-            border-radius: 8px;
-        }
         label { 
             display: block; 
             margin-bottom: 5px; 
@@ -57,7 +48,7 @@
             color: #f0f0f0;
             font-size: 1.1em; 
         }
-        input[type="number"], select, textarea { 
+        input[type="number"] { 
             padding: 12px;
             margin-bottom: 15px; 
             width: 100%; 
@@ -67,18 +58,10 @@
             background-color: #3e3e6b; 
             color: #ffffff; 
             font-size: 1.1em;
-            resize: vertical;
-        }
-        textarea {
-            min-height: 150px;
-            font-family: monospace;
-            white-space: pre;
-            overflow-wrap: normal;
-            overflow-x: auto;
         }
         button { 
             padding: 15px; 
-            background-color: #ff9800;
+            background-color: #ff9800; /* Color principal Bivariante */
             color: #1a1a2e; 
             border: none; 
             border-radius: 10px; 
@@ -110,7 +93,7 @@
         }
         .input-manual-data {
             padding: 15px;
-            border: 1px solid #ff9800;
+            border: 1px solid #ff9800; /* Color principal Bivariante */
             border-radius: 10px;
             margin-bottom: 15px;
         }
@@ -121,28 +104,10 @@
             margin-bottom: 10px;
             font-weight: bold;
         }
-        .generated-avg {
-            background-color: #4a4e69;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            font-size: 0.95em;
-        }
-        .generated-avg strong {
-            float: right;
-            color: #8cffb6;
-        }
-        .correlation-input {
-            grid-column: 1 / -1;
-            margin-top: 10px;
-            background-color: #4a4e69;
-            padding: 15px;
-            border-radius: 10px;
-        }
         .resultado { 
             margin-top: 30px; 
             padding: 25px; 
-            border: 4px dashed #ff9800;
+            border: 4px dashed #ff9800; /* Color principal Bivariante */
             border-radius: 15px; 
             background-color: #3a3a5e;
         }
@@ -152,85 +117,77 @@
             display: flex;
             justify-content: space-between;
         }
-        #process_data_button {
-            background-color: #00bcd4;
-            color: #1a1a2e;
+        .resultado strong { 
+            color: #fff; 
+            font-weight: bold;
         }
-        #process_data_button:hover {
-            background-color: #0097a7;
+        .calculation-summary {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #1a1a2e;
+            border-radius: 10px;
+            font-size: 0.95em;
+        }
+        .calculation-summary h4 {
+            color: #ff9800;
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #4a4e69;
+            padding-bottom: 5px;
+        }
+        .calculation-summary p {
+            margin: 5px 0;
+            color: #ccc;
+        }
+        .correlation-input {
+            grid-column: 1 / -1; /* Ocupa ambas columnas */
+            margin-top: 10px;
+            background-color: #4a4e69;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .correlation-input input {
+            border-color: #f7a400;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>⚽ Calculadora Poisson Bivariante (BP)</h2>
-        <small>Introduce las estadísticas de tus tablas y las medias correctas de la liga.</small>
+        <small>Modelo avanzado con parámetro de Correlación ($\lambda_3$).</small>
         
-        <div class="section-title">1. Entrada de Estadísticas de Tablas</div>
-
-        <div class="input-manual-data" style="border-color: #00bcd4;">
-            <div class="manual-data-title" style="color: #00bcd4;">Pegar Estadísticas de Partidos como Local</div>
-            <label for="home_table_input">Copia y pega la tabla de "Match total goals stats (at home)":</label>
-            <textarea id="home_table_input" placeholder="Ej: Levante 4 4.25 100%..." oninput="clearResults()"></textarea>
-        </div>
-
-        <div class="input-manual-data" style="border-color: #ff9800;">
-            <div class="manual-data-title" style="color: #ff9800;">Pegar Estadísticas de Partidos como Visitante</div>
-            <label for="away_table_input">Copia y pega la tabla de "Match total goals stats (away)":</label>
-            <textarea id="away_table_input" placeholder="Ej: FC Barcelona 5 3.80 100%..." oninput="clearResults()"></textarea>
-        </div>
-
-        <button id="process_data_button" onclick="processAndSetupData()">1.1. 💾 Procesar Datos de Tablas y Cargar Equipos</button>
-        
-        <div class="section-title">2. Medias Promedio de la Liga</div>
-        
-        <div class="warning-text">
-            ⚠️ **IMPORTANTE:** Estos valores son CRUCIALES. Deben ser la media de **Goles MARCADO POR LOCALES** y **Goles MARCADO POR VISITANTES** de TODA la liga.
-        </div>
+        <div class="section-title">1. Medias Promedio de la Liga y Equipos</div>
         <div class="input-group">
             <div class="input-manual-data">
-                <label for="avg_league_home">Goles marcados por **LOCALES** en la liga ($\mu_L$):</label>
-                <input type="number" id="avg_league_home" placeholder="Ej: 1.55" step="0.01" value="1.55" onchange="updateTeamAverages()">
+                <div class="manual-data-title">Promedio Goles Liga (Local)</div>
+                <label for="avg_league_home">Goles marcados por locales en la liga:</label>
+                <input type="number" id="avg_league_home" placeholder="Ej: 1.55" step="0.01" value="1.55">
             </div>
             <div class="input-manual-data">
-                <label for="avg_league_away">Goles marcados por **VISITANTES** en la liga ($\mu_V$):</label>
-                <input type="number" id="avg_league_away" placeholder="Ej: 1.15" step="0.01" value="1.15" onchange="updateTeamAverages()">
+                <div class="manual-data-title">Promedio Goles Liga (Visitante)</div>
+                <label for="avg_league_away">Goles marcados por visitantes en la liga:</label>
+                <input type="number" id="avg_league_away" placeholder="Ej: 1.15" step="0.01" value="1.15">
             </div>
         </div>
 
-        <div class="section-title">3. Selección de Equipos y sus Promedios (Estimados)</div>
         <div class="input-group">
             <div class="input-manual-data" style="border-color: #00bcd4;">
                 <div class="manual-data-title" style="color: #00bcd4;">Equipo Local (L)</div>
-                <label for="select_home_team">Selecciona Equipo Local:</label>
-                <select id="select_home_team" onchange="updateTeamAverages()"></select>
-                
-                <div class="generated-avg">
-                    Promedio Goles **A Favor** (Local): <strong id="display_home_scored">...</strong>
-                    <input type="hidden" id="avg_home_scored" value="">
-                </div>
-                <div class="generated-avg">
-                    Promedio Goles **En Contra** (Local): <strong id="display_home_conceded">...</strong>
-                    <input type="hidden" id="avg_home_conceded" value="">
-                </div>
+                <label for="avg_home_scored">Promedio Goles **A Favor** (Local):</label>
+                <input type="number" id="avg_home_scored" placeholder="Ej: 1.90" step="0.01" value="1.90">
+                <label for="avg_home_conceded">Promedio Goles **En Contra** (Local):</label>
+                <input type="number" id="avg_home_conceded" placeholder="Ej: 0.80" step="0.01" value="0.80">
             </div>
             <div class="input-manual-data" style="border-color: #ff9800;">
                 <div class="manual-data-title" style="color: #ff9800;">Equipo Visitante (V)</div>
-                <label for="select_away_team">Selecciona Equipo Visitante:</label>
-                <select id="select_away_team" onchange="updateTeamAverages()"></select>
-
-                <div class="generated-avg">
-                    Promedio Goles **A Favor** (Visitante): <strong id="display_away_scored">...</strong>
-                    <input type="hidden" id="avg_away_scored" value="">
-                </div>
-                <div class="generated-avg">
-                    Promedio Goles **En Contra** (Visitante): <strong id="display_away_conceded">...</strong>
-                    <input type="hidden" id="avg_away_conceded" value="">
-                </div>
+                <label for="avg_away_scored">Promedio Goles **A Favor** (Visitante):</label>
+                <input type="number" id="avg_away_scored" placeholder="Ej: 1.20" step="0.01" value="1.20">
+                <label for="avg_away_conceded">Promedio Goles **En Contra** (Visitante):</label>
+                <input type="number" id="avg_away_conceded" placeholder="Ej: 1.30" step="0.01" value="1.30">
             </div>
         </div>
         
-        <div class="section-title">4. Parámetro de Correlación ($\lambda_3$)</div>
+        <div class="section-title">2. Parámetro de Correlación ($\lambda_3$)</div>
         <div class="correlation-input">
             <label for="lambda_3">Correlación ($\lambda_3$):</label>
             <input type="number" id="lambda_3" placeholder="Ej: 0.15" step="0.01" min="0" value="0.15">
@@ -238,7 +195,7 @@
         </div>
 
 
-        <button onclick="calculateManualBivariatePoisson()">5. Calcular Pronóstico Poisson Bivariante</button>
+        <button onclick="calculateManualBivariatePoisson()">3. Calcular Pronóstico Poisson Bivariante</button>
 
         <div class="resultado" id="resultados_poisson" style="display:none;">
             <div class="section-title" style="color:#ff9800; border-color:#ff9800;">📊 Resultados del Modelo Poisson Bivariante</div>
@@ -274,198 +231,8 @@
     <script>
         const MAX_GOALS = 6; 
         
-        // Variables globales para almacenar los datos procesados
-        let HOME_STATS = {}; // {Equipo: Avg_Total_Goals_Home_Match}
-        let AWAY_STATS = {}; // {Equipo: Avg_Total_Goals_Away_Match}
-
         // =======================================================
-        // LÓGICA DE PROCESAMIENTO DE TABLAS
-        // =======================================================
-        
-        function processTableData(tableText) {
-            const data = {};
-            const lines = tableText.trim().split('\n');
-
-            // Ignorar la primera línea si es el encabezado (ej: "Home matches of... GP Avg...")
-            const dataLines = lines.length > 0 && lines[0].includes('Avg') ? lines.slice(1) : lines;
-
-            dataLines.forEach(line => {
-                const teamNameRegex = /([\w\s]+?)\s+\d+/;
-                const nameMatch = line.trim().match(teamNameRegex);
-
-                if (nameMatch) {
-                    const teamName = nameMatch[1].trim();
-                    
-                    // Sustituir el nombre del equipo y el GP (ej: "Levante 4") por un espacio para aislar los números
-                    let cleanLine = line.trim().substring(nameMatch[0].length).trim();
-                    const parts = cleanLine.split(/\s+/);
-                    
-                    // El promedio (Avg) es el primer valor numérico que queda (ya quitamos el GP)
-                    if (parts.length >= 1) {
-                        const avgValue = parseFloat(parts[0]);
-                        if (!isNaN(avgValue)) {
-                            data[teamName] = avgValue;
-                        }
-                    }
-                }
-            });
-            return data;
-        }
-
-        function processAndSetupData() {
-            const homeText = document.getElementById('home_table_input').value;
-            const awayText = document.getElementById('away_table_input').value;
-
-            HOME_STATS = processTableData(homeText);
-            AWAY_STATS = processTableData(awayText);
-
-            if (Object.keys(HOME_STATS).length === 0 || Object.keys(AWAY_STATS).length === 0) {
-                alert("Error al procesar los datos. Asegúrate de que las tablas estén copiadas correctamente y que contengan los campos 'Equipo' y 'Avg'.");
-                clearResults();
-                return;
-            }
-
-            populateTeamSelectors();
-            
-            // Intentar establecer una selección por defecto y calcular
-            const firstHomeTeam = Object.keys(HOME_STATS)[0];
-            const firstAwayTeam = Object.keys(AWAY_STATS)[0];
-            
-            document.getElementById('select_home_team').value = firstHomeTeam || '';
-            document.getElementById('select_away_team').value = firstAwayTeam || '';
-            
-            // Forzamos la actualización de promedios para mostrar los resultados iniciales
-            updateTeamAverages();
-            
-            alert(`✅ Datos cargados. ${Object.keys(HOME_STATS).length} equipos locales y ${Object.keys(AWAY_STATS).length} equipos visitantes disponibles para la selección.`);
-        }
-
-        function populateTeamSelectors() {
-            const homeSelect = document.getElementById('select_home_team');
-            const awaySelect = document.getElementById('select_away_team');
-            
-            // Limpiar selectores
-            homeSelect.innerHTML = '<option value="">--- Seleccione Local ---</option>';
-            awaySelect.innerHTML = '<option value="">--- Seleccione Visitante ---</option>';
-
-            // Obtener todos los nombres de equipos únicos
-            const allTeams = new Set([...Object.keys(HOME_STATS), ...Object.keys(AWAY_STATS)]);
-            const sortedTeams = Array.from(allTeams).sort();
-
-            sortedTeams.forEach(team => {
-                // Solo añadir si el equipo tiene estadísticas relevantes para la posición
-                if (HOME_STATS.hasOwnProperty(team)) {
-                    const homeOption = document.createElement('option');
-                    homeOption.value = team;
-                    homeOption.textContent = team;
-                    homeSelect.appendChild(homeOption);
-                }
-
-                if (AWAY_STATS.hasOwnProperty(team)) {
-                    const awayOption = document.createElement('option');
-                    awayOption.value = team;
-                    awayOption.textContent = team;
-                    awaySelect.appendChild(awayOption);
-                }
-            });
-        }
-        
-        // =======================================================
-        // LÓGICA DE CÁLCULO DE FUERZAS Y LAMBDA
-        // =======================================================
-
-        function updateTeamAverages() {
-            const homeTeam = document.getElementById('select_home_team').value;
-            const awayTeam = document.getElementById('select_away_team').value;
-
-            if (!homeTeam || !awayTeam) {
-                clearAverages();
-                clearResults();
-                return;
-            }
-
-            // Medias de Goles MARCADO por Locales y Visitantes en la Liga (CRUCIALES)
-            const avgLeagueL = parseFloat(document.getElementById('avg_league_home').value);
-            const avgLeagueV = parseFloat(document.getElementById('avg_league_away').value);
-
-            if (isNaN(avgLeagueL) || isNaN(avgLeagueV) || avgLeagueL <= 0 || avgLeagueV <= 0) {
-                // No mostramos un alert, solo limpiamos y salimos, esperando que el usuario lo corrija.
-                clearAverages();
-                clearResults();
-                return;
-            }
-
-            // Obtener la media total de goles del partido para el equipo seleccionado
-            const homeMatchAvgGoals = HOME_STATS[homeTeam]; 
-            const awayMatchAvgGoals = AWAY_STATS[awayTeam]; 
-            
-            if (homeMatchAvgGoals === undefined || awayMatchAvgGoals === undefined) {
-                 clearAverages();
-                 clearResults();
-                 return;
-            }
-
-            // ************ ESTIMACIÓN CLAVE ************
-            // La suma de los Goles Marcados por ambos equipos en el partido debe ser igual a la Media Total del Partido.
-            // Avg Goles Partido L = (L Marcados) + (V Marcados Oponente)
-            // L Marcados (A Favor) = Avg Goles Partido L - V Marcados Oponente
-            // Usamos la media de la liga como la estimación de los goles marcados por el Oponente.
-
-            // 1. Equipo Local (L)
-            // L Concedidos (Defensa L) = Media de goles que MARCA un Visitante promedio
-            const avg_home_conceded = avgLeagueV; 
-            // L Marcados (Ataque L) = Media Total del partido L - Goles que marca el visitante promedio (Goles Concedidos L)
-            const avg_home_scored_est = homeMatchAvgGoals - avg_home_conceded;
-
-            // 2. Equipo Visitante (V)
-            // V Concedidos (Defensa V) = Media de goles que MARCA un Local promedio
-            const avg_away_conceded = avgLeagueL;
-            // V Marcados (Ataque V) = Media Total del partido V - Goles que marca el local promedio (Goles Concedidos V)
-            const avg_away_scored_est = awayMatchAvgGoals - avg_away_conceded;
-            
-            // Validar que los promedios de ataque (goles marcados) sean positivos
-            if (avg_home_scored_est <= 0 || avg_away_scored_est <= 0) {
-                 alert("Advertencia: Los Goles A Favor calculados para uno o ambos equipos son no positivos. Asegúrate de que las medias de liga ($\mu_L$, $\mu_V$) en el Paso 2 sean correctas. El cálculo fallará.");
-                 clearResults();
-                 clearAverages();
-                 return;
-            }
-            
-            // Actualizar inputs (ocultos) y display
-            // Local
-            document.getElementById('avg_home_scored').value = avg_home_scored_est.toFixed(3);
-            document.getElementById('display_home_scored').textContent = avg_home_scored_est.toFixed(3);
-            document.getElementById('avg_home_conceded').value = avg_home_conceded.toFixed(3);
-            document.getElementById('display_home_conceded').textContent = avg_home_conceded.toFixed(3);
-
-            // Visitante
-            document.getElementById('avg_away_scored').value = avg_away_scored_est.toFixed(3);
-            document.getElementById('display_away_scored').textContent = avg_away_scored_est.toFixed(3);
-            document.getElementById('avg_away_conceded').value = avg_away_conceded.toFixed(3);
-            document.getElementById('display_away_conceded').textContent = avg_away_conceded.toFixed(3);
-            
-            // Ejecutar el cálculo principal automáticamente
-            calculateManualBivariatePoisson();
-        }
-
-        function clearAverages() {
-            document.getElementById('avg_home_scored').value = '';
-            document.getElementById('display_home_scored').textContent = '...';
-            document.getElementById('avg_home_conceded').value = '';
-            document.getElementById('display_home_conceded').textContent = '...';
-            document.getElementById('avg_away_scored').value = '';
-            document.getElementById('display_away_scored').textContent = '...';
-            document.getElementById('avg_away_conceded').value = '';
-            document.getElementById('display_away_conceded').textContent = '...';
-        }
-
-        function clearResults() {
-            document.getElementById('resultados_poisson').style.display = 'none';
-        }
-
-
-        // =======================================================
-        // FUNCIONES DE CÁLCULO POISSON BIVARIANTE (Mismo que antes)
+        // 1. LÓGICA DE CÁLCULO DE FUERZAS Y LAMBDA
         // =======================================================
 
         function calculateManualBivariatePoisson() {
@@ -482,20 +249,23 @@
             const avgAwayScored = parseFloat(document.getElementById('avg_away_scored').value);
             const avgAwayConceded = parseFloat(document.getElementById('avg_away_conceded').value);
 
-            if (isNaN(avgHomeScored) || avgHomeScored <= 0 || isNaN(avgAwayScored) || avgAwayScored <= 0 || 
-                isNaN(avgLeagueL) || avgLeagueL <= 0 || isNaN(avgLeagueV) || avgLeagueV <= 0) {
+            // Validar entradas
+            if ([avgLeagueL, avgLeagueV, avgHomeScored, avgHomeConceded, avgAwayScored, avgAwayConceded, lambda3].some(isNaN) ||
+                [avgLeagueL, avgLeagueV].some(val => val <= 0) || lambda3 < 0) {
+                alert("Por favor, introduce todos los valores numéricos válidos. Las medias de liga y λ3 deben ser ≥ 0.");
                 resultsDiv.style.display = 'none';
                 return;
             }
 
             try {
-                // 2. Calcular Fuerzas
+                // 2. Calcular Fuerzas (Mismo método que SP)
                 const attackL = avgHomeScored / avgLeagueL;
                 const attackV = avgAwayScored / avgLeagueV;
                 const defenseL = avgHomeConceded / avgLeagueV; 
                 const defenseV = avgAwayConceded / avgLeagueL; 
 
-                // 3. Calcular Goles Esperados del Poisson ESTÁNDAR
+                // 3. Calcular Goles Esperados del Poisson ESTÁNDAR (lambda_L_SP, lambda_V_SP)
+                // Usamos estos como la media total antes de la correlación (λ_SP = λ_1 + λ_3)
                 const lambdaL_SP = attackL * defenseV * avgLeagueL;
                 const lambdaV_SP = attackV * defenseL * avgLeagueV;
                 
@@ -504,7 +274,7 @@
                 const lambda2 = lambdaV_SP - lambda3;
                 
                 if (lambda1 < 0 || lambda2 < 0) {
-                     throw new Error(`Error Bivariante: La correlación ($\lambda_3$: ${lambda3.toFixed(3)}) es demasiado alta. Debe ser menor o igual a ambos Goles Esperados Estándar ($\lambda_L$: ${lambdaL_SP.toFixed(3)} y $\lambda_V$: ${lambdaV_SP.toFixed(3)}).`);
+                     throw new Error(`Error Bivariante: La correlación ($\lambda_3$: ${lambda3.toFixed(3)}) es demasiado alta. Debe ser menor o igual a ambos Goles Esperados ($\lambda_L$ y $\lambda_V$).`);
                 }
 
                 const params = {
@@ -527,7 +297,10 @@
             }
         }
         
-        // --- POISSON BIVARIANTE (BP) (Función principal de un marcador) ---
+        // =======================================================
+        // 4. FUNCIONES AUXILIARES (Poisson Bivariante y Display)
+        // =======================================================
+
         function factorial(n) {
             if (n === 0 || n === 1) return 1;
             let result = 1;
@@ -537,10 +310,12 @@
             return result;
         }
         
+        // --- POISSON BIVARIANTE (BP) (Función principal de un marcador) ---
         function bivariate_poisson_prob(x, y, lambda1, lambda2, lambda3) {
             x = Math.round(x);
             y = Math.round(y);
             
+            // Constante de normalización (Exponencial del negativo de la suma de lambdas)
             const c = Math.exp(-(lambda1 + lambda2 + lambda3));
             const min_xy = Math.min(x, y);
             
@@ -555,6 +330,7 @@
             return c * sumatoria;
         }
 
+        // Función principal de cálculo de probabilidades de Poisson Bivariante
         function calculateBivariatePoissonProbabilities(lambda1, lambda2, lambda3) {
             let p_win_L = 0;
             let p_draw = 0;
@@ -571,21 +347,25 @@
                     const P_LV = P_LV_Function(L, V);
                     p_suma_total_ft += P_LV; 
                     
+                    // 1X2
                     if (L > V) p_win_L += P_LV;
                     else if (L === V) p_draw += P_LV;
                     else p_win_V += P_LV;
                     
+                    // O/U 2.5
                     const total = L + V;
                     if (total === 0) p_total_0 += P_LV;
                     if (total === 1) p_total_1 += P_LV;
                     if (total === 2) p_total_2 += P_LV;
                     
+                    // BTTS
                     if (L > 0 && V > 0) p_btts_ft += P_LV; 
                 }
             }
             
             if (p_suma_total_ft === 0) throw new Error("La suma total de probabilidades es cero.");
 
+            // Normalización
             const factor = 1.0 / p_suma_total_ft;
 
             p_win_L *= factor;
