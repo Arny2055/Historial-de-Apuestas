@@ -1,716 +1,367 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Calculadora Poisson Pro • Over/Under 2.5 & BTTS</title>
-  <style>
-    :root{
-      --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#9aa4b2; --white:#e6eef6;
-      --glass: rgba(255,255,255,0.03);
-      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-    }
-    html,body{height:100%; margin:0; background:linear-gradient(180deg,#071025 0%, #051223 100%); color:var(--white);}
-    .container{max-width:1100px; margin:28px auto; padding:22px; background:var(--card); border-radius:12px; box-shadow: 0 8px 30px rgba(2,6,23,0.6);}
-    h1{margin:0 0 12px; font-size:20px;}
-    p.lead{margin:0 0 18px; color:var(--muted);}
-    .row{display:flex; gap:16px; flex-wrap:wrap;}
-    .col{flex:1 1 320px;}
-    .panel{background:var(--glass); padding:14px; border-radius:10px; border:1px solid rgba(255,255,255,0.03);}
-    label{display:block; font-size:13px; color:var(--muted); margin-bottom:6px;}
-    input[type="file"]{color:var(--muted);}
-    select,input,textarea,button{width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:var(--white); font-size:14px;}
-    textarea{min-height:120px; resize:vertical;}
-    .btn{background:linear-gradient(90deg,var(--accent), #3b82f6); color:#042028; border:none; cursor:pointer; padding:10px 14px; font-weight:600;}
-    .btn.secondary{background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--white);}
-    .small{font-size:13px; color:var(--muted);}
-    table{width:100%; border-collapse:collapse; margin-top:8px;}
-    th,td{padding:8px; text-align:left; border-bottom:1px dashed rgba(255,255,255,0.03); font-size:13px;}
-    .result-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:10px;}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:10px; border-radius:8px; min-width:120px; flex:1;}
-    .prob{font-size:18px; font-weight:700;}
-    .muted{color:var(--muted);}
-    .warning{background:#3b2b00; color:#fff; padding:8px; border-radius:6px; margin-top:8px;}
-    .flex-between{display:flex; justify-content:space-between; align-items:center;}
-    .export-row{display:flex; gap:8px; margin-top:10px;}
-    canvas{background:transparent; border-radius:8px;}
-    .footer{margin-top:18px; color:var(--muted); font-size:13px;}
-    .input-inline{display:flex; gap:8px;}
-    .input-inline input{flex:1;}
-    .small-muted{font-size:12px; color:var(--muted);}
-    .score-table{margin-top:10px; border:1px solid rgba(255,255,255,0.03); border-radius:8px;}
-    .score-table th{background:rgba(255,255,255,0.04); padding:8px 8px;}
-    .score-table td{padding:8px 8px; border-bottom: none;}
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Calculadora Poisson - Cálculo Manual de Fuerzas</title>
+    <style>
+        /* Estilos Base */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 0;
+            background-color: #1a1a2e;
+            color: #e0e0e0; 
+            min-height: 100vh; 
+            width: 100vw;
+            display: flex;
+            flex-direction: column; 
+            justify-content: flex-start; 
+            align-items: center;
+        }
+        .container { 
+            width: 98vw; 
+            max-width: 950px; 
+            padding: 40px 30px; 
+            margin-top: 15px; 
+            margin-bottom: 15px; 
+            background-color: #2c2c54; 
+            border-radius: 20px; 
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.7); 
+        }
+        h2 { 
+            text-align: center; 
+            color: #79d70f; 
+            margin-bottom: 5px; 
+            font-size: 2.2em; 
+        }
+        small {
+            display: block;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: 600; 
+            color: #f0f0f0;
+            font-size: 1.1em; 
+        }
+        input[type="number"] { 
+            padding: 12px;
+            margin-bottom: 15px; 
+            width: 100%; 
+            box-sizing: border-box; 
+            border: 3px solid #4a4e69; 
+            border-radius: 10px; 
+            background-color: #3e3e6b; 
+            color: #ffffff; 
+            font-size: 1.1em;
+        }
+        button { 
+            padding: 15px; 
+            background-color: #79d70f; 
+            color: #1a1a2e; 
+            border: none; 
+            border-radius: 10px; 
+            width: 100%; 
+            cursor: pointer; 
+            font-size: 1.2em; 
+            font-weight: bold;
+            transition: background-color 0.3s; 
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .section-title {
+            color: #79d70f; 
+            margin-top: 25px;
+            margin-bottom: 10px;
+            font-size: 1.4em;
+            text-align: center;
+            border-bottom: 2px solid #3a3a5e;
+            padding-bottom: 8px;
+        }
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .input-manual-data {
+            padding: 15px;
+            border: 1px solid #79d70f; 
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .manual-data-title {
+            color: #79d70f;
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .resultado { 
+            margin-top: 30px; 
+            padding: 25px; 
+            border: 4px dashed #79d70f; 
+            border-radius: 15px; 
+            background-color: #3a3a5e;
+        }
+        .resultado p { 
+            margin: 8px 0; 
+            font-size: 1.3em; 
+            display: flex;
+            justify-content: space-between;
+        }
+        .resultado strong { 
+            color: #92e62c; 
+            font-weight: bold;
+        }
+        .calculation-summary {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #1a1a2e;
+            border-radius: 10px;
+            font-size: 0.95em;
+        }
+        .calculation-summary h4 {
+            color: #79d70f;
+            margin-top: 0;
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #4a4e69;
+            padding-bottom: 5px;
+        }
+        .calculation-summary p {
+            margin: 5px 0;
+            color: #ccc;
+        }
+
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Calculadora Poisson Pro — Métricas Avanzadas</h1>
-    <p class="lead">Carga un JSON con partidos, selecciona liga, local y visita. ¡La predicción es mejorada!</p>
-
-    <div class="row">
-      <div class="col panel">
-        <label>1) Cargar JSON (archivo .json) o pegar el texto</label>
-        <input type="file" id="fileInput" accept=".json,text/plain" />
-        <div style="height:8px"></div>
-        <label>o pegar JSON aquí</label>
-        <textarea id="jsonText" placeholder='Pega aquí el JSON (array de objetos) o varios objetos separados por saltos'></textarea>
-        <div style="height:8px"></div>
-        <div class="row" style="margin-top:8px;">
-          <div style="flex:1">
-            <button class="btn" id="loadJsonBtn">Cargar y Analizar</button>
-          </div>
-          <div style="width:160px">
-            <button class="btn secondary" id="clearBtn">Limpiar</button>
-          </div>
-        </div>
-
-        <hr style="margin:12px 0;border:none;border-top:1px solid rgba(255,255,255,0.03)">
-
-        <label>2) Filtros</label>
-        <select id="leagueSelect"><option value="">-- Elige una liga --</option></select>
-        <div style="height:8px"></div>
-        <div class="row">
-          <div style="flex:1">
-            <label>Local</label>
-            <select id="homeSelect"><option value="">-- Local --</option></select>
-          </div>
-          <div style="flex:1">
-            <label>Visita</label>
-            <select id="awaySelect"><option value="">-- Visita --</option></select>
-          </div>
-        </div>
-
-        <div style="height:8px"></div>
-        <label>3) Ajustes (opcional)</label>
-        <div class="input-inline">
-          <input id="lambdaHomeInput" placeholder="Sobrescribir λ_home" />
-          <input id="lambdaAwayInput" placeholder="Sobrescribir λ_away" />
-        </div>
-        <div style="height:8px"></div>
-        <div class="row">
-          <div style="flex:1">
-            <button class="btn" id="calcBtn">Calcular Probabilidades</button>
-          </div>
-          <div style="width:160px">
-            <button class="btn secondary" id="exportBtn">Exportar JSON</button>
-          </div>
-        </div>
-
-        <div id="warnings"></div>
-      </div>
-
-      <div class="col panel">
-        <div class="flex-between">
-          <div>
-            <label>Resultados del Modelo Poisson</label>
-            <div class="small-muted">Probabilidades, métricas y predicción</div>
-          </div>
-          <div class="small-muted" id="metaInfo">Sin datos aún</div>
-        </div>
-
-        <div id="resultsArea" style="margin-top:8px; display:none;">
-          <table id="teamsTable">
-            <thead>
-              <tr>
-                <th>Equipo</th><th>Partidos</th><th>GF p/p</th><th>GA p/p</th><th>AtkStr</th><th>DefStr</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-
-          <div style="height:10px"></div>
-          <div class="result-row">
-            <div class="card" style="min-width:120px;">
-              <div class="small muted">λ_home</div>
-              <div id="lambdaHome" class="prob">—</div>
-              <div class="small-muted">λ_away</div>
-              <div id="lambdaAway" class="prob">—</div>
+    <div class="container">
+        <h2>⚽ Calculadora Poisson - Cálculo Manual</h2>
+        <small>Introduzca las medias de goles de la Liga y los Equipos para calcular los $\lambda$ de Poisson.</small>
+        
+        <div class="section-title">1. Medias Promedio de la Liga</div>
+        <div class="input-group">
+            <div class="input-manual-data">
+                <div class="manual-data-title">Promedio Goles Liga (Local)</div>
+                <label for="avg_league_home">Goles marcados por locales en la liga:</label>
+                <input type="number" id="avg_league_home" placeholder="Ej: 1.55" step="0.01" value="1.55">
             </div>
-
-            <div class="card">
-              <div class="small muted">P(Over 2.5)</div>
-              <div id="probOver" class="prob">—</div>
-              <div class="small-muted">P(Under 2.5): <span id="probUnder">—</span></div>
+            <div class="input-manual-data">
+                <div class="manual-data-title">Promedio Goles Liga (Visitante)</div>
+                <label for="avg_league_away">Goles marcados por visitantes en la liga:</label>
+                <input type="number" id="avg_league_away" placeholder="Ej: 1.15" step="0.01" value="1.15">
             </div>
-
-            <div class="card">
-              <div class="small muted">P(BTTS = Sí)</div>
-              <div id="probBTTS" class="prob">—</div>
-              <div class="small-muted">P(BTTS = No): <span id="probNoBTTS">—</span></div>
-            </div>
-
-            <div class="card">
-              <div class="small muted">1X2: Local Gana</div>
-              <div id="prob1" class="prob">—</div>
-              <div class="small-muted">Empate: <span id="probX">—</span> / Visita: <span id="prob2">—</span></div>
-            </div>
-          </div>
-
-          <div style="height:10px"></div>
-          <canvas id="probChart" width="500" height="250"></canvas>
-
-          <label style="margin-top:15px;">Top 5 Marcadores Exactos</label>
-          <table class="score-table" id="scoreTable">
-            <thead><tr><th style="width:25%;">Score</th><th style="width:25%;">Prob.</th><th style="width:25%;">Score</th><th style="width:25%;">Prob.</th></tr></thead>
-            <tbody></tbody>
-          </table>
-
-          <div class="export-row">
-            <button class="btn secondary" id="downloadJSON">Descargar JSON</button>
-            <button class="btn secondary" id="downloadCSV">Descargar CSV</button>
-          </div>
         </div>
 
-      </div>
+        <div class="section-title">2. Medias Promedio de los Equipos</div>
+        <div class="input-group">
+            <div class="input-manual-data" style="border-color: #00bcd4;">
+                <div class="manual-data-title" style="color: #00bcd4;">Equipo Local (L)</div>
+                <label for="avg_home_scored">Promedio Goles **A Favor** (Local):</label>
+                <input type="number" id="avg_home_scored" placeholder="Ej: 1.90" step="0.01" value="1.90">
+                <label for="avg_home_conceded">Promedio Goles **En Contra** (Local):</label>
+                <input type="number" id="avg_home_conceded" placeholder="Ej: 0.80" step="0.01" value="0.80">
+            </div>
+            <div class="input-manual-data" style="border-color: #ff9800;">
+                <div class="manual-data-title" style="color: #ff9800;">Equipo Visitante (V)</div>
+                <label for="avg_away_scored">Promedio Goles **A Favor** (Visitante):</label>
+                <input type="number" id="avg_away_scored" placeholder="Ej: 1.20" step="0.01" value="1.20">
+                <label for="avg_away_conceded">Promedio Goles **En Contra** (Visitante):</label>
+                <input type="number" id="avg_away_conceded" placeholder="Ej: 1.30" step="0.01" value="1.30">
+            </div>
+        </div>
+
+        <button onclick="calculateManualPoisson()">3. Calcular Goles Esperados y Pronóstico Poisson</button>
+
+        <div class="resultado" id="resultados_poisson" style="display:none;">
+            <div class="section-title" style="color:#79d70f; border-color:#79d70f;">📊 Resultados del Modelo Poisson Estándar</div>
+
+            <div class="calculation-summary">
+                <h4>Detalle de Parámetros de la Fórmula</h4>
+                <p>Media Goles Liga (Local): <strong id="avg_league_L_res">...</strong> | Media Goles Liga (Visitante): <strong id="avg_league_V_res">...</strong></p>
+                <hr style="border-top: 1px dashed #4a4e69; margin: 10px 0;">
+                
+                <p>Fuerza de Ataque Local ($\text{Att}_L$): <strong id="att_L">...</strong></p>
+                <p>Fuerza de Defensa Visitante ($\text{Def}_V$): <strong id="def_V">...</strong></p>
+                <p>Fuerza de Ataque Visitante ($\text{Att}_V$): <strong id="att_V">...</strong></p>
+                <p>Fuerza de Defensa Local ($\text{Def}_L$): <strong id="def_L">...</strong></p>
+                
+                <hr style="border-top: 1px solid #555; margin: 10px 0;">
+                <p style="font-size:1.4em;">**Goles Esperados Local ($\lambda_L$):** <strong id="lambda_L_res">...</strong></p>
+                <p style="font-size:1.4em;">**Goles Esperados Visitante ($\lambda_V$):** <strong id="lambda_V_res">...</strong></p>
+            </div>
+            
+            <div class="section-title" style="color:#79d70f; border-color:#79d70f; margin-top:20px;">Mercados de Goles</div>
+            
+            <p>Over 2.5 Goles: <strong id="over25Prob">...</strong></p>
+            <p>Under 2.5 Goles: <strong id="under25Prob">...</strong></p>
+            
+            <div class="section-title" style="color:#79d70f; border-color:#79d70f; margin-top:20px;">Ambos Anotan (BTTS)</div>
+            <p>BTTS Yes (Sí): <strong id="bttsYesProb">...</strong></p>
+            <p>BTTS No (No): <strong id="bttsNoProb">...</strong></p>
+            
+        </div>
+
     </div>
 
-    <div class="footer">
-      Consejos: Las fortalezas/debilidades se calculan comparando el rendimiento del equipo con el promedio de la liga. Si faltan datos, se usan promedios de liga.
-    </div>
-  </div>
+    <script>
+        const MAX_GOALS = 6; 
+        
+        // =======================================================
+        // 1. LÓGICA DE CÁLCULO DE FUERZAS Y LAMBDA
+        // =======================================================
 
-<script>
-/*
-  Calculadora Poisson Pro (vanilla JS + Chart.js) - Versión Corregida
-  Correcciones:
-  - Estructura de tablas HTML/CSS para correcta visualización.
-  - Lógica de cálculo de P(BTTS No) y P(BTTS Yes).
-*/
+        function calculateManualPoisson() {
+            const resultsDiv = document.getElementById('resultados_poisson');
 
-(function(){
-  // --- Helpers ---
-  function safeParseJSON(text){
-    try{
-      const trimmed = text.trim();
-      if(!trimmed) return null;
-      if(trimmed.startsWith("[")){
-        return JSON.parse(trimmed);
-      } else {
-        const lines = trimmed.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
-        const items = [];
-        for(const l of lines){
-          try { items.push(JSON.parse(l)); }
-          catch(e){ /* ignore malformed line */ }
+            // 1. Obtener Entradas
+            const avgLeagueL = parseFloat(document.getElementById('avg_league_home').value);
+            const avgLeagueV = parseFloat(document.getElementById('avg_league_away').value);
+            
+            const avgHomeScored = parseFloat(document.getElementById('avg_home_scored').value);
+            const avgHomeConceded = parseFloat(document.getElementById('avg_home_conceded').value);
+            
+            const avgAwayScored = parseFloat(document.getElementById('avg_away_scored').value);
+            const avgAwayConceded = parseFloat(document.getElementById('avg_away_conceded').value);
+
+            // Validar entradas
+            if ([avgLeagueL, avgLeagueV, avgHomeScored, avgHomeConceded, avgAwayScored, avgAwayConceded].some(isNaN) ||
+                [avgLeagueL, avgLeagueV].some(val => val <= 0)) {
+                alert("Por favor, introduce todos los valores numéricos válidos. Las medias de liga deben ser mayores a 0.");
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            try {
+                // 2. Calcular Fuerzas
+                // Fórmula: Fuerza Ataque = Media Goles Favor Equipo / Media Goles Liga (Local si es Local, Visitante si es Visitante)
+                // Fórmula: Fuerza Defensa = Media Goles Contra Equipo / Media Goles Liga (Contraria)
+
+                // 2.1. Fuerzas de Ataque
+                const attackL = avgHomeScored / avgLeagueL;
+                const attackV = avgAwayScored / avgLeagueV;
+                
+                // 2.2. Fuerzas de Defensa
+                // La defensa del local (Home) se compara con los goles que reciben los visitantes de la liga (AvgLeagueV)
+                const defenseL = avgHomeConceded / avgLeagueV; 
+                // La defensa del visitante (Away) se compara con los goles que reciben los locales de la liga (AvgLeagueL)
+                const defenseV = avgAwayConceded / avgLeagueL; 
+
+                // 3. Calcular Goles Esperados (Lambda)
+                // lambda_L = AttL * DefV * AvgL
+                const lambdaL = attackL * defenseV * avgLeagueL;
+                // lambda_V = AttV * DefL * AvgV
+                const lambdaV = attackV * defenseL * avgLeagueV;
+
+                const params = {
+                    lambdaL, lambdaV, 
+                    attackL, defenseV, 
+                    attackV, defenseL,
+                    avgLeagueL, avgLeagueV,
+                };
+
+                // 4. Calcular Probabilidades Poisson
+                const probabilities = calculateStandardPoissonProbabilities(lambdaL, lambdaV);
+                
+                // 5. Mostrar Resultados
+                displayResults(probabilities, params);
+                resultsDiv.style.display = 'block';
+
+            } catch (error) {
+                alert("Error durante el cálculo: " + error.message);
+                resultsDiv.style.display = 'none';
+            }
         }
-        if(items.length) return items;
-        return [JSON.parse(trimmed)];
-      }
-    }catch(e){
-      return null;
-    }
-  }
-
-  function downloadBlob(filename, content, mime){
-    mime = mime || 'application/json';
-    const blob = new Blob([content], {type: mime});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
-    a.remove(); URL.revokeObjectURL(url);
-  }
-
-  function factorial(n){
-    if(n<=1) return 1;
-    let f=1;
-    for(let i=2;i<=n;i++) f*=i;
-    return f;
-  }
-  function poissonP(k, lambda){
-    if (lambda <= 0) return k === 0 ? 1 : 0;
-    return Math.exp(-lambda) * Math.pow(lambda, k) / factorial(k);
-  }
-
-  // --- UI Elements ---
-  const fileInput = document.getElementById('fileInput');
-  const jsonText = document.getElementById('jsonText');
-  const loadJsonBtn = document.getElementById('loadJsonBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const leagueSelect = document.getElementById('leagueSelect');
-  const homeSelect = document.getElementById('homeSelect');
-  const awaySelect = document.getElementById('awaySelect');
-  const calcBtn = document.getElementById('calcBtn');
-  const warningsDiv = document.getElementById('warnings');
-  const resultsArea = document.getElementById('resultsArea');
-  const teamsTableBody = document.querySelector('#teamsTable tbody');
-  const lambdaHomeEl = document.getElementById('lambdaHome');
-  const lambdaAwayEl = document.getElementById('lambdaAway');
-  const probOverEl = document.getElementById('probOver');
-  const probUnderEl = document.getElementById('probUnder');
-  const probBTTSEl = document.getElementById('probBTTS');
-  const probNoBTTSel = document.getElementById('probNoBTTS');
-  const prob1El = document.getElementById('prob1');
-  const probXEl = document.getElementById('probX');
-  const prob2El = document.getElementById('prob2');
-  const probChartCanvas = document.getElementById('probChart');
-  const metaInfo = document.getElementById('metaInfo');
-  const lambdaHomeInput = document.getElementById('lambdaHomeInput');
-  const lambdaAwayInput = document.getElementById('lambdaAwayInput');
-  const exportBtn = document.getElementById('exportBtn');
-  const downloadJSONBtn = document.getElementById('downloadJSON');
-  const downloadCSVBtn = document.getElementById('downloadCSV');
-  const scoreTableBody = document.querySelector('#scoreTable tbody');
-
-  let rawData = [];
-  let derived = {};
-  let probChartInstance = null; // Chart.js instance
-
-  // --- Event Handlers ---
-  fileInput.addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const text = await file.text();
-    jsonText.value = text;
-  });
-
-  clearBtn.addEventListener('click', ()=>{
-    jsonText.value = '';
-    rawData = [];
-    derived = {};
-    leagueSelect.innerHTML = '<option value="">-- Elige una liga --</option>';
-    homeSelect.innerHTML = '<option value="">-- Local --</option>';
-    awaySelect.innerHTML = '<option value="">-- Visita --</option>';
-    resultsArea.style.display = 'none';
-    warningsDiv.innerHTML = '';
-    metaInfo.innerText = 'Sin datos aún';
-    if(probChartInstance) probChartInstance.destroy();
-  });
-
-  loadJsonBtn.addEventListener('click', ()=>{
-    warningsDiv.innerHTML = '';
-    const text = jsonText.value || '';
-    const parsed = safeParseJSON(text);
-    if(!parsed || parsed.length === 0){
-      warningsDiv.innerHTML = '<div class="warning">JSON inválido o vacío. Revisa el formato.</div>';
-      return;
-    }
-    rawData = parsed;
-    analyzeRawData();
-  });
-
-  leagueSelect.addEventListener('change', ()=>{
-    populateTeamsDropdowns();
-  });
-
-  homeSelect.addEventListener('change', ()=>{
-    if(homeSelect.value && awaySelect.value && homeSelect.value === awaySelect.value){
-      awaySelect.value = '';
-    }
-  });
-
-  awaySelect.addEventListener('change', ()=>{
-    if(homeSelect.value && awaySelect.value && homeSelect.value === awaySelect.value){
-      homeSelect.value = '';
-    }
-  });
-
-  calcBtn.addEventListener('click', ()=>{
-    if(!rawData || rawData.length===0){
-      warningsDiv.innerHTML = '<div class="warning">No hay datos cargados.</div>';
-      return;
-    }
-    const league = leagueSelect.value;
-    const home = homeSelect.value;
-    const away = awaySelect.value;
-    if(!league || !home || !away){
-      warningsDiv.innerHTML = '<div class="warning">Selecciona liga, local y visita.</div>';
-      return;
-    }
-    if(home === away){
-      warningsDiv.innerHTML = '<div class="warning">Local y Visita no pueden ser el mismo equipo.</div>';
-      return;
-    }
-    warningsDiv.innerHTML = '';
-    const res = computeForMatch(league, home, away);
-    renderResults(res);
-  });
-
-  exportBtn.addEventListener('click', ()=>{
-    if(window.lastResult){
-      downloadBlob('poisson_result.json', JSON.stringify(window.lastResult, null, 2), 'application/json');
-    } else {
-      warningsDiv.innerHTML = '<div class="warning">No hay cálculo para exportar. Calcula primero.</div>';
-    }
-  });
-
-  downloadJSONBtn.addEventListener('click', ()=>{
-    if(window.lastResult) downloadBlob('poisson_result.json', JSON.stringify(window.lastResult, null, 2));
-  });
-
-  downloadCSVBtn.addEventListener('click', ()=>{
-    if(!window.lastResult){
-      warningsDiv.innerHTML = '<div class="warning">No hay resultado reciente para exportar.</div>';
-      return;
-    }
-    const r = window.lastResult;
-    // Build a more comprehensive CSV
-    const rows = [
-      ['League','Match','lambda_home','lambda_away','prob_1','prob_X','prob_2','prob_over_2_5','prob_btts_yes','top_score_1','prob_score_1', 'top_score_2','prob_score_2'],
-      [r.League, r.Match, r.lambda_home, r.lambda_away, r.prob_1, r.prob_x, r.prob_2, r.prob_over_2_5, r.prob_btts_yes, r.top_scores[0]?.score || '', r.top_scores[0]?.prob || '', r.top_scores[1]?.score || '', r.top_scores[1]?.prob || '']
-    ];
-    const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-    downloadBlob('poisson_result.csv', csv, 'text/csv');
-  });
-
-  // --- Analysis Logic ---
-  function createEmptyTeam(){
-    return {
-      matches:0, GF:0, GA:0,
-      homeMatches:0, GF_home:0, GA_home:0,
-      awayMatches:0, GF_away:0, GA_away:0,
-      GF_per:null, GA_per:null, GF_home_per:null, GA_home_per:null, GF_away_per:null, GA_away_per:null,
-      AS:null, DS:null // Attack/Defense Strength placeholders
-    };
-  }
-
-  function analyzeRawData(){
-    derived = {};
-    for(const item of rawData){
-      const league = item.League || 'Sin liga';
-      if(!derived[league]) derived[league] = {matches:[], teams:{}, totalHomeGoals:0, totalAwayGoals:0, homeMatches:0};
-      derived[league].matches.push(item);
-
-      // Extract teams
-      let matchStr = item.Match || '';
-      let home = '', away = '';
-      const parts = matchStr.split(/\s+-\s+|vs\.?\s+/i); // Split by ' - ' or ' vs ' or ' vs. '
-      if(parts.length===2){ home = parts[0].trim(); away = parts[1].trim(); }
-
-      if(!home || !away) continue;
-
-      if(!derived[league].teams[home]) derived[league].teams[home] = createEmptyTeam();
-      if(!derived[league].teams[away]) derived[league].teams[away] = createEmptyTeam();
-
-      // Extract result (Result FT)
-      const res = String(item['Result FT'] || item.Result_FT || item.Result || '').trim();
-      const m = res.match(/(\d+)\s*-\s*(\d+)/);
-      if(m){
-        const gfHome = parseInt(m[1],10);
-        const gfAway = parseInt(m[2],10);
         
-        derived[league].totalHomeGoals += gfHome;
-        derived[league].totalAwayGoals += gfAway;
-        derived[league].homeMatches += 1;
+        // =======================================================
+        // 4. FUNCIONES AUXILIARES (Poisson y Display)
+        // =======================================================
 
-        const homeTeam = derived[league].teams[home];
-        const awayTeam = derived[league].teams[away];
-        
-        homeTeam.matches += 1; homeTeam.GF += gfHome; homeTeam.GA += gfAway;
-        awayTeam.matches += 1; awayTeam.GF += gfAway; awayTeam.GA += gfHome;
-
-        homeTeam.homeMatches += 1; homeTeam.GF_home += gfHome; homeTeam.GA_home += gfAway;
-        awayTeam.awayMatches += 1; awayTeam.GF_away += gfAway; awayTeam.GA_away += gfHome;
-      }
-    }
-
-    // Calculate league averages and team per-match averages
-    for(const league of Object.keys(derived)){
-      const leagueObj = derived[league];
-      leagueObj.avg_home_goals = leagueObj.homeMatches ? (leagueObj.totalHomeGoals / leagueObj.homeMatches) : 1.4;
-      leagueObj.avg_away_goals = leagueObj.homeMatches ? (leagueObj.totalAwayGoals / leagueObj.homeMatches) : 1.2;
-      
-      for(const tName of Object.keys(leagueObj.teams)){
-        const t = leagueObj.teams[tName];
-        t.GF_per = t.matches? (t.GF / t.matches) : null;
-        t.GA_per = t.matches? (t.GA / t.matches) : null;
-        t.GF_home_per = t.homeMatches? (t.GF_home / t.homeMatches) : null;
-        t.GA_home_per = t.homeMatches? (t.GA_home / t.homeMatches) : null;
-        t.GF_away_per = t.awayMatches? (t.GF_away / t.awayMatches) : null;
-        t.GA_away_per = t.awayMatches? (t.GA_away / t.awayMatches) : null;
-      }
-    }
-
-    // Populate UI
-    leagueSelect.innerHTML = '<option value="">-- Elige una liga --</option>';
-    Object.keys(derived).forEach(l=>{
-      const opt = document.createElement('option');
-      opt.value = l; opt.textContent = `${l} (${derived[l].matches.length} regs)`;
-      leagueSelect.appendChild(opt);
-    });
-
-    if(Object.keys(derived).length===1){
-      leagueSelect.selectedIndex = 1;
-      populateTeamsDropdowns();
-    }
-
-    metaInfo.innerText = `Cargados ${rawData.length} entradas · Ligas: ${Object.keys(derived).length}`;
-    resultsArea.style.display = 'none';
-  }
-
-  function populateTeamsDropdowns(){
-    const league = leagueSelect.value;
-    homeSelect.innerHTML = '<option value="">-- Local --</option>';
-    awaySelect.innerHTML = '<option value="">-- Visita --</option>';
-    if(!league || !derived[league]) return;
-    const teams = Object.keys(derived[league].teams).sort();
-    for(const t of teams){
-      const o1 = document.createElement('option'); o1.value = t; o1.textContent = t; homeSelect.appendChild(o1);
-      const o2 = document.createElement('option'); o2.value = t; o2.textContent = t; awaySelect.appendChild(o2);
-    }
-  }
-
-  // --- Core Compute ---
-  function computeForMatch(league, home, away){
-    const leagueObj = derived[league];
-    const th = leagueObj.teams[home] || createEmptyTeam();
-    const ta = leagueObj.teams[away] || createEmptyTeam();
-    
-    // Calculate Strengths (AS/DS)
-    const avgHome = leagueObj.avg_home_goals || 1.4;
-    const avgAway = leagueObj.avg_away_goals || 1.2;
-
-    const gfHome_per = th.GF_home_per ?? th.GF_per ?? avgHome;
-    const gaAway_per = ta.GA_away_per ?? ta.GA_per ?? avgAway; 
-    
-    const gfAway_per = ta.GF_away_per ?? ta.GF_per ?? avgAway;
-    const gaHome_per = th.GA_home_per ?? th.GA_per ?? avgHome; 
-
-    // Attack Strength (AS) Home vs league's avg home score
-    const AS_home = gfHome_per / avgHome;
-    // Defense Strength (DS) Away vs league's avg away score (conceded)
-    const DS_away = gaAway_per / avgAway; 
-
-    // Attack Strength (AS) Away vs league's avg away score
-    const AS_away = gfAway_per / avgAway;
-    // Defense Strength (DS) Home vs league's avg home score (conceded)
-    const DS_home = gaHome_per / avgHome;
-
-    // Store strengths back into team objects for display
-    th.AS = AS_home; th.DS = DS_home;
-    ta.AS = AS_away; ta.DS = DS_away;
-
-    // Lambdas
-    let lambda_home = AS_home * DS_away * avgHome;
-    let lambda_away = AS_away * DS_home * avgAway;
-
-    // Overrides
-    const lHomeOverride = parseFloat(lambdaHomeInput.value);
-    const lAwayOverride = parseFloat(lambdaAwayInput.value);
-    if(!isNaN(lHomeOverride)) lambda_home = Math.max(0.01, lHomeOverride);
-    if(!isNaN(lAwayOverride)) lambda_away = Math.max(0.01, lAwayOverride);
-
-    // Poisson Distributions (up to 8 goals)
-    const K = 8;
-    const pHome = new Array(K+1).fill(0); 
-    const pAway = new Array(K+1).fill(0);
-    for(let k=0;k<=K;k++){ 
-      pHome[k] = poissonP(k, lambda_home); 
-      pAway[k] = poissonP(k, lambda_away); 
-    }
-
-    // Full Score Matrix (Probabilities P(i,j))
-    const pScore = [];
-    let prob1 = 0, probX = 0, prob2 = 0;
-    const topScores = [];
-
-    for(let i=0;i<=K;i++){ // Home goals (i)
-      pScore[i] = [];
-      for(let j=0;j<=K;j++){ // Away goals (j)
-        const prob = pHome[i] * pAway[j];
-        pScore[i][j] = prob;
-        
-        // Calculate 1X2
-        if(i > j) prob1 += prob;
-        else if(i === j) probX += prob;
-        else prob2 += prob;
-
-        // Collect all score probabilities for Top 5
-        topScores.push({score: `${i}-${j}`, prob: prob});
-      }
-    }
-    
-    // Sort and get Top 5 scores
-    topScores.sort((a,b) => b.prob - a.prob);
-
-    // Total Goals (Convolution)
-    const pTotal = new Array(K*2+1).fill(0);
-    for(let i=0;i<=K;i++) for(let j=0;j<=K;j++) pTotal[i+j] += pScore[i][j];
-
-    // Over/Under 2.5
-    const probUnder25 = (pTotal[0]||0) + (pTotal[1]||0) + (pTotal[2]||0);
-    const probOver25 = Math.max(0, 1 - probUnder25);
-
-    // BTTS (Both Teams to Score)
-    // P(BTTS No) = P(Home=0 OR Away=0) = P(Home=0) + P(Away=0) - P(Home=0 AND Away=0)
-    const pHome0 = pHome[0] || 0;
-    const pAway0 = pAway[0] || 0;
-    const probBTTS_No = pHome0 + pAway0 - (pHome0 * pAway0);
-    const probBTTS_Yes = 1 - probBTTS_No;
-
-    // Compile result object
-    const res = {
-      League: league, Match: home + ' - ' + away,
-      lambda_home: Number(lambda_home.toFixed(3)),
-      lambda_away: Number(lambda_away.toFixed(3)),
-      prob_1: Number(prob1.toFixed(4)),
-      prob_x: Number(probX.toFixed(4)),
-      prob_2: Number(prob2.toFixed(4)),
-      prob_over_2_5: Number(probOver25.toFixed(4)),
-      prob_under_2_5: Number(probUnder25.toFixed(4)),
-      prob_btts_yes: Number(probBTTS_Yes.toFixed(4)),
-      prob_btts_no: Number(probBTTS_No.toFixed(4)),
-      pHome: pHome.slice(0,9).map(x=>Number(x.toFixed(4))),
-      pAway: pAway.slice(0,9).map(x=>Number(x.toFixed(4))),
-      pTotal: pTotal.slice(0,9).map(x=>Number(x.toFixed(4))),
-      top_scores: topScores.slice(0, 5).map(s => ({score: s.score, prob: Number(s.prob.toFixed(4))})),
-      team_home: th,
-      team_away: ta,
-      warnings: []
-    };
-
-    if(th.matches < 6) res.warnings.push(`Pocos partidos para ${home} (${th.matches}) — fiabilidad reducida`);
-    if(ta.matches < 6) res.warnings.push(`Pocos partidos para ${away} (${ta.matches}) — fiabilidad reducida`);
-    if(leagueObj.matches.length < 10) res.warnings.push(`Pocos registros en la liga (${leagueObj.matches.length}) — usar con cautela`);
-
-    return res;
-  }
-
-  // --- Rendering ---
-  function renderResults(res){
-    // 1. Team Stats Table
-    teamsTableBody.innerHTML = '';
-    const rows = [
-      {name: homeSelect.value + ' (Local)', team: res.team_home, AS: res.team_home.AS, DS: res.team_away.DS}, // Home AS vs Away DS
-      {name: awaySelect.value + ' (Visita)', team: res.team_away, AS: res.team_away.AS, DS: res.team_home.DS}  // Away AS vs Home DS
-    ];
-    for(const r of rows){
-      const tr = document.createElement('tr');
-      const matches = r.team.matches || 0;
-      const gf_per = r.team.GF_per !== null ? r.team.GF_per.toFixed(2) : '-';
-      const ga_per = r.team.GA_per !== null ? r.team.GA_per.toFixed(2) : '-';
-      const atk = r.AS !== null ? r.AS.toFixed(3) : '-';
-      const def = r.DS !== null ? r.DS.toFixed(3) : '-';
-      tr.innerHTML = `
-        <td>${r.name}</td>
-        <td>${matches}</td>
-        <td>${gf_per}</td>
-        <td>${ga_per}</td>
-        <td>${atk}</td>
-        <td>${def}</td>
-      `;
-      teamsTableBody.appendChild(tr);
-    }
-
-    // 2. Main Probabilities
-    lambdaHomeEl.textContent = res.lambda_home;
-    lambdaAwayEl.textContent = res.lambda_away;
-    
-    probOverEl.textContent = (res.prob_over_2_5*100).toFixed(2) + '%';
-    probUnderEl.textContent = (res.prob_under_2_5*100).toFixed(2) + '%';
-    
-    probBTTSEl.textContent = (res.prob_btts_yes*100).toFixed(2) + '%';
-    probNoBTTSel.textContent = (res.prob_btts_no*100).toFixed(2) + '%';
-
-    prob1El.textContent = (res.prob_1*100).toFixed(2) + '%';
-    probXEl.textContent = (res.prob_x*100).toFixed(2) + '%';
-    prob2El.textContent = (res.prob_2*100).toFixed(2) + '%';
-
-    metaInfo.innerText = `λs calculadas • ${Object.keys(derived[res.League].teams).length} equipos en liga`;
-
-    // 3. Warnings
-    warningsDiv.innerHTML = '';
-    if(res.warnings && res.warnings.length){
-      for(const w of res.warnings){
-        const d = document.createElement('div');
-        d.className = 'warning'; d.style.marginTop = '6px'; d.textContent = w;
-        warningsDiv.appendChild(d);
-      }
-    }
-
-    // 4. Top Scores Table (Corregido el rendering para 2 columnas)
-    scoreTableBody.innerHTML = '';
-    const scores = res.top_scores;
-    for(let i=0; i < Math.ceil(scores.length/2); i++){
-      const tr = document.createElement('tr');
-      const score1 = scores[i*2];
-      const score2 = scores[i*2 + 1];
-      tr.innerHTML = `
-        <td>${score1.score}</td>
-        <td>${(score1.prob*100).toFixed(2)}%</td>
-        ${score2 ? `<td>${score2.score}</td><td>${(score2.prob*100).toFixed(2)}%</td>` : '<td></td><td></td>'}
-      `;
-      scoreTableBody.appendChild(tr);
-    }
-
-    // 5. Chart
-    drawChart(res);
-
-    resultsArea.style.display = 'block';
-    window.lastResult = res;
-  }
-
-  function drawChart(res){
-    if(probChartInstance) probChartInstance.destroy();
-    
-    const maxK = 6;
-    const labels = Array.from({length: maxK + 1}, (_, i) => i);
-    const pTotal = res.pTotal.slice(0, maxK + 1).map(p => p*100);
-    const pHome = res.pHome.slice(0, maxK + 1).map(p => p*100);
-    const pAway = res.pAway.slice(0, maxK + 1).map(p => p*100);
-
-    probChartInstance = new Chart(probChartCanvas, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'P(Goles Totales)',
-          data: pTotal,
-          backgroundColor: 'rgba(6, 182, 212, 0.7)', // var(--accent)
-          borderColor: 'rgba(6, 182, 212, 1)',
-          borderWidth: 1,
-          order: 1
-        },{
-          label: `P(${homeSelect.value} Goles)`,
-          data: pHome,
-          type: 'line',
-          borderColor: 'rgba(59, 130, 246, 1)', // Blue
-          backgroundColor: 'rgba(59, 130, 246, 0.2)',
-          fill: false,
-          tension: 0.2,
-          pointRadius: 3,
-          yAxisID: 'y'
-        },{
-          label: `P(${awaySelect.value} Goles)`,
-          data: pAway,
-          type: 'line',
-          borderColor: 'rgba(239, 68, 68, 1)', // Red
-          backgroundColor: 'rgba(239, 68, 68, 0.2)',
-          fill: false,
-          tension: 0.2,
-          pointRadius: 3,
-          yAxisID: 'y'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: 'var(--white)' } },
-          title: { display: true, text: 'Distribuciones de Probabilidad (Poisson)', color: 'var(--white)' },
-          tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${context.parsed.y.toFixed(2)}%` } }
-        },
-        scales: {
-          x: {
-            title: { display: true, text: 'Goles', color: 'var(--muted)' },
-            ticks: { color: 'var(--white)' },
-            grid: { color: 'rgba(255,255,255,0.05)' }
-          },
-          y: {
-            title: { display: true, text: 'Probabilidad (%)', color: 'var(--muted)' },
-            beginAtZero: true,
-            ticks: { color: 'var(--white)', callback: (value) => `${value}%` },
-            grid: { color: 'rgba(255,255,255,0.05)' }
-          }
+        function factorial(n) {
+            if (n === 0 || n === 1) return 1;
+            let result = 1;
+            for (let i = 2; i <= n; i++) {
+                result *= i;
+            }
+            return result;
         }
-      }
-    });
-  }
 
-  // Initial setup
-  metaInfo.innerText = 'Carga JSON para comenzar';
-})();
-</script>
+        function poisson_prob(k, lambda) {
+            if (k < 0 || lambda < 0) return 0;
+            return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
+        }
+        
+        function calculateStandardPoissonProbabilities(L_FT, V_FT) {
+            let p_total_0 = 0;
+            let p_total_1 = 0;
+            let p_total_2 = 0;
+            let p_btts_ft = 0;
+            let p_suma_total_ft = 0;
+
+            for (let L = 0; L <= MAX_GOALS; L++) {
+                for (let V = 0; V <= MAX_GOALS; V++) {
+                    const P_LV = poisson_prob(L, L_FT) * poisson_prob(V, V_FT);
+                    p_suma_total_ft += P_LV; 
+                    
+                    const total = L + V;
+                    if (total === 0) p_total_0 += P_LV;
+                    if (total === 1) p_total_1 += P_LV;
+                    if (total === 2) p_total_2 += P_LV;
+                    
+                    if (L > 0 && V > 0) p_btts_ft += P_LV; 
+                }
+            }
+            
+            if (p_suma_total_ft === 0) return { p_under_2_5: 0, p_over_2_5: 0, p_btts_yes: 0, p_btts_no: 0 };
+            
+            // Normalización
+            const factor = 1.0 / p_suma_total_ft;
+            p_btts_ft *= factor;
+            const p_under_2_5_ft = (p_total_0 + p_total_1 + p_total_2) * factor;
+            
+            return {
+                p_under_2_5: p_under_2_5_ft, 
+                p_over_2_5: 1 - p_under_2_5_ft,
+                p_btts_yes: p_btts_ft, 
+                p_btts_no: 1 - p_btts_ft,
+            };
+        }
+
+        const calculateOdds = (probability) => (probability > 0 ? (1 / probability).toFixed(2) : '∞');
+        
+        const formatOutput = (prob) => {
+            const percentage = (prob * 100).toFixed(2);
+            const odds = calculateOdds(prob);
+            return `${percentage}% (Cuota: ${odds})`; 
+        };
+
+        function displayResults(probabilities, params) {
+            // Mostrar Detalle de Cálculos
+            document.getElementById('avg_league_L_res').textContent = params.avgLeagueL.toFixed(3);
+            document.getElementById('avg_league_V_res').textContent = params.avgLeagueV.toFixed(3);
+            
+            document.getElementById('att_L').textContent = params.attackL.toFixed(3);
+            document.getElementById('def_V').textContent = params.defenseV.toFixed(3);
+            document.getElementById('att_V').textContent = params.attackV.toFixed(3);
+            document.getElementById('def_L').textContent = params.defenseL.toFixed(3);
+            
+            document.getElementById('lambda_L_res').textContent = params.lambdaL.toFixed(3);
+            document.getElementById('lambda_V_res').textContent = params.lambdaV.toFixed(3);
+
+            // Mostrar Resultados de Mercados
+            document.getElementById('over25Prob').textContent = formatOutput(probabilities.p_over_2_5);
+            document.getElementById('under25Prob').textContent = formatOutput(probabilities.p_under_2_5);
+            document.getElementById('bttsYesProb').textContent = formatOutput(probabilities.p_btts_yes);
+            document.getElementById('bttsNoProb').textContent = formatOutput(probabilities.p_btts_no);
+        }
+    </script>
 </body>
 </html>
