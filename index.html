@@ -41,6 +41,15 @@
             margin-bottom: 20px;
             color: #ccc;
         }
+        .warning-text {
+            color: #ff5722;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #3e3e6b;
+            border-radius: 8px;
+        }
         label { 
             display: block; 
             margin-bottom: 5px; 
@@ -155,7 +164,7 @@
 <body>
     <div class="container">
         <h2>⚽ Calculadora Poisson Bivariante (BP)</h2>
-        <small>Introduce las estadísticas de tus tablas para el cálculo avanzado.</small>
+        <small>Introduce las estadísticas de tus tablas y las medias correctas de la liga.</small>
         
         <div class="section-title">1. Entrada de Estadísticas de Tablas</div>
 
@@ -174,18 +183,22 @@
         <button id="process_data_button" onclick="processAndSetupData()">1.1. 💾 Procesar Datos de Tablas y Cargar Equipos</button>
         
         <div class="section-title">2. Medias Promedio de la Liga</div>
+        
+        <div class="warning-text">
+            ⚠️ **IMPORTANTE:** Estos valores son CRUCIALES. Deben ser la media de **Goles MARCADO POR LOCALES** y **Goles MARCADO POR VISITANTES** de TODA la liga.
+        </div>
         <div class="input-group">
             <div class="input-manual-data">
-                <label for="avg_league_home">Goles marcados por locales en la liga:</label>
+                <label for="avg_league_home">Goles marcados por **LOCALES** en la liga ($\mu_L$):</label>
                 <input type="number" id="avg_league_home" placeholder="Ej: 1.55" step="0.01" value="1.55" onchange="updateTeamAverages()">
             </div>
             <div class="input-manual-data">
-                <label for="avg_league_away">Goles marcados por visitantes en la liga:</label>
+                <label for="avg_league_away">Goles marcados por **VISITANTES** en la liga ($\mu_V$):</label>
                 <input type="number" id="avg_league_away" placeholder="Ej: 1.15" step="0.01" value="1.15" onchange="updateTeamAverages()">
             </div>
         </div>
 
-        <div class="section-title">3. Selección de Equipos y sus Promedios</div>
+        <div class="section-title">3. Selección de Equipos y sus Promedios (Estimados)</div>
         <div class="input-group">
             <div class="input-manual-data" style="border-color: #00bcd4;">
                 <div class="manual-data-title" style="color: #00bcd4;">Equipo Local (L)</div>
@@ -262,8 +275,8 @@
         const MAX_GOALS = 6; 
         
         // Variables globales para almacenar los datos procesados
-        let HOME_STATS = {};
-        let AWAY_STATS = {};
+        let HOME_STATS = {}; // {Equipo: Avg_Total_Goals_Home_Match}
+        let AWAY_STATS = {}; // {Equipo: Avg_Total_Goals_Away_Match}
 
         // =======================================================
         // LÓGICA DE PROCESAMIENTO DE TABLAS
@@ -271,31 +284,25 @@
         
         function processTableData(tableText) {
             const data = {};
-            // Dividir por líneas
             const lines = tableText.trim().split('\n');
 
             // Ignorar la primera línea si es el encabezado (ej: "Home matches of... GP Avg...")
             const dataLines = lines.length > 0 && lines[0].includes('Avg') ? lines.slice(1) : lines;
 
             dataLines.forEach(line => {
-                // Usar una expresión regular para encontrar el equipo y el promedio,
-                // manejando nombres de equipos con múltiples palabras y porcentajes.
-                // Busca el nombre del equipo (puede contener espacios) seguido de números.
-                const match = line.trim().match(/([\w\s]+?)\s+\d+(\s+[\d\.]+)(\s+[\d\.%]+){4}/);
-                
-                if (match && match.length >= 3) {
-                    const teamName = match[1].trim();
-                    // El promedio (Avg) es el tercer grupo capturado y debe ser parseado.
-                    // En las tablas provistas, el formato es: Equipo GP Avg 0.5+ 1.5+...
-                    // La media es el tercer valor después del nombre. Busquemos los números.
+                const teamNameRegex = /([\w\s]+?)\s+\d+/;
+                const nameMatch = line.trim().match(teamNameRegex);
+
+                if (nameMatch) {
+                    const teamName = nameMatch[1].trim();
                     
-                    // Mejor estrategia: Reemplazar el nombre del equipo y split.
-                    let cleanLine = line.trim().replace(teamName, '').trim();
+                    // Sustituir el nombre del equipo y el GP (ej: "Levante 4") por un espacio para aislar los números
+                    let cleanLine = line.trim().substring(nameMatch[0].length).trim();
                     const parts = cleanLine.split(/\s+/);
                     
-                    // El promedio (Avg) es el segundo valor numérico después del nombre (después de GP)
-                    if (parts.length >= 2) {
-                        const avgValue = parseFloat(parts[1]);
+                    // El promedio (Avg) es el primer valor numérico que queda (ya quitamos el GP)
+                    if (parts.length >= 1) {
+                        const avgValue = parseFloat(parts[0]);
                         if (!isNaN(avgValue)) {
                             data[teamName] = avgValue;
                         }
@@ -324,9 +331,10 @@
             const firstHomeTeam = Object.keys(HOME_STATS)[0];
             const firstAwayTeam = Object.keys(AWAY_STATS)[0];
             
-            document.getElementById('select_home_team').value = firstHomeTeam;
-            document.getElementById('select_away_team').value = firstAwayTeam;
+            document.getElementById('select_home_team').value = firstHomeTeam || '';
+            document.getElementById('select_away_team').value = firstAwayTeam || '';
             
+            // Forzamos la actualización de promedios para mostrar los resultados iniciales
             updateTeamAverages();
             
             alert(`✅ Datos cargados. ${Object.keys(HOME_STATS).length} equipos locales y ${Object.keys(AWAY_STATS).length} equipos visitantes disponibles para la selección.`);
@@ -345,7 +353,7 @@
             const sortedTeams = Array.from(allTeams).sort();
 
             sortedTeams.forEach(team => {
-                // Solo añadir a la lista si tiene estadísticas relevantes
+                // Solo añadir si el equipo tiene estadísticas relevantes para la posición
                 if (HOME_STATS.hasOwnProperty(team)) {
                     const homeOption = document.createElement('option');
                     homeOption.value = team;
@@ -376,43 +384,48 @@
                 return;
             }
 
-            // Medias Fijas de la Liga
+            // Medias de Goles MARCADO por Locales y Visitantes en la Liga (CRUCIALES)
             const avgLeagueL = parseFloat(document.getElementById('avg_league_home').value);
             const avgLeagueV = parseFloat(document.getElementById('avg_league_away').value);
 
             if (isNaN(avgLeagueL) || isNaN(avgLeagueV) || avgLeagueL <= 0 || avgLeagueV <= 0) {
-                alert("Por favor, introduce medias de liga válidas y mayores que cero.");
+                // No mostramos un alert, solo limpiamos y salimos, esperando que el usuario lo corrija.
                 clearAverages();
                 clearResults();
                 return;
             }
 
             // Obtener la media total de goles del partido para el equipo seleccionado
-            const homeMatchAvgGoals = HOME_STATS[homeTeam]; // Media de goles en el partido del Local (como local)
-            const awayMatchAvgGoals = AWAY_STATS[awayTeam]; // Media de goles en el partido del Visitante (como visitante)
+            const homeMatchAvgGoals = HOME_STATS[homeTeam]; 
+            const awayMatchAvgGoals = AWAY_STATS[awayTeam]; 
             
             if (homeMatchAvgGoals === undefined || awayMatchAvgGoals === undefined) {
                  clearAverages();
                  clearResults();
-                 return; // Si no hay datos, no hacer nada o limpiar.
+                 return;
             }
 
-            // Estimación de Parámetros de Equipo
+            // ************ ESTIMACIÓN CLAVE ************
+            // La suma de los Goles Marcados por ambos equipos en el partido debe ser igual a la Media Total del Partido.
+            // Avg Goles Partido L = (L Marcados) + (V Marcados Oponente)
+            // L Marcados (A Favor) = Avg Goles Partido L - V Marcados Oponente
+            // Usamos la media de la liga como la estimación de los goles marcados por el Oponente.
+
             // 1. Equipo Local (L)
-            // L Concedidos (Defensa L) = Asumimos que es la media que marca un Visitante promedio
+            // L Concedidos (Defensa L) = Media de goles que MARCA un Visitante promedio
             const avg_home_conceded = avgLeagueV; 
-            // L Marcados (Ataque L) = Media Total del partido L - Goles Concedidos L
+            // L Marcados (Ataque L) = Media Total del partido L - Goles que marca el visitante promedio (Goles Concedidos L)
             const avg_home_scored_est = homeMatchAvgGoals - avg_home_conceded;
 
             // 2. Equipo Visitante (V)
-            // V Concedidos (Defensa V) = Asumimos que es la media que marca un Local promedio
+            // V Concedidos (Defensa V) = Media de goles que MARCA un Local promedio
             const avg_away_conceded = avgLeagueL;
-            // V Marcados (Ataque V) = Media Total del partido V - Goles Concedidos V
+            // V Marcados (Ataque V) = Media Total del partido V - Goles que marca el local promedio (Goles Concedidos V)
             const avg_away_scored_est = awayMatchAvgGoals - avg_away_conceded;
             
             // Validar que los promedios de ataque (goles marcados) sean positivos
             if (avg_home_scored_est <= 0 || avg_away_scored_est <= 0) {
-                 alert("Advertencia: Los Goles A Favor calculados para uno o ambos equipos son no positivos. Esto puede indicar que las medias de liga son demasiado altas respecto a las medias de partido. El cálculo fallará.");
+                 alert("Advertencia: Los Goles A Favor calculados para uno o ambos equipos son no positivos. Asegúrate de que las medias de liga ($\mu_L$, $\mu_V$) en el Paso 2 sean correctas. El cálculo fallará.");
                  clearResults();
                  clearAverages();
                  return;
@@ -451,6 +464,10 @@
         }
 
 
+        // =======================================================
+        // FUNCIONES DE CÁLCULO POISSON BIVARIANTE (Mismo que antes)
+        // =======================================================
+
         function calculateManualBivariatePoisson() {
             const resultsDiv = document.getElementById('resultados_poisson');
 
@@ -465,7 +482,6 @@
             const avgAwayScored = parseFloat(document.getElementById('avg_away_scored').value);
             const avgAwayConceded = parseFloat(document.getElementById('avg_away_conceded').value);
 
-            // Validar si los promedios de equipo ya fueron calculados y son válidos
             if (isNaN(avgHomeScored) || avgHomeScored <= 0 || isNaN(avgAwayScored) || avgAwayScored <= 0 || 
                 isNaN(avgLeagueL) || avgLeagueL <= 0 || isNaN(avgLeagueV) || avgLeagueV <= 0) {
                 resultsDiv.style.display = 'none';
@@ -488,7 +504,7 @@
                 const lambda2 = lambdaV_SP - lambda3;
                 
                 if (lambda1 < 0 || lambda2 < 0) {
-                     throw new Error(`Error Bivariante: La correlación ($\lambda_3$: ${lambda3.toFixed(3)}) es demasiado alta. Debe ser menor o igual a ambos Goles Esperados Estándar ($\lambda_L$ y $\lambda_V$).`);
+                     throw new Error(`Error Bivariante: La correlación ($\lambda_3$: ${lambda3.toFixed(3)}) es demasiado alta. Debe ser menor o igual a ambos Goles Esperados Estándar ($\lambda_L$: ${lambdaL_SP.toFixed(3)} y $\lambda_V$: ${lambdaV_SP.toFixed(3)}).`);
                 }
 
                 const params = {
@@ -511,10 +527,7 @@
             }
         }
         
-        // =======================================================
-        // FUNCIONES AUXILIARES (Poisson Bivariante y Display)
-        // =======================================================
-
+        // --- POISSON BIVARIANTE (BP) (Función principal de un marcador) ---
         function factorial(n) {
             if (n === 0 || n === 1) return 1;
             let result = 1;
