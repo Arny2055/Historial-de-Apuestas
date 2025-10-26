@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>Calculadora Poisson - Cálculo Manual de Fuerzas</title>
+    <title>Calculadora Poisson Bivariante - Cálculo Manual de Fuerzas</title>
     <style>
         /* Estilos Base */
         body { 
@@ -31,7 +31,7 @@
         }
         h2 { 
             text-align: center; 
-            color: #79d70f; 
+            color: #ff9800; /* Color principal Bivariante */
             margin-bottom: 5px; 
             font-size: 2.2em; 
         }
@@ -61,7 +61,7 @@
         }
         button { 
             padding: 15px; 
-            background-color: #79d70f; 
+            background-color: #ff9800; /* Color principal Bivariante */
             color: #1a1a2e; 
             border: none; 
             border-radius: 10px; 
@@ -77,7 +77,7 @@
             opacity: 0.9;
         }
         .section-title {
-            color: #79d70f; 
+            color: #ff9800; 
             margin-top: 25px;
             margin-bottom: 10px;
             font-size: 1.4em;
@@ -93,12 +93,12 @@
         }
         .input-manual-data {
             padding: 15px;
-            border: 1px solid #79d70f; 
+            border: 1px solid #ff9800; /* Color principal Bivariante */
             border-radius: 10px;
             margin-bottom: 15px;
         }
         .manual-data-title {
-            color: #79d70f;
+            color: #ff9800;
             text-align: center;
             font-size: 1.2em;
             margin-bottom: 10px;
@@ -107,7 +107,7 @@
         .resultado { 
             margin-top: 30px; 
             padding: 25px; 
-            border: 4px dashed #79d70f; 
+            border: 4px dashed #ff9800; /* Color principal Bivariante */
             border-radius: 15px; 
             background-color: #3a3a5e;
         }
@@ -118,7 +118,7 @@
             justify-content: space-between;
         }
         .resultado strong { 
-            color: #92e62c; 
+            color: #fff; 
             font-weight: bold;
         }
         .calculation-summary {
@@ -129,7 +129,7 @@
             font-size: 0.95em;
         }
         .calculation-summary h4 {
-            color: #79d70f;
+            color: #ff9800;
             margin-top: 0;
             margin-bottom: 10px;
             border-bottom: 1px dashed #4a4e69;
@@ -139,15 +139,24 @@
             margin: 5px 0;
             color: #ccc;
         }
-
+        .correlation-input {
+            grid-column: 1 / -1; /* Ocupa ambas columnas */
+            margin-top: 10px;
+            background-color: #4a4e69;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .correlation-input input {
+            border-color: #f7a400;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>⚽ Calculadora Poisson - Cálculo Manual</h2>
-        <small>Introduzca las medias de goles de la Liga y los Equipos para calcular los $\lambda$ de Poisson.</small>
+        <h2>⚽ Calculadora Poisson Bivariante (BP)</h2>
+        <small>Modelo avanzado con parámetro de Correlación ($\lambda_3$).</small>
         
-        <div class="section-title">1. Medias Promedio de la Liga</div>
+        <div class="section-title">1. Medias Promedio de la Liga y Equipos</div>
         <div class="input-group">
             <div class="input-manual-data">
                 <div class="manual-data-title">Promedio Goles Liga (Local)</div>
@@ -161,7 +170,6 @@
             </div>
         </div>
 
-        <div class="section-title">2. Medias Promedio de los Equipos</div>
         <div class="input-group">
             <div class="input-manual-data" style="border-color: #00bcd4;">
                 <div class="manual-data-title" style="color: #00bcd4;">Equipo Local (L)</div>
@@ -178,35 +186,43 @@
                 <input type="number" id="avg_away_conceded" placeholder="Ej: 1.30" step="0.01" value="1.30">
             </div>
         </div>
+        
+        <div class="section-title">2. Parámetro de Correlación ($\lambda_3$)</div>
+        <div class="correlation-input">
+            <label for="lambda_3">Correlación ($\lambda_3$):</label>
+            <input type="number" id="lambda_3" placeholder="Ej: 0.15" step="0.01" min="0" value="0.15">
+            <small style="color:#f7a400;">Un valor $\lambda_3 > 0$ corrige la subestimación de empates (ej. 1-1, 2-2).</small>
+        </div>
 
-        <button onclick="calculateManualPoisson()">3. Calcular Goles Esperados y Pronóstico Poisson</button>
+
+        <button onclick="calculateManualBivariatePoisson()">3. Calcular Pronóstico Poisson Bivariante</button>
 
         <div class="resultado" id="resultados_poisson" style="display:none;">
-            <div class="section-title" style="color:#79d70f; border-color:#79d70f;">📊 Resultados del Modelo Poisson Estándar</div>
+            <div class="section-title" style="color:#ff9800; border-color:#ff9800;">📊 Resultados del Modelo Poisson Bivariante</div>
 
             <div class="calculation-summary">
-                <h4>Detalle de Parámetros de la Fórmula</h4>
-                <p>Media Goles Liga (Local): <strong id="avg_league_L_res">...</strong> | Media Goles Liga (Visitante): <strong id="avg_league_V_res">...</strong></p>
+                <h4>Detalle de Parámetros Clave</h4>
+                <p>Goles Esperados "Netos" Local ($\lambda_1$): <strong id="lambda_1_res">...</strong></p>
+                <p>Goles Esperados "Netos" Visitante ($\lambda_2$): <strong id="lambda_2_res">...</strong></p>
+                <p>Correlación ($\lambda_3$): <strong id="lambda_3_res_summary">...</strong></p>
                 <hr style="border-top: 1px dashed #4a4e69; margin: 10px 0;">
-                
-                <p>Fuerza de Ataque Local ($\text{Att}_L$): <strong id="att_L">...</strong></p>
-                <p>Fuerza de Defensa Visitante ($\text{Def}_V$): <strong id="def_V">...</strong></p>
-                <p>Fuerza de Ataque Visitante ($\text{Att}_V$): <strong id="att_V">...</strong></p>
-                <p>Fuerza de Defensa Local ($\text{Def}_L$): <strong id="def_L">...</strong></p>
-                
-                <hr style="border-top: 1px solid #555; margin: 10px 0;">
-                <p style="font-size:1.4em;">**Goles Esperados Local ($\lambda_L$):** <strong id="lambda_L_res">...</strong></p>
-                <p style="font-size:1.4em;">**Goles Esperados Visitante ($\lambda_V$):** <strong id="lambda_V_res">...</strong></p>
+                <p>Fuerza Ataque Local: <strong id="att_L">...</strong> | Fuerza Defensa Visitante: <strong id="def_V">...</strong></p>
+                <p>Fuerza Ataque Visitante: <strong id="att_V">...</strong> | Fuerza Defensa Local: <strong id="def_L">...</strong></p>
             </div>
             
-            <div class="section-title" style="color:#79d70f; border-color:#79d70f; margin-top:20px;">Mercados de Goles</div>
+            <div class="section-title" style="color:#ff9800; border-color:#ff9800; margin-top:20px;">Mercados de Goles</div>
             
             <p>Over 2.5 Goles: <strong id="over25Prob">...</strong></p>
             <p>Under 2.5 Goles: <strong id="under25Prob">...</strong></p>
             
-            <div class="section-title" style="color:#79d70f; border-color:#79d70f; margin-top:20px;">Ambos Anotan (BTTS)</div>
+            <div class="section-title" style="color:#ff9800; border-color:#ff9800; margin-top:20px;">Ambos Anotan (BTTS)</div>
             <p>BTTS Yes (Sí): <strong id="bttsYesProb">...</strong></p>
             <p>BTTS No (No): <strong id="bttsNoProb">...</strong></p>
+
+            <div class="section-title" style="color:#ff9800; border-color:#ff9800; margin-top:20px;">Resultado Final (1X2)</div>
+            <p>Local (1): <strong id="prob_1">...</strong></p>
+            <p>Empate (X): <strong id="prob_X">...</strong></p>
+            <p>Visitante (2): <strong id="prob_2">...</strong></p>
             
         </div>
 
@@ -219,12 +235,13 @@
         // 1. LÓGICA DE CÁLCULO DE FUERZAS Y LAMBDA
         // =======================================================
 
-        function calculateManualPoisson() {
+        function calculateManualBivariatePoisson() {
             const resultsDiv = document.getElementById('resultados_poisson');
 
             // 1. Obtener Entradas
             const avgLeagueL = parseFloat(document.getElementById('avg_league_home').value);
             const avgLeagueV = parseFloat(document.getElementById('avg_league_away').value);
+            const lambda3 = parseFloat(document.getElementById('lambda_3').value);
             
             const avgHomeScored = parseFloat(document.getElementById('avg_home_scored').value);
             const avgHomeConceded = parseFloat(document.getElementById('avg_home_conceded').value);
@@ -233,45 +250,44 @@
             const avgAwayConceded = parseFloat(document.getElementById('avg_away_conceded').value);
 
             // Validar entradas
-            if ([avgLeagueL, avgLeagueV, avgHomeScored, avgHomeConceded, avgAwayScored, avgAwayConceded].some(isNaN) ||
-                [avgLeagueL, avgLeagueV].some(val => val <= 0)) {
-                alert("Por favor, introduce todos los valores numéricos válidos. Las medias de liga deben ser mayores a 0.");
+            if ([avgLeagueL, avgLeagueV, avgHomeScored, avgHomeConceded, avgAwayScored, avgAwayConceded, lambda3].some(isNaN) ||
+                [avgLeagueL, avgLeagueV].some(val => val <= 0) || lambda3 < 0) {
+                alert("Por favor, introduce todos los valores numéricos válidos. Las medias de liga y λ3 deben ser ≥ 0.");
                 resultsDiv.style.display = 'none';
                 return;
             }
 
             try {
-                // 2. Calcular Fuerzas
-                // Fórmula: Fuerza Ataque = Media Goles Favor Equipo / Media Goles Liga (Local si es Local, Visitante si es Visitante)
-                // Fórmula: Fuerza Defensa = Media Goles Contra Equipo / Media Goles Liga (Contraria)
-
-                // 2.1. Fuerzas de Ataque
+                // 2. Calcular Fuerzas (Mismo método que SP)
                 const attackL = avgHomeScored / avgLeagueL;
                 const attackV = avgAwayScored / avgLeagueV;
-                
-                // 2.2. Fuerzas de Defensa
-                // La defensa del local (Home) se compara con los goles que reciben los visitantes de la liga (AvgLeagueV)
                 const defenseL = avgHomeConceded / avgLeagueV; 
-                // La defensa del visitante (Away) se compara con los goles que reciben los locales de la liga (AvgLeagueL)
                 const defenseV = avgAwayConceded / avgLeagueL; 
 
-                // 3. Calcular Goles Esperados (Lambda)
-                // lambda_L = AttL * DefV * AvgL
-                const lambdaL = attackL * defenseV * avgLeagueL;
-                // lambda_V = AttV * DefL * AvgV
-                const lambdaV = attackV * defenseL * avgLeagueV;
+                // 3. Calcular Goles Esperados del Poisson ESTÁNDAR (lambda_L_SP, lambda_V_SP)
+                // Usamos estos como la media total antes de la correlación (λ_SP = λ_1 + λ_3)
+                const lambdaL_SP = attackL * defenseV * avgLeagueL;
+                const lambdaV_SP = attackV * defenseL * avgLeagueV;
+                
+                // 4. Calcular los parámetros NETOS del Bivariante (λ1, λ2)
+                const lambda1 = lambdaL_SP - lambda3;
+                const lambda2 = lambdaV_SP - lambda3;
+                
+                if (lambda1 < 0 || lambda2 < 0) {
+                     throw new Error(`Error Bivariante: La correlación ($\lambda_3$: ${lambda3.toFixed(3)}) es demasiado alta. Debe ser menor o igual a ambos Goles Esperados ($\lambda_L$ y $\lambda_V$).`);
+                }
 
                 const params = {
-                    lambdaL, lambdaV, 
+                    lambda1, lambda2, lambda3, 
                     attackL, defenseV, 
                     attackV, defenseL,
                     avgLeagueL, avgLeagueV,
                 };
 
-                // 4. Calcular Probabilidades Poisson
-                const probabilities = calculateStandardPoissonProbabilities(lambdaL, lambdaV);
+                // 5. Calcular Probabilidades Poisson Bivariante
+                const probabilities = calculateBivariatePoissonProbabilities(lambda1, lambda2, lambda3);
                 
-                // 5. Mostrar Resultados
+                // 6. Mostrar Resultados
                 displayResults(probabilities, params);
                 resultsDiv.style.display = 'block';
 
@@ -282,7 +298,7 @@
         }
         
         // =======================================================
-        // 4. FUNCIONES AUXILIARES (Poisson y Display)
+        // 4. FUNCIONES AUXILIARES (Poisson Bivariante y Display)
         // =======================================================
 
         function factorial(n) {
@@ -293,41 +309,73 @@
             }
             return result;
         }
-
-        function poisson_prob(k, lambda) {
-            if (k < 0 || lambda < 0) return 0;
-            return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
-        }
         
-        function calculateStandardPoissonProbabilities(L_FT, V_FT) {
+        // --- POISSON BIVARIANTE (BP) (Función principal de un marcador) ---
+        function bivariate_poisson_prob(x, y, lambda1, lambda2, lambda3) {
+            x = Math.round(x);
+            y = Math.round(y);
+            
+            // Constante de normalización (Exponencial del negativo de la suma de lambdas)
+            const c = Math.exp(-(lambda1 + lambda2 + lambda3));
+            const min_xy = Math.min(x, y);
+            
+            let sumatoria = 0;
+            for (let i = 0; i <= min_xy; i++) {
+                const term1 = Math.pow(lambda1, x - i) / factorial(x - i);
+                const term2 = Math.pow(lambda2, y - i) / factorial(y - i);
+                const term3 = Math.pow(lambda3, i) / factorial(i);
+                sumatoria += term1 * term2 * term3;
+            }
+            
+            return c * sumatoria;
+        }
+
+        // Función principal de cálculo de probabilidades de Poisson Bivariante
+        function calculateBivariatePoissonProbabilities(lambda1, lambda2, lambda3) {
+            let p_win_L = 0;
+            let p_draw = 0;
+            let p_win_V = 0;
             let p_total_0 = 0;
             let p_total_1 = 0;
             let p_total_2 = 0;
             let p_btts_ft = 0;
             let p_suma_total_ft = 0;
+            let P_LV_Function = (L, V) => bivariate_poisson_prob(L, V, lambda1, lambda2, lambda3);
 
             for (let L = 0; L <= MAX_GOALS; L++) {
                 for (let V = 0; V <= MAX_GOALS; V++) {
-                    const P_LV = poisson_prob(L, L_FT) * poisson_prob(V, V_FT);
+                    const P_LV = P_LV_Function(L, V);
                     p_suma_total_ft += P_LV; 
                     
+                    // 1X2
+                    if (L > V) p_win_L += P_LV;
+                    else if (L === V) p_draw += P_LV;
+                    else p_win_V += P_LV;
+                    
+                    // O/U 2.5
                     const total = L + V;
                     if (total === 0) p_total_0 += P_LV;
                     if (total === 1) p_total_1 += P_LV;
                     if (total === 2) p_total_2 += P_LV;
                     
+                    // BTTS
                     if (L > 0 && V > 0) p_btts_ft += P_LV; 
                 }
             }
             
-            if (p_suma_total_ft === 0) return { p_under_2_5: 0, p_over_2_5: 0, p_btts_yes: 0, p_btts_no: 0 };
-            
+            if (p_suma_total_ft === 0) throw new Error("La suma total de probabilidades es cero.");
+
             // Normalización
             const factor = 1.0 / p_suma_total_ft;
+
+            p_win_L *= factor;
+            p_draw *= factor;
+            p_win_V *= factor;
             p_btts_ft *= factor;
             const p_under_2_5_ft = (p_total_0 + p_total_1 + p_total_2) * factor;
             
             return {
+                p_win_L: p_win_L, p_draw: p_draw, p_win_V: p_win_V,
                 p_under_2_5: p_under_2_5_ft, 
                 p_over_2_5: 1 - p_under_2_5_ft,
                 p_btts_yes: p_btts_ft, 
@@ -344,23 +392,26 @@
         };
 
         function displayResults(probabilities, params) {
-            // Mostrar Detalle de Cálculos
-            document.getElementById('avg_league_L_res').textContent = params.avgLeagueL.toFixed(3);
-            document.getElementById('avg_league_V_res').textContent = params.avgLeagueV.toFixed(3);
+            // Mostrar Detalle de Cálculos (Fuerzas y Lambdas Netos)
+            document.getElementById('lambda_1_res').textContent = params.lambda1.toFixed(3);
+            document.getElementById('lambda_2_res').textContent = params.lambda2.toFixed(3);
+            document.getElementById('lambda_3_res_summary').textContent = params.lambda3.toFixed(3);
             
             document.getElementById('att_L').textContent = params.attackL.toFixed(3);
             document.getElementById('def_V').textContent = params.defenseV.toFixed(3);
             document.getElementById('att_V').textContent = params.attackV.toFixed(3);
             document.getElementById('def_L').textContent = params.defenseL.toFixed(3);
             
-            document.getElementById('lambda_L_res').textContent = params.lambdaL.toFixed(3);
-            document.getElementById('lambda_V_res').textContent = params.lambdaV.toFixed(3);
-
             // Mostrar Resultados de Mercados
             document.getElementById('over25Prob').textContent = formatOutput(probabilities.p_over_2_5);
             document.getElementById('under25Prob').textContent = formatOutput(probabilities.p_under_2_5);
             document.getElementById('bttsYesProb').textContent = formatOutput(probabilities.p_btts_yes);
             document.getElementById('bttsNoProb').textContent = formatOutput(probabilities.p_btts_no);
+
+            // Mostrar 1X2
+            document.getElementById('prob_1').textContent = formatOutput(probabilities.p_win_L);
+            document.getElementById('prob_X').textContent = formatOutput(probabilities.p_draw);
+            document.getElementById('prob_2').textContent = formatOutput(probabilities.p_win_V);
         }
     </script>
 </body>
