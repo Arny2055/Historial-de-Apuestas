@@ -3,234 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ranking Consolidado de Profit BTTS</title>
+    <title>Pronosticador de Apuestas Objetivas</title>
     <style>
-        /* --- Estilos Móviles y Generales --- */
-        body { font-family: sans-serif; margin: 0; padding: 10px; background-color: #f4f7f6; font-size: 16px; }
-        .container { width: 100%; max-width: none; margin: 0 auto; background: white; padding: 15px; border-radius: 0; box-shadow: none; }
-        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px; font-size: 1.5em; }
-        
-        /* --- Estilos de Entrada --- */
-        .data-input { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
-        input[type="file"], button { width: 100%; padding: 12px 10px; margin-top: 10px; font-size: 1em; border-radius: 4px; }
-        button.primary { background-color: #2ecc71; color: white; border: none; font-weight: bold; cursor: pointer; }
-        
-        /* --- Estilos de Tablas de Resultados --- */
-        .ranking-output { margin-top: 20px; padding: 15px; background-color: #f0f8ff; border-radius: 4px; }
-        .ranking-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85em; display: block; overflow-x: auto; }
-        .ranking-table th, .ranking-table td { 
-            border: 1px solid #ddd; padding: 8px 6px; text-align: right; 
-            white-space: nowrap; 
+        /* Estilos básicos para la tabla */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
         }
-        .ranking-table th { background-color: #0056b3; color: white; text-align: center; }
-        .ranking-table td:first-child { text-align: left; } 
-        
-        /* --- Indicadores de Profit --- */
-        .positive { color: #27ae60; font-weight: bold; }
-        .negative { color: #e74c3c; font-weight: bold; }
-        .zero { color: #34495e; }
+        table {
+            width: 100%;
+            max-width: 800px;
+            border-collapse: collapse;
+            margin: 20px auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: white;
+        }
+        th, td {
+            border: 2px solid #333;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #333;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        /* Estilos para las celdas de entrada */
+        .input-cell input {
+            width: 80%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 1em;
+        }
+        /* Estilos para los resultados */
+        .result-cell {
+            font-weight: bold;
+        }
+        .apostar { background-color: #e6ffe6; color: green; } /* Verde claro */
+        .considerar { background-color: #ffffe6; color: orange; } /* Amarillo claro */
+        .no-apostar { background-color: #ffe6e6; color: red; } /* Rojo claro */
 
-        @media (max-width: 600px) {
-            .ranking-table th, .ranking-table td { font-size: 0.7em; padding: 4px; }
+        /* Clase para el porcentaje en las celdas de input */
+        .porcentaje::after {
+            content: "%";
+            margin-left: 5px;
+            color: #555;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>💰 Ranking Consolidado de Rentabilidad (BTTS)</h2>
-        <p>Muestra el Profit Neto y el Yield de cada equipo consolidando su rendimiento como Local y como Visitante.</p>
 
-        <div class="data-input">
-            <h4>Paso 1: Carga el Archivo JSON</h4>
-            <input type="file" id="jsonFile" accept=".json">
-            
-            <button class="primary" onclick="iniciarCalculoProfit()">
-                Generar Ranking
-            </button>
-        </div>
-        
-        <div id="rankingOutput" class="ranking-output">
-            <h4>Clasificación de Rendimiento BTTS</h4>
-            <p>Los resultados se mostrarán aquí en una tabla consolidada.</p>
-        </div>
-    </div>
+    <h1>📊 Pronosticador Objetivo de Apuestas</h1>
+    <p>Introduce el **porcentaje** de probabilidad (solo el número, **0-100**) en las columnas "Pronóstico" y "Últimos 10" para ver la recomendación automática.</p>
+
+    <table id="pronosticador">
+        <thead>
+            <tr>
+                <th>Mercado</th>
+                <th>Pronóstico (%)</th>
+                <th>Últimos 10 (%)</th>
+                <th>Estadísticas de Apuestas</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>**Over 2.5 FT**</td>
+                <td class="input-cell" data-mercado="over">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Ej: 75">
+                </td>
+                <td class="input-cell">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Ej: 60">
+                </td>
+                <td id="resultado-over" class="result-cell">Esperando datos...</td>
+            </tr>
+            <tr>
+                <td>**BTTS Yes**</td>
+                <td class="input-cell" data-mercado="btts">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Ej: 80">
+                </td>
+                <td class="input-cell">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Ej: 70">
+                </td>
+                <td id="resultado-btts" class="result-cell">Esperando datos...</td>
+            </tr>
+        </tbody>
+    </table>
 
     <script>
-        let globalMatchData = [];
+        // Función principal de cálculo
+        function calcularPronostico(mercado) {
+            // Obtener la fila de la tabla para el mercado específico
+            const row = document.querySelector(`td[data-mercado="${mercado}"]`).parentNode;
+            
+            // Los inputs están en la segunda y tercera columna de datos (índice 1 y 2)
+            const inputPronostico = row.cells[1].querySelector('input');
+            const inputUltimos10 = row.cells[2].querySelector('input');
+            const resultadoCell = document.getElementById(`resultado-${mercado}`);
 
-        function iniciarCalculoProfit() {
-            const fileInput = document.getElementById('jsonFile');
-            const outputDiv = document.getElementById('rankingOutput');
-            outputDiv.innerHTML = '<h4>Calculando Ranking...</h4>';
+            // Obtener los valores y convertirlos a número
+            let pronostico = parseFloat(inputPronostico.value);
+            let ultimos10 = parseFloat(inputUltimos10.value);
 
-            if (fileInput.files.length === 0) {
-                outputDiv.innerHTML = '<p class="error">❌ Por favor, selecciona un archivo JSON.</p>';
+            // Verificar si ambos valores son válidos y están dentro del rango 0-100
+            if (isNaN(pronostico) || isNaN(ultimos10) || pronostico < 0 || pronostico > 100 || ultimos10 < 0 || ultimos10 > 100) {
+                resultadoCell.textContent = 'Datos inválidos/incompletos.';
+                resultadoCell.className = 'result-cell'; // Limpiar clases de color
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    globalMatchData = JSON.parse(e.target.result);
-                    procesarDatosProfit(outputDiv);
-                } catch (error) {
-                    outputDiv.innerHTML = `<p class="error">❌ Error al cargar/parsear JSON: ${error.message}</p>`;
-                }
-            };
-            reader.onerror = function() {
-                outputDiv.innerHTML = '<p class="error">❌ Error al leer el archivo.</p>';
-            };
-            reader.readAsText(fileInput.files[0]);
-        }
+            // --- LÓGICA OBJETIVA DEL PRONOSTICADOR ---
+            // Aplicamos una ponderación: 60% al Pronóstico y 40% a Últimos 10
+            const PESO_PRONOSTICO = 0.6;
+            const PESO_ULTIMOS10 = 0.4;
+            
+            // Puntuación Final (Promedio Ponderado)
+            let puntuacion = (pronostico * PESO_PRONOSTICO) + (ultimos10 * PESO_ULTIMOS10);
+            
+            // Redondear a dos decimales para una mejor presentación
+            puntuacion = Math.round(puntuacion * 100) / 100;
 
-        function procesarDatosProfit(outputDiv) {
-            if (globalMatchData.length === 0) {
-                outputDiv.innerHTML = '<p class="error">❌ El archivo JSON está vacío.</p>';
-                return;
+            let recomendacion = '';
+            let clase = 'result-cell '; // Clase base
+
+            // Criterios Objetivos
+            const UMBRAL_APOSTAR = 65; // Apostar si la puntuación es 65% o más
+            const UMBRAL_CONSIDERAR = 50; // Considerar si la puntuación está entre 50% y 64.99%
+
+            if (puntuacion >= UMBRAL_APOSTAR) {
+                recomendacion = `✅ Apostar (${puntuacion}%) - Valor Sólido`;
+                clase += 'apostar';
+            } else if (puntuacion >= UMBRAL_CONSIDERAR) {
+                recomendacion = `🤔 Considerar (${puntuacion}%) - Riesgo Moderado`;
+                clase += 'considerar';
+            } else {
+                recomendacion = `❌ No Apostar (${puntuacion}%) - Bajo Valor`;
+                clase += 'no-apostar';
             }
 
-            const teamPerformance = {};
-            
-            globalMatchData.forEach(item => {
-                const match = item['Match'];
-                const odd = parseFloat(item['Odd']);
-                const result = item['Result']; 
-
-                if (!match || isNaN(odd) || !result) return;
-
-                const parts = match.split('-').map(s => s.trim());
-                if (parts.length < 2) return;
-
-                const localTeam = parts[0];
-                const awayTeam = parts[1];
-
-                let profit = 0;
-                if (result === 'Winning') {
-                    profit = odd - 1; 
-                } else if (result === 'Losing') {
-                    profit = -1;
-                }
-
-                // --- PROCESAMIENTO CONSOLIDADO ---
-
-                // Inicializar estructuras si no existen
-                if (!teamPerformance[localTeam]) {
-                    teamPerformance[localTeam] = { L: { matches: 0, profit: 0 }, V: { matches: 0, profit: 0 } };
-                }
-                if (!teamPerformance[awayTeam]) {
-                    teamPerformance[awayTeam] = { L: { matches: 0, profit: 0 }, V: { matches: 0, profit: 0 } };
-                }
-
-                // Local
-                teamPerformance[localTeam].L.matches++;
-                teamPerformance[localTeam].L.profit += profit;
-
-                // Visitante
-                teamPerformance[awayTeam].V.matches++;
-                teamPerformance[awayTeam].V.profit += profit;
-            });
-
-            mostrarRankingConsolidado(teamPerformance, outputDiv);
-        }
-
-        // --- FUNCIÓN DE VISUALIZACIÓN DEL RANKING CONSOLIDADO ---
-
-        function mostrarRankingConsolidado(performanceData, outputDiv) {
-            const consolidatedRankings = [];
-
-            // 1. Consolidar datos por equipo
-            for (const team in performanceData) {
-                const data = performanceData[team];
-                
-                const matchesL = data.L.matches;
-                const profitL = data.L.profit;
-                
-                const matchesV = data.V.matches;
-                const profitV = data.V.profit;
-
-                const totalMatches = matchesL + matchesV;
-                const totalProfit = profitL + profitV;
-                
-                // Calcular Yields y Totales
-                const yieldL = matchesL > 0 ? (profitL / matchesL) * 100 : 0;
-                const yieldV = matchesV > 0 ? (profitV / matchesV) * 100 : 0;
-                const totalYield = totalMatches > 0 ? (totalProfit / totalMatches) * 100 : 0;
-
-                consolidatedRankings.push({
-                    team: team,
-                    matches: totalMatches,
-                    profitL: profitL,
-                    profitV: profitV,
-                    yieldL: yieldL,
-                    yieldV: yieldV,
-                    totalProfit: totalProfit,
-                    totalYield: totalYield
-                });
-            }
-
-            if (consolidatedRankings.length === 0) {
-                 outputDiv.innerHTML = '<p class="error">❌ No se pudo extraer suficiente información de Profit. Verifica los campos "Match", "Odd" y "Result".</p>';
-                 return;
-            }
-
-            // 2. Ordenar (Por Profit Total para la primera tabla y Yield Total para la segunda)
-            
-            // Ordenar por PROFIT TOTAL (Mayor a menor)
-            const sortedByTotalProfit = [...consolidatedRankings].sort((a, b) => b.totalProfit - a.totalProfit); 
-            
-            // Ordenar por YIELD TOTAL (Mayor a menor)
-            const sortedByTotalYield = [...consolidatedRankings].sort((a, b) => b.totalYield - a.totalYield);
-
-            // 3. Construir el HTML
-            outputDiv.innerHTML = `
-                <h4>🥇 Clasificación Consolidada de Rentabilidad BTTS</h4>
-                <p>Las tablas están ordenadas de **Mayor a Menor** rendimiento (Total de la columna de ordenación).</p>
-                <hr>
-                
-                <h5 style="color: #0056b3;">Clasificación Ordenada por PROFIT NETO TOTAL</h5>
-                ${createConsolidatedTableHTML(sortedByTotalProfit, 'totalProfit')}
-                
-                <h5 style="color: #2ecc71; margin-top: 25px;">Clasificación Ordenada por YIELD TOTAL</h5>
-                ${createConsolidatedTableHTML(sortedByTotalYield, 'totalYield')}
-            `;
-                     }
-
-        // --- FUNCIÓN AUXILIAR PARA CREAR LA TABLA CONSOLIDADA ---
-
-        function createConsolidatedTableHTML(data, sortBy) {
-            let html = `<table class="ranking-table">
-                <thead>
-                    <tr>
-                        <th style="text-align: left;">Equipo</th>
-                        <th>Partidos</th>
-                        <th>Profit Local</th>
-                        <th>Profit Visitante</th>
-                        <th>Yield Local (%)</th>
-                        <th>Yield Visitante (%)</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-
-            data.forEach(item => {
-                const profitLClass = item.profitL > 0 ? 'positive' : item.profitL < 0 ? 'negative' : 'zero';
-                const profitVClass = item.profitV > 0 ? 'positive' : item.profitV < 0 ? 'negative' : 'zero';
-                const yieldLClass = item.yieldL > 0 ? 'positive' : item.yieldL < 0 ? 'negative' : 'zero';
-                const yieldVClass = item.yieldV > 0 ? 'positive' : item.yieldV < 0 ? 'negative' : 'zero';
-
-                html += `
-                    <tr>
-                        <td style="font-weight: bold;">${item.team}</td>
-                        <td>${item.matches}</td>
-                        <td class="${profitLClass}">${item.profitL.toFixed(2)}u</td>
-                        <td class="${profitVClass}">${item.profitV.toFixed(2)}u</td>
-                        <td class="${yieldLClass}">${item.yieldL.toFixed(2)}%</td>
-                        <td class="${yieldVClass}">${item.yieldV.toFixed(2)}%</td>
-                    </tr>
-                `;
-            });
-
-            html += `</tbody></table>`;
-            return html;
+            // Actualizar la celda de resultado
+            resultadoCell.textContent = recomendacion;
+            resultadoCell.className = clase;
         }
     </script>
 </body>
