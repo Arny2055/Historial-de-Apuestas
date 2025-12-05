@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador de Apuestas Objetivas</title>
+    <title>Pronosticador de Apuestas (Avanzado)</title>
     <style>
         /* Estilos básicos para la tabla */
         body {
@@ -13,10 +13,10 @@
         }
         table {
             width: 100%;
-            max-width: 800px;
+            max-width: 900px;
             border-collapse: collapse;
             margin: 20px auto;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             background-color: white;
         }
         th, td {
@@ -30,6 +30,12 @@
             font-weight: bold;
             text-transform: uppercase;
         }
+        /* Resaltar la columna del Pronóstico Final (el resultado) */
+        .final-result-col {
+            background-color: #e0f7fa; /* Un color claro para el resultado */
+            font-weight: bolder;
+            color: #00796b;
+        }
         /* Estilos para las celdas de entrada */
         .input-cell input {
             width: 80%;
@@ -39,56 +45,56 @@
             text-align: center;
             font-size: 1em;
         }
-        /* Estilos para los resultados */
-        .result-cell {
+        /* Estilos para la recomendación final */
+        .recomendacion {
             font-weight: bold;
         }
-        .apostar { background-color: #e6ffe6; color: green; } /* Verde claro */
-        .considerar { background-color: #ffffe6; color: orange; } /* Amarillo claro */
-        .no-apostar { background-color: #ffe6e6; color: red; } /* Rojo claro */
-
-        /* Clase para el porcentaje en las celdas de input */
-        .porcentaje::after {
-            content: "%";
-            margin-left: 5px;
-            color: #555;
-        }
+        .apostar { background-color: #4CAF50; color: white; } /* Verde fuerte */
+        .considerar { background-color: #FFC107; color: #333; } /* Amarillo fuerte */
+        .no-apostar { background-color: #F44336; color: white; } /* Rojo fuerte */
     </style>
 </head>
 <body>
 
-    <h1>📊 Pronosticador Objetivo de Apuestas</h1>
-    <p>Introduce el **porcentaje** de probabilidad (solo el número, **0-100**) en las columnas "Pronóstico" y "Últimos 10" para ver la recomendación automática.</p>
+    <h1>🧠 Pronosticador Objetivo de Apuestas</h1>
+    <p>Introduce el **porcentaje** de probabilidad (solo el número, **0-100**) en las tres columnas de entrada. La columna **"Pronóstico Final"** mostrará el resultado calculado.</p>
 
     <table id="pronosticador">
         <thead>
             <tr>
                 <th>Mercado</th>
-                <th>Pronóstico (%)</th>
+                <th>Probabilidad Propia (%)</th> 
                 <th>Últimos 10 (%)</th>
-                <th>Estadísticas de Apuestas</th>
+                <th>Estadísticas/Valor de Apuestas (%)</th>
+                <th class="final-result-col">Pronóstico Final (Recomendación)</th>
             </tr>
         </thead>
         <tbody>
-            <tr>
+            <tr data-mercado="over">
                 <td>**Over 2.5 FT**</td>
-                <td class="input-cell" data-mercado="over">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Ej: 75">
+                <td class="input-cell">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Prob. Propia">
                 </td>
                 <td class="input-cell">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Ej: 60">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Últimos 10">
                 </td>
-                <td id="resultado-over" class="result-cell">Esperando datos...</td>
+                <td class="input-cell">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Estadística">
+                </td>
+                <td id="resultado-over" class="recomendacion final-result-col">Esperando datos...</td>
             </tr>
-            <tr>
+            <tr data-mercado="btts">
                 <td>**BTTS Yes**</td>
-                <td class="input-cell" data-mercado="btts">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Ej: 80">
+                <td class="input-cell">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Prob. Propia">
                 </td>
                 <td class="input-cell">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Ej: 70">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Últimos 10">
                 </td>
-                <td id="resultado-btts" class="result-cell">Esperando datos...</td>
+                <td class="input-cell">
+                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Estadística">
+                </td>
+                <td id="resultado-btts" class="recomendacion final-result-col">Esperando datos...</td>
             </tr>
         </tbody>
     </table>
@@ -96,56 +102,65 @@
     <script>
         // Función principal de cálculo
         function calcularPronostico(mercado) {
-            // Obtener la fila de la tabla para el mercado específico
-            const row = document.querySelector(`td[data-mercado="${mercado}"]`).parentNode;
+            // Obtener la fila completa usando el atributo data-mercado
+            const row = document.querySelector(`tr[data-mercado="${mercado}"]`);
             
-            // Los inputs están en la segunda y tercera columna de datos (índice 1 y 2)
-            const inputPronostico = row.cells[1].querySelector('input');
+            // Los inputs están en las celdas 1, 2 y 3 (índices 1, 2, 3)
+            const inputPropia = row.cells[1].querySelector('input');
             const inputUltimos10 = row.cells[2].querySelector('input');
-            const resultadoCell = document.getElementById(`resultado-${mercado}`);
+            const inputEstadistica = row.cells[3].querySelector('input');
+            const resultadoCell = row.cells[4]; // El resultado es la última celda
 
             // Obtener los valores y convertirlos a número
-            let pronostico = parseFloat(inputPronostico.value);
+            let probPropia = parseFloat(inputPropia.value);
             let ultimos10 = parseFloat(inputUltimos10.value);
+            let estadistica = parseFloat(inputEstadistica.value);
 
-            // Verificar si ambos valores son válidos y están dentro del rango 0-100
-            if (isNaN(pronostico) || isNaN(ultimos10) || pronostico < 0 || pronostico > 100 || ultimos10 < 0 || ultimos10 > 100) {
-                resultadoCell.textContent = 'Datos inválidos/incompletos.';
-                resultadoCell.className = 'result-cell'; // Limpiar clases de color
+            // Verificar si los tres valores son válidos (0-100)
+            if (isNaN(probPropia) || isNaN(ultimos10) || isNaN(estadistica) || 
+                probPropia < 0 || probPropia > 100 || 
+                ultimos10 < 0 || ultimos10 > 100 || 
+                estadistica < 0 || estadistica > 100) {
+                resultadoCell.innerHTML = 'Datos inválidos/incompletos.';
+                resultadoCell.className = 'recomendacion final-result-col'; // Limpiar clases de color
                 return;
             }
 
             // --- LÓGICA OBJETIVA DEL PRONOSTICADOR ---
-            // Aplicamos una ponderación: 60% al Pronóstico y 40% a Últimos 10
-            const PESO_PRONOSTICO = 0.6;
-            const PESO_ULTIMOS10 = 0.4;
+            // Ponderación (para dar más peso a la estadística que viene de datos de cuotas/valor)
+            const PESO_PROPIA = 0.30;
+            const PESO_ULTIMOS10 = 0.30;
+            const PESO_ESTADISTICA = 0.40; // Mayor peso a la estadística/valor de cuotas
             
             // Puntuación Final (Promedio Ponderado)
-            let puntuacion = (pronostico * PESO_PRONOSTICO) + (ultimos10 * PESO_ULTIMOS10);
+            let puntuacionFinal = 
+                (probPropia * PESO_PROPIA) + 
+                (ultimos10 * PESO_ULTIMOS10) + 
+                (estadistica * PESO_ESTADISTICA);
             
-            // Redondear a dos decimales para una mejor presentación
-            puntuacion = Math.round(puntuacion * 100) / 100;
+            // Redondear a un decimal
+            puntuacionFinal = Math.round(puntuacionFinal * 10) / 10;
 
             let recomendacion = '';
-            let clase = 'result-cell '; // Clase base
+            let clase = 'recomendacion final-result-col '; // Clase base + clase de color
 
             // Criterios Objetivos
-            const UMBRAL_APOSTAR = 65; // Apostar si la puntuación es 65% o más
-            const UMBRAL_CONSIDERAR = 50; // Considerar si la puntuación está entre 50% y 64.99%
+            const UMBRAL_APOSTAR = 65; 
+            const UMBRAL_CONSIDERAR = 50; 
 
-            if (puntuacion >= UMBRAL_APOSTAR) {
-                recomendacion = `✅ Apostar (${puntuacion}%) - Valor Sólido`;
+            if (puntuacionFinal >= UMBRAL_APOSTAR) {
+                recomendacion = `✅ Apostar (${puntuacionFinal}%) - Valor Sólido`;
                 clase += 'apostar';
-            } else if (puntuacion >= UMBRAL_CONSIDERAR) {
-                recomendacion = `🤔 Considerar (${puntuacion}%) - Riesgo Moderado`;
+            } else if (puntuacionFinal >= UMBRAL_CONSIDERAR) {
+                recomendacion = `🤔 Considerar (${puntuacionFinal}%) - Riesgo Moderado`;
                 clase += 'considerar';
             } else {
-                recomendacion = `❌ No Apostar (${puntuacion}%) - Bajo Valor`;
+                recomendacion = `❌ No Apostar (${puntuacionFinal}%) - Bajo Valor`;
                 clase += 'no-apostar';
             }
 
             // Actualizar la celda de resultado
-            resultadoCell.textContent = recomendacion;
+            resultadoCell.innerHTML = recomendacion;
             resultadoCell.className = clase;
         }
     </script>
