@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ranking de Profit BTTS por Equipo (Ordenado)</title>
+    <title>Ranking Consolidado de Profit BTTS</title>
     <style>
         /* --- Estilos Móviles y Generales --- */
         body { font-family: sans-serif; margin: 0; padding: 10px; background-color: #f4f7f6; font-size: 16px; }
@@ -17,7 +17,7 @@
         
         /* --- Estilos de Tablas de Resultados --- */
         .ranking-output { margin-top: 20px; padding: 15px; background-color: #f0f8ff; border-radius: 4px; }
-        .ranking-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; display: block; overflow-x: auto; }
+        .ranking-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85em; display: block; overflow-x: auto; }
         .ranking-table th, .ranking-table td { 
             border: 1px solid #ddd; padding: 8px 6px; text-align: right; 
             white-space: nowrap; 
@@ -31,27 +31,27 @@
         .zero { color: #34495e; }
 
         @media (max-width: 600px) {
-            .ranking-table th, .ranking-table td { font-size: 0.75em; padding: 4px; }
+            .ranking-table th, .ranking-table td { font-size: 0.7em; padding: 4px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>💰 Ranking de Rentabilidad (Profit) BTTS</h2>
-        <p>Clasificación de equipos ordenada de **mayor a menor rendimiento** (mejor profit/yield en la parte superior).</p>
+        <h2>💰 Ranking Consolidado de Rentabilidad (BTTS)</h2>
+        <p>Muestra el Profit Neto y el Yield de cada equipo consolidando su rendimiento como Local y como Visitante.</p>
 
         <div class="data-input">
             <h4>Paso 1: Carga el Archivo JSON</h4>
             <input type="file" id="jsonFile" accept=".json">
             
             <button class="primary" onclick="iniciarCalculoProfit()">
-                Calcular Ranking de Profit BTTS
+                Generar Ranking
             </button>
         </div>
         
         <div id="rankingOutput" class="ranking-output">
             <h4>Clasificación de Rendimiento BTTS</h4>
-            <p>Los resultados de Profit y Yield se mostrarán aquí.</p>
+            <p>Los resultados se mostrarán aquí en una tabla consolidada.</p>
         </div>
     </div>
 
@@ -111,114 +111,120 @@
                     profit = -1;
                 }
 
-                // Asegurar inicialización para Equipo Local
+                // --- PROCESAMIENTO CONSOLIDADO ---
+
+                // Inicializar estructuras si no existen
                 if (!teamPerformance[localTeam]) {
-                    teamPerformance[localTeam] = {};
+                    teamPerformance[localTeam] = { L: { matches: 0, profit: 0 }, V: { matches: 0, profit: 0 } };
                 }
-                if (!teamPerformance[localTeam].L) {
-                    teamPerformance[localTeam].L = { matches: 0, profit: 0 };
+                if (!teamPerformance[awayTeam]) {
+                    teamPerformance[awayTeam] = { L: { matches: 0, profit: 0 }, V: { matches: 0, profit: 0 } };
                 }
+
+                // Local
                 teamPerformance[localTeam].L.matches++;
                 teamPerformance[localTeam].L.profit += profit;
 
-                // Asegurar inicialización para Equipo Visitante
-                if (!teamPerformance[awayTeam]) {
-                    teamPerformance[awayTeam] = {};
-                }
-                if (!teamPerformance[awayTeam].V) {
-                     teamPerformance[awayTeam].V = { matches: 0, profit: 0 };
-                }
+                // Visitante
                 teamPerformance[awayTeam].V.matches++;
                 teamPerformance[awayTeam].V.profit += profit;
             });
 
-            mostrarRanking(teamPerformance, outputDiv);
+            mostrarRankingConsolidado(teamPerformance, outputDiv);
         }
 
-        function mostrarRanking(performanceData, outputDiv) {
-            const rankings = [];
+        // --- FUNCIÓN DE VISUALIZACIÓN DEL RANKING CONSOLIDADO ---
 
-            // A. Preparar datos para el ranking
+        function mostrarRankingConsolidado(performanceData, outputDiv) {
+            const consolidatedRankings = [];
+
+            // 1. Consolidar datos por equipo
             for (const team in performanceData) {
                 const data = performanceData[team];
+                
+                const matchesL = data.L.matches;
+                const profitL = data.L.profit;
+                
+                const matchesV = data.V.matches;
+                const profitV = data.V.profit;
 
-                // Local (L)
-                if (data.L && data.L.matches > 0) {
-                    const yieldL = (data.L.profit / data.L.matches) * 100;
-                    rankings.push({
-                        team: team,
-                        condition: 'Local',
-                        matches: data.L.matches,
-                        profit: data.L.profit,
-                        yield: yieldL
-                    });
-                }
+                const totalMatches = matchesL + matchesV;
+                const totalProfit = profitL + profitV;
+                
+                // Calcular Yields y Totales
+                const yieldL = matchesL > 0 ? (profitL / matchesL) * 100 : 0;
+                const yieldV = matchesV > 0 ? (profitV / matchesV) * 100 : 0;
+                const totalYield = totalMatches > 0 ? (totalProfit / totalMatches) * 100 : 0;
 
-                // Visitante (V)
-                if (data.V && data.V.matches > 0) {
-                    const yieldV = (data.V.profit / data.V.matches) * 100;
-                    rankings.push({
-                        team: team,
-                        condition: 'Visitante',
-                        matches: data.V.matches,
-                        profit: data.V.profit,
-                        yield: yieldV
-                    });
-                }
+                consolidatedRankings.push({
+                    team: team,
+                    matches: totalMatches,
+                    profitL: profitL,
+                    profitV: profitV,
+                    yieldL: yieldL,
+                    yieldV: yieldV,
+                    totalProfit: totalProfit,
+                    totalYield: totalYield
+                });
             }
 
-            if (rankings.length === 0) {
+            if (consolidatedRankings.length === 0) {
                  outputDiv.innerHTML = '<p class="error">❌ No se pudo extraer suficiente información de Profit. Verifica los campos "Match", "Odd" y "Result".</p>';
                  return;
             }
 
-            // B. Ordenar de MAYOR a MENOR (Descendente)
+            // 2. Ordenar (Por Profit Total para la primera tabla y Yield Total para la segunda)
             
-            // La función de ordenación (b - a) ordena de mayor a menor.
-            const sortedByProfit = [...rankings].sort((a, b) => b.profit - a.profit); 
-            const sortedByYield = [...rankings].sort((a, b) => b.yield - a.yield);
+            // Ordenar por PROFIT TOTAL (Mayor a menor)
+            const sortedByTotalProfit = [...consolidatedRankings].sort((a, b) => b.totalProfit - a.totalProfit); 
+            
+            // Ordenar por YIELD TOTAL (Mayor a menor)
+            const sortedByTotalYield = [...consolidatedRankings].sort((a, b) => b.totalYield - a.totalYield);
 
-            // D. Construir el HTML
+            // 3. Construir el HTML
             outputDiv.innerHTML = `
-                <h4>🥇 Ranking de Equipos por Rentabilidad BTTS</h4>
-                <p>Muestra el rendimiento de cada equipo asumiendo una apuesta de 1 unidad al **BTTS SÍ** en sus partidos. **(Ordenado de Mayor a Menor)**</p>
+                <h4>🥇 Clasificación Consolidada de Rentabilidad BTTS</h4>
+                <p>Las tablas están ordenadas de **Mayor a Menor** rendimiento (Total de la columna de ordenación).</p>
                 <hr>
                 
-                <h5 style="color: #0056b3;">Clasificación por PROFIT NETO (Mejor rendimiento en la parte superior)</h5>
-                ${createTableHTML(sortedByProfit, 'profit')}
+                <h5 style="color: #0056b3;">Clasificación Ordenada por PROFIT NETO TOTAL</h5>
+                ${createConsolidatedTableHTML(sortedByTotalProfit, 'totalProfit')}
                 
-                <h5 style="color: #2ecc71; margin-top: 25px;">Clasificación por YIELD (Retorno de Inversión)</h5>
-                ${createTableHTML(sortedByYield, 'yield')}
+                <h5 style="color: #2ecc71; margin-top: 25px;">Clasificación Ordenada por YIELD TOTAL</h5>
+                ${createConsolidatedTableHTML(sortedByTotalYield, 'totalYield')}
             `;
-             
-        }
+                     }
 
-        // --- FUNCIÓN AUXILIAR PARA CREAR TABLA ---
+        // --- FUNCIÓN AUXILIAR PARA CREAR LA TABLA CONSOLIDADA ---
 
-        function createTableHTML(data, sortBy) {
+        function createConsolidatedTableHTML(data, sortBy) {
             let html = `<table class="ranking-table">
                 <thead>
                     <tr>
                         <th style="text-align: left;">Equipo</th>
-                        <th>Condición</th>
                         <th>Partidos</th>
-                        <th>Profit Neto</th>
-                        <th>Yield (%)</th>
+                        <th>Profit Local</th>
+                        <th>Profit Visitante</th>
+                        <th>Yield Local (%)</th>
+                        <th>Yield Visitante (%)</th>
                     </tr>
                 </thead>
                 <tbody>`;
 
             data.forEach(item => {
-                const profitClass = item.profit > 0 ? 'positive' : item.profit < 0 ? 'negative' : 'zero';
-                const yieldClass = item.yield > 0 ? 'positive' : item.yield < 0 ? 'negative' : 'zero';
+                const profitLClass = item.profitL > 0 ? 'positive' : item.profitL < 0 ? 'negative' : 'zero';
+                const profitVClass = item.profitV > 0 ? 'positive' : item.profitV < 0 ? 'negative' : 'zero';
+                const yieldLClass = item.yieldL > 0 ? 'positive' : item.yieldL < 0 ? 'negative' : 'zero';
+                const yieldVClass = item.yieldV > 0 ? 'positive' : item.yieldV < 0 ? 'negative' : 'zero';
 
                 html += `
                     <tr>
                         <td style="font-weight: bold;">${item.team}</td>
-                        <td>${item.condition}</td>
                         <td>${item.matches}</td>
-                        <td class="${profitClass}">${item.profit.toFixed(2)}u</td>
-                        <td class="${yieldClass}">${item.yield.toFixed(2)}%</td>
+                        <td class="${profitLClass}">${item.profitL.toFixed(2)}u</td>
+                        <td class="${profitVClass}">${item.profitV.toFixed(2)}u</td>
+                        <td class="${yieldLClass}">${item.yieldL.toFixed(2)}%</td>
+                        <td class="${yieldVClass}">${item.yieldV.toFixed(2)}%</td>
                     </tr>
                 `;
             });
