@@ -3,80 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comparador BTTS por Varianza (Móvil)</title>
+    <title>Comparador BTTS por Varianza (Estratégico)</title>
     <style>
-        /* --- ESTILOS GENERALES Y RESET MÓVIL --- */
+        /* --- ESTILOS MÓVILES OPTIMIZADOS --- */
         body { 
             font-family: sans-serif; 
-            margin: 0; /* Elimina márgenes exteriores */
-            padding: 10px; /* Padding interno para que no toque los bordes */
-            background-color: #f4f7f6; 
-            font-size: 16px; /* Tamaño de fuente base legible */
+            margin: 0; padding: 10px; background-color: #f4f7f6; font-size: 16px; 
         }
         .container { 
-            width: 100%; /* Ocupa el 100% del ancho */
-            max-width: none; /* Ignora el max-width para móvil */
-            margin: 0 auto; 
-            background: white; 
-            padding: 15px; /* Padding interno adecuado */
-            border-radius: 0; /* Bordes menos pronunciados o eliminados */
-            box-shadow: none; /* Elimina sombras para rendimiento */
+            width: 100%; max-width: none; margin: 0 auto; background: white; 
+            padding: 15px; border-radius: 0; box-shadow: none; 
         }
         h2 { 
-            color: #2c3e50; 
-            border-bottom: 2px solid #3498db; 
-            padding-bottom: 8px; 
-            font-size: 1.5em; /* Tamaño de título claro */
+            color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px; font-size: 1.5em; 
         }
         
         /* --- ESTILOS DE ENTRADA Y SELECCIÓN --- */
-        .data-input { 
-            padding: 10px; 
-            border: 1px solid #ccc; 
-        }
-        .match-setup { 
-            flex-direction: column; /* Apila los selectores verticalmente */
-            align-items: stretch;
-        }
-        .match-setup select { 
-            width: 100%; /* Ocupa todo el ancho */
-            margin-bottom: 10px; /* Espacio entre selectores */
-        }
-        input[type="file"], select { 
-            padding: 12px 10px; 
-            font-size: 1em; 
-        }
+        .data-input { padding: 10px; border: 1px solid #ccc; }
+        .match-setup { flex-direction: column; align-items: stretch; }
+        .match-setup select { width: 100%; margin-bottom: 10px; padding: 12px 10px; font-size: 1em; }
+        input[type="file"] { padding: 12px 10px; font-size: 1em; }
         
-        /* --- COMPARACIÓN DE EQUIPOS (Ajuste para Dos Columnas) --- */
-        .team-comparison { 
-            flex-direction: column; /* Apila las cajas de los equipos */
-            gap: 15px; /* Espacio entre las cajas apiladas */
-        }
-        .team-box { 
-            width: 100%; /* Ocupa todo el ancho al estar apilado */
-            padding: 10px; 
-            font-size: 0.95em;
-        }
-
-        /* --- TABLA DE RECOMENDACIÓN (Ajuste para evitar Scroll Horizontal) --- */
-        .range-table { 
-            width: 100%; 
-            font-size: 0.9em; /* Fuente ligeramente más pequeña para que quepa */
-            display: block; /* Permite flexibilidad si es necesario */
-            overflow-x: auto; /* Fallback para tablas muy anchas */
-        }
-        .range-table th, .range-table td { 
-            padding: 6px; /* Reduce padding */
-            word-break: break-word; /* Permite que el texto se rompa */
-        }
-
-        /* Estilos de Color y Énfasis */
-        .recommendation { 
-            padding: 12px; 
-        }
-        .error { 
-            font-size: 1em; 
-        }
+        /* --- COMPARACIÓN DE EQUIPOS Y RESULTADOS --- */
+        .analysis-output { background-color: #f0f8ff; padding: 15px; border: 1px solid #ddd; }
+        .team-comparison { flex-direction: column; gap: 15px; margin-top: 15px; }
+        .team-box { width: 100%; padding: 10px; border: 1px solid #3498db; border-radius: 4px; background-color: white; font-size: 0.95em; }
+        .recommendation { margin-top: 20px; padding: 15px; border-left: 5px solid #ffc107; background-color: #fff3cd; }
+        .recommendation h4 { margin-top: 0; color: #ffc107; }
+        
+        /* --- TABLA ESTRATÉGICA --- */
+        .range-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; display: block; overflow-x: auto; }
+        .range-table th, .range-table td { padding: 6px; border: 1px solid #ddd; text-align: left; word-break: break-word; }
+        .range-table th { background-color: #0056b3; color: white; }
+        .error { color: #e74c3c; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -204,7 +163,6 @@
 
                 if (isNaN(scoreLocal) || isNaN(scoreAway)) return;
                 
-                // Recopilar Goles
                 if (match.startsWith(teamName + ' -')) { 
                     gaArray.push(scoreLocal);
                     grArray.push(scoreAway);
@@ -213,7 +171,6 @@
                     grArray.push(scoreLocal);
                 }
 
-                // Recopilar Cuotas BTTS ganadoras
                 if (result === 'Winning') {
                     const odd = parseFloat(item['Odd']);
                     if (!isNaN(odd)) {
@@ -264,19 +221,14 @@
                 return;
             }
 
-            // 1. Calcular la Probabilidad BTTS (SÍ) para el enfrentamiento
+            // 1. Calcular la Probabilidad BTTS (SÍ)
             
-            // Probabilidad de que el Local Anote (Factor Local GA / Factor Visitante GR)
             const probLocalScores = (localStats.mediaGA * awayStats.mediaGR) / (localStats.mediaGA + awayStats.mediaGR); 
-
-            // Probabilidad de que el Visitante Anote (Factor Visitante GA / Factor Local GR)
             const probAwayScores = (awayStats.mediaGA * localStats.mediaGR) / (awayStats.mediaGA + localStats.mediaGR);
 
-            // Ajuste por Varianza (Si ambos equipos son volátiles, aumenta la probabilidad de goles atípicos)
             const varFactor = ((localStats.varGA + awayStats.varGR) / 2 + (awayStats.varGA + localStats.varGR) / 2) / 4;
             const varianzaAdjustment = (varFactor > 1.0) ? 0.05 * varFactor : 0; 
 
-            // Simulación de Probabilidad BTTS
             let probBTTS = (probLocalScores / (probLocalScores + probAwayScores)) * 0.75 + (probAwayScores / (probLocalScores + probAwayScores)) * 0.75;
             
             probBTTS = Math.min(0.85, Math.max(0.40, probBTTS));
@@ -289,7 +241,7 @@
             mostrarComparacion(localStats, awayStats, probBTTS, cuotaJustaBTTS, outputDiv);
         }
 
-        // --- FUNCIÓN DE VISUALIZACIÓN Y RECOMENDACIÓN ---
+        // --- FUNCIÓN DE VISUALIZACIÓN Y RECOMENDACIÓN ESTRATÉGICA ---
 
         function mostrarComparacion(local, away, probBTTS, cuotaJustaBTTS, outputDiv) {
             
@@ -299,15 +251,22 @@
             const rangoMin = cuotaJustaBTTS * 1.05; // 5% Edge
             const rangoMax = cuotaJustaBTTS * 1.15; // 15% Edge
             
-            let comentarioVarianza = 'Análisis de Varianza: ';
+            // --- DIAGNÓSTICO DEL PARTIDO ---
+            let diagnosticoClave = '';
+            let explicacionPronostico = `La probabilidad del **BTTS SÍ** (${(probBTTS * 100).toFixed(2)}%) es alta porque la **Fuerza Ofensiva** del Local (${local.mediaGA.toFixed(2)} GA) es efectiva contra la **Debilidad Defensiva** del Visitante (${away.mediaGR.toFixed(2)} GR), y viceversa.`;
+
             if (localVolatil && awayVolatil) {
-                comentarioVarianza += 'Ambos son **Volátiles**. El BTTS SÍ es una apuesta de alta probabilidad y volatilidad.';
+                diagnosticoClave = '🔥 Partido de ALTA VOLATILIDAD';
+                explicacionPronostico += ` ADVERTENCIA: La alta varianza de ambos equipos sugiere que, aunque la probabilidad BTTS es alta, el marcador final puede ser atípico. Busca BTTS SÍ.`;
+            } else if (!localVolatil && !awayVolatil) {
+                diagnosticoClave = '🛡️ Partido de ALTA CONSISTENCIA';
+                explicacionPronostico += ` ÉNFASIS: La baja varianza indica que si tu modelo da BTTS SÍ, es muy fiable, pero la cuota de la casa podría ser muy baja. Busca Edge estricto.`;
             } else if (localVolatil) {
-                comentarioVarianza += `${local.name} es **Volátil**. Su ataque/defensa inconsistente puede generar goles inesperados en ambos lados.`;
-            } else if (awayVolatil) {
-                comentarioVarianza += `${away.name} es **Volátil**. Esto aumenta la posibilidad de que el Visitante anote y sorprenda.`;
-            } else {
-                comentarioVarianza += 'Ambos son **Consistentes**. La probabilidad BTTS SÍ es más fiable, el valor reside en la precisión del Edge.';
+                diagnosticoClave = '⚡ Local Volátil vs Visitante Consistente';
+                explicacionPronostico += ` OPORTUNIDAD: El ataque/defensa impredecible del Local (${local.name}) a menudo genera goles inesperados. Ideal para BTTS SÍ cuando la cuota está infravalorada.`;
+            } else { // awayVolatil
+                diagnosticoClave = '🛡️ Local Consistente vs Visitante Volátil';
+                explicacionPronostico += ` OPORTUNIDAD: La debilidad defensiva volátil del Visitante (${away.name}) sugiere que el Local anote, y la varianza Visitante aumenta la posibilidad de que ellos también sorprendan con un gol.`;
             }
 
             outputDiv.innerHTML = `
@@ -329,34 +288,47 @@
                 <hr>
 
                 <div class="recommendation">
-                    <h4>📊 Previsión de BTTS SÍ y Estrategia</h4>
+                    <h4>Diagnóstico del Partido: ${diagnosticoClave}</h4>
+                    
                     <p>Probabilidad de Ambos Anoten (BTTS SÍ) según tu modelo: **${(probBTTS * 100).toFixed(2)}%**</p>
                     <p>Cuota Justa Implícita (Valor Real): **${cuotaJustaBTTS.toFixed(2)}**</p>
-                    <p>${comentarioVarianza}</p>
+                    
+                    <p style="font-weight: bold;">Explicación del Pronóstico:</p>
+                    <p>${explicacionPronostico}</p>
+                    
+                    
+                    <h4 style="margin-top: 15px;">Estrategia de Apuesta: Rango de Edge (Ventaja)</h4>
                     
                     <table class="range-table">
                         <thead>
                             <tr>
-                                <th>Estrategia de Apuesta</th>
-                                <th>Rango de Cuotas BTTS SÍ</th>
-                                <th>Edge Requerido</th>
+                                <th>Nivel de Edge</th>
+                                <th>Cuotas BTTS SÍ a Buscar</th>
+                                <th>Significado Estratégico</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td>**ENTRADA CON EDGE MÍNIMO**</td>
-                                <td>Cuotas **superiores a ${rangoMin.toFixed(2)}**</td>
-                                <td>**BUSCAR ESTA CUOTA.** Aquí obtienes un *Edge* (Ventaja) del 5% o más.</td>
+                                <td>**Edge Mínimo (5%+)**</td>
+                                <td>**${rangoMin.toFixed(2)}** o **superior**</td>
+                                <td>**ENTRADA ESTÁNDAR.** Apuesta rentable a largo plazo con riesgo moderado.</td>
                             </tr>
                             <tr>
-                                <td>**ENTRADA CON EDGE ALTO**</td>
-                                <td>Cuotas **superiores a ${rangoMax.toFixed(2)}**</td>
-                                <td>**VALOR EXCEPCIONAL.** Si la casa la ofrece, el retorno potencial es muy alto.</td>
+                                <td>**Edge Alto (15%+)**</td>
+                                <td>**${rangoMax.toFixed(2)}** o **superior**</td>
+                                <td>**APUESTA DE VALOR.** La casa ha infravalorado enormemente la probabilidad. Usar alta unidad de apuesta (criterio de Kelly).</td>
+                            </tr>
+                            <tr>
+                                <td>**Sin Edge**</td>
+                                <td>Cuotas inferiores a **${rangoMin.toFixed(2)}**</td>
+                                <td>**EVITAR.** Estarías apostando a cuotas que no superan la cuota justa de tu modelo.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             `;
+            
+            // Llama a una imagen para ilustrar el concepto central (BTTS vs Varianza)
             
         }
     </script>
