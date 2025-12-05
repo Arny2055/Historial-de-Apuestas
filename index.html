@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ranking de Profit BTTS por Equipo</title>
+    <title>Ranking de Profit BTTS por Equipo (Ordenado)</title>
     <style>
         /* --- Estilos Móviles y Generales --- */
         body { font-family: sans-serif; margin: 0; padding: 10px; background-color: #f4f7f6; font-size: 16px; }
@@ -14,7 +14,6 @@
         .data-input { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
         input[type="file"], button { width: 100%; padding: 12px 10px; margin-top: 10px; font-size: 1em; border-radius: 4px; }
         button.primary { background-color: #2ecc71; color: white; border: none; font-weight: bold; cursor: pointer; }
-        button.primary:hover { background-color: #27ae60; }
         
         /* --- Estilos de Tablas de Resultados --- */
         .ranking-output { margin-top: 20px; padding: 15px; background-color: #f0f8ff; border-radius: 4px; }
@@ -39,7 +38,7 @@
 <body>
     <div class="container">
         <h2>💰 Ranking de Rentabilidad (Profit) BTTS</h2>
-        <p>Calcula el Profit Neto y el Yield (retorno de inversión) de cada equipo, separando su condición de local y visitante, asumiendo una apuesta de 1 unidad por partido.</p>
+        <p>Clasificación de equipos ordenada de **mayor a menor rendimiento** (mejor profit/yield en la parte superior).</p>
 
         <div class="data-input">
             <h4>Paso 1: Carga el Archivo JSON</h4>
@@ -57,10 +56,7 @@
     </div>
 
     <script>
-        // Variable para guardar los datos del archivo una vez cargado
         let globalMatchData = [];
-
-        // --- FUNCIÓN PRINCIPAL DE CÁLCULO DE PROFIT ---
 
         function iniciarCalculoProfit() {
             const fileInput = document.getElementById('jsonFile');
@@ -73,7 +69,6 @@
             }
 
             const reader = new FileReader();
-
             reader.onload = function(e) {
                 try {
                     globalMatchData = JSON.parse(e.target.result);
@@ -82,11 +77,9 @@
                     outputDiv.innerHTML = `<p class="error">❌ Error al cargar/parsear JSON: ${error.message}</p>`;
                 }
             };
-
             reader.onerror = function() {
                 outputDiv.innerHTML = '<p class="error">❌ Error al leer el archivo.</p>';
             };
-
             reader.readAsText(fileInput.files[0]);
         }
 
@@ -118,32 +111,29 @@
                     profit = -1;
                 }
 
-                // 1. Acumular rendimiento del Equipo Local (CORRECCIÓN IMPLEMENTADA AQUÍ)
+                // Asegurar inicialización para Equipo Local
                 if (!teamPerformance[localTeam]) {
                     teamPerformance[localTeam] = {};
                 }
-                if (!teamPerformance[localTeam].L) { // Asegura que 'L' exista
+                if (!teamPerformance[localTeam].L) {
                     teamPerformance[localTeam].L = { matches: 0, profit: 0 };
                 }
                 teamPerformance[localTeam].L.matches++;
                 teamPerformance[localTeam].L.profit += profit;
 
-                // 2. Acumular rendimiento del Equipo Visitante (CORRECCIÓN IMPLEMENTADA AQUÍ)
+                // Asegurar inicialización para Equipo Visitante
                 if (!teamPerformance[awayTeam]) {
                     teamPerformance[awayTeam] = {};
                 }
-                if (!teamPerformance[awayTeam].V) { // Asegura que 'V' exista
+                if (!teamPerformance[awayTeam].V) {
                      teamPerformance[awayTeam].V = { matches: 0, profit: 0 };
                 }
                 teamPerformance[awayTeam].V.matches++;
                 teamPerformance[awayTeam].V.profit += profit;
             });
 
-            // 3. Generar las tablas de clasificación
             mostrarRanking(teamPerformance, outputDiv);
         }
-
-        // --- FUNCIÓN DE VISUALIZACIÓN DEL RANKING ---
 
         function mostrarRanking(performanceData, outputDiv) {
             const rankings = [];
@@ -182,19 +172,19 @@
                  return;
             }
 
-            // B. Ordenar por Profit Neto (de mejor a peor)
-            const sortedByProfit = [...rankings].sort((a, b) => b.profit - a.profit);
-
-            // C. Ordenar por Yield (de mejor a peor)
+            // B. Ordenar de MAYOR a MENOR (Descendente)
+            
+            // La función de ordenación (b - a) ordena de mayor a menor.
+            const sortedByProfit = [...rankings].sort((a, b) => b.profit - a.profit); 
             const sortedByYield = [...rankings].sort((a, b) => b.yield - a.yield);
 
             // D. Construir el HTML
             outputDiv.innerHTML = `
                 <h4>🥇 Ranking de Equipos por Rentabilidad BTTS</h4>
-                <p>Muestra el rendimiento de cada equipo cuando se realiza una apuesta de 1 unidad al **BTTS SÍ** en sus partidos.</p>
+                <p>Muestra el rendimiento de cada equipo asumiendo una apuesta de 1 unidad al **BTTS SÍ** en sus partidos. **(Ordenado de Mayor a Menor)**</p>
                 <hr>
                 
-                <h5 style="color: #0056b3;">Clasificación por PROFIT NETO (Total de Ganancias/Pérdidas)</h5>
+                <h5 style="color: #0056b3;">Clasificación por PROFIT NETO (Mejor rendimiento en la parte superior)</h5>
                 ${createTableHTML(sortedByProfit, 'profit')}
                 
                 <h5 style="color: #2ecc71; margin-top: 25px;">Clasificación por YIELD (Retorno de Inversión)</h5>
