@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador L/V (Móvil)</title>
+    <title>Pronosticador L/V Simétrico</title>
     <style>
-        /* --- Estilos Generales y Responsivos --- */
+        /* --- Estilos Generales --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             margin: 0; 
@@ -13,7 +13,7 @@
             background-color: #f0f0f5; 
         }
         h1 {
-            font-size: 1.5em;
+            font-size: 1.4em;
             text-align: center;
             margin-bottom: 5px;
             color: #333;
@@ -25,44 +25,72 @@
             color: #555;
             padding: 0 10px;
         }
+        
+        /* --- Contenedor Responsivo --- */
         .table-container {
             width: 100%;
             overflow-x: auto; 
             margin: 10px 0;
+            /* El min-width de la tabla debe forzar el scroll, pero el contenedor es 100% */
         }
         
         /* --- Estilos de la Tabla --- */
         table {
-            min-width: 850px; /* Incrementado para acomodar más columnas */
+            min-width: 900px; /* Asegura un ancho mínimo para que las columnas respiren */
             border-collapse: collapse;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             background-color: white;
             border-radius: 8px;
             overflow: hidden; 
         }
+
+        /* --- Estilos Comunes de Celdas --- */
         th, td {
             border: 1px solid #ddd;
-            padding: 6px 4px; /* Reducción de padding para móvil */
+            padding: 7px 3px; /* Padding uniforme */
             text-align: center;
-            font-size: 0.8em; /* Tamaño de fuente más pequeño para caber más */
+            font-size: 0.8em; 
+            box-sizing: border-box; /* Importante para el cálculo de ancho */
         }
+
+        /* --- ANCHOS DE COLUMNAS PARA SIMETRÍA --- */
+        /* Total de 7 columnas: 1 Mercado + 1 Propia + 4 L/V + 1 Final */
+        
+        /* 1. Mercado: Mayor ancho para el texto descriptivo */
+        #pronosticador th:nth-child(1), #pronosticador td:nth-child(1) {
+            width: 15%; 
+        }
+        /* 2. Probabilidad Propia: Ancho significativo para tu estimación */
+        #pronosticador th:nth-child(2), #pronosticador td:nth-child(2) {
+            width: 13%; 
+            background-color: #e0f7fa; /* Resaltado sutil */
+        }
+        /* 3, 4, 5, 6. Las 4 estadísticas L/V: Mismo ancho para simetría */
+        #pronosticador th:nth-child(n+3):nth-child(-n+6), #pronosticador td:nth-child(n+3):nth-child(-n+6) {
+            width: 13%; 
+        }
+        /* 7. Pronóstico Final: Ancho para el resultado largo */
+        #pronosticador th:nth-child(7), #pronosticador td:nth-child(7) {
+            width: 20%; 
+        }
+
+        /* --- Estilos de Encabezado --- */
         th {
             background-color: #1a73e8; 
             color: white;
             font-weight: bold;
             white-space: nowrap; 
         }
-
         /* Sub-Encabezados Local/Visitante */
         .sub-header th {
-            background-color: #42a5f5; /* Azul más claro */
+            background-color: #42a5f5; 
             font-size: 0.75em;
             padding: 4px 2px;
         }
-
+        
         /* --- Estilos de Input --- */
         .input-cell input {
-            width: 90%;
+            width: 85%;
             padding: 5px 0;
             border: 1px solid #ccc;
             border-radius: 3px;
@@ -73,7 +101,7 @@
             display: block;
         }
 
-        /* --- Estilos de Resultado Final --- */
+        /* --- Estilos de Resultado Final (Columna 7) --- */
         .final-result-col {
             background-color: #e3f2fd; 
             font-weight: bold;
@@ -86,25 +114,12 @@
         .apostar { background-color: #4CAF50; color: white; } 
         .considerar { background-color: #FFC107; color: #333; } 
         .no-apostar { background-color: #F44336; color: white; } 
-
-        /* Media Query: Centrado en pantallas grandes */
-        @media (min-width: 768px) {
-            table {
-                width: 90%;
-                max-width: 1000px;
-                margin: 20px auto;
-                min-width: unset;
-            }
-            .table-container {
-                overflow-x: hidden;
-            }
-        }
     </style>
 </head>
 <body>
 
-    <h1>🧠 Pronosticador Objetivo (L/V)</h1>
-    <p>➡️ Desliza horizontalmente. Introduce **porcentajes (0-100)** para un pronóstico ponderado y objetivo.</p>
+    <h1>📐 Pronosticador Objetivo (Visualmente Simétrico)</h1>
+    <p>➡️ Tabla optimizada para proporciones equilibradas. Desliza horizontalmente para ver todos los datos.</p>
 
     <div class="table-container">
         <table id="pronosticador">
@@ -113,15 +128,13 @@
                     <th rowspan="2">Mercado</th>
                     <th rowspan="2" style="background-color: #00bcd4;">Probabilidad Propia (%)</th> 
                     <th colspan="2">Últimos 10 (%)</th>
-                    <th colspan="2">Estadísticas/Valor de Apuestas (%)</th>
+                    <th colspan="2">Estadísticas/Valor (%)</th>
                     <th rowspan="2" class="final-result-col">Pronóstico Final</th>
                 </tr>
                 <tr class="sub-header">
                     <th>Local</th>
-                    <th>Visitante</th>
-                    <th>Local</th>
-                    <th>Visitante</th>
-                </tr>
+                    <th>Visita</th> <th>Local</th>
+                    <th>Visita</th> </tr>
             </thead>
             <tbody>
                 <tr data-mercado="over">
@@ -168,11 +181,11 @@
     </div>
 
     <script>
+        // --- Lógica del Cálculo Ponderado (No ha cambiado) ---
         function calcularPronostico(mercado) {
             const row = document.querySelector(`tr[data-mercado="${mercado}"]`);
-            const resultadoCell = row.cells[6]; // El resultado es ahora la séptima celda (índice 6)
+            const resultadoCell = row.cells[6]; 
 
-            // Asignación de inputs por su índice de celda (0 a 5)
             const inputs = {
                 propia: parseFloat(row.cells[1].querySelector('input').value),
                 u10l: parseFloat(row.cells[2].querySelector('input').value),
@@ -181,7 +194,6 @@
                 estv: parseFloat(row.cells[5].querySelector('input').value)
             };
 
-            // 1. Validar Entradas
             let todosValidos = true;
             for (const key in inputs) {
                 const val = inputs[key];
@@ -197,16 +209,10 @@
                 return;
             }
 
-            // --- LÓGICA PONDERADA PARA 5 CAMPOS ---
-            
-            // Ponderación de 30% para la Propia
+            // Pesos: Propia 30%, L/V Unitario 17.5%
             const PESO_PROPIA = 0.30;
-            
-            // Ponderación de 70% para los 4 campos L/V combinados.
-            // 70% / 4 campos = 17.5% por cada campo L/V
             const PESO_LV_UNITARIO = 0.175; 
             
-            // Cálculo Ponderado
             let puntuacionFinal = 
                 (inputs.propia * PESO_PROPIA) + 
                 (inputs.u10l * PESO_LV_UNITARIO) + 
@@ -222,7 +228,6 @@
             const UMBRAL_APOSTAR = 65; 
             const UMBRAL_CONSIDERAR = 50; 
 
-            // 2. Aplicar Umbrales de Recomendación
             if (puntuacionFinal >= UMBRAL_APOSTAR) {
                 recomendacion = `✅ Apostar (${puntuacionFinal}%)`;
                 clase += 'apostar';
@@ -234,7 +239,6 @@
                 clase += 'no-apostar';
             }
 
-            // 3. Actualizar Resultado
             resultadoCell.innerHTML = recomendacion;
             resultadoCell.className = clase;
         }
