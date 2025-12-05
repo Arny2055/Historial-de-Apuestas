@@ -3,102 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador de Varianza por Equipo con Carga de Archivo</title>
+    <title>Analizador BTTS por Varianza de Equipo</title>
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f4f7f6; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
         h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .tab-controls { display: flex; margin-bottom: 20px; }
-        .tab-controls button { flex-grow: 1; padding: 10px; cursor: pointer; border: 1px solid #ccc; border-bottom: none; background-color: #eee; }
-        .tab-controls button.active { background-color: white; border-bottom: 1px solid white; font-weight: bold; }
-        .data-input, .simulation-output, .team-stats { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 4px; }
-        .team-stats { background-color: #ecf0f1; }
-        select, button { padding: 10px; margin-right: 15px; border-radius: 4px; border: 1px solid #ccc; cursor: pointer; }
-        button.primary { background-color: #2ecc71; color: white; border: none; font-weight: bold; }
+        .data-input { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 4px; }
+        .team-stats { background-color: #ecf0f1; padding: 15px; margin-top: 20px; border-radius: 4px; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button.primary { background-color: #2ecc71; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; font-weight: bold; width: 100%; }
         button.primary:hover { background-color: #27ae60; }
-        input[type="file"] { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .result-box { margin-top: 20px; padding: 15px; border-left: 5px solid #3498db; background-color: #f0f8ff; }
+        .recomendacion { margin-top: 20px; padding: 15px; border-left: 5px solid #ffc107; background-color: #fff3cd; }
+        .recomendacion h4 { margin-top: 0; color: #ffc107; }
         .range-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .range-table th, .range-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .range-table th { background-color: #3498db; color: white; }
+        .range-table th { background-color: #0056b3; color: white; }
         .error { color: #e74c3c; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>⚽ Analizador de Varianza y Cuotas por Equipo</h2>
-        <p>Selecciona una pestaña para analizar datos fijos o cargar tu propio archivo JSON.</p>
+        <h2>⚽ Analizador de Varianza de Equipos para BTTS</h2>
+        <p>Carga tu historial de partidos BTTS. La herramienta analizará la varianza ofensiva/defensiva de un equipo para sugerir rangos de cuotas BTTS.</p>
 
-        <div class="tab-controls">
-            <button class="tab-button active" onclick="showTab('tabSimulador', this)">Simulador (Datos Fijos)</button>
-            <button class="tab-button" onclick="showTab('tabCarga', this)">Cargar Archivo JSON</button>
-        </div>
-
-        <div id="tabSimulador" class="tab-content">
-            <div class="data-input">
-                <h4>Simulación de Enfrentamiento (Datos Internos)</h4>
-                <p>Selecciona los equipos para la simulación (Local vs Visitante):</p>
-                <select id="localTeam"></select>
-                <span>vs</span>
-                <select id="awayTeam"></select>
-                <button class="primary" onclick="simularPartido()">Simular Partido y Generar Estrategia</button>
-            </div>
-
-            <div id="teamStats" class="team-stats">
-                <h4>Estadísticas y Varianza de los Equipos</h4>
-                <p>Selecciona los equipos arriba para ver su análisis de varianza.</p>
-            </div>
-
-            <div id="simulationOutput" class="simulation-output" style="display: none;">
-                <h4>Resultados de la Simulación</h4>
-            </div>
-        </div>
-
-        <div id="tabCarga" class="tab-content" style="display: none;">
-            <div class="data-input">
-                <h4>Carga tu Historial JSON para Analizar</h4>
-                <p>Carga el archivo que contiene el historial de partidos del equipo que quieres analizar.</p>
-                <input type="file" id="jsonFile" accept=".json">
-                
-                <p>Nombre del equipo a analizar (Debe coincidir con el campo de tu JSON):</p>
-                <input type="text" id="targetTeamName" placeholder="Ej: Luton Town">
-                
-                <button class="primary" onclick="iniciarAnalisisArchivo()">Analizar Varianza del Equipo</button>
-            </div>
+        <div class="data-input">
+            <h4>Paso 1: Carga y Configuración</h4>
+            <input type="file" id="jsonFile" accept=".json">
             
-            <div id="fileAnalysisOutput" class="team-stats">
-                <h4>Análisis de Varianza del Archivo</h4>
-                <p>Los resultados se mostrarán aquí después de la carga.</p>
-            </div>
+            <label for="targetTeamName">Nombre Exacto del Equipo a Analizar:</label>
+            <input type="text" id="targetTeamName" placeholder="Ej: Luton Town">
+            
+            <button class="primary" onclick="iniciarAnalisisArchivo()">Analizar Varianza y Sugerir Cuotas BTTS</button>
+        </div>
+        
+        <div id="fileAnalysisOutput" class="team-stats">
+            <h4>Análisis de Varianza del Equipo (Resultados)</h4>
+            <p>Los resultados se mostrarán aquí después de la carga.</p>
         </div>
     </div>
 
     <script>
-        // --- 1. DATOS DE EJEMPLO (Simulando tu Backtesting) ---
-        const teamData = {
-            "Manchester City": {
-                name: "Manchester City", posicion: 1,
-                ga: [3, 2, 4, 1, 3, 2, 2, 5, 1, 3], // Goles Anotados
-                gr: [1, 0, 0, 1, 1, 0, 1, 2, 0, 1]  // Goles Recibidos
-            },
-            "Aston Villa": {
-                name: "Aston Villa", posicion: 5,
-                ga: [1, 2, 0, 3, 1, 2, 1, 0, 2, 1],
-                gr: [1, 1, 2, 1, 1, 0, 2, 1, 1, 1]
-            },
-            "Chelsea": {
-                name: "Chelsea", posicion: 10,
-                ga: [0, 1, 2, 1, 1, 0, 2, 3, 1, 0],
-                gr: [3, 2, 1, 1, 2, 1, 0, 1, 3, 2]
-            },
-            "Luton Town": {
-                name: "Luton Town", posicion: 18,
-                ga: [0, 1, 0, 2, 1, 0, 1, 1, 0, 2],
-                gr: [4, 3, 2, 2, 1, 3, 2, 2, 3, 1]
-            }
-        };
-
-        // --- 2. FUNCIONES DE CÁLCULO ESTADÍSTICO (Comunes) ---
+        // --- FUNCIONES DE CÁLCULO ESTADÍSTICO ---
         
         function calcularMedia(datos) {
             if (datos.length === 0) return 0;
@@ -119,147 +64,14 @@
             return sumatoria / (n - 1); // Varianza Muestral
         }
 
-        // --- 3. ANÁLISIS POR EQUIPO (Datos Goles) ---
-
-        function analizarVarianzaGoles(teamName, gaArray, grArray, outputDiv) {
-            const varGA = calcularVarianza(gaArray);
-            const varGR = calcularVarianza(grArray);
-            const mediaGA = calcularMedia(gaArray);
-            const mediaGR = calcularMedia(grArray);
-
-            outputDiv.innerHTML = `
-                <h4>Análisis de Varianza de ${teamName}</h4>
-                <p><strong>Partidos Analizados (N):</strong> ${gaArray.length}</p>
-                <p><strong>Media Goles Anotados (GA):</strong> ${mediaGA.toFixed(2)}</p>
-                <p><strong>Media Goles Recibidos (GR):</strong> ${mediaGR.toFixed(2)}</p>
-                <p><strong>Varianza Ofensiva (GA):</strong> <strong>${varGA.toFixed(3)}</strong></p>
-                <p><strong>Varianza Defensiva (GR):</strong> <strong>${varGR.toFixed(3)}</strong></p>
-                <hr>
-                <p><strong>Conclusión de Varianza:</strong> ${parseFloat(varGA) > 1.0 ? 'Ofensiva Inconsistente (Alta Varianza)' : 'Ofensiva Consistente (Baja Varianza)'} y ${parseFloat(varGR) > 1.0 ? 'Defensiva Inconsistente (Alta Varianza)' : 'Defensiva Consistente (Baja Varianza)'}.</p>
-                <p><strong>Estrategia Clave:</strong> Si la varianza es alta, busca valor en mercados de **Hándicap** o **Goles (Over/Under)** en lugar de la victoria directa (1X2).</p>
-            `;
-            
-        }
-        
-        // --- 4. SIMULACIÓN DE PARTIDO Y ESTRATEGIA DE CUOTAS (Datos Fijos) ---
-
-        function simularPartido() {
-            // ... (Lógica de simularPartido idéntica a la respuesta anterior, no la repito aquí por brevedad) ...
-            
-            const localName = document.getElementById('localTeam').value;
-            const awayName = document.getElementById('awayTeam').value;
-            const outputDiv = document.getElementById('simulationOutput');
-            outputDiv.style.display = 'block';
-
-            if (localName === awayName) {
-                outputDiv.innerHTML = '<p class="error">❌ No puedes seleccionar el mismo equipo para Local y Visitante.</p>';
-                return;
-            }
-
-            const local = teamData[localName];
-            const away = teamData[awayName];
-
-            // 1. Análisis de Varianza
-            const localStats = { varGA: calcularVarianza(local.ga), varGR: calcularVarianza(local.gr), mediaGA: calcularMedia(local.ga), mediaGR: calcularMedia(local.gr) };
-            const awayStats = { varGA: calcularVarianza(away.ga), varGR: calcularVarianza(away.gr), mediaGA: calcularMedia(away.ga), mediaGR: calcularMedia(away.gr) };
-            
-            // 2. Lógica de Predicción
-            const factorLocal = localStats.mediaGA + (awayStats.mediaGR * 0.5);
-            const factorAway = awayStats.mediaGA + (localStats.mediaGR * 0.5);
-            
-            let probLocal = 0.33 + (factorLocal / (factorLocal + factorAway)) * 0.33;
-            let probAway = 0.33 + (factorAway / (factorLocal + factorAway)) * 0.33;
-            let probEmpate = 1 - probLocal - probAway;
-
-            if (probLocal > 0.9) probLocal = 0.8; 
-            if (probAway > 0.9) probAway = 0.8;
-            
-            // Ajuste por Varianza: Aumenta la probabilidad de resultados atípicos (goles y empates)
-            if (localStats.varGA > 1.0 || awayStats.varGR > 1.0) { probEmpate += 0.05; }
-            
-            const totalProb = probLocal + probAway + probEmpate;
-            probLocal /= totalProb;
-            probAway /= totalProb;
-            probEmpate /= totalProb;
-
-            // 3. Generación de Cuotas 'Justas'
-            const cuotaJustaLocal = 1 / probLocal;
-            const cuotaJustaAway = 1 / probAway;
-            
-            // 4. Mostrar Resultados
-            outputDiv.innerHTML = `
-                <h4>Previsión de Probabilidad (Modelo Simplificado)</h4>
-                <p>Victoria ${local.name} (1): <strong>${(probLocal * 100).toFixed(2)}%</strong> (Cuota Justa: ${cuotaJustaLocal.toFixed(2)})</p>
-                <p>Empate (X): <strong>${(probEmpate * 100).toFixed(2)}%</strong> (Cuota Justa: ${(1/probEmpate).toFixed(2)})</p>
-                <p>Victoria ${away.name} (2): <strong>${(probAway * 100).toFixed(2)}%</strong> (Cuota Justa: ${cuotaJustaAway.toFixed(2)})</p>
-                
-                <hr>
-                ${generarEstrategiaTabla(cuotaJustaLocal, cuotaJustaAway, localStats, awayStats, local.name, away.name)}
-            `;
-
-            // Muestra el análisis de los equipos seleccionados
-            analizarVarianzaGoles(local.name, local.ga, local.gr, document.getElementById('teamStats'));
-        }
-
-        function generarEstrategiaTabla(cuotaLocal, cuotaAway, localStats, awayStats, localName, awayName) {
-            
-            const localIsVolatile = localStats.varGA > 1.0 || localStats.varGR > 1.0;
-            const awayIsVolatile = awayStats.varGA > 1.0 || awayStats.varGR > 1.0;
-            const cuotaMedia = (cuotaLocal + cuotaAway) / 2;
-
-            let comentarioVarianza = '';
-            if (localIsVolatile && awayIsVolatile) {
-                comentarioVarianza = 'Ambos equipos son **volátiles**. Alta probabilidad de resultados atípicos. Enfocarse en **Goles** o **Hándicap**.';
-            } else if (localIsVolatile) {
-                comentarioVarianza = `${localName} es volátil. El mercado de **Goles** o **Empate/Victoria Visitante** puede ofrecer valor.`;
-            } else if (awayIsVolatile) {
-                comentarioVarianza = `${awayName} es volátil. El mercado de **Goles** o **Empate/Victoria Local** puede ofrecer valor.`;
-            } else {
-                 comentarioVarianza = 'Ambos equipos son **consistentes**. El valor se encuentra en la diferencia del Edge.';
-            }
-
-            return `
-                <h4>Estrategia de Cuotas Sugeridas (Basado en Varianza y Edge)</h4>
-                <p style="font-weight: bold;">Interpretación de Varianza: ${comentarioVarianza}</p>
-
-                <table class="range-table">
-                    <thead>
-                        <tr>
-                            <th>Mercado / Equipo</th>
-                            <th>Rango de Cuotas Sugerido (Edge 5%+)</th>
-                            <th>Estrategia de Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Victoria Directa (${localName} - 1)</td>
-                            <td>**${(cuotaLocal * 1.05).toFixed(2)}** o **MÁS**</td>
-                            <td>Busca un 5% de Edge. Si la casa ofrece ${((cuotaLocal * 1.05)).toFixed(2)} o superior, entra.</td>
-                        </tr>
-                        <tr>
-                            <td>Victoria Directa (${awayName} - 2)</td>
-                            <td>**${(cuotaAway * 1.05).toFixed(2)}** o **MÁS**</td>
-                            <td>Si el ${awayName} es el *underdog*, busca cuotas que superen ${((cuotaAway * 1.05)).toFixed(2)}.</td>
-                        </tr>
-                        <tr>
-                            <td>**Ambos Anotan (BTTS)**</td>
-                            <td>**${(cuotaMedia * 1.05).toFixed(2)}** o **MÁS**</td>
-                            <td>Si la varianza es alta, el mercado puede subvalorar los goles.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
-            
-        }
-
-        // --- 5. LÓGICA DE CARGA DE ARCHIVO JSON (Pestaña 2) ---
+        // --- LÓGICA DE CARGA Y PROCESAMIENTO ---
 
         function iniciarAnalisisArchivo() {
             const fileInput = document.getElementById('jsonFile');
             const targetTeam = document.getElementById('targetTeamName').value.trim();
             const outputDiv = document.getElementById('fileAnalysisOutput');
             
-            outputDiv.innerHTML = '<h4>Análisis de Varianza del Archivo</h4>';
+            outputDiv.innerHTML = '<h4>Análisis de Varianza del Equipo (Resultados)</h4>';
             
             if (fileInput.files.length === 0 || !targetTeam) {
                 outputDiv.innerHTML += '<p class="error">❌ Por favor, selecciona un archivo y escribe el nombre exacto del equipo.</p>';
@@ -286,17 +98,17 @@
         }
 
         function procesarDatosArchivo(data, targetTeam, outputDiv) {
-            // Asumiendo tu formato: 'Match': 'Local - Visitante', 'Result FT': '1-1' (Goles)
-            // Esto es una simplificación; en tu backtesting real debes asegurar qué campo contiene los goles.
             
             const gaArray = []; // Goles Anotados
             const grArray = []; // Goles Recibidos
+            const bttsOdds = []; // Cuotas BTTS (para analizar la media histórica de aciertos)
 
             data.forEach(item => {
                 const match = item['Match'];
                 const resultFT = item['Result FT'];
+                const result = item['Result']; // 'Winning' o 'Losing'
                 
-                if (!match || !resultFT) return; // Saltar registros incompletos
+                if (!match || !resultFT) return;
                 
                 const [scoreLocalStr, scoreAwayStr] = resultFT.split('-').map(s => s.trim());
                 const scoreLocal = parseInt(scoreLocalStr);
@@ -304,56 +116,123 @@
 
                 if (isNaN(scoreLocal) || isNaN(scoreAway)) return;
                 
-                // Determinar si el equipo analizado era Local o Visitante
-                if (match.startsWith(targetTeam)) {
-                    // Era Local
+                // 1. Recopilar Goles para Varianza
+                if (match.startsWith(targetTeam)) { // Era Local
                     gaArray.push(scoreLocal);
                     grArray.push(scoreAway);
-                } else if (match.endsWith(targetTeam)) {
-                    // Era Visitante
+                } else if (match.includes(targetTeam)) { // Era Visitante (usando includes para ser más tolerante)
                     gaArray.push(scoreAway);
                     grArray.push(scoreLocal);
+                }
+
+                // 2. Recopilar Cuotas de Apuestas Ganadoras (BTTS)
+                if (result === 'Winning') {
+                    const odd = parseFloat(item['Odd']);
+                    if (!isNaN(odd)) {
+                        bttsOdds.push(odd);
+                    }
                 }
             });
 
             if (gaArray.length < 2) {
-                outputDiv.innerHTML += `<p class="error">❌ No se encontraron suficientes partidos (N < 2) para el equipo "${targetTeam}" o el formato de 'Match'/'Result FT' no es compatible.</p>`;
+                outputDiv.innerHTML += `<p class="error">❌ No se encontraron suficientes partidos (N < 2) para el equipo "${targetTeam}".</p>`;
                 return;
             }
 
-            analizarVarianzaGoles(targetTeam, gaArray, grArray, outputDiv);
-        }
-
-        // --- 6. CONTROL DE PESTAÑAS ---
-
-        function showTab(tabId, button) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
-            document.getElementById(tabId).style.display = 'block';
+            // 3. Cálculos de Varianza y Estadísticas
+            const varGA = calcularVarianza(gaArray);
+            const varGR = calcularVarianza(grArray);
+            const mediaGA = calcularMedia(gaArray);
+            const mediaGR = calcularMedia(grArray);
+            const mediaOdd = calcularMedia(bttsOdds);
+            const desvEstOdd = calcularVarianza(bttsOdds) > 0 ? Math.sqrt(calcularVarianza(bttsOdds)) : 0;
             
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
+            // 4. Mostrar Resultados y Recomendación BTTS
+            mostrarRecomendacion(targetTeam, gaArray.length, varGA, varGR, mediaGA, mediaGR, mediaOdd, desvEstOdd, outputDiv);
         }
 
-        // --- 7. INICIALIZACIÓN ---
+        // --- FUNCIÓN DE RECOMENDACIÓN DE CUOTAS BTTS ---
 
-        function init() {
-            // Rellena los selectores del simulador
-            const localSelect = document.getElementById('localTeam');
-            const awaySelect = document.getElementById('awayTeam');
+        function mostrarRecomendacion(teamName, N, varGA, varGR, mediaGA, mediaGR, mediaOdd, desvEstOdd, outputDiv) {
+            const varGA_f = varGA.toFixed(3);
+            const varGR_f = varGR.toFixed(3);
+            const mediaOdd_f = mediaOdd.toFixed(3);
+            const desvEstOdd_f = desvEstOdd.toFixed(3);
 
-            Object.keys(teamData).forEach(teamName => {
-                const optionLocal = new Option(teamName, teamName);
-                localSelect.appendChild(optionLocal);
+            const altaVarianzaOfensiva = varGA > 1.0;
+            const altaVarianzaDefensiva = varGR > 1.0;
+            
+            // Rango de Oro de BTTS (donde el modelo es históricamente fuerte)
+            const rangoMin = mediaOdd - desvEstOdd;
+            const rangoMax = mediaOdd + desvEstOdd;
+
+            let conclusionVarianza = '';
+            let estrategiaBTTS = '';
+            
+            if (altaVarianzaOfensiva && altaVarianzaDefensiva) {
+                conclusionVarianza = `El equipo es **Altamente Volátil** (Ofensiva y Defensiva Inconsistentes).`;
+                estrategiaBTTS = `Busca **BTTS SÍ** en partidos donde el rival sea Consistente pero con defensas vulnerables. El alto promedio de goles (Media GA: ${mediaGA.toFixed(2)}) sugiere que siempre buscarán anotar, lo que impulsa el 'Sí'.`;
+            } else if (altaVarianzaOfensiva) {
+                conclusionVarianza = `El equipo tiene una **Ofensiva Volátil** y una Defensa Consistente.`;
+                estrategiaBTTS = `Busca **BTTS NO** en partidos contra rivales débiles (defensas fuertes). Busca **BTTS SÍ** en partidos con rivales fuertes (defensas débiles), ya que su ataque es impredecible y puede explotar agujeros.`;
+            } else if (altaVarianzaDefensiva) {
+                conclusionVarianza = `El equipo tiene una **Defensa Volátil** y una Ofensiva Consistente.`;
+                estrategiaBTTS = `Este es un candidato ideal para **BTTS SÍ** si su ataque (Media GA: ${mediaGA.toFixed(2)}) compensa la defensa inestable. El valor estará en el 'Sí' cuando las cuotas de 'BTTS SÍ' sean altas debido a un rival con ataque débil.`;
+            } else {
+                conclusionVarianza = `El equipo es **Muy Consistente** (Ofensiva y Defensiva Estables).`;
+                estrategiaBTTS = `Apuéstale a **BTTS SÍ** solo cuando las cuotas de BTTS SÍ sean altas (subvaloradas), o a **BTTS NO** cuando las cuotas sean bajas (sobrevaloradas), ya que la consistencia reduce el riesgo.`;
+            }
+
+            outputDiv.innerHTML = `
+                <h4>Análisis de Varianza de ${teamName} (${N} Partidos)</h4>
+                <p><strong>Media Goles Anotados (GA):</strong> ${mediaGA.toFixed(2)} | <strong>Varianza Ofensiva:</strong> <strong>${varGA_f}</strong></p>
+                <p><strong>Media Goles Recibidos (GR):</strong> ${mediaGR.toFixed(2)} | <strong>Varianza Defensiva:</strong> <strong>${varGR_f}</strong></p>
+                <hr>
                 
-                const optionAway = new Option(teamName, teamName);
-                awaySelect.appendChild(optionAway);
-            });
+                <div class="recomendacion">
+                    <h4>🎯 Estrategia BTTS para ${teamName}</h4>
+                    <p><strong>Conclusión:</strong> ${conclusionVarianza}</p>
+                    <p><strong>Estrategia Clave:</strong> ${estrategiaBTTS}</p>
+                    
+                    <h4 style="margin-top: 20px;">Rango de Cuotas BTTS Sugeridas (Tu Zona de Edge)</h4>
+                    <p>Tu modelo tiene mayor ventaja histórica en cuotas alrededor de ${mediaOdd_f}.</p>
+                    <p><strong>Media de Cuotas Ganadoras:</strong> ${mediaOdd_f}</p>
+                    <p><strong>Desviación Estándar:</strong> ${desvEstOdd_f}</p>
+                    
+                    <table class="range-table">
+                        <thead>
+                            <tr>
+                                <th>Rango Estadístico</th>
+                                <th>Cuotas Sugeridas</th>
+                                <th>Acción Estratégica</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>**Rango de Consistencia ($\pm 1s$)**</td>
+                                <td>**${rangoMin.toFixed(2)}** a **${rangoMax.toFixed(2)}**</td>
+                                <td>**Busca el Edge aquí.** Este es tu rango de "Oro". El 68% de tus aciertos caen aquí.</td>
+                            </tr>
+                            <tr>
+                                <td>**Valor Superior (High Edge)**</td>
+                                <td>Cuotas **superiores a ${rangoMax.toFixed(2)}**</td>
+                                <td>Ideal para **BTTS SÍ** en partidos con varianza alta. La cuota es mayor, el riesgo es mayor, pero el potencial de retorno es superior.</td>
+                            </tr>
+                            <tr>
+                                <td>**Cuotas a Evitar**</td>
+                                <td>Cuotas inferiores a **${rangoMin.toFixed(2)}**</td>
+                                <td>Tu *backtesting* sugiere poco valor (*Edge* negativo) en este rango, ya sea para BTTS SÍ o NO.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
             
-            // Muestra estadísticas del primer equipo por defecto en el simulador
-            analizarVarianzaGoles(Object.keys(teamData)[0], teamData[Object.keys(teamData)[0]].ga, teamData[Object.keys(teamData)[0]].gr, document.getElementById('teamStats'));
         }
-        
-        window.onload = init;
+
+        window.onload = function() {
+            // Inicialización opcional si se requiere
+        };
     </script>
 </body>
 </html>
