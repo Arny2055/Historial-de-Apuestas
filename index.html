@@ -23,7 +23,7 @@
 <body>
     <div class="container">
         <h2>📊 Calculadora de Varianza y Recomendación de Cuotas</h2>
-        <p>Carga el archivo JSON con tu historial. El código buscará la cuota en el campo **Odd** y el resultado **Winning** en el campo **Result**.</p>
+        <p>Carga el archivo JSON con tu historial. El código usará los campos **Odd** (Cuota) y **Result** (Resultado).</p>
         
         <label for="jsonFile">Cargar archivo JSON (.json):</label>
         <input type="file" id="jsonFile" accept=".json">
@@ -32,9 +32,12 @@
             <label for="campoCuota">Nombre del campo de la Cuota:</label>
             <input type="text" id="campoCuota" value="Odd">
             
-            <label for="valorGanador">Valor del campo que indica victoria (ej: Result):</label>
+            <label for="campoResultado">Nombre del campo del Resultado (ej: Result):</label>
+            <input type="text" id="campoResultado" value="Result">
+            
+            <label for="valorGanador">Valor que indica Victoria en el campo anterior:</label>
             <input type="text" id="valorGanador" value="Winning">
-            <small>La calculadora buscará el valor **Winning** dentro del campo **Result** (si existe).</small>
+            <small>La calculadora filtrará los registros donde el campo **Result** sea igual a **Winning**.</small>
         </div>
         
         <button onclick="iniciarCalculo()">Calcular y Recomendar Cuotas</button>
@@ -63,7 +66,6 @@
                 return acc + (diferencia * diferencia);
             }, 0);
 
-            // Varianza Muestral: s² = Σ(xᵢ - x̄)² / (n - 1)
             return sumatoria / (n - 1);
         }
 
@@ -78,7 +80,7 @@
             const rangoMin = media - s;
             const rangoMax = media + s;
             
-            // Rango de Valor: Media + 1s a Media + 2s (cubre el 95.4% de tus aciertos)
+            // Rango de Valor: Media + 2s (el límite superior del 95.4% de tus aciertos)
             const rangoValorMax = media + (2 * s);
             
             let html = `
@@ -95,13 +97,13 @@
                         <li>**Justificación:** El 68% de tus aciertos históricos caen en este rango. Tu modelo tiene la **mayor ventaja estadística** aquí.</li>
                     </ul>
 
-                    <p>2. **Rango de Valor Superior (Mayor Riesgo/Recompensa):**</p>
+                    <p>2. **Rango de Valor Superior (Mayor Recompensa):**</p>
                     <ul>
                         <li>Considera cuotas hasta **${rangoValorMax.toFixed(2)}** (hasta $\bar{x} + 2s$).</li>
-                        <li>**Justificación:** Estas cuotas ofrecen un mejor retorno, pero con una frecuencia de acierto menor. Solo úsalas cuando tu modelo dé una señal de **confianza muy alta** para compensar el aumento de varianza.</li>
+                        <li>**Justificación:** Estas cuotas tienen mejor pago, pero representan mayor dispersión. Úsalas solo con señales de **confianza muy alta**.</li>
                     </ul>
                     
-                    <p class="error" style="border: none;">**⚠️ Cuotas a Evitar:** Las cuotas inferiores a **${rangoMin.toFixed(2)}** no demuestran un valor suficiente para tu estrategia.</p>
+                    <p class="error" style="border: none;">**⚠️ Cuotas a Evitar:** Las cuotas inferiores a **${rangoMin.toFixed(2)}** suelen tener bajo valor para tu estrategia.</p>
                 </div>
             `;
             return html;
@@ -137,6 +139,7 @@
 
         function procesarDatos(jsonText) {
             const campoCuota = document.getElementById('campoCuota').value;
+            const campoResultado = document.getElementById('campoResultado').value;
             const valorGanador = document.getElementById('valorGanador').value;
             const resultadoDiv = document.getElementById('resultado');
 
@@ -151,13 +154,14 @@
                 // 2. Extraer solo las cuotas de las apuestas GANADORAS
                 const cuotasGanadoras = data
                     .filter(item => {
-                        // Filtra solo si el campo "Result" (o el nombre que se ponga) es igual al valor Ganador ("Winning")
-                        // NOTA: Asumimos que el campo que contiene 'Winning' es 'Result' basado en tu ejemplo.
-                        return item['Result'] === valorGanador; 
+                        // **CORRECCIÓN CLAVE:** Filtra los registros donde el campo Resultado (ej: 'Result')
+                        // coincida con el valor Ganador (ej: 'Winning').
+                        return item[campoResultado] === valorGanador; 
                     })
                     .map(item => {
-                        // Usar el campo definido por el usuario (ej: "Odd")
+                        // Extrae la cuota usando el nombre de campo especificado por el usuario ('Odd' por defecto)
                         const cuotaStr = item[campoCuota]; 
+                        // Intenta parsear la cuota
                         const cuota = parseFloat(cuotaStr);
                         
                         if (isNaN(cuota) || cuota < 1.01) {
@@ -202,10 +206,9 @@
                 
                 ${generarRecomendacion(media, desviacionEstandar)}
                 
-                <small>La Desviación Estándar indica la dispersión de tus aciertos. Un ${desviacionEstandar.toFixed(3)} es la distancia promedio a la media.</small>
+                <small>La Desviación Estándar (${desviacionEstandar.toFixed(3)}) es la dispersión promedio de tus aciertos respecto a la media.</small>
             `;
-            // Trigger an image to visually explain the concept of standard deviation in betting.
-            [attachment_0](attachment)
+            
         }
     </script>
 </body>
