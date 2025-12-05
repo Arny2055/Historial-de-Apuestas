@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Varianza y Recomendación de Cuotas</title>
+    <title>Calculadora de Varianza y Estrategia de Cuotas</title>
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f4f7f6; }
         .container { max-width: 700px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
@@ -14,36 +14,37 @@
         button { background-color: #3498db; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 25px; font-size: 17px; transition: background-color 0.3s; width: 100%; }
         button:hover { background-color: #2980b9; }
         #resultado { margin-top: 30px; padding: 20px; background-color: #ecf0f1; border-radius: 4px; border-left: 5px solid #2ecc71; }
-        .recomendacion { background-color: #d1ecf1; border-left: 5px solid #0097a7; padding: 15px; margin-top: 20px; border-radius: 4px; }
-        .recomendacion h4 { margin-top: 0; color: #0097a7; }
+        .recomendacion { background-color: #f0f8ff; border-left: 5px solid #0056b3; padding: 15px; margin-top: 20px; border-radius: 4px; }
+        .recomendacion h4 { margin-top: 0; color: #0056b3; }
+        .estrategia { background-color: #fff3cd; border-left: 5px solid #ffc107; padding: 15px; margin-top: 15px; border-radius: 4px; }
+        .estrategia h4 { margin-top: 0; color: #ffc107; }
         #resultado p { margin: 8px 0; font-size: 1.1em; line-height: 1.5; }
         .error { color: #e74c3c; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>📊 Calculadora de Varianza y Recomendación de Cuotas</h2>
-        <p>Carga el archivo JSON con tu historial. El código usará los campos **Odd** (Cuota) y **Result** (Resultado).</p>
+        <h2>📊 Calculadora de Varianza y Estrategia de Cuotas</h2>
+        <p>Carga el historial de tu *backtesting*. La herramienta calcula el rango de cuotas óptimo basado en tu rendimiento histórico.</p>
         
         <label for="jsonFile">Cargar archivo JSON (.json):</label>
         <input type="file" id="jsonFile" accept=".json">
         
         <div style="margin-top: 20px; padding: 10px; border: 1px dashed #ccc;">
-            <label for="campoCuota">Nombre del campo de la Cuota:</label>
+            <label for="campoCuota">Nombre del campo de la Cuota (ej: Odd):</label>
             <input type="text" id="campoCuota" value="Odd">
             
             <label for="campoResultado">Nombre del campo del Resultado (ej: Result):</label>
             <input type="text" id="campoResultado" value="Result">
             
-            <label for="valorGanador">Valor que indica Victoria en el campo anterior:</label>
+            <label for="valorGanador">Valor que indica Victoria (ej: Winning):</label>
             <input type="text" id="valorGanador" value="Winning">
-            <small>La calculadora filtrará los registros donde el campo **Result** sea igual a **Winning**.</small>
         </div>
         
         <button onclick="iniciarCalculo()">Calcular y Recomendar Cuotas</button>
         
         <div id="resultado">
-            <p>Aquí se mostrarán los resultados y la recomendación.</p>
+            <p>Aquí se mostrarán los resultados y la recomendación estratégica.</p>
         </div>
     </div>
 
@@ -73,37 +74,46 @@
             return Math.sqrt(varianza);
         }
         
-        // --- FUNCIÓN DE RECOMENDACIÓN ---
+        // --- FUNCIÓN DE RECOMENDACIÓN ESTRATÉGICA ---
         
         function generarRecomendacion(media, s) {
             // Rango de Oro: Media ± 1 Desviación Estándar (cubre el 68.2% de tus aciertos)
             const rangoMin = media - s;
             const rangoMax = media + s;
             
-            // Rango de Valor: Media + 2s (el límite superior del 95.4% de tus aciertos)
-            const rangoValorMax = media + (2 * s);
+            // Rango de Alto Valor: Media + 1s a Media + 2s (para Underdogs y EV alto)
+            const rangoValorAltoMax = media + (2 * s);
             
             let html = `
                 <div class="recomendacion">
-                    <h4>⭐ Recomendación de Cuotas Basada en Varianza</h4>
-                    
+                    <h4>⭐ Análisis de Cuotas Óptimas</h4>
                     <p>Tu **Media ($\bar{x}$) es ${media.toFixed(3)}** y tu **Desviación Estándar ($s$) es ${s.toFixed(3)}**.</p>
-                    
                     <hr>
 
-                    <p>1. **Rango Principal (Zona de Mayor Frecuencia y Confianza):**</p>
+                    <p>1. **Rango de Consistencia (Baja Varianza):**</p>
                     <ul>
                         <li>Apuesta en cuotas entre **${rangoMin.toFixed(2)}** y **${rangoMax.toFixed(2)}** ($\bar{x} \pm 1s$).</li>
-                        <li>**Justificación:** El 68% de tus aciertos históricos caen en este rango. Tu modelo tiene la **mayor ventaja estadística** aquí.</li>
+                        <li>**Uso:** Este es el rango donde tu estrategia es más **estable y predecible**.</li>
                     </ul>
-
-                    <p>2. **Rango de Valor Superior (Mayor Recompensa):**</p>
+                </div>
+                
+                <div class="estrategia">
+                    <h4>🎯 Estrategia Basada en Varianza Posicional</h4>
+                    <p>Si tu modelo detecta **EV positivo** por la varianza de los equipos, enfócate en:</p>
+                    
+                    <p>2. **Rango de Underdogs (Alto EV):**</p>
                     <ul>
-                        <li>Considera cuotas hasta **${rangoValorMax.toFixed(2)}** (hasta $\bar{x} + 2s$).</li>
-                        <li>**Justificación:** Estas cuotas tienen mejor pago, pero representan mayor dispersión. Úsalas solo con señales de **confianza muy alta**.</li>
+                        <li>Busca cuotas entre **${rangoMax.toFixed(2)}** y **${rangoValorAltoMax.toFixed(2)}** (hasta $\bar{x} + 2s$).</li>
+                        <li>**Uso:** Ideal para equipos subvalorados o que rinden mejor de lo que sugiere su posición. **Aquí está el mayor valor**, pero con más volatilidad.</li>
                     </ul>
                     
-                    <p class="error" style="border: none;">**⚠️ Cuotas a Evitar:** Las cuotas inferiores a **${rangoMin.toFixed(2)}** suelen tener bajo valor para tu estrategia.</p>
+                    <p>3. **Rango de Hándicaps (Consistencia):**</p>
+                    <ul>
+                        <li>Busca cuotas entre **1.85** y **2.10** en mercados de **Hándicap Asiático**.</li>
+                        <li>**Uso:** Para reducir la varianza. Por ejemplo, apostar a **Equipo Débil +1.5** cuando el favorito está sobrevalorado.</li>
+                    </ul>
+                    
+                    <p class="error" style="border: none;">**⚠️ Cuotas a Evitar:** No apuestes por debajo de **${rangoMin.toFixed(2)}**, ya que tu historial no muestra suficiente valor (*Edge*) en ese rango.</p>
                 </div>
             `;
             return html;
@@ -154,14 +164,13 @@
                 // 2. Extraer solo las cuotas de las apuestas GANADORAS
                 const cuotasGanadoras = data
                     .filter(item => {
-                        // **CORRECCIÓN CLAVE:** Filtra los registros donde el campo Resultado (ej: 'Result')
+                        // Filtra solo los registros donde el campo de resultado (ej: 'Result')
                         // coincida con el valor Ganador (ej: 'Winning').
                         return item[campoResultado] === valorGanador; 
                     })
                     .map(item => {
                         // Extrae la cuota usando el nombre de campo especificado por el usuario ('Odd' por defecto)
                         const cuotaStr = item[campoCuota]; 
-                        // Intenta parsear la cuota
                         const cuota = parseFloat(cuotaStr);
                         
                         if (isNaN(cuota) || cuota < 1.01) {
@@ -206,7 +215,7 @@
                 
                 ${generarRecomendacion(media, desviacionEstandar)}
                 
-                <small>La Desviación Estándar (${desviacionEstandar.toFixed(3)}) es la dispersión promedio de tus aciertos respecto a la media.</small>
+                <small>La Desviación Estándar (${desviacionEstandar.toFixed(3)}) mide la dispersión promedio. **Alta desviación = Más volatilidad.**</small>
             `;
             
         }
