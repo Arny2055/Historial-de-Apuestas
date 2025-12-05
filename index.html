@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Varianza de Cuotas por Archivo</title>
+    <title>Calculadora de Varianza y Recomendación de Cuotas</title>
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f4f7f6; }
         .container { max-width: 700px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
@@ -14,14 +14,16 @@
         button { background-color: #3498db; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 25px; font-size: 17px; transition: background-color 0.3s; width: 100%; }
         button:hover { background-color: #2980b9; }
         #resultado { margin-top: 30px; padding: 20px; background-color: #ecf0f1; border-radius: 4px; border-left: 5px solid #2ecc71; }
+        .recomendacion { background-color: #d1ecf1; border-left: 5px solid #0097a7; padding: 15px; margin-top: 20px; border-radius: 4px; }
+        .recomendacion h4 { margin-top: 0; color: #0097a7; }
         #resultado p { margin: 8px 0; font-size: 1.1em; line-height: 1.5; }
         .error { color: #e74c3c; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>📊 Calculadora de Varianza de Cuotas (Muestral)</h2>
-        <p>Carga el archivo JSON con tu historial de *backtesting*. El archivo debe contener un **array** de objetos.</p>
+        <h2>📊 Calculadora de Varianza y Recomendación de Cuotas</h2>
+        <p>Carga el archivo JSON con tu historial. El código buscará la cuota en el campo **Odd** y el resultado **Winning** en el campo **Result**.</p>
         
         <label for="jsonFile">Cargar archivo JSON (.json):</label>
         <input type="file" id="jsonFile" accept=".json">
@@ -30,15 +32,15 @@
             <label for="campoCuota">Nombre del campo de la Cuota:</label>
             <input type="text" id="campoCuota" value="Odd">
             
-            <label for="valorGanador">Valor del campo que indica victoria:</label>
+            <label for="valorGanador">Valor del campo que indica victoria (ej: Result):</label>
             <input type="text" id="valorGanador" value="Winning">
-            <small>Ej. Si el campo "Result" es "Winning", usa "Winning".</small>
+            <small>La calculadora buscará el valor **Winning** dentro del campo **Result** (si existe).</small>
         </div>
         
-        <button onclick="iniciarCalculo()">Calcular Varianza y Desviación Estándar</button>
+        <button onclick="iniciarCalculo()">Calcular y Recomendar Cuotas</button>
         
         <div id="resultado">
-            <p>Aquí se mostrarán los resultados una vez cargues y proceses el archivo.</p>
+            <p>Aquí se mostrarán los resultados y la recomendación.</p>
         </div>
     </div>
 
@@ -54,7 +56,6 @@
         function calcularVarianzaMuestral(datos) {
             const n = datos.length;
             if (n < 2) return 0;
-            
             const media = calcularMedia(datos);
             
             const sumatoria = datos.reduce((acc, val) => {
@@ -68,6 +69,42 @@
 
         function calcularDesviacionEstandar(varianza) {
             return Math.sqrt(varianza);
+        }
+        
+        // --- FUNCIÓN DE RECOMENDACIÓN ---
+        
+        function generarRecomendacion(media, s) {
+            // Rango de Oro: Media ± 1 Desviación Estándar (cubre el 68.2% de tus aciertos)
+            const rangoMin = media - s;
+            const rangoMax = media + s;
+            
+            // Rango de Valor: Media + 1s a Media + 2s (cubre el 95.4% de tus aciertos)
+            const rangoValorMax = media + (2 * s);
+            
+            let html = `
+                <div class="recomendacion">
+                    <h4>⭐ Recomendación de Cuotas Basada en Varianza</h4>
+                    
+                    <p>Tu **Media ($\bar{x}$) es ${media.toFixed(3)}** y tu **Desviación Estándar ($s$) es ${s.toFixed(3)}**.</p>
+                    
+                    <hr>
+
+                    <p>1. **Rango Principal (Zona de Mayor Frecuencia y Confianza):**</p>
+                    <ul>
+                        <li>Apuesta en cuotas entre **${rangoMin.toFixed(2)}** y **${rangoMax.toFixed(2)}** ($\bar{x} \pm 1s$).</li>
+                        <li>**Justificación:** El 68% de tus aciertos históricos caen en este rango. Tu modelo tiene la **mayor ventaja estadística** aquí.</li>
+                    </ul>
+
+                    <p>2. **Rango de Valor Superior (Mayor Riesgo/Recompensa):**</p>
+                    <ul>
+                        <li>Considera cuotas hasta **${rangoValorMax.toFixed(2)}** (hasta $\bar{x} + 2s$).</li>
+                        <li>**Justificación:** Estas cuotas ofrecen un mejor retorno, pero con una frecuencia de acierto menor. Solo úsalas cuando tu modelo dé una señal de **confianza muy alta** para compensar el aumento de varianza.</li>
+                    </ul>
+                    
+                    <p class="error" style="border: none;">**⚠️ Cuotas a Evitar:** Las cuotas inferiores a **${rangoMin.toFixed(2)}** no demuestran un valor suficiente para tu estrategia.</p>
+                </div>
+            `;
+            return html;
         }
 
         // --- FUNCIÓN PRINCIPAL DE PROCESAMIENTO ---
@@ -108,13 +145,14 @@
                 const data = JSON.parse(jsonText);
                 
                 if (!Array.isArray(data)) {
-                    throw new Error("El JSON debe ser un array (lista) de objetos, no un objeto único.");
+                    throw new Error("El JSON debe ser un array (lista) de objetos.");
                 }
 
                 // 2. Extraer solo las cuotas de las apuestas GANADORAS
                 const cuotasGanadoras = data
                     .filter(item => {
                         // Filtra solo si el campo "Result" (o el nombre que se ponga) es igual al valor Ganador ("Winning")
+                        // NOTA: Asumimos que el campo que contiene 'Winning' es 'Result' basado en tu ejemplo.
                         return item['Result'] === valorGanador; 
                     })
                     .map(item => {
@@ -122,7 +160,7 @@
                         const cuotaStr = item[campoCuota]; 
                         const cuota = parseFloat(cuotaStr);
                         
-                        if (isNaN(cuota) || cuota <= 1.0) {
+                        if (isNaN(cuota) || cuota < 1.01) {
                             throw new Error(`El valor '${cuotaStr}' en el campo '${campoCuota}' de un ítem no es una cuota válida.`);
                         }
                         return cuota;
@@ -139,11 +177,11 @@
                 const varianza = calcularVarianzaMuestral(cuotasGanadoras);
                 const desviacionEstandar = calcularDesviacionEstandar(varianza);
 
-                // 4. Mostrar Resultados
+                // 4. Mostrar Resultados y Recomendación
                 mostrarResultados(N, media, varianza, desviacionEstandar);
 
             } catch (error) {
-                resultadoDiv.innerHTML = `<p class="error">❌ Error en el procesamiento de datos:</p><p>${error.message}</p>`;
+                resultadoDiv.innerHTML = `<p class="error">❌ Error en el procesamiento de datos:</p><p>Detalle: ${error.message}</p>`;
             }
         }
 
@@ -161,14 +199,13 @@
                 <p>${media_str}</p>
                 <p>${varianza_str}</p>
                 <p>${desvEst_str}</p>
-                <hr>
-                <p>La **Desviación Estándar (${desviacionEstandar.toFixed(3)})** indica la dispersión promedio de tus cuotas ganadoras alrededor de la media (${media.toFixed(3)}).</p>
                 
-                <h4>¿Qué significa esto?</h4>
-                <p>Significa que la mayoría (aprox. 68%) de tus apuestas ganadoras tuvieron cuotas en el rango:</p>
-                <p><strong>[${(media - desviacionEstandar).toFixed(3)} - ${(media + desviacionEstandar).toFixed(3)}]</strong></p>
+                ${generarRecomendacion(media, desviacionEstandar)}
                 
+                <small>La Desviación Estándar indica la dispersión de tus aciertos. Un ${desviacionEstandar.toFixed(3)} es la distancia promedio a la media.</small>
             `;
+            // Trigger an image to visually explain the concept of standard deviation in betting.
+            [attachment_0](attachment)
         }
     </script>
 </body>
