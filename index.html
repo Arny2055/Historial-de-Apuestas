@@ -21,16 +21,15 @@
         .ranking-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; display: block; overflow-x: auto; }
         .ranking-table th, .ranking-table td { 
             border: 1px solid #ddd; padding: 8px 6px; text-align: right; 
-            white-space: nowrap; /* Evita que los números se rompan */
+            white-space: nowrap; 
         }
         .ranking-table th { background-color: #0056b3; color: white; text-align: center; }
-        .ranking-table td:first-child { text-align: left; } /* Nombres de equipo a la izquierda */
+        .ranking-table td:first-child { text-align: left; } 
         
         /* --- Indicadores de Profit --- */
         .positive { color: #27ae60; font-weight: bold; }
         .negative { color: #e74c3c; font-weight: bold; }
         .zero { color: #34495e; }
-        .error { color: #e74c3c; font-weight: bold; }
 
         @media (max-width: 600px) {
             .ranking-table th, .ranking-table td { font-size: 0.75em; padding: 4px; }
@@ -97,13 +96,12 @@
                 return;
             }
 
-            // Estructura de datos para acumular el rendimiento por equipo y condición
             const teamPerformance = {};
             
             globalMatchData.forEach(item => {
                 const match = item['Match'];
                 const odd = parseFloat(item['Odd']);
-                const result = item['Result']; // 'Winning' o 'Losing'
+                const result = item['Result']; 
 
                 if (!match || isNaN(odd) || !result) return;
 
@@ -113,28 +111,28 @@
                 const localTeam = parts[0];
                 const awayTeam = parts[1];
 
-                // Calculamos el profit o pérdida por la apuesta BTTS (asumiendo 1 unidad apostada)
                 let profit = 0;
                 if (result === 'Winning') {
-                    // Si gana, el profit es la cuota - 1
                     profit = odd - 1; 
                 } else if (result === 'Losing') {
-                    // Si pierde, la pérdida es -1 unidad
                     profit = -1;
                 }
 
-                // 1. Acumular rendimiento del Equipo Local
+                // 1. Acumular rendimiento del Equipo Local (CORRECCIÓN IMPLEMENTADA AQUÍ)
                 if (!teamPerformance[localTeam]) {
-                    teamPerformance[localTeam] = { L: { matches: 0, profit: 0 } };
+                    teamPerformance[localTeam] = {};
+                }
+                if (!teamPerformance[localTeam].L) { // Asegura que 'L' exista
+                    teamPerformance[localTeam].L = { matches: 0, profit: 0 };
                 }
                 teamPerformance[localTeam].L.matches++;
                 teamPerformance[localTeam].L.profit += profit;
 
-                // 2. Acumular rendimiento del Equipo Visitante
+                // 2. Acumular rendimiento del Equipo Visitante (CORRECCIÓN IMPLEMENTADA AQUÍ)
                 if (!teamPerformance[awayTeam]) {
-                    teamPerformance[awayTeam] = { V: { matches: 0, profit: 0 } };
+                    teamPerformance[awayTeam] = {};
                 }
-                if (!teamPerformance[awayTeam].V) {
+                if (!teamPerformance[awayTeam].V) { // Asegura que 'V' exista
                      teamPerformance[awayTeam].V = { matches: 0, profit: 0 };
                 }
                 teamPerformance[awayTeam].V.matches++;
@@ -196,7 +194,7 @@
                 <p>Muestra el rendimiento de cada equipo cuando se realiza una apuesta de 1 unidad al **BTTS SÍ** en sus partidos.</p>
                 <hr>
                 
-                <h5 style="color: #0056b3;">Clasificación por PROFIT NETO (Total de Ganancias)</h5>
+                <h5 style="color: #0056b3;">Clasificación por PROFIT NETO (Total de Ganancias/Pérdidas)</h5>
                 ${createTableHTML(sortedByProfit, 'profit')}
                 
                 <h5 style="color: #2ecc71; margin-top: 25px;">Clasificación por YIELD (Retorno de Inversión)</h5>
