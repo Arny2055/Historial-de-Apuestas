@@ -3,159 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador de Apuestas (Avanzado)</title>
+    <title>Pronosticador Móvil (iPhone 14)</title>
     <style>
-        /* Estilos básicos para la tabla */
+        /* --- Estilos Generales --- */
         body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0; /* Elimina márgenes por defecto */
+            padding: 10px;
+            background-color: #f0f0f5; /* Fondo más claro y moderno */
         }
-        table {
+        h1 {
+            font-size: 1.5em;
+            text-align: center;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        p {
+            font-size: 0.9em;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #555;
+            padding: 0 10px;
+        }
+
+        /* --- Contenedor de la Tabla Responsiva --- */
+        .table-container {
             width: 100%;
-            max-width: 900px;
+            /* Permite el scroll horizontal solo cuando la tabla es más ancha que la pantalla */
+            overflow-x: auto; 
+            margin: 10px 0;
+        }
+        
+        /* --- Estilos de la Tabla --- */
+        table {
+            /* Asegura que la tabla no se comprima más de lo necesario */
+            min-width: 600px; 
             border-collapse: collapse;
-            margin: 20px auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             background-color: white;
+            border-radius: 8px;
+            overflow: hidden; /* Para que el borde redondeado se vea bien */
         }
         th, td {
-            border: 2px solid #333;
-            padding: 12px;
+            border: 1px solid #ddd;
+            padding: 8px; /* Reducción de padding para móvil */
             text-align: center;
+            font-size: 0.85em; /* Tamaño de fuente más pequeño para caber más */
         }
         th {
-            background-color: #333;
+            background-color: #1a73e8; /* Azul moderno para el encabezado */
             color: white;
             font-weight: bold;
-            text-transform: uppercase;
+            white-space: nowrap; /* Evita que los encabezados se rompan en varias líneas */
         }
-        /* Resaltar la columna del Pronóstico Final (el resultado) */
-        .final-result-col {
-            background-color: #e0f7fa; /* Un color claro para el resultado */
-            font-weight: bolder;
-            color: #00796b;
-        }
-        /* Estilos para las celdas de entrada */
+        
+        /* --- Estilos de Input --- */
         .input-cell input {
-            width: 80%;
-            padding: 8px;
+            width: 90%;
+            padding: 6px 0;
             border: 1px solid #ccc;
             border-radius: 4px;
             text-align: center;
-            font-size: 1em;
+            font-size: 0.9em;
+            -webkit-appearance: none; /* Mejor estilo en iOS */
+            margin: 0 auto;
+            display: block;
         }
-        /* Estilos para la recomendación final */
+
+        /* --- Estilos de Resultado Final --- */
+        .final-result-col {
+            background-color: #e3f2fd; 
+            font-weight: bold;
+            color: #0d47a1;
+        }
         .recomendacion {
             font-weight: bold;
+            padding: 10px 5px;
         }
-        .apostar { background-color: #4CAF50; color: white; } /* Verde fuerte */
-        .considerar { background-color: #FFC107; color: #333; } /* Amarillo fuerte */
-        .no-apostar { background-color: #F44336; color: white; } /* Rojo fuerte */
+        .apostar { background-color: #4CAF50; color: white; } 
+        .considerar { background-color: #FFC107; color: #333; } 
+        .no-apostar { background-color: #F44336; color: white; } 
+
+        /* Media Query: Asegura que en pantallas grandes la tabla se centre y no tenga min-width */
+        @media (min-width: 768px) {
+            table {
+                width: 80%;
+                max-width: 900px;
+                margin: 20px auto;
+                min-width: unset;
+            }
+            .table-container {
+                overflow-x: hidden;
+            }
+        }
     </style>
 </head>
 <body>
 
     <h1>🧠 Pronosticador Objetivo de Apuestas</h1>
-    <p>Introduce el **porcentaje** de probabilidad (solo el número, **0-100**) en las tres columnas de entrada. La columna **"Pronóstico Final"** mostrará el resultado calculado.</p>
+    <p>➡️ Desliza la tabla horizontalmente para ver todas las columnas.</p>
 
-    <table id="pronosticador">
-        <thead>
-            <tr>
-                <th>Mercado</th>
-                <th>Probabilidad Propia (%)</th> 
-                <th>Últimos 10 (%)</th>
-                <th>Estadísticas/Valor de Apuestas (%)</th>
-                <th class="final-result-col">Pronóstico Final (Recomendación)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr data-mercado="over">
-                <td>**Over 2.5 FT**</td>
-                <td class="input-cell">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Prob. Propia">
-                </td>
-                <td class="input-cell">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Últimos 10">
-                </td>
-                <td class="input-cell">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="Estadística">
-                </td>
-                <td id="resultado-over" class="recomendacion final-result-col">Esperando datos...</td>
-            </tr>
-            <tr data-mercado="btts">
-                <td>**BTTS Yes**</td>
-                <td class="input-cell">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Prob. Propia">
-                </td>
-                <td class="input-cell">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Últimos 10">
-                </td>
-                <td class="input-cell">
-                    <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="Estadística">
-                </td>
-                <td id="resultado-btts" class="recomendacion final-result-col">Esperando datos...</td>
-            </tr>
-        </tbody>
-    </table>
+    <div class="table-container">
+        <table id="pronosticador">
+            <thead>
+                <tr>
+                    <th>Mercado</th>
+                    <th>Prob. Propia (%)</th> 
+                    <th>Últimos 10 (%)</th>
+                    <th>Estadísticas/Valor (%)</th>
+                    <th class="final-result-col">Pronóstico Final</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr data-mercado="over">
+                    <td>**Over 2.5 FT**</td>
+                    <td class="input-cell">
+                        <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="0-100">
+                    </td>
+                    <td class="input-cell">
+                        <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="0-100">
+                    </td>
+                    <td class="input-cell">
+                        <input type="number" min="0" max="100" value="" oninput="calcularPronostico('over')" placeholder="0-100">
+                    </td>
+                    <td id="resultado-over" class="recomendacion final-result-col">Esperando datos...</td>
+                </tr>
+                <tr data-mercado="btts">
+                    <td>**BTTS Yes**</td>
+                    <td class="input-cell">
+                        <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="0-100">
+                    </td>
+                    <td class="input-cell">
+                        <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="0-100">
+                    </td>
+                    <td class="input-cell">
+                        <input type="number" min="0" max="100" value="" oninput="calcularPronostico('btts')" placeholder="0-100">
+                    </td>
+                    <td id="resultado-btts" class="recomendacion final-result-col">Esperando datos...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
     <script>
-        // Función principal de cálculo
+        // Función principal de cálculo (Mantenemos la lógica de la respuesta anterior)
         function calcularPronostico(mercado) {
-            // Obtener la fila completa usando el atributo data-mercado
             const row = document.querySelector(`tr[data-mercado="${mercado}"]`);
             
-            // Los inputs están en las celdas 1, 2 y 3 (índices 1, 2, 3)
+            // Los inputs están en las celdas 1, 2 y 3
             const inputPropia = row.cells[1].querySelector('input');
             const inputUltimos10 = row.cells[2].querySelector('input');
             const inputEstadistica = row.cells[3].querySelector('input');
-            const resultadoCell = row.cells[4]; // El resultado es la última celda
+            const resultadoCell = row.cells[4]; 
 
-            // Obtener los valores y convertirlos a número
             let probPropia = parseFloat(inputPropia.value);
             let ultimos10 = parseFloat(inputUltimos10.value);
             let estadistica = parseFloat(inputEstadistica.value);
 
-            // Verificar si los tres valores son válidos (0-100)
+            // Validar entradas
             if (isNaN(probPropia) || isNaN(ultimos10) || isNaN(estadistica) || 
-                probPropia < 0 || probPropia > 100 || 
-                ultimos10 < 0 || ultimos10 > 100 || 
-                estadistica < 0 || estadistica > 100) {
-                resultadoCell.innerHTML = 'Datos inválidos/incompletos.';
-                resultadoCell.className = 'recomendacion final-result-col'; // Limpiar clases de color
+                probPropia < 0 || probPropia > 100 || ultimos10 < 0 || ultimos10 > 100 || estadistica < 0 || estadistica > 100) {
+                resultadoCell.innerHTML = 'Datos incompletos.';
+                resultadoCell.className = 'recomendacion final-result-col'; 
                 return;
             }
 
-            // --- LÓGICA OBJETIVA DEL PRONOSTICADOR ---
-            // Ponderación (para dar más peso a la estadística que viene de datos de cuotas/valor)
+            // LÓGICA PONDERADA: Estadística 40%, Propia 30%, Últimos 10 30%
             const PESO_PROPIA = 0.30;
             const PESO_ULTIMOS10 = 0.30;
-            const PESO_ESTADISTICA = 0.40; // Mayor peso a la estadística/valor de cuotas
+            const PESO_ESTADISTICA = 0.40; 
             
-            // Puntuación Final (Promedio Ponderado)
             let puntuacionFinal = 
                 (probPropia * PESO_PROPIA) + 
                 (ultimos10 * PESO_ULTIMOS10) + 
                 (estadistica * PESO_ESTADISTICA);
             
-            // Redondear a un decimal
             puntuacionFinal = Math.round(puntuacionFinal * 10) / 10;
 
             let recomendacion = '';
-            let clase = 'recomendacion final-result-col '; // Clase base + clase de color
+            let clase = 'recomendacion final-result-col '; 
 
-            // Criterios Objetivos
             const UMBRAL_APOSTAR = 65; 
             const UMBRAL_CONSIDERAR = 50; 
 
             if (puntuacionFinal >= UMBRAL_APOSTAR) {
-                recomendacion = `✅ Apostar (${puntuacionFinal}%) - Valor Sólido`;
+                recomendacion = `✅ Apostar (${puntuacionFinal}%)`;
                 clase += 'apostar';
             } else if (puntuacionFinal >= UMBRAL_CONSIDERAR) {
-                recomendacion = `🤔 Considerar (${puntuacionFinal}%) - Riesgo Moderado`;
+                recomendacion = `🤔 Considerar (${puntuacionFinal}%)`;
                 clase += 'considerar';
             } else {
-                recomendacion = `❌ No Apostar (${puntuacionFinal}%) - Bajo Valor`;
+                recomendacion = `❌ No Apostar (${puntuacionFinal}%)`;
                 clase += 'no-apostar';
             }
 
