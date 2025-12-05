@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador BTTS por Varianza (Desplegable)</title>
+    <title>Analizador BTTS por Varianza (Final)</title>
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f4f7f6; }
         .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
@@ -11,8 +11,6 @@
         .data-input { margin-top: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 4px; }
         .team-stats { background-color: #ecf0f1; padding: 15px; margin-top: 20px; border-radius: 4px; }
         input[type="file"], select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button.primary { background-color: #2ecc71; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; font-weight: bold; width: 100%; }
-        button.primary:hover { background-color: #27ae60; }
         .recomendacion { margin-top: 20px; padding: 15px; border-left: 5px solid #ffc107; background-color: #fff3cd; }
         .recomendacion h4 { margin-top: 0; color: #ffc107; }
         .range-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -24,7 +22,7 @@
 <body>
     <div class="container">
         <h2>⚽ Analizador de Varianza de Equipos para BTTS</h2>
-        <p>Carga tu historial de partidos. La herramienta extraerá los nombres de los equipos para el análisis.</p>
+        <p>Carga tu historial de partidos. La herramienta analizará la **Varianza Ofensiva/Defensiva** del equipo seleccionado y sugerirá los rangos de cuotas BTTS (Ambos Anotan) más rentables.</p>
 
         <div class="data-input">
             <h4>Paso 1: Carga el Archivo JSON</h4>
@@ -34,19 +32,19 @@
                 <h4>Paso 2: Selecciona el Equipo a Analizar</h4>
                 <label for="targetTeamSelect">Equipo:</label>
                 <select id="targetTeamSelect" onchange="executeAnalysis()"></select>
-                <small>Selecciona un equipo para ver su análisis de varianza BTTS.</small>
+                <small>Selecciona un equipo para ver su análisis de varianza BTTS y recomendación de cuotas.</small>
             </div>
             
         </div>
         
         <div id="fileAnalysisOutput" class="team-stats">
             <h4>Análisis de Varianza del Equipo (Resultados)</h4>
-            <p>Por favor, carga un archivo JSON para comenzar.</p>
+            <p>Por favor, carga un archivo JSON (con campos 'Match', 'Result FT', 'Odd' y 'Result') para comenzar.</p>
         </div>
     </div>
 
     <script>
-        // Variable global para guardar los datos del archivo
+        // Variable global para guardar los datos del archivo una vez cargado
         let globalMatchData = [];
 
         // --- FUNCIONES DE CÁLCULO ESTADÍSTICO ---
@@ -70,21 +68,17 @@
             return sumatoria / (n - 1); // Varianza Muestral
         }
 
-        // --- LÓGICA DE EXTRACCIÓN Y DESPLEGABLE ---
+        // --- LÓGICA DE CARGA Y EXTRACCIÓN DE EQUIPOS ---
 
         function extractTeams() {
             const fileInput = document.getElementById('jsonFile');
             const outputDiv = document.getElementById('fileAnalysisOutput');
             
             outputDiv.innerHTML = '<h4>Analizando Archivo...</h4>';
-            
-            if (fileInput.files.length === 0) {
-                outputDiv.innerHTML = '<p class="error">❌ Por favor, selecciona un archivo JSON.</p>';
-                document.getElementById('teamSelectionArea').style.display = 'none';
-                return;
-            }
+            document.getElementById('teamSelectionArea').style.display = 'none';
 
-            const file = fileInput.files[0];
+            if (fileInput.files.length === 0) return;
+
             const reader = new FileReader();
 
             reader.onload = function(e) {
@@ -93,17 +87,15 @@
                     globalMatchData = data;
                     populateTeamSelect(data, outputDiv);
                 } catch (error) {
-                    outputDiv.innerHTML = `<p class="error">❌ Error al parsear JSON: ${error.message}</p>`;
-                    document.getElementById('teamSelectionArea').style.display = 'none';
+                    outputDiv.innerHTML = `<p class="error">❌ Error al cargar/parsear JSON: ${error.message}</p>`;
                 }
             };
 
             reader.onerror = function() {
                 outputDiv.innerHTML = '<p class="error">❌ Error al leer el archivo.</p>';
-                document.getElementById('teamSelectionArea').style.display = 'none';
             };
 
-            reader.readAsText(file);
+            reader.readAsText(fileInput.files[0]);
         }
 
         function populateTeamSelect(data, outputDiv) {
@@ -122,11 +114,10 @@
             });
 
             const selectElement = document.getElementById('targetTeamSelect');
-            selectElement.innerHTML = '<option value="">-- Selecciona un Equipo --</option>'; // Limpiar y añadir placeholder
+            selectElement.innerHTML = '<option value="">-- Selecciona un Equipo --</option>';
 
             if (teams.size === 0) {
-                outputDiv.innerHTML = '<p class="error">❌ No se encontraron nombres de equipos en el campo "Match". Verifica el formato.</p>';
-                document.getElementById('teamSelectionArea').style.display = 'none';
+                outputDiv.innerHTML = '<p class="error">❌ No se encontraron equipos. Asegúrate de que el campo "Match" esté en formato "Local - Visitante".</p>';
                 return;
             }
             
@@ -144,21 +135,18 @@
             const targetTeam = document.getElementById('targetTeamSelect').value;
             const outputDiv = document.getElementById('fileAnalysisOutput');
             
-            if (!targetTeam) {
-                outputDiv.innerHTML = '<p class="error">Por favor, selecciona un equipo para el análisis.</p>';
-                return;
-            }
+            if (!targetTeam) return;
 
             const data = globalMatchData;
             
             const gaArray = []; // Goles Anotados
             const grArray = []; // Goles Recibidos
-            const bttsOdds = []; // Cuotas BTTS ganadoras
+            const bttsOdds = []; // Cuotas BTTS ganadoras (asumimos que 'Odd' es la cuota BTTS)
 
             data.forEach(item => {
                 const match = item['Match'];
                 const resultFT = item['Result FT'];
-                const result = item['Result']; // 'Winning' o 'Losing'
+                const result = item['Result']; 
 
                 if (!match || !resultFT) return;
                 
@@ -168,13 +156,11 @@
 
                 if (isNaN(scoreLocal) || isNaN(scoreAway)) return;
                 
-                // 1. Recopilar Goles para Varianza
+                // 1. Recopilar Goles para Varianza (Revisión estricta de la posición)
                 if (match.startsWith(targetTeam + ' -')) { 
-                    // Si el equipo está al inicio y tiene el separador
                     gaArray.push(scoreLocal);
                     grArray.push(scoreAway);
                 } else if (match.endsWith('- ' + targetTeam)) {
-                    // Si el equipo está al final y tiene el separador
                     gaArray.push(scoreAway);
                     grArray.push(scoreLocal);
                 }
@@ -199,7 +185,6 @@
             const mediaGA = calcularMedia(gaArray);
             const mediaGR = calcularMedia(grArray);
             const mediaOdd = calcularMedia(bttsOdds);
-            // Asegura que la varianza es positiva antes de la raíz cuadrada
             const varianzaOdd = calcularVarianza(bttsOdds);
             const desvEstOdd = varianzaOdd > 0 ? Math.sqrt(varianzaOdd) : 0;
             
@@ -207,7 +192,7 @@
             mostrarRecomendacion(targetTeam, gaArray.length, varGA, varGR, mediaGA, mediaGR, mediaOdd, desvEstOdd, outputDiv);
         }
 
-        // --- FUNCIÓN DE RECOMENDACIÓN DE CUOTAS BTTS (Mejorada) ---
+        // --- FUNCIÓN DE RECOMENDACIÓN DE CUOTAS BTTS ---
 
         function mostrarRecomendacion(teamName, N, varGA, varGR, mediaGA, mediaGR, mediaOdd, desvEstOdd, outputDiv) {
             const varGA_f = varGA.toFixed(3);
@@ -227,16 +212,16 @@
             
             if (altaVarianzaOfensiva && altaVarianzaDefensiva) {
                 conclusionVarianza = `El equipo es **Altamente Volátil** (Ofensiva y Defensiva Inconsistentes).`;
-                estrategiaBTTS = `Busca **BTTS SÍ** contra casi cualquier rival, ya que su alto promedio de goles (${mediaGA.toFixed(2)} GA) y su defensa inestable (${mediaGR.toFixed(2)} GR) lo hacen propenso al intercambio de goles. El valor está en la cuota BTTS SÍ.`;
+                estrategiaBTTS = `Busca **BTTS SÍ** sistemáticamente. Su alta varianza y promedio de goles (${mediaGA.toFixed(2)} GA / ${mediaGR.toFixed(2)} GR) lo hacen propenso a partidos abiertos.`;
             } else if (altaVarianzaOfensiva) {
                 conclusionVarianza = `El equipo tiene una **Ofensiva Volátil** y una Defensa Consistente.`;
-                estrategiaBTTS = `Prioriza **BTTS SÍ** contra rivales con defensas débiles (aunque la casa no lo espere). La volatilidad de su ataque puede generar goles inesperados.`;
+                estrategiaBTTS = `Prioriza **BTTS SÍ** contra rivales débiles o con defensas inestables. La volatilidad de su ataque puede generar goles inesperados.`;
             } else if (altaVarianzaDefensiva) {
                 conclusionVarianza = `El equipo tiene una **Defensa Volátil** y una Ofensiva Consistente.`;
-                estrategiaBTTS = `Es un candidato ideal para **BTTS SÍ**. Su ataque (${mediaGA.toFixed(2)} GA) asegura el gol propio, y su defensa inestable casi garantiza el gol del rival. El valor suele ser alto en el 'Sí'.`;
+                estrategiaBTTS = `Es un candidato ideal para **BTTS SÍ**. Su ataque (${mediaGA.toFixed(2)} GA) es confiable, y su defensa inestable (${mediaGR.toFixed(2)} GR) casi garantiza el gol del rival.`;
             } else {
                 conclusionVarianza = `El equipo es **Muy Consistente** (Ofensiva y Defensiva Estables).`;
-                estrategiaBTTS = `Apuesta a **BTTS NO** cuando la cuota de 'BTTS NO' esté sobrevalorada, o a **BTTS SÍ** solo si la cuota es excepcionalmente alta. La consistencia reduce las sorpresas.`;
+                estrategiaBTTS = `Apuéstale a **BTTS NO** cuando la cuota de 'BTTS SÍ' sea alta (el mercado puede estar sobrevalorando los goles en sus partidos). La consistencia reduce las sorpresas.`;
             }
 
             outputDiv.innerHTML = `
@@ -253,7 +238,7 @@
                     <h4 style="margin-top: 20px;">Rango de Cuotas BTTS Sugeridas (Tu Zona de Edge)</h4>
                     <p>Tu modelo tiene mayor ventaja histórica en cuotas alrededor de ${mediaOdd_f}.</p>
                     <p><strong>Media de Cuotas Ganadoras:</strong> ${mediaOdd_f}</p>
-                    <p><strong>Desviación Estándar:</strong> ${desvEstOdd_f}</p>
+                    <p><strong>Desviación Estándar ($s$):</strong> ${desvEstOdd_f}</p>
                     
                     <table class="range-table">
                         <thead>
@@ -265,12 +250,12 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td>**Rango de Consistencia ($\pm 1s$)**</td>
+                                <td>**Rango de Consistencia ($\bar{x} \pm 1s$)**</td>
                                 <td>**${rangoMin.toFixed(2)}** a **${rangoMax.toFixed(2)}**</td>
                                 <td>**Busca el Edge aquí.** Este es tu rango de "Oro". El 68% de tus aciertos caen aquí.</td>
                             </tr>
                             <tr>
-                                <td>**Valor Superior (High Edge)**</td>
+                                <td>**Valor Superior ($\bar{x} + 1s$ a $\bar{x} + 2s$)**</td>
                                 <td>Cuotas **superiores a ${rangoMax.toFixed(2)}**</td>
                                 <td>Ideal para **BTTS SÍ** en partidos con alta varianza, buscando un alto retorno.</td>
                             </tr>
@@ -285,10 +270,6 @@
             `;
             
         }
-        
-        window.onload = function() {
-            // No hay inicialización necesaria aparte del evento onchange del input file.
-        };
     </script>
 </body>
 </html>
