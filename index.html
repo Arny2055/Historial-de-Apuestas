@@ -3,44 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Varianza de Cuotas</title>
+    <title>Calculadora de Varianza de Cuotas por Archivo</title>
     <style>
-        /* El código CSS va aquí (ver sección 2) */
         body { font-family: sans-serif; margin: 20px; background-color: #f4f7f6; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
+        .container { max-width: 700px; margin: 0 auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
         h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
         label { display: block; margin-top: 15px; font-weight: bold; color: #34495e; }
-        textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; }
-        button { background-color: #3498db; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; font-size: 16px; transition: background-color 0.3s; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-top: 5px; }
+        input[type="file"] { cursor: pointer; background-color: #ecf0f1; }
+        button { background-color: #3498db; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; margin-top: 25px; font-size: 17px; transition: background-color 0.3s; width: 100%; }
         button:hover { background-color: #2980b9; }
-        #resultado { margin-top: 30px; padding: 15px; background-color: #ecf0f1; border-radius: 4px; border-left: 5px solid #2ecc71; }
-        #resultado p { margin: 5px 0; font-size: 1.1em; }
+        #resultado { margin-top: 30px; padding: 20px; background-color: #ecf0f1; border-radius: 4px; border-left: 5px solid #2ecc71; }
+        #resultado p { margin: 8px 0; font-size: 1.1em; line-height: 1.5; }
         .error { color: #e74c3c; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>📊 Calculadora de Varianza de Cuotas (Muestral)</h2>
+        <p>Carga el archivo JSON con tu historial de *backtesting*. El archivo debe contener un **array** de objetos.</p>
         
-        <label for="jsonInput">Pega tu JSON aquí:</label>
-        <textarea id="jsonInput" placeholder='Ejemplo de JSON esperado: [{"cuota": 1.70, "ganadora": true}, {"cuota": 1.95, "ganadora": true}, ...]'></textarea>
+        <label for="jsonFile">Cargar archivo JSON (.json):</label>
+        <input type="file" id="jsonFile" accept=".json">
         
-        <label for="campoCuota">Nombre del campo de la cuota:</label>
-        <input type="text" id="campoCuota" value="cuota" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        <div style="margin-top: 20px; padding: 10px; border: 1px dashed #ccc;">
+            <label for="campoCuota">Nombre del campo de la Cuota:</label>
+            <input type="text" id="campoCuota" value="Odd">
+            
+            <label for="valorGanador">Valor del campo que indica victoria:</label>
+            <input type="text" id="valorGanador" value="Winning">
+            <small>Ej. Si el campo "Result" es "Winning", usa "Winning".</small>
+        </div>
         
-        <label for="campoGanadora">Nombre del campo de la condición ganadora (opcional):</label>
-        <input type="text" id="campoGanadora" value="ganadora" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
-        
-        <button onclick="calcularVarianza()">Calcular Varianza y Desviación Estándar</button>
+        <button onclick="iniciarCalculo()">Calcular Varianza y Desviación Estándar</button>
         
         <div id="resultado">
-            <p>Aquí se mostrarán los resultados.</p>
+            <p>Aquí se mostrarán los resultados una vez cargues y proceses el archivo.</p>
         </div>
     </div>
 
     <script>
-        /* El código JavaScript va aquí (ver sección 3) */
-
         // --- FUNCIONES DE CÁLCULO ESTADÍSTICO ---
         
         function calcularMedia(datos) {
@@ -51,11 +53,10 @@
 
         function calcularVarianzaMuestral(datos) {
             const n = datos.length;
-            if (n < 2) return 0; // Se necesita al menos 2 datos para varianza muestral
+            if (n < 2) return 0;
             
             const media = calcularMedia(datos);
             
-            // Suma de los cuadrados de las diferencias con la media
             const sumatoria = datos.reduce((acc, val) => {
                 const diferencia = val - media;
                 return acc + (diferencia * diferencia);
@@ -69,36 +70,60 @@
             return Math.sqrt(varianza);
         }
 
-        // --- FUNCIÓN PRINCIPAL DE LA CALCULADORA ---
+        // --- FUNCIÓN PRINCIPAL DE PROCESAMIENTO ---
 
-        function calcularVarianza() {
-            const jsonText = document.getElementById('jsonInput').value;
-            const campoCuota = document.getElementById('campoCuota').value;
-            const campoGanadora = document.getElementById('campoGanadora').value;
+        function iniciarCalculo() {
+            const fileInput = document.getElementById('jsonFile');
             const resultadoDiv = document.getElementById('resultado');
             
-            resultadoDiv.innerHTML = ''; // Limpiar resultados anteriores
+            resultadoDiv.innerHTML = '';
+            
+            if (fileInput.files.length === 0) {
+                resultadoDiv.innerHTML = '<p class="error">❌ Por favor, selecciona un archivo JSON.</p>';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const jsonText = e.target.result;
+                procesarDatos(jsonText);
+            };
+
+            reader.onerror = function() {
+                resultadoDiv.innerHTML = '<p class="error">❌ Error al leer el archivo.</p>';
+            };
+
+            reader.readAsText(file);
+        }
+
+        function procesarDatos(jsonText) {
+            const campoCuota = document.getElementById('campoCuota').value;
+            const valorGanador = document.getElementById('valorGanador').value;
+            const resultadoDiv = document.getElementById('resultado');
 
             try {
                 // 1. Parsear el JSON
                 const data = JSON.parse(jsonText);
                 
                 if (!Array.isArray(data)) {
-                    throw new Error("El JSON debe ser un array (lista) de objetos.");
+                    throw new Error("El JSON debe ser un array (lista) de objetos, no un objeto único.");
                 }
 
                 // 2. Extraer solo las cuotas de las apuestas GANADORAS
                 const cuotasGanadoras = data
                     .filter(item => {
-                        // Si el campoGanadora está vacío, asumimos que todos los ítems son ganadores.
-                        // Si no está vacío, filtramos por el valor booleano 'true'.
-                        return campoGanadora ? item[campoGanadora] === true : true;
+                        // Filtra solo si el campo "Result" (o el nombre que se ponga) es igual al valor Ganador ("Winning")
+                        return item['Result'] === valorGanador; 
                     })
                     .map(item => {
-                        const cuota = parseFloat(item[campoCuota]);
-                        if (isNaN(cuota) || typeof item[campoCuota] !== 'number') {
-                             // Lanza un error si el valor no es un número válido.
-                            throw new Error(`El valor '${item[campoCuota]}' en el campo '${campoCuota}' no es un número válido.`);
+                        // Usar el campo definido por el usuario (ej: "Odd")
+                        const cuotaStr = item[campoCuota]; 
+                        const cuota = parseFloat(cuotaStr);
+                        
+                        if (isNaN(cuota) || cuota <= 1.0) {
+                            throw new Error(`El valor '${cuotaStr}' en el campo '${campoCuota}' de un ítem no es una cuota válida.`);
                         }
                         return cuota;
                     });
@@ -106,7 +131,7 @@
                 const N = cuotasGanadoras.length;
                 
                 if (N < 2) {
-                    throw new Error(`Se encontraron solo ${N} cuotas ganadoras. Se necesitan al menos 2 para calcular la varianza muestral.`);
+                    throw new Error(`Se encontraron solo ${N} cuotas ganadoras con el valor "${valorGanador}". Se necesitan al menos 2.`);
                 }
 
                 // 3. Calcular la Media, Varianza y Desviación Estándar
@@ -115,28 +140,35 @@
                 const desviacionEstandar = calcularDesviacionEstandar(varianza);
 
                 // 4. Mostrar Resultados
-                const N_str = `<strong>Número de Cuotas (N):</strong> ${N}`;
-                const media_str = `<strong>Media (x̄):</strong> ${media.toFixed(4)}`;
-                const varianza_str = `<strong>Varianza Muestral (s²):</strong> ${varianza.toFixed(4)}`;
-                const desvEst_str = `<strong>Desviación Estándar (s):</strong> ${desviacionEstandar.toFixed(4)}`;
-
-                resultadoDiv.innerHTML = `
-                    <h3>✅ Resultados del Análisis</h3>
-                    <p>${N_str}</p>
-                    <p>${media_str}</p>
-                    <p>${varianza_str}</p>
-                    <p>${desvEst_str}</p>
-                    <hr>
-                    <p>La **Desviación Estándar (s)** indica la dispersión promedio de tus cuotas ganadoras respecto a la media ${media.toFixed(2)}.</p>
-                `;
-                
-                // Muestra un diagrama de dispersión de la Desviación Estándar para clarificar el concepto.
-                [attachment_0](attachment)
+                mostrarResultados(N, media, varianza, desviacionEstandar);
 
             } catch (error) {
-                // Mostrar errores de parsing o datos
                 resultadoDiv.innerHTML = `<p class="error">❌ Error en el procesamiento de datos:</p><p>${error.message}</p>`;
             }
+        }
+
+        function mostrarResultados(N, media, varianza, desviacionEstandar) {
+            const resultadoDiv = document.getElementById('resultado');
+            
+            const media_str = `<strong>Media de Cuotas Ganadoras (x̄):</strong> ${media.toFixed(4)}`;
+            const varianza_str = `<strong>Varianza Muestral (s²):</strong> ${varianza.toFixed(4)}`;
+            const desvEst_str = `<strong>Desviación Estándar (s):</strong> ${desviacionEstandar.toFixed(4)}`;
+
+            resultadoDiv.innerHTML = `
+                <h3>✅ Resultados del Análisis Estadístico</h3>
+                <p><strong>Total de Apuestas Ganadoras (n):</strong> ${N}</p>
+                <hr>
+                <p>${media_str}</p>
+                <p>${varianza_str}</p>
+                <p>${desvEst_str}</p>
+                <hr>
+                <p>La **Desviación Estándar (${desviacionEstandar.toFixed(3)})** indica la dispersión promedio de tus cuotas ganadoras alrededor de la media (${media.toFixed(3)}).</p>
+                
+                <h4>¿Qué significa esto?</h4>
+                <p>Significa que la mayoría (aprox. 68%) de tus apuestas ganadoras tuvieron cuotas en el rango:</p>
+                <p><strong>[${(media - desviacionEstandar).toFixed(3)} - ${(media + desviacionEstandar).toFixed(3)}]</strong></p>
+                
+            `;
         }
     </script>
 </body>
