@@ -3,333 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comparador BTTS por Varianza (Estratégico)</title>
+    <title>Ranking de Profit BTTS por Equipo</title>
     <style>
-        /* --- ESTILOS MÓVILES OPTIMIZADOS --- */
-        body { 
-            font-family: sans-serif; 
-            margin: 0; padding: 10px; background-color: #f4f7f6; font-size: 16px; 
-        }
-        .container { 
-            width: 100%; max-width: none; margin: 0 auto; background: white; 
-            padding: 15px; border-radius: 0; box-shadow: none; 
-        }
-        h2 { 
-            color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px; font-size: 1.5em; 
-        }
+        /* --- Estilos Móviles y Generales --- */
+        body { font-family: sans-serif; margin: 0; padding: 10px; background-color: #f4f7f6; font-size: 16px; }
+        .container { width: 100%; max-width: none; margin: 0 auto; background: white; padding: 15px; border-radius: 0; box-shadow: none; }
+        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px; font-size: 1.5em; }
         
-        /* --- ESTILOS DE ENTRADA Y SELECCIÓN --- */
-        .data-input { padding: 10px; border: 1px solid #ccc; }
-        .match-setup { flex-direction: column; align-items: stretch; }
-        .match-setup select { width: 100%; margin-bottom: 10px; padding: 12px 10px; font-size: 1em; }
-        input[type="file"] { padding: 12px 10px; font-size: 1em; }
+        /* --- Estilos de Entrada --- */
+        .data-input { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+        input[type="file"], button { width: 100%; padding: 12px 10px; margin-top: 10px; font-size: 1em; border-radius: 4px; }
+        button.primary { background-color: #2ecc71; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button.primary:hover { background-color: #27ae60; }
         
-        /* --- COMPARACIÓN DE EQUIPOS Y RESULTADOS --- */
-        .analysis-output { background-color: #f0f8ff; padding: 15px; border: 1px solid #ddd; }
-        .team-comparison { flex-direction: column; gap: 15px; margin-top: 15px; }
-        .team-box { width: 100%; padding: 10px; border: 1px solid #3498db; border-radius: 4px; background-color: white; font-size: 0.95em; }
-        .recommendation { margin-top: 20px; padding: 15px; border-left: 5px solid #ffc107; background-color: #fff3cd; }
-        .recommendation h4 { margin-top: 0; color: #ffc107; }
+        /* --- Estilos de Tablas de Resultados --- */
+        .ranking-output { margin-top: 20px; padding: 15px; background-color: #f0f8ff; border-radius: 4px; }
+        .ranking-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; display: block; overflow-x: auto; }
+        .ranking-table th, .ranking-table td { 
+            border: 1px solid #ddd; padding: 8px 6px; text-align: right; 
+            white-space: nowrap; /* Evita que los números se rompan */
+        }
+        .ranking-table th { background-color: #0056b3; color: white; text-align: center; }
+        .ranking-table td:first-child { text-align: left; } /* Nombres de equipo a la izquierda */
         
-        /* --- TABLA ESTRATÉGICA --- */
-        .range-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; display: block; overflow-x: auto; }
-        .range-table th, .range-table td { padding: 6px; border: 1px solid #ddd; text-align: left; word-break: break-word; }
-        .range-table th { background-color: #0056b3; color: white; }
+        /* --- Indicadores de Profit --- */
+        .positive { color: #27ae60; font-weight: bold; }
+        .negative { color: #e74c3c; font-weight: bold; }
+        .zero { color: #34495e; }
         .error { color: #e74c3c; font-weight: bold; }
+
+        @media (max-width: 600px) {
+            .ranking-table th, .ranking-table td { font-size: 0.75em; padding: 4px; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>⚔️ Comparador de Varianza de Equipos (BTTS)</h2>
-        <p>Analiza un enfrentamiento específico (Local vs Visitante) y calcula la probabilidad de Ambos Anotan (BTTS) basándose en la varianza de cada equipo.</p>
+        <h2>💰 Ranking de Rentabilidad (Profit) BTTS</h2>
+        <p>Calcula el Profit Neto y el Yield (retorno de inversión) de cada equipo, separando su condición de local y visitante, asumiendo una apuesta de 1 unidad por partido.</p>
 
         <div class="data-input">
             <h4>Paso 1: Carga el Archivo JSON</h4>
-            <input type="file" id="jsonFile" accept=".json" onchange="extractTeams()">
+            <input type="file" id="jsonFile" accept=".json">
             
-            <div id="teamSelectionArea" style="margin-top: 15px; display: none;">
-                <h4>Paso 2: Selecciona el Enfrentamiento</h4>
-                <div class="match-setup">
-                    <select id="localTeamSelect" onchange="executeComparison()">
-                        <option value="">-- Selecciona Local --</option>
-                    </select>
-                    <span>**VS**</span>
-                    <select id="awayTeamSelect" onchange="executeComparison()">
-                        <option value="">-- Selecciona Visitante --</option>
-                    </select>
-                </div>
-            </div>
+            <button class="primary" onclick="iniciarCalculoProfit()">
+                Calcular Ranking de Profit BTTS
+            </button>
         </div>
         
-        <div id="analysisOutput" class="analysis-output">
-            <h4>Resultados de la Comparación</h4>
-            <p>Por favor, carga un archivo y selecciona los dos equipos.</p>
+        <div id="rankingOutput" class="ranking-output">
+            <h4>Clasificación de Rendimiento BTTS</h4>
+            <p>Los resultados de Profit y Yield se mostrarán aquí.</p>
         </div>
     </div>
 
     <script>
+        // Variable para guardar los datos del archivo una vez cargado
         let globalMatchData = [];
 
-        // --- FUNCIONES DE CÁLCULO ESTADÍSTICO ---
-        function calcularMedia(datos) {
-            if (datos.length === 0) return 0;
-            const suma = datos.reduce((acc, val) => acc + val, 0);
-            return suma / datos.length;
-        }
+        // --- FUNCIÓN PRINCIPAL DE CÁLCULO DE PROFIT ---
 
-        function calcularVarianza(datos) {
-            const n = datos.length;
-            if (n < 2) return 0;
-            const media = calcularMedia(datos);
-            const sumatoria = datos.reduce((acc, val) => acc + Math.pow(val - media, 2), 0);
-            return sumatoria / (n - 1);
-        }
-
-        // --- LÓGICA DE CARGA Y EXTRACCIÓN DE EQUIPOS ---
-
-        function extractTeams() {
+        function iniciarCalculoProfit() {
             const fileInput = document.getElementById('jsonFile');
-            const outputDiv = document.getElementById('analysisOutput');
-            outputDiv.innerHTML = '<h4>Analizando Archivo...</h4>';
-            document.getElementById('teamSelectionArea').style.display = 'none';
+            const outputDiv = document.getElementById('rankingOutput');
+            outputDiv.innerHTML = '<h4>Calculando Ranking...</h4>';
 
-            if (fileInput.files.length === 0) return;
+            if (fileInput.files.length === 0) {
+                outputDiv.innerHTML = '<p class="error">❌ Por favor, selecciona un archivo JSON.</p>';
+                return;
+            }
 
             const reader = new FileReader();
+
             reader.onload = function(e) {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    globalMatchData = data;
-                    populateTeamSelect(data, outputDiv);
+                    globalMatchData = JSON.parse(e.target.result);
+                    procesarDatosProfit(outputDiv);
                 } catch (error) {
                     outputDiv.innerHTML = `<p class="error">❌ Error al cargar/parsear JSON: ${error.message}</p>`;
                 }
             };
+
             reader.onerror = function() {
                 outputDiv.innerHTML = '<p class="error">❌ Error al leer el archivo.</p>';
             };
+
             reader.readAsText(fileInput.files[0]);
         }
 
-        function populateTeamSelect(data, outputDiv) {
-            const teams = new Set();
-            data.forEach(item => {
-                const match = item['Match'];
-                if (match) {
-                    const parts = match.split('-');
-                    if (parts.length >= 2) {
-                        teams.add(parts[0].trim());
-                        teams.add(parts[1].trim());
-                    }
-                }
-            });
-
-            const localSelect = document.getElementById('localTeamSelect');
-            const awaySelect = document.getElementById('awayTeamSelect');
-            localSelect.innerHTML = '<option value="">-- Selecciona Local --</option>';
-            awaySelect.innerHTML = '<option value="">-- Selecciona Visitante --</option>';
-
-            if (teams.size === 0) {
-                outputDiv.innerHTML = '<p class="error">❌ No se encontraron equipos. Verifica el formato "Local - Visitante".</p>';
+        function procesarDatosProfit(outputDiv) {
+            if (globalMatchData.length === 0) {
+                outputDiv.innerHTML = '<p class="error">❌ El archivo JSON está vacío.</p>';
                 return;
             }
+
+            // Estructura de datos para acumular el rendimiento por equipo y condición
+            const teamPerformance = {};
             
-            Array.from(teams).sort().forEach(teamName => {
-                localSelect.appendChild(new Option(teamName, teamName));
-                awaySelect.appendChild(new Option(teamName, teamName));
-            });
-
-            document.getElementById('teamSelectionArea').style.display = 'flex';
-            outputDiv.innerHTML = '<p>✅ Archivo cargado. Selecciona los equipos para comparar.</p>';
-        }
-
-        // --- FUNCIÓN DE ANÁLISIS POR EQUIPO (Datos extraídos del JSON) ---
-
-        function getTeamStats(teamName, data) {
-            const gaArray = []; 
-            const grArray = []; 
-            const bttsOdds = []; 
-
-            data.forEach(item => {
+            globalMatchData.forEach(item => {
                 const match = item['Match'];
-                const resultFT = item['Result FT'];
-                const result = item['Result']; 
+                const odd = parseFloat(item['Odd']);
+                const result = item['Result']; // 'Winning' o 'Losing'
 
-                if (!match || !resultFT) return;
-                
-                const [scoreLocalStr, scoreAwayStr] = resultFT.split('-').map(s => s.trim());
-                const scoreLocal = parseInt(scoreLocalStr);
-                const scoreAway = parseInt(scoreAwayStr);
+                if (!match || isNaN(odd) || !result) return;
 
-                if (isNaN(scoreLocal) || isNaN(scoreAway)) return;
-                
-                if (match.startsWith(teamName + ' -')) { 
-                    gaArray.push(scoreLocal);
-                    grArray.push(scoreAway);
-                } else if (match.endsWith('- ' + teamName)) {
-                    gaArray.push(scoreAway);
-                    grArray.push(scoreLocal);
-                }
+                const parts = match.split('-').map(s => s.trim());
+                if (parts.length < 2) return;
 
+                const localTeam = parts[0];
+                const awayTeam = parts[1];
+
+                // Calculamos el profit o pérdida por la apuesta BTTS (asumiendo 1 unidad apostada)
+                let profit = 0;
                 if (result === 'Winning') {
-                    const odd = parseFloat(item['Odd']);
-                    if (!isNaN(odd)) {
-                        bttsOdds.push(odd);
-                    }
+                    // Si gana, el profit es la cuota - 1
+                    profit = odd - 1; 
+                } else if (result === 'Losing') {
+                    // Si pierde, la pérdida es -1 unidad
+                    profit = -1;
                 }
+
+                // 1. Acumular rendimiento del Equipo Local
+                if (!teamPerformance[localTeam]) {
+                    teamPerformance[localTeam] = { L: { matches: 0, profit: 0 } };
+                }
+                teamPerformance[localTeam].L.matches++;
+                teamPerformance[localTeam].L.profit += profit;
+
+                // 2. Acumular rendimiento del Equipo Visitante
+                if (!teamPerformance[awayTeam]) {
+                    teamPerformance[awayTeam] = { V: { matches: 0, profit: 0 } };
+                }
+                if (!teamPerformance[awayTeam].V) {
+                     teamPerformance[awayTeam].V = { matches: 0, profit: 0 };
+                }
+                teamPerformance[awayTeam].V.matches++;
+                teamPerformance[awayTeam].V.profit += profit;
             });
 
-            if (gaArray.length < 2) {
-                return null;
-            }
-
-            const varGA = calcularVarianza(gaArray);
-            const varGR = calcularVarianza(grArray);
-            const mediaOdd = calcularMedia(bttsOdds);
-            const desvEstOdd = calcularVarianza(bttsOdds) > 0 ? Math.sqrt(calcularVarianza(bttsOdds)) : 0;
-
-            return {
-                name: teamName,
-                N: gaArray.length,
-                mediaGA: calcularMedia(gaArray),
-                mediaGR: calcularMedia(grArray),
-                varGA: varGA,
-                varGR: varGR,
-                mediaOdd: mediaOdd,
-                desvEstOdd: desvEstOdd
-            };
+            // 3. Generar las tablas de clasificación
+            mostrarRanking(teamPerformance, outputDiv);
         }
 
-        // --- LÓGICA PRINCIPAL DE COMPARACIÓN ---
+        // --- FUNCIÓN DE VISUALIZACIÓN DEL RANKING ---
 
-        function executeComparison() {
-            const localName = document.getElementById('localTeamSelect').value;
-            const awayName = document.getElementById('awayTeamSelect').value;
-            const outputDiv = document.getElementById('analysisOutput');
+        function mostrarRanking(performanceData, outputDiv) {
+            const rankings = [];
 
-            if (!localName || !awayName) return;
-            if (localName === awayName) {
-                outputDiv.innerHTML = '<p class="error">❌ No puedes comparar el mismo equipo.</p>';
-                return;
+            // A. Preparar datos para el ranking
+            for (const team in performanceData) {
+                const data = performanceData[team];
+
+                // Local (L)
+                if (data.L && data.L.matches > 0) {
+                    const yieldL = (data.L.profit / data.L.matches) * 100;
+                    rankings.push({
+                        team: team,
+                        condition: 'Local',
+                        matches: data.L.matches,
+                        profit: data.L.profit,
+                        yield: yieldL
+                    });
+                }
+
+                // Visitante (V)
+                if (data.V && data.V.matches > 0) {
+                    const yieldV = (data.V.profit / data.V.matches) * 100;
+                    rankings.push({
+                        team: team,
+                        condition: 'Visitante',
+                        matches: data.V.matches,
+                        profit: data.V.profit,
+                        yield: yieldV
+                    });
+                }
             }
 
-            const localStats = getTeamStats(localName, globalMatchData);
-            const awayStats = getTeamStats(awayName, globalMatchData);
-
-            if (!localStats || !awayStats) {
-                outputDiv.innerHTML = '<p class="error">❌ No hay suficientes datos (mínimo 2 partidos) para uno o ambos equipos seleccionados.</p>';
-                return;
+            if (rankings.length === 0) {
+                 outputDiv.innerHTML = '<p class="error">❌ No se pudo extraer suficiente información de Profit. Verifica los campos "Match", "Odd" y "Result".</p>';
+                 return;
             }
 
-            // 1. Calcular la Probabilidad BTTS (SÍ)
-            
-            const probLocalScores = (localStats.mediaGA * awayStats.mediaGR) / (localStats.mediaGA + awayStats.mediaGR); 
-            const probAwayScores = (awayStats.mediaGA * localStats.mediaGR) / (awayStats.mediaGA + localStats.mediaGR);
+            // B. Ordenar por Profit Neto (de mejor a peor)
+            const sortedByProfit = [...rankings].sort((a, b) => b.profit - a.profit);
 
-            const varFactor = ((localStats.varGA + awayStats.varGR) / 2 + (awayStats.varGA + localStats.varGR) / 2) / 4;
-            const varianzaAdjustment = (varFactor > 1.0) ? 0.05 * varFactor : 0; 
+            // C. Ordenar por Yield (de mejor a peor)
+            const sortedByYield = [...rankings].sort((a, b) => b.yield - a.yield);
 
-            let probBTTS = (probLocalScores / (probLocalScores + probAwayScores)) * 0.75 + (probAwayScores / (probLocalScores + probAwayScores)) * 0.75;
-            
-            probBTTS = Math.min(0.85, Math.max(0.40, probBTTS));
-            probBTTS += varianzaAdjustment;
-            probBTTS = Math.min(0.95, probBTTS);
-
-            const cuotaJustaBTTS = 1 / probBTTS;
-
-            // 2. Mostrar Resultados
-            mostrarComparacion(localStats, awayStats, probBTTS, cuotaJustaBTTS, outputDiv);
-        }
-
-        // --- FUNCIÓN DE VISUALIZACIÓN Y RECOMENDACIÓN ESTRATÉGICA ---
-
-        function mostrarComparacion(local, away, probBTTS, cuotaJustaBTTS, outputDiv) {
-            
-            const localVolatil = local.varGA > 1.0 || local.varGR > 1.0;
-            const awayVolatil = away.varGA > 1.0 || away.varGR > 1.0;
-
-            const rangoMin = cuotaJustaBTTS * 1.05; // 5% Edge
-            const rangoMax = cuotaJustaBTTS * 1.15; // 15% Edge
-            
-            // --- DIAGNÓSTICO DEL PARTIDO ---
-            let diagnosticoClave = '';
-            let explicacionPronostico = `La probabilidad del **BTTS SÍ** (${(probBTTS * 100).toFixed(2)}%) es alta porque la **Fuerza Ofensiva** del Local (${local.mediaGA.toFixed(2)} GA) es efectiva contra la **Debilidad Defensiva** del Visitante (${away.mediaGR.toFixed(2)} GR), y viceversa.`;
-
-            if (localVolatil && awayVolatil) {
-                diagnosticoClave = '🔥 Partido de ALTA VOLATILIDAD';
-                explicacionPronostico += ` ADVERTENCIA: La alta varianza de ambos equipos sugiere que, aunque la probabilidad BTTS es alta, el marcador final puede ser atípico. Busca BTTS SÍ.`;
-            } else if (!localVolatil && !awayVolatil) {
-                diagnosticoClave = '🛡️ Partido de ALTA CONSISTENCIA';
-                explicacionPronostico += ` ÉNFASIS: La baja varianza indica que si tu modelo da BTTS SÍ, es muy fiable, pero la cuota de la casa podría ser muy baja. Busca Edge estricto.`;
-            } else if (localVolatil) {
-                diagnosticoClave = '⚡ Local Volátil vs Visitante Consistente';
-                explicacionPronostico += ` OPORTUNIDAD: El ataque/defensa impredecible del Local (${local.name}) a menudo genera goles inesperados. Ideal para BTTS SÍ cuando la cuota está infravalorada.`;
-            } else { // awayVolatil
-                diagnosticoClave = '🛡️ Local Consistente vs Visitante Volátil';
-                explicacionPronostico += ` OPORTUNIDAD: La debilidad defensiva volátil del Visitante (${away.name}) sugiere que el Local anote, y la varianza Visitante aumenta la posibilidad de que ellos también sorprendan con un gol.`;
-            }
-
+            // D. Construir el HTML
             outputDiv.innerHTML = `
-                <h4>Análisis del Enfrentamiento: ${local.name} vs ${away.name}</h4>
-                <div class="team-comparison">
-                    <div class="team-box">
-                        <h5>Equipo Local: ${local.name}</h5>
-                        <p>GA Media: ${local.mediaGA.toFixed(2)} | Varianza GA: **${local.varGA.toFixed(3)}**</p>
-                        <p>GR Media: ${local.mediaGR.toFixed(2)} | Varianza GR: **${local.varGR.toFixed(3)}**</p>
-                        <p style="color: ${local.varGA > 1.0 || local.varGR > 1.0 ? '#c0392b' : '#27ae60'}">${localVolatil ? '🔴 Equipo Volátil' : '🟢 Equipo Consistente'}</p>
-                    </div>
-                    <div class="team-box">
-                        <h5>Equipo Visitante: ${away.name}</h5>
-                        <p>GA Media: ${away.mediaGA.toFixed(2)} | Varianza GA: **${away.varGA.toFixed(3)}**</p>
-                        <p>GR Media: ${away.mediaGR.toFixed(2)} | Varianza GR: **${away.varGR.toFixed(3)}**</p>
-                        <p style="color: ${away.varGA > 1.0 || away.varGR > 1.0 ? '#c0392b' : '#27ae60'}">${awayVolatil ? '🔴 Equipo Volátil' : '🟢 Equipo Consistente'}</p>
-                    </div>
-                </div>
+                <h4>🥇 Ranking de Equipos por Rentabilidad BTTS</h4>
+                <p>Muestra el rendimiento de cada equipo cuando se realiza una apuesta de 1 unidad al **BTTS SÍ** en sus partidos.</p>
                 <hr>
-
-                <div class="recommendation">
-                    <h4>Diagnóstico del Partido: ${diagnosticoClave}</h4>
-                    
-                    <p>Probabilidad de Ambos Anoten (BTTS SÍ) según tu modelo: **${(probBTTS * 100).toFixed(2)}%**</p>
-                    <p>Cuota Justa Implícita (Valor Real): **${cuotaJustaBTTS.toFixed(2)}**</p>
-                    
-                    <p style="font-weight: bold;">Explicación del Pronóstico:</p>
-                    <p>${explicacionPronostico}</p>
-                    
-                    
-                    <h4 style="margin-top: 15px;">Estrategia de Apuesta: Rango de Edge (Ventaja)</h4>
-                    
-                    <table class="range-table">
-                        <thead>
-                            <tr>
-                                <th>Nivel de Edge</th>
-                                <th>Cuotas BTTS SÍ a Buscar</th>
-                                <th>Significado Estratégico</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>**Edge Mínimo (5%+)**</td>
-                                <td>**${rangoMin.toFixed(2)}** o **superior**</td>
-                                <td>**ENTRADA ESTÁNDAR.** Apuesta rentable a largo plazo con riesgo moderado.</td>
-                            </tr>
-                            <tr>
-                                <td>**Edge Alto (15%+)**</td>
-                                <td>**${rangoMax.toFixed(2)}** o **superior**</td>
-                                <td>**APUESTA DE VALOR.** La casa ha infravalorado enormemente la probabilidad. Usar alta unidad de apuesta (criterio de Kelly).</td>
-                            </tr>
-                            <tr>
-                                <td>**Sin Edge**</td>
-                                <td>Cuotas inferiores a **${rangoMin.toFixed(2)}**</td>
-                                <td>**EVITAR.** Estarías apostando a cuotas que no superan la cuota justa de tu modelo.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                
+                <h5 style="color: #0056b3;">Clasificación por PROFIT NETO (Total de Ganancias)</h5>
+                ${createTableHTML(sortedByProfit, 'profit')}
+                
+                <h5 style="color: #2ecc71; margin-top: 25px;">Clasificación por YIELD (Retorno de Inversión)</h5>
+                ${createTableHTML(sortedByYield, 'yield')}
             `;
-            
-            // Llama a una imagen para ilustrar el concepto central (BTTS vs Varianza)
-            
+             
+        }
+
+        // --- FUNCIÓN AUXILIAR PARA CREAR TABLA ---
+
+        function createTableHTML(data, sortBy) {
+            let html = `<table class="ranking-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Equipo</th>
+                        <th>Condición</th>
+                        <th>Partidos</th>
+                        <th>Profit Neto</th>
+                        <th>Yield (%)</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            data.forEach(item => {
+                const profitClass = item.profit > 0 ? 'positive' : item.profit < 0 ? 'negative' : 'zero';
+                const yieldClass = item.yield > 0 ? 'positive' : item.yield < 0 ? 'negative' : 'zero';
+
+                html += `
+                    <tr>
+                        <td style="font-weight: bold;">${item.team}</td>
+                        <td>${item.condition}</td>
+                        <td>${item.matches}</td>
+                        <td class="${profitClass}">${item.profit.toFixed(2)}u</td>
+                        <td class="${yieldClass}">${item.yield.toFixed(2)}%</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+            return html;
         }
     </script>
 </body>
