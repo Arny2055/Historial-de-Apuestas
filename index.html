@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador + Kelly Fraccional</title>
+    <title>Pronosticador Universal + Kelly</title>
     <style>
         /* --- Estilos Generales --- */
         body {
@@ -38,7 +38,7 @@
             box-sizing: border-box;
         }
         /* Resaltar Cuota Bookie */
-        #bookie-over, #bookie-btts {
+        #bookie-universal {
             font-weight: bold;
             color: #00897b;
         }
@@ -56,7 +56,7 @@
             background-color: #388e3c; 
             color: white; 
         } 
-        .no-valor, .no-apostar { 
+        .no-apostar { 
             background-color: #f44336; 
             color: white; 
         } 
@@ -128,62 +128,33 @@
 </head>
 <body>
 
-    <h1>🚀 Kelly Fraccional (15%)</h1>
-    <p>Bankroll Base: <strong>100 unidades</strong>. Solo se recomienda apostar si existe **Valor Positivo (+EV)**.</p>
+    <h1>✅ Pronosticador Universal de Valor (+EV)</h1>
+    <p>Aplica estos parámetros a **cualquier mercado simple**. Bankroll: **100 U**. Stake: **15% Kelly Fraccional**.</p>
 
-    <table id="pronosticador-over">
+    <table id="pronosticador-universal">
         <tbody>
-            <tr data-mercado="over">
-                <td data-label="">**Over 2.5 FT**</td>
+            <tr data-mercado="universal">
+                <td data-label="">**Análisis de Mercados y Valor**</td>
                 <td data-label="Prob. BetMines (50% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="propia-over" placeholder="50% Prob.">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="propia-universal" placeholder="50% Prob.">
                 </td>
                 <td data-label="Cuota Bookie (Decimal)">
-                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('over')" id="bookie-over" placeholder="Cuota Real">
+                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('universal')" id="bookie-universal" placeholder="Cuota Real">
                 </td>
                 <td data-label="Últimos 10 Local (5% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="u10l-over" placeholder="5% L">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="u10l-universal" placeholder="5% L">
                 </td>
                 <td data-label="Últimos 10 Visita (5% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="u10v-over" placeholder="5% V">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="u10v-universal" placeholder="5% V">
                 </td>
                 <td data-label="Est. Valor Local (15% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="estl-over" placeholder="15% L">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="estl-universal" placeholder="15% L">
                 </td>
                 <td data-label="Est. Valor Visita (15% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="estv-over" placeholder="15% V">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="estv-universal" placeholder="15% V">
                 </td>
                 <td data-label="Resultado y Stake" class="resultado-final">
-                    <span id="resultado-over" class="recomendacion-box">Esperando datos...</span>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-
-    <table id="pronosticador-btts">
-        <tbody>
-            <tr data-mercado="btts">
-                <td data-label="">**BTTS Yes**</td>
-                <td data-label="Prob. BetMines (50% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="propia-btts" placeholder="50% Prob.">
-                </td>
-                <td data-label="Cuota Bookie (Decimal)">
-                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('btts')" id="bookie-btts" placeholder="Cuota Real">
-                </td>
-                <td data-label="Últimos 10 Local (5% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="u10l-btts" placeholder="5% L">
-                </td>
-                <td data-label="Últimos 10 Visita (5% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="u10v-btts" placeholder="5% V">
-                </td>
-                <td data-label="Est. Valor Local (15% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="estl-btts" placeholder="15% L">
-                </td>
-                <td data-label="Est. Valor Visita (15% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="estv-btts" placeholder="15% V">
-                </td>
-                <td data-label="Resultado y Stake" class="resultado-final">
-                    <span id="resultado-btts" class="recomendacion-box">Esperando datos...</span>
+                    <span id="resultado-universal" class="recomendacion-box">Esperando datos...</span>
                 </td>
             </tr>
         </tbody>
@@ -191,13 +162,14 @@
 
     <script>
         // --- Constantes de Gestión de Riesgo ---
-        const BANKROLL = 100; // Unidades Base
+        const BANKROLL = 100; 
         const KELLY_FRACTION = 0.15; // 15% de Kelly Fraccional
 
         // --- Lógica del Cálculo Ponderado y +EV ---
         function calcularPronostico(mercado) {
             
             // 1. Obtención de Inputs
+            // Usamos un solo conjunto de IDs "universal"
             const inputs = {
                 propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
                 bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
@@ -273,11 +245,7 @@
                 // Stake = Bankroll * F * Fracción de Kelly deseada (0.15)
                 stake = BANKROLL * kellyFraction * KELLY_FRACTION;
                 
-                // Si por alguna razón Kelly da un resultado negativo (no debería con EV+), lo ponemos a cero.
-                if (stake <= 0 || isNaN(stake)) { 
-                    stake = 0;
-                }
-                
+                // Redondeamos el stake a dos decimales
                 stakeDisplay = stake.toFixed(2);
 
                 recomendacion = `✅ APOSTAR (+EV ${evDisplay}%)`;
