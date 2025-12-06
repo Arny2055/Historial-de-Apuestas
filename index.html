@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador + Cuota Justa</title>
+    <title>Pronosticador +EV (Móvil)</title>
     <style>
         /* --- Estilos Generales --- */
         body {
@@ -37,6 +37,11 @@
             -webkit-appearance: none; 
             box-sizing: border-box;
         }
+        /* Ajuste para inputs de cuota (decimales) */
+        #bookie-over, #bookie-btts {
+            font-weight: bold;
+            color: #00897b; /* Teal para cuotas */
+        }
 
         /* --- Colores de Recomendación --- */
         .recomendacion-box {
@@ -45,19 +50,32 @@
             border-radius: 6px;
             margin-top: 5px;
             display: block;
-            line-height: 1.4; /* Mejora la legibilidad de múltiples líneas */
+            line-height: 1.4;
         }
-        .apostar { background-color: #4CAF50; color: white; } 
-        .considerar { background-color: #FFC107; color: #333; } 
-        .no-apostar { background-color: #F44336; color: white; } 
-        .cuota-justa {
-            font-size: 0.85em;
+        /* Nuevo estilo para Valor Positivo */
+        .apostar-ev { 
+            background-color: #388e3c; /* Verde oscuro para +EV */
+            color: white; 
+        } 
+        /* Nuevo estilo para Cuota Baja (Prob. alta sin valor) */
+        .no-valor { 
+            background-color: #ff9800; /* Naranja para advertir de falta de valor */
+            color: white; 
+        } 
+        /* Estilo para Probabilidad muy baja */
+        .no-apostar { 
+            background-color: #f44336; 
+            color: white; 
+        } 
+        
+        .detalle-final {
+            font-size: 0.8em;
             font-weight: normal;
             display: block;
             margin-top: 5px;
         }
 
-        /* --- Estilos de Tabla (Modo Tarjeta para Móvil) --- */
+        /* --- Estilos de Tabla (Modo Tarjeta) --- */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -66,11 +84,7 @@
             border-radius: 8px;
             margin-bottom: 20px;
         }
-        
-        thead {
-            display: none;
-        }
-        
+        thead { display: none; }
         tr {
             display: block;
             margin-bottom: 10px;
@@ -79,7 +93,6 @@
             overflow: hidden;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        
         td {
             display: flex; 
             padding: 10px;
@@ -89,15 +102,13 @@
             justify-content: space-between;
             font-size: 0.9em;
         }
-        
         td::before {
             content: attr(data-label); 
             font-weight: bold;
             color: #1a73e8;
-            flex-basis: 55%; 
+            flex-basis: 60%; /* Más espacio para la etiqueta */
             text-align: left;
         }
-
         tr td:first-child {
             background-color: #00bcd4;
             color: white;
@@ -108,44 +119,41 @@
         tr td:first-child::before {
             content: ""; 
         }
-
         .resultado-final {
             display: block; 
             text-align: center;
             border-bottom: none;
-        }
-
-        /* Vuelve a la tabla normal en pantallas grandes (opcional) */
-        @media (min-width: 768px) {
-            /* (Mantenemos los estilos de tabla horizontal para pantallas grandes si fuera necesario) */
         }
     </style>
 </head>
 <body>
 
     <h1>💰 Pronosticador de Valor (+EV)</h1>
-    <p>Introduce los datos. El **Pronóstico Final** te dará la **Cuota Justa** para buscar apuestas con valor.</p>
+    <p>La recomendación de **APOSTAR** se basa únicamente en si la **Cuota Bookie** es superior a la **Cuota Justa**.</p>
 
     <table id="pronosticador-over">
         <tbody>
             <tr data-mercado="over">
                 <td data-label="">**Over 2.5 FT**</td>
                 <td data-label="Prob. BetMines (50% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="propia-over" placeholder="50%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="propia-over" placeholder="50% Prob.">
+                </td>
+                <td data-label="Cuota Bookie (Decimal)">
+                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('over')" id="bookie-over" placeholder="Cuota Real">
                 </td>
                 <td data-label="Últimos 10 Local (5% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="u10l-over" placeholder="5%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="u10l-over" placeholder="5% L">
                 </td>
                 <td data-label="Últimos 10 Visita (5% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="u10v-over" placeholder="5%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="u10v-over" placeholder="5% V">
                 </td>
                 <td data-label="Est. Valor Local (15% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="estl-over" placeholder="15%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="estl-over" placeholder="15% L">
                 </td>
                 <td data-label="Est. Valor Visita (15% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="estv-over" placeholder="15%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="estv-over" placeholder="15% V">
                 </td>
-                <td data-label="Pronóstico Final y Cuota Justa" class="resultado-final">
+                <td data-label="Resultado y Valor Esperado" class="resultado-final">
                     <span id="resultado-over" class="recomendacion-box">Esperando datos...</span>
                 </td>
             </tr>
@@ -157,21 +165,24 @@
             <tr data-mercado="btts">
                 <td data-label="">**BTTS Yes**</td>
                 <td data-label="Prob. BetMines (50% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="propia-btts" placeholder="50%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="propia-btts" placeholder="50% Prob.">
+                </td>
+                <td data-label="Cuota Bookie (Decimal)">
+                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('btts')" id="bookie-btts" placeholder="Cuota Real">
                 </td>
                 <td data-label="Últimos 10 Local (5% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="u10l-btts" placeholder="5%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="u10l-btts" placeholder="5% L">
                 </td>
                 <td data-label="Últimos 10 Visita (5% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="u10v-btts" placeholder="5%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="u10v-btts" placeholder="5% V">
                 </td>
                 <td data-label="Est. Valor Local (15% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="estl-btts" placeholder="15%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="estl-btts" placeholder="15% L">
                 </td>
                 <td data-label="Est. Valor Visita (15% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="estv-btts" placeholder="15%">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="estv-btts" placeholder="15% V">
                 </td>
-                <td data-label="Pronóstico Final y Cuota Justa" class="resultado-final">
+                <td data-label="Resultado y Valor Esperado" class="resultado-final">
                     <span id="resultado-btts" class="recomendacion-box">Esperando datos...</span>
                 </td>
             </tr>
@@ -179,11 +190,13 @@
     </table>
 
     <script>
-        // --- Lógica del Cálculo Ponderado (Prioridad BetMines) ---
+        // --- Lógica del Cálculo Ponderado y +EV ---
         function calcularPronostico(mercado) {
-            // Obtenemos los valores usando los IDs específicos del mercado
+            
+            // 1. Obtención de Inputs
             const inputs = {
                 propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
+                bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
                 u10l: parseFloat(document.getElementById(`u10l-${mercado}`).value),
                 u10v: parseFloat(document.getElementById(`u10v-${mercado}`).value),
                 estl: parseFloat(document.getElementById(`estl-${mercado}`).value),
@@ -192,28 +205,33 @@
             
             const resultadoSpan = document.getElementById(`resultado-${mercado}`);
 
-            // 1. Validación
+            // 2. Validación de Inputs
             let todosValidos = true;
             for (const key in inputs) {
                 const val = inputs[key];
-                if (isNaN(val) || val <= 0 || val > 100) { // Validamos que el porcentaje no sea 0 para evitar dividir por cero en la cuota
-                    todosValidos = false;
-                    break;
+                // Los porcentajes deben ser > 0 y <= 100. La cuota Bookie debe ser > 1.01.
+                if (key !== 'bookie' && (isNaN(val) || val <= 0 || val > 100)) {
+                     todosValidos = false;
+                     break;
+                }
+                if (key === 'bookie' && (isNaN(val) || val < 1.01)) {
+                     todosValidos = false;
+                     break;
                 }
             }
 
             if (!todosValidos) {
-                resultadoSpan.innerHTML = 'Datos incompletos/inválidos.';
+                resultadoSpan.innerHTML = 'Datos incompletos o inválidos.';
                 resultadoSpan.className = 'recomendacion-box'; 
                 return;
             }
 
-            // 2. Pesos Fijos (Prioridad BetMines)
+            // 3. Pesos Fijos (Prioridad BetMines)
             const PESO_PROPIA = 0.50;
             const PESO_U10_UNITARIO = 0.05; 
             const PESO_EST_UNITARIO = 0.15;
             
-            // 3. Cálculo Ponderado
+            // 4. Cálculo de Probabilidad Ponderada
             let puntuacionFinal = 
                 (inputs.propia * PESO_PROPIA) + 
                 (inputs.u10l * PESO_U10_UNITARIO) + 
@@ -223,29 +241,46 @@
             
             puntuacionFinal = Math.round(puntuacionFinal * 10) / 10;
             
-            // --- CÁLCULO DE CUOTA JUSTA ---
-            const cuotaJusta = (100 / puntuacionFinal).toFixed(2); 
+            // 5. Cálculo de Cuota Justa (CJ)
+            const cuotaJusta = (100 / puntuacionFinal);
+            const cuotaJustaDisplay = cuotaJusta.toFixed(2); 
+
+            // 6. CÁLCULO DE VALOR ESPERADO (+EV)
+            // Se asume 1 unidad apostada. EV = (Probabilidad / 100) * Cuota - 1
+            const probDecimal = puntuacionFinal / 100;
+            const ev = (probDecimal * inputs.bookie) - 1;
+            const evDisplay = (ev * 100).toFixed(2); // Convertir a porcentaje para display
 
             let recomendacion = '';
             let clase = 'recomendacion-box '; 
 
-            // 4. Umbrales de Recomendación
-            const UMBRAL_APOSTAR = 65; 
-            const UMBRAL_CONSIDERAR = 50; 
+            // Umbrales adicionales para dar contexto (aunque el +EV es la decisión final)
+            const UMBRAL_PROB_ALTA = 65; 
+            const UMBRAL_PROB_BAJA = 50; 
 
-            if (puntuacionFinal >= UMBRAL_APOSTAR) {
-                recomendacion = `✅ APOSTAR (${puntuacionFinal}%)`;
-                clase += 'apostar';
-            } else if (puntuacionFinal >= UMBRAL_CONSIDERAR) {
-                recomendacion = `🤔 CONSIDERAR (${puntuacionFinal}%)`;
-                clase += 'considerar';
+            // 7. DECISIÓN FINAL BASADA EN EV
+            if (inputs.bookie > cuotaJusta) {
+                // EV POSITIVO: ¡Es una apuesta de valor!
+                recomendacion = `✅ APOSTAR (¡+EV! ${evDisplay}%)`;
+                clase += 'apostar-ev';
             } else {
-                recomendacion = `❌ NO APOSTAR (${puntuacionFinal}%)`;
-                clase += 'no-apostar';
+                // EV NEGATIVO: No hay valor
+                if (puntuacionFinal >= UMBRAL_PROB_ALTA) {
+                    recomendacion = `❌ NO APOSTAR (Cuota Baja)`;
+                    clase += 'no-valor';
+                } else if (puntuacionFinal >= UMBRAL_PROB_BAJA) {
+                    recomendacion = `❌ NO APOSTAR (Sin Valor - Prob. Media)`;
+                    clase += 'no-valor';
+                } else {
+                    recomendacion = `❌ NO APOSTAR (Probabilidad Baja)`;
+                    clase += 'no-apostar';
+                }
             }
             
-            // 5. Actualizar Resultado y Cuota Justa
-            resultadoSpan.innerHTML = `${recomendacion}<span class="cuota-justa">Cuota Justa: ${cuotaJusta}</span>`;
+            // 8. Actualizar Resultado y Detalles
+            const detalle = `Prob. Final: ${puntuacionFinal}% | Cuota Justa: ${cuotaJustaDisplay}`;
+            
+            resultadoSpan.innerHTML = `${recomendacion}<span class="detalle-final">${detalle}</span>`;
             resultadoSpan.className = clase;
         }
     </script>
