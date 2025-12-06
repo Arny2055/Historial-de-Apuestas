@@ -74,6 +74,13 @@
             color: #ffeb3b; /* Amarillo para destacar el Stake */
             display: block;
         }
+        .cuota-esperar {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #ffeb3b; /* Amarillo para destacar la cuota objetivo */
+            display: block;
+            margin-top: 5px;
+        }
 
         /* --- Estilos de Tabla (Modo Tarjeta) --- */
         table {
@@ -128,8 +135,8 @@
 </head>
 <body>
 
-    <h1>✅ Pronosticador Universal de Valor (+EV)</h1>
-    <p>Aplica estos parámetros a **cualquier mercado simple**. Bankroll: **100 U**. Stake: **15% Kelly Fraccional**.</p>
+    <h1>🎯 Pronosticador Universal de Valor (+EV)</h1>
+    <p>Si no hay valor, el sistema te dirá la cuota que debes esperar para invertir **al menos una unidad**.</p>
 
     <table id="pronosticador-universal">
         <tbody>
@@ -169,7 +176,6 @@
         function calcularPronostico(mercado) {
             
             // 1. Obtención de Inputs
-            // Usamos un solo conjunto de IDs "universal"
             const inputs = {
                 propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
                 bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
@@ -185,7 +191,6 @@
             let todosValidos = true;
             for (const key in inputs) {
                 const val = inputs[key];
-                // Los porcentajes deben ser > 0 y <= 100. La cuota Bookie debe ser > 1.01.
                 if (key !== 'bookie' && (isNaN(val) || val <= 0 || val > 100)) {
                      todosValidos = false;
                      break;
@@ -228,24 +233,24 @@
 
             let recomendacion = '';
             let clase = 'recomendacion-box '; 
-            let stake = 0;
             let stakeDisplay = '0.00';
+            let mensajeCuotaEsperar = '';
 
             // 7. DECISIÓN FINAL BASADA EN EV Y CÁLCULO KELLY
             if (inputs.bookie > cuotaJusta) {
                 // EV POSITIVO: ¡Es una apuesta de valor!
                 
                 // Cálculo de Kelly Fraccional
-                const v = ev; // Ventaja (V) = EV
-                const b = inputs.bookie - 1; // Beneficio neto (b) = Cuota - 1
-                
-                // Fracción de Kelly (F)
+                const v = ev; 
+                const b = inputs.bookie - 1; 
                 const kellyFraction = (v / b); 
                 
-                // Stake = Bankroll * F * Fracción de Kelly deseada (0.15)
-                stake = BANKROLL * kellyFraction * KELLY_FRACTION;
+                let stake = BANKROLL * kellyFraction * KELLY_FRACTION;
                 
-                // Redondeamos el stake a dos decimales
+                if (stake <= 0 || isNaN(stake)) { 
+                    stake = 0;
+                }
+                
                 stakeDisplay = stake.toFixed(2);
 
                 recomendacion = `✅ APOSTAR (+EV ${evDisplay}%)`;
@@ -256,6 +261,9 @@
                 recomendacion = `❌ NO APOSTAR (-EV o Cuota Baja)`;
                 clase += 'no-apostar';
                 stakeDisplay = '0.00';
+                
+                // Mensaje de Cuota a esperar
+                mensajeCuotaEsperar = `<span class="cuota-esperar">🎯 Esperar cuota ≥ ${cuotaJustaDisplay}</span>`;
             }
             
             // 8. Actualizar Resultado y Stake
@@ -264,6 +272,7 @@
             resultadoSpan.innerHTML = `
                 ${recomendacion}
                 <span class="stake-final">Stake: ${stakeDisplay} U.</span>
+                ${mensajeCuotaEsperar}
                 <span class="detalle-final">${detalle}</span>
             `;
             resultadoSpan.className = clase;
