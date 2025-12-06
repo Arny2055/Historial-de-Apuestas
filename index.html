@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador +EV (Móvil)</title>
+    <title>Pronosticador + Kelly Fraccional</title>
     <style>
         /* --- Estilos Generales --- */
         body {
@@ -37,10 +37,10 @@
             -webkit-appearance: none; 
             box-sizing: border-box;
         }
-        /* Ajuste para inputs de cuota (decimales) */
+        /* Resaltar Cuota Bookie */
         #bookie-over, #bookie-btts {
             font-weight: bold;
-            color: #00897b; /* Teal para cuotas */
+            color: #00897b;
         }
 
         /* --- Colores de Recomendación --- */
@@ -52,18 +52,11 @@
             display: block;
             line-height: 1.4;
         }
-        /* Nuevo estilo para Valor Positivo */
         .apostar-ev { 
-            background-color: #388e3c; /* Verde oscuro para +EV */
+            background-color: #388e3c; 
             color: white; 
         } 
-        /* Nuevo estilo para Cuota Baja (Prob. alta sin valor) */
-        .no-valor { 
-            background-color: #ff9800; /* Naranja para advertir de falta de valor */
-            color: white; 
-        } 
-        /* Estilo para Probabilidad muy baja */
-        .no-apostar { 
+        .no-valor, .no-apostar { 
             background-color: #f44336; 
             color: white; 
         } 
@@ -73,6 +66,13 @@
             font-weight: normal;
             display: block;
             margin-top: 5px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .stake-final {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ffeb3b; /* Amarillo para destacar el Stake */
+            display: block;
         }
 
         /* --- Estilos de Tabla (Modo Tarjeta) --- */
@@ -106,7 +106,7 @@
             content: attr(data-label); 
             font-weight: bold;
             color: #1a73e8;
-            flex-basis: 60%; /* Más espacio para la etiqueta */
+            flex-basis: 60%; 
             text-align: left;
         }
         tr td:first-child {
@@ -128,8 +128,8 @@
 </head>
 <body>
 
-    <h1>💰 Pronosticador de Valor (+EV)</h1>
-    <p>La recomendación de **APOSTAR** se basa únicamente en si la **Cuota Bookie** es superior a la **Cuota Justa**.</p>
+    <h1>🚀 Kelly Fraccional (15%)</h1>
+    <p>Bankroll Base: <strong>100 unidades</strong>. Solo se recomienda apostar si existe **Valor Positivo (+EV)**.</p>
 
     <table id="pronosticador-over">
         <tbody>
@@ -153,7 +153,7 @@
                 <td data-label="Est. Valor Visita (15% Peso)">
                     <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="estv-over" placeholder="15% V">
                 </td>
-                <td data-label="Resultado y Valor Esperado" class="resultado-final">
+                <td data-label="Resultado y Stake" class="resultado-final">
                     <span id="resultado-over" class="recomendacion-box">Esperando datos...</span>
                 </td>
             </tr>
@@ -182,7 +182,7 @@
                 <td data-label="Est. Valor Visita (15% Peso)">
                     <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="estv-btts" placeholder="15% V">
                 </td>
-                <td data-label="Resultado y Valor Esperado" class="resultado-final">
+                <td data-label="Resultado y Stake" class="resultado-final">
                     <span id="resultado-btts" class="recomendacion-box">Esperando datos...</span>
                 </td>
             </tr>
@@ -190,6 +190,10 @@
     </table>
 
     <script>
+        // --- Constantes de Gestión de Riesgo ---
+        const BANKROLL = 100; // Unidades Base
+        const KELLY_FRACTION = 0.15; // 15% de Kelly Fraccional
+
         // --- Lógica del Cálculo Ponderado y +EV ---
         function calcularPronostico(mercado) {
             
@@ -245,42 +249,55 @@
             const cuotaJusta = (100 / puntuacionFinal);
             const cuotaJustaDisplay = cuotaJusta.toFixed(2); 
 
-            // 6. CÁLCULO DE VALOR ESPERADO (+EV)
-            // Se asume 1 unidad apostada. EV = (Probabilidad / 100) * Cuota - 1
+            // 6. CÁLCULO DE VALOR ESPERADO (EV)
             const probDecimal = puntuacionFinal / 100;
             const ev = (probDecimal * inputs.bookie) - 1;
-            const evDisplay = (ev * 100).toFixed(2); // Convertir a porcentaje para display
+            const evDisplay = (ev * 100).toFixed(2); 
 
             let recomendacion = '';
             let clase = 'recomendacion-box '; 
+            let stake = 0;
+            let stakeDisplay = '0.00';
 
-            // Umbrales adicionales para dar contexto (aunque el +EV es la decisión final)
-            const UMBRAL_PROB_ALTA = 65; 
-            const UMBRAL_PROB_BAJA = 50; 
-
-            // 7. DECISIÓN FINAL BASADA EN EV
+            // 7. DECISIÓN FINAL BASADA EN EV Y CÁLCULO KELLY
             if (inputs.bookie > cuotaJusta) {
                 // EV POSITIVO: ¡Es una apuesta de valor!
-                recomendacion = `✅ APOSTAR (¡+EV! ${evDisplay}%)`;
+                
+                // Cálculo de Kelly Fraccional
+                const v = ev; // Ventaja (V) = EV
+                const b = inputs.bookie - 1; // Beneficio neto (b) = Cuota - 1
+                
+                // Fracción de Kelly (F)
+                const kellyFraction = (v / b); 
+                
+                // Stake = Bankroll * F * Fracción de Kelly deseada (0.15)
+                stake = BANKROLL * kellyFraction * KELLY_FRACTION;
+                
+                // Si por alguna razón Kelly da un resultado negativo (no debería con EV+), lo ponemos a cero.
+                if (stake <= 0 || isNaN(stake)) { 
+                    stake = 0;
+                }
+                
+                stakeDisplay = stake.toFixed(2);
+
+                recomendacion = `✅ APOSTAR (+EV ${evDisplay}%)`;
                 clase += 'apostar-ev';
+
             } else {
                 // EV NEGATIVO: No hay valor
-                if (puntuacionFinal >= UMBRAL_PROB_ALTA) {
-                    recomendacion = `❌ NO APOSTAR (Cuota Baja)`;
-                    clase += 'no-valor';
-                } else if (puntuacionFinal >= UMBRAL_PROB_BAJA) {
-                    recomendacion = `❌ NO APOSTAR (Sin Valor - Prob. Media)`;
-                    clase += 'no-valor';
-                } else {
-                    recomendacion = `❌ NO APOSTAR (Probabilidad Baja)`;
-                    clase += 'no-apostar';
-                }
+                recomendacion = `❌ NO APOSTAR (-EV o Cuota Baja)`;
+                clase += 'no-apostar';
+                stakeDisplay = '0.00';
             }
             
-            // 8. Actualizar Resultado y Detalles
+            // 8. Actualizar Resultado y Stake
             const detalle = `Prob. Final: ${puntuacionFinal}% | Cuota Justa: ${cuotaJustaDisplay}`;
             
-            resultadoSpan.innerHTML = `${recomendacion}<span class="detalle-final">${detalle}</span>`;
+            resultadoSpan.innerHTML = `
+                ${recomendacion}
+                <span class="stake-final">Stake: ${stakeDisplay} U.</span>
+                <span class="detalle-final">${detalle}</span>
+            `;
             resultadoSpan.className = clase;
         }
     </script>
