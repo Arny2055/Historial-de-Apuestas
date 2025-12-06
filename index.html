@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador Simplificado + Kelly</title>
+    <title>Pronosticador Doble Análisis + Kelly</title>
     <style>
         /* --- Estilos Generales --- */
         body {
@@ -37,7 +37,7 @@
             -webkit-appearance: none; 
             box-sizing: border-box;
         }
-        #bookie-universal {
+        .cuota-bookie-input {
             font-weight: bold;
             color: #00897b;
         }
@@ -60,6 +60,7 @@
             color: white; 
         } 
         
+        /* Estilos de Contenido dentro del Box */
         .detalle-final, .cuota-esperar, .stake-final {
             display: block;
             font-weight: normal;
@@ -136,18 +137,18 @@
 </head>
 <body>
 
-    <h1>✨ Pronosticador Mínimo Viable de Valor</h1>
-    <p>Solo usa **Probabilidad BetMines (60% peso)** y **Estadísticas/Valor (40% peso)**. Kelly: 15%.</p>
+    <h1>⚽ Herramienta de Análisis de Valor (+EV)</h1>
+    <p>Ponderación: **Propia 60%** | **Est. L/V 40%**. Gestión de Riesgo: **15% Kelly Fraccional**.</p>
 
     <table id="pronosticador-universal">
         <tbody>
             <tr data-mercado="universal">
-                <td data-label="">**Análisis de Mercados y Valor**</td>
+                <td data-label="">**1. Análisis Universal (Cualquier Mercado)**</td>
                 <td data-label="Prob. BetMines (60% Peso)">
                     <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="propia-universal" placeholder="60% Prob.">
                 </td>
                 <td data-label="Cuota Bookie (Decimal)">
-                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('universal')" id="bookie-universal" placeholder="Cuota Real">
+                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('universal')" id="bookie-universal" class="cuota-bookie-input" placeholder="Cuota Real">
                 </td>
                 <td data-label="Est. Valor Local (20% Peso)">
                     <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="estl-universal" placeholder="20% L">
@@ -157,6 +158,29 @@
                 </td>
                 <td data-label="Resultado y Stake" class="resultado-final">
                     <span id="resultado-universal" class="recomendacion-box">Esperando datos...</span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table id="pronosticador-golht">
+        <tbody>
+            <tr data-mercado="golht">
+                <td data-label="">**2. Análisis Gol en 1er Tiempo**</td>
+                <td data-label="Prob. BetMines (60% Peso)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('golht')" id="propia-golht" placeholder="60% Prob.">
+                </td>
+                <td data-label="Cuota Bookie (Decimal)">
+                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('golht')" id="bookie-golht" class="cuota-bookie-input" placeholder="Cuota Real">
+                </td>
+                <td data-label="Est. Valor Local (20% Peso)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('golht')" id="estl-golht" placeholder="20% L">
+                </td>
+                <td data-label="Est. Valor Visita (20% Peso)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('golht')" id="estv-golht" placeholder="20% V">
+                </td>
+                <td data-label="Resultado y Stake" class="resultado-final">
+                    <span id="resultado-golht" class="recomendacion-box">Esperando datos...</span>
                 </td>
             </tr>
         </tbody>
@@ -175,12 +199,16 @@
 
         // Función para determinar el tiempo prudente de espera
         function determinarTiempoEspera(probabilidadFinal) {
+            // Lógica basada en la necesidad de que la cuota suba por consumo de tiempo
             if (probabilidadFinal >= 76) {
-                return "Minuto 60 - 70 (Si el marcador sigue sin goles)";
+                // Probabilidad muy alta, cuota inicial muy baja (Ej: 1.31). Hay que esperar mucho tiempo.
+                return "Minuto 25 - 35 (Si el marcador sigue 0-0)";
             } else if (probabilidadFinal >= 56) {
-                return "Descanso (Minuto 45)";
+                // Probabilidad media-alta, cuota media (Ej: 1.78). El descanso podría ser ideal.
+                return "Minuto 15 - 25 (Si el marcador sigue 0-0)";
             } else if (probabilidadFinal >= 30) {
-                return "Minuto 15 - 30";
+                // Probabilidad media-baja, cuota alta (Ej: 2.50). El valor debe encontrarse rápido.
+                return "Al inicio o Minuto 10";
             } else {
                 return "Evaluar al inicio (Probabilidad Baja)";
             }
@@ -193,7 +221,6 @@
             const inputs = {
                 propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
                 bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
-                // Solo se necesitan estl y estv de las estadísticas/valor
                 estl: parseFloat(document.getElementById(`estl-${mercado}`).value),
                 estv: parseFloat(document.getElementById(`estv-${mercado}`).value)
             };
@@ -220,7 +247,7 @@
                 return;
             }
 
-            // 3. Cálculo de Probabilidad Ponderada (NUEVA FÓRMULA)
+            // 3. Cálculo de Probabilidad Ponderada
             let puntuacionFinal = 
                 (inputs.propia * PESO_PROPIA) + 
                 (inputs.estl * PESO_EST_UNITARIO) + 
