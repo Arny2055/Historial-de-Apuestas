@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador Universal + Kelly</title>
+    <title>Pronosticador Universal + Tiempo</title>
     <style>
         /* --- Estilos Generales --- */
         body {
@@ -37,7 +37,6 @@
             -webkit-appearance: none; 
             box-sizing: border-box;
         }
-        /* Resaltar Cuota Bookie */
         #bookie-universal {
             font-weight: bold;
             color: #00897b;
@@ -61,25 +60,27 @@
             color: white; 
         } 
         
-        .detalle-final {
-            font-size: 0.8em;
-            font-weight: normal;
+        .detalle-final, .cuota-esperar, .stake-final {
             display: block;
+            font-weight: normal;
             margin-top: 5px;
             color: rgba(255, 255, 255, 0.9);
         }
         .stake-final {
             font-size: 1.1em;
             font-weight: bold;
-            color: #ffeb3b; /* Amarillo para destacar el Stake */
-            display: block;
+            color: #ffeb3b; 
         }
         .cuota-esperar {
             font-size: 0.9em;
             font-weight: bold;
-            color: #ffeb3b; /* Amarillo para destacar la cuota objetivo */
+            color: #ffeb3b; 
+        }
+        .tiempo-espera {
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #bdbdbd; /* Gris claro, importante pero secundario */
             display: block;
-            margin-top: 5px;
         }
 
         /* --- Estilos de Tabla (Modo Tarjeta) --- */
@@ -135,8 +136,8 @@
 </head>
 <body>
 
-    <h1>🎯 Pronosticador Universal de Valor (+EV)</h1>
-    <p>Si no hay valor, el sistema te dirá la cuota que debes esperar para invertir **al menos una unidad**.</p>
+    <h1>⏱️ Pronosticador Universal + Momento Óptimo</h1>
+    <p>La **Cuota Justa** es tu objetivo y el **Tiempo de Espera** te guía en el Live-Betting.</p>
 
     <table id="pronosticador-universal">
         <tbody>
@@ -172,7 +173,22 @@
         const BANKROLL = 100; 
         const KELLY_FRACTION = 0.15; // 15% de Kelly Fraccional
 
-        // --- Lógica del Cálculo Ponderado y +EV ---
+        // --- FUNCIONES LÓGICAS ---
+
+        // Función para determinar el tiempo prudente de espera
+        function determinarTiempoEspera(probabilidadFinal) {
+            if (probabilidadFinal >= 76) {
+                return "Minuto 60 - 70 (Si el marcador sigue sin goles)";
+            } else if (probabilidadFinal >= 56) {
+                return "Descanso (Minuto 45)";
+            } else if (probabilidadFinal >= 30) {
+                return "Minuto 15 - 30";
+            } else {
+                return "Evaluar al inicio (Probabilidad Baja)";
+            }
+        }
+
+        // Función principal de cálculo
         function calcularPronostico(mercado) {
             
             // 1. Obtención de Inputs
@@ -187,7 +203,7 @@
             
             const resultadoSpan = document.getElementById(`resultado-${mercado}`);
 
-            // 2. Validación de Inputs
+            // 2. Validación (Misma lógica)
             let todosValidos = true;
             for (const key in inputs) {
                 const val = inputs[key];
@@ -207,12 +223,11 @@
                 return;
             }
 
-            // 3. Pesos Fijos (Prioridad BetMines)
+            // 3. Cálculo de Probabilidad Ponderada
             const PESO_PROPIA = 0.50;
             const PESO_U10_UNITARIO = 0.05; 
             const PESO_EST_UNITARIO = 0.15;
             
-            // 4. Cálculo de Probabilidad Ponderada
             let puntuacionFinal = 
                 (inputs.propia * PESO_PROPIA) + 
                 (inputs.u10l * PESO_U10_UNITARIO) + 
@@ -222,11 +237,11 @@
             
             puntuacionFinal = Math.round(puntuacionFinal * 10) / 10;
             
-            // 5. Cálculo de Cuota Justa (CJ)
+            // 4. Cálculo de Cuota Justa (CJ)
             const cuotaJusta = (100 / puntuacionFinal);
             const cuotaJustaDisplay = cuotaJusta.toFixed(2); 
 
-            // 6. CÁLCULO DE VALOR ESPERADO (EV)
+            // 5. CÁLCULO DE VALOR ESPERADO (EV)
             const probDecimal = puntuacionFinal / 100;
             const ev = (probDecimal * inputs.bookie) - 1;
             const evDisplay = (ev * 100).toFixed(2); 
@@ -235,8 +250,9 @@
             let clase = 'recomendacion-box '; 
             let stakeDisplay = '0.00';
             let mensajeCuotaEsperar = '';
+            let tiempoEspera = determinarTiempoEspera(puntuacionFinal);
 
-            // 7. DECISIÓN FINAL BASADA EN EV Y CÁLCULO KELLY
+            // 6. DECISIÓN FINAL BASADA EN EV Y CÁLCULO KELLY
             if (inputs.bookie > cuotaJusta) {
                 // EV POSITIVO: ¡Es una apuesta de valor!
                 
@@ -260,21 +276,31 @@
                 // EV NEGATIVO: No hay valor
                 recomendacion = `❌ NO APOSTAR (-EV o Cuota Baja)`;
                 clase += 'no-apostar';
-                stakeDisplay = '0.00';
                 
-                // Mensaje de Cuota a esperar
+                // Mensaje de Cuota a esperar y el tiempo
                 mensajeCuotaEsperar = `<span class="cuota-esperar">🎯 Esperar cuota ≥ ${cuotaJustaDisplay}</span>`;
+                mensajeCuotaEsperar += `<span class="tiempo-espera">⏳ Buscar entre: ${tiempoEspera}</span>`;
             }
             
-            // 8. Actualizar Resultado y Stake
+            // 7. Actualizar Resultado y Stake
             const detalle = `Prob. Final: ${puntuacionFinal}% | Cuota Justa: ${cuotaJustaDisplay}`;
             
-            resultadoSpan.innerHTML = `
-                ${recomendacion}
-                <span class="stake-final">Stake: ${stakeDisplay} U.</span>
-                ${mensajeCuotaEsperar}
-                <span class="detalle-final">${detalle}</span>
-            `;
+            // Si hay EV+, no mostramos el mensaje de esperar, sino el stake y la cuota justa.
+            if (inputs.bookie > cuotaJusta) {
+                resultadoSpan.innerHTML = `
+                    ${recomendacion}
+                    <span class="stake-final">Stake: ${stakeDisplay} U.</span>
+                    <span class="detalle-final">${detalle}</span>
+                `;
+            } else {
+                 resultadoSpan.innerHTML = `
+                    ${recomendacion}
+                    <span class="stake-final">Stake: ${stakeDisplay} U.</span>
+                    ${mensajeCuotaEsperar}
+                    <span class="detalle-final">${detalle}</span>
+                `;
+            }
+            
             resultadoSpan.className = clase;
         }
     </script>
