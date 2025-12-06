@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador Doble Análisis + Kelly</title>
+    <title>Pronosticador +EV 5% Mínimo + Kelly</title>
     <style>
         /* --- Estilos Generales --- */
         body {
@@ -137,8 +137,8 @@
 </head>
 <body>
 
-    <h1>⚽ Herramienta de Análisis de Valor (+EV)</h1>
-    <p>El Gol HT usa la probabilidad de minutos para el cálculo de su valor.</p>
+    <h1>💰 Filtro Mínimo: EV ≥ 5%</h1>
+    <p>Solo se recomienda apostar si el **Valor Esperado (+EV)** es del **5% o superior**. Kelly: 15%.</p>
 
     <table id="pronosticador-universal">
         <tbody>
@@ -190,7 +190,8 @@
         // --- Constantes de Gestión de Riesgo ---
         const BANKROLL = 100; 
         const KELLY_FRACTION = 0.15; 
-        
+        const MIN_EV_THRESHOLD = 0.05; // Nuevo umbral: 5% EV Mínimo
+
         // Pesos de Ponderación Universal
         const PESO_PROPIA_UNIV = 0.60;
         const PESO_EST_UNIV = 0.20; 
@@ -203,7 +204,6 @@
 
         // Función para determinar el tiempo prudente de espera
         function determinarTiempoEspera(probabilidadFinal, mercado) {
-            // La lógica de tiempo es más crítica en Gol HT, así que la ajustamos ligeramente.
             if (mercado === 'golht') {
                 if (probabilidadFinal >= 76) {
                     return "Minuto 25 - 35 (Si el marcador sigue 0-0)";
@@ -237,7 +237,7 @@
                 inputs = {
                     propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
                     bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
-                    minutos: parseFloat(document.getElementById(`minutos-${mercado}`).value) // Nuevo campo
+                    minutos: parseFloat(document.getElementById(`minutos-${mercado}`).value)
                 };
                 
                 // 2. Validación GOL HT
@@ -301,9 +301,9 @@
             let mensajeCuotaEsperar = '';
             let tiempoEspera = determinarTiempoEspera(puntuacionFinal, mercado);
 
-            // 6. DECISIÓN FINAL BASADA EN EV Y CÁLCULO KELLY
-            if (inputs.bookie > cuotaJusta) {
-                // EV POSITIVO: ¡Es una apuesta de valor!
+            // 6. DECISIÓN FINAL BASADA EN EV Y CÁLCULO KELLY (NUEVA CONDICIÓN)
+            if (ev >= MIN_EV_THRESHOLD) {
+                // EV POSITIVO y CUMPLE EL UMBRAL MÍNIMO: ¡Es una apuesta de valor significativo!
                 
                 // Cálculo de Kelly Fraccional
                 const v = ev; 
@@ -322,19 +322,25 @@
                 clase += 'apostar-ev';
 
             } else {
-                // EV NEGATIVO: No hay valor
-                recomendacion = `❌ NO APOSTAR (-EV o Cuota Baja)`;
+                // EV NEGATIVO o EV < 5% (No cumple el umbral mínimo)
+                
+                // Calculamos la Cuota Mínima que se necesita para alcanzar el 5% EV
+                // Cuota_Min = (1 + EV_Min) / Prob_Final
+                const cuotaMinimaRequerida = (1 + MIN_EV_THRESHOLD) / probDecimal;
+                const cuotaMinimaRequeridaDisplay = cuotaMinimaRequerida.toFixed(2);
+
+                recomendacion = `❌ NO APOSTAR (EV < ${MIN_EV_THRESHOLD * 100}%)`;
                 clase += 'no-apostar';
                 
                 // Mensaje de Cuota a esperar y el tiempo
-                mensajeCuotaEsperar = `<span class="cuota-esperar">🎯 Esperar cuota ≥ ${cuotaJustaDisplay}</span>`;
+                mensajeCuotaEsperar = `<span class="cuota-esperar">🎯 Esperar cuota ≥ ${cuotaMinimaRequeridaDisplay}</span>`;
                 mensajeCuotaEsperar += `<span class="tiempo-espera">⏳ Buscar entre: ${tiempoEspera}</span>`;
             }
             
             // 7. Actualizar Resultado y Stake
-            const detalle = `Prob. Final: ${puntuacionFinal}% | Cuota Justa: ${cuotaJustaDisplay}`;
+            const detalle = `Prob. Final: ${puntuacionFinal}% | EV Real: ${evDisplay}%`;
             
-            if (inputs.bookie > cuotaJusta) {
+            if (ev >= MIN_EV_THRESHOLD) {
                 resultadoSpan.innerHTML = `
                     ${recomendacion}
                     <span class="stake-final">Stake: ${stakeDisplay} U.</span>
