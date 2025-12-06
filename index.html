@@ -138,7 +138,7 @@
 <body>
 
     <h1>⚽ Herramienta de Análisis de Valor (+EV)</h1>
-    <p>Ponderación: **Propia 60%** | **Est. L/V 40%**. Gestión de Riesgo: **15% Kelly Fraccional**.</p>
+    <p>El Gol HT usa la probabilidad de minutos para el cálculo de su valor.</p>
 
     <table id="pronosticador-universal">
         <tbody>
@@ -173,11 +173,11 @@
                 <td data-label="Cuota Bookie (Decimal)">
                     <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('golht')" id="bookie-golht" class="cuota-bookie-input" placeholder="Cuota Real">
                 </td>
-                <td data-label="Est. Valor Local (20% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('golht')" id="estl-golht" placeholder="20% L">
+                <td data-label="Prob. Minutos Goles (40% Peso)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('golht')" id="minutos-golht" placeholder="40% (Suma 0-45)">
                 </td>
-                <td data-label="Est. Valor Visita (20% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('golht')" id="estv-golht" placeholder="20% V">
+                <td data-label="Est. Valor Visita (0% Peso)">
+                    <input type="number" min="0" max="100" disabled value="0" placeholder="0% V">
                 </td>
                 <td data-label="Resultado y Stake" class="resultado-final">
                     <span id="resultado-golht" class="recomendacion-box">Esperando datos...</span>
@@ -189,69 +189,100 @@
     <script>
         // --- Constantes de Gestión de Riesgo ---
         const BANKROLL = 100; 
-        const KELLY_FRACTION = 0.15; // 15% de Kelly Fraccional
+        const KELLY_FRACTION = 0.15; 
         
-        // Pesos actualizados
-        const PESO_PROPIA = 0.60;
-        const PESO_EST_UNITARIO = 0.20; 
+        // Pesos de Ponderación Universal
+        const PESO_PROPIA_UNIV = 0.60;
+        const PESO_EST_UNIV = 0.20; 
+
+        // Pesos de Ponderación GOL HT
+        const PESO_PROPIA_HT = 0.60;
+        const PESO_MINUTOS_HT = 0.40;
 
         // --- FUNCIONES LÓGICAS ---
 
         // Función para determinar el tiempo prudente de espera
-        function determinarTiempoEspera(probabilidadFinal) {
-            // Lógica basada en la necesidad de que la cuota suba por consumo de tiempo
-            if (probabilidadFinal >= 76) {
-                // Probabilidad muy alta, cuota inicial muy baja (Ej: 1.31). Hay que esperar mucho tiempo.
-                return "Minuto 25 - 35 (Si el marcador sigue 0-0)";
-            } else if (probabilidadFinal >= 56) {
-                // Probabilidad media-alta, cuota media (Ej: 1.78). El descanso podría ser ideal.
-                return "Minuto 15 - 25 (Si el marcador sigue 0-0)";
-            } else if (probabilidadFinal >= 30) {
-                // Probabilidad media-baja, cuota alta (Ej: 2.50). El valor debe encontrarse rápido.
-                return "Al inicio o Minuto 10";
-            } else {
-                return "Evaluar al inicio (Probabilidad Baja)";
+        function determinarTiempoEspera(probabilidadFinal, mercado) {
+            // La lógica de tiempo es más crítica en Gol HT, así que la ajustamos ligeramente.
+            if (mercado === 'golht') {
+                if (probabilidadFinal >= 76) {
+                    return "Minuto 25 - 35 (Si el marcador sigue 0-0)";
+                } else if (probabilidadFinal >= 56) {
+                    return "Minuto 15 - 25 (Si el marcador sigue 0-0)";
+                } else {
+                    return "Al inicio o Minuto 10";
+                }
+            } else { // Mercado Universal (basado en FT)
+                if (probabilidadFinal >= 76) {
+                    return "Minuto 60 - 70 (Si el marcador sigue sin goles)";
+                } else if (probabilidadFinal >= 56) {
+                    return "Descanso (Minuto 45)";
+                } else if (probabilidadFinal >= 30) {
+                    return "Minuto 15 - 30";
+                } else {
+                    return "Evaluar al inicio (Probabilidad Baja)";
+                }
             }
         }
 
         // Función principal de cálculo
         function calcularPronostico(mercado) {
             
-            // 1. Obtención de Inputs
-            const inputs = {
-                propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
-                bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
-                estl: parseFloat(document.getElementById(`estl-${mercado}`).value),
-                estv: parseFloat(document.getElementById(`estv-${mercado}`).value)
-            };
-            
             const resultadoSpan = document.getElementById(`resultado-${mercado}`);
+            let inputs;
+            let puntuacionFinal;
 
-            // 2. Validación
-            let todosValidos = true;
-            for (const key in inputs) {
-                const val = inputs[key];
-                if (key !== 'bookie' && (isNaN(val) || val <= 0 || val > 100)) {
-                     todosValidos = false;
-                     break;
+            if (mercado === 'golht') {
+                // 1. Obtención de Inputs GOL HT
+                inputs = {
+                    propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
+                    bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
+                    minutos: parseFloat(document.getElementById(`minutos-${mercado}`).value) // Nuevo campo
+                };
+                
+                // 2. Validación GOL HT
+                let todosValidos = !isNaN(inputs.propia) && inputs.propia > 0 && inputs.propia <= 100 &&
+                                   !isNaN(inputs.bookie) && inputs.bookie >= 1.01 &&
+                                   !isNaN(inputs.minutos) && inputs.minutos > 0 && inputs.minutos <= 100;
+                
+                if (!todosValidos) {
+                    resultadoSpan.innerHTML = 'Datos HT incompletos o inválidos.';
+                    resultadoSpan.className = 'recomendacion-box'; 
+                    return;
                 }
-                if (key === 'bookie' && (isNaN(val) || val < 1.01)) {
-                     todosValidos = false;
-                     break;
+
+                // 3. Cálculo de Probabilidad Ponderada GOL HT
+                puntuacionFinal = 
+                    (inputs.propia * PESO_PROPIA_HT) + 
+                    (inputs.minutos * PESO_MINUTOS_HT);
+
+            } else { // Mercado Universal (universal)
+                 // 1. Obtención de Inputs Universal
+                inputs = {
+                    propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
+                    bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
+                    estl: parseFloat(document.getElementById(`estl-${mercado}`).value),
+                    estv: parseFloat(document.getElementById(`estv-${mercado}`).value)
+                };
+
+                 // 2. Validación Universal
+                let todosValidos = !isNaN(inputs.propia) && inputs.propia > 0 && inputs.propia <= 100 &&
+                                   !isNaN(inputs.bookie) && inputs.bookie >= 1.01 &&
+                                   !isNaN(inputs.estl) && inputs.estl > 0 && inputs.estl <= 100 &&
+                                   !isNaN(inputs.estv) && inputs.estv > 0 && inputs.estv <= 100;
+
+                if (!todosValidos) {
+                    resultadoSpan.innerHTML = 'Datos Universal incompletos o inválidos.';
+                    resultadoSpan.className = 'recomendacion-box'; 
+                    return;
                 }
+                
+                // 3. Cálculo de Probabilidad Ponderada Universal
+                puntuacionFinal = 
+                    (inputs.propia * PESO_PROPIA_UNIV) + 
+                    (inputs.estl * PESO_EST_UNIV) + 
+                    (inputs.estv * PESO_EST_UNIV);
             }
-
-            if (!todosValidos) {
-                resultadoSpan.innerHTML = 'Datos incompletos o inválidos.';
-                resultadoSpan.className = 'recomendacion-box'; 
-                return;
-            }
-
-            // 3. Cálculo de Probabilidad Ponderada
-            let puntuacionFinal = 
-                (inputs.propia * PESO_PROPIA) + 
-                (inputs.estl * PESO_EST_UNITARIO) + 
-                (inputs.estv * PESO_EST_UNITARIO);
             
             puntuacionFinal = Math.round(puntuacionFinal * 10) / 10;
             
@@ -268,7 +299,7 @@
             let clase = 'recomendacion-box '; 
             let stakeDisplay = '0.00';
             let mensajeCuotaEsperar = '';
-            let tiempoEspera = determinarTiempoEspera(puntuacionFinal);
+            let tiempoEspera = determinarTiempoEspera(puntuacionFinal, mercado);
 
             // 6. DECISIÓN FINAL BASADA EN EV Y CÁLCULO KELLY
             if (inputs.bookie > cuotaJusta) {
