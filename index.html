@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador L/V (Prioridad BetMines)</title>
+    <title>Pronosticador Vertical (Móvil)</title>
     <style>
         /* --- Estilos Generales --- */
         body {
@@ -25,177 +25,234 @@
             color: #555;
             padding: 0 10px;
         }
-        
-        /* --- Contenedor Responsivo --- */
-        .table-container {
-            width: 100%;
-            overflow-x: auto; 
-            margin: 10px 0;
-        }
-        
-        /* --- Estilos de la Tabla --- */
-        table {
-            min-width: 900px; 
-            border-collapse: collapse;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            background-color: white;
-            border-radius: 8px;
-            overflow: hidden; 
-        }
 
-        /* --- Estilos Comunes de Celdas --- */
-        th, td {
-            border: 1px solid #ddd;
-            padding: 7px 3px; 
-            text-align: center;
-            font-size: 0.8em; 
-            box-sizing: border-box; 
-        }
-
-        /* --- ANCHOS DE COLUMNAS PARA SIMETRÍA --- */
-        /* Total de 7 columnas: 1 Mercado + 1 Propia + 4 L/V + 1 Final */
-        
-        /* 1. Mercado */
-        #pronosticador th:nth-child(1), #pronosticador td:nth-child(1) {
-            width: 15%; 
-        }
-        /* 2. Probabilidad Propia (BetMines) - Destacado por ser el input principal */
-        #pronosticador th:nth-child(2), #pronosticador td:nth-child(2) {
-            width: 13%; 
-            background-color: #ffe0b2; /* Color Naranja claro para destacar */
-            font-weight: bold;
-        }
-        /* 3, 4, 5, 6. Las 4 estadísticas L/V - Igual ancho */
-        #pronosticador th:nth-child(n+3):nth-child(-n+6), #pronosticador td:nth-child(n+3):nth-child(-n+6) {
-            width: 13%; 
-        }
-        /* 7. Pronóstico Final */
-        #pronosticador th:nth-child(7), #pronosticador td:nth-child(7) {
-            width: 20%; 
-        }
-
-        /* --- Estilos de Encabezado --- */
-        th {
-            background-color: #1a73e8; 
-            color: white;
-            font-weight: bold;
-            white-space: nowrap; 
-        }
-        /* Sub-Encabezados Local/Visitante */
-        .sub-header th {
-            background-color: #42a5f5; 
-            font-size: 0.75em;
-            padding: 4px 2px;
-        }
-        
         /* --- Estilos de Input --- */
-        .input-cell input {
-            width: 85%;
-            padding: 5px 0;
+        input[type="number"] {
+            width: 95%;
+            padding: 8px 5px;
             border: 1px solid #ccc;
-            border-radius: 3px;
+            border-radius: 4px;
             text-align: center;
-            font-size: 0.85em;
+            font-size: 0.9em;
             -webkit-appearance: none; 
-            margin: 0 auto;
-            display: block;
+            box-sizing: border-box;
         }
 
-        /* --- Estilos de Resultado Final --- */
-        .final-result-col {
-            background-color: #e3f2fd; 
-            font-weight: bold;
-            color: #0d47a1;
-        }
+        /* --- Colores de Recomendación --- */
         .recomendacion {
             font-weight: bold;
-            padding: 8px 4px;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            display: block;
         }
         .apostar { background-color: #4CAF50; color: white; } 
         .considerar { background-color: #FFC107; color: #333; } 
         .no-apostar { background-color: #F44336; color: white; } 
+
+        /* --- Estilos de Tabla (Modo Tarjeta para Móvil) --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            background-color: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        /* Ocultar encabezados horizontales en vista móvil */
+        thead {
+            display: none;
+        }
+        
+        /* Filas (Tarjetas) */
+        tr {
+            display: block;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        /* Celdas (Convertidas en Bloques Verticales) */
+        td {
+            display: flex; /* Usar flexbox para alinear etiqueta y valor */
+            padding: 10px;
+            border: none;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.9em;
+        }
+        
+        /* Estilo de la etiqueta (Primer elemento en cada TD) */
+        td::before {
+            content: attr(data-label); /* Usa el atributo data-label como etiqueta */
+            font-weight: bold;
+            color: #1a73e8;
+            flex-basis: 50%; /* Da espacio a la etiqueta */
+            text-align: left;
+        }
+
+        /* Estilo para el input/resultado (Segundo elemento en cada TD) */
+        td:last-child {
+            /* Asegura que el resultado o input tome el resto del espacio */
+            flex-basis: 45%; 
+            text-align: right;
+        }
+        
+        /* El encabezado del mercado será más grande y resaltado */
+        tr td:first-child {
+            background-color: #00bcd4;
+            color: white;
+            justify-content: center;
+            font-size: 1.1em;
+            padding: 12px 10px;
+        }
+        tr td:first-child::before {
+            content: ""; /* Oculta la etiqueta "Mercado" en la primera fila */
+        }
+
+        /* Estilo especial para el pronóstico final */
+        .resultado-final {
+            display: block; /* Ocupa todo el ancho */
+            text-align: center;
+            border-bottom: none;
+        }
+
+        /* Vuelve a la tabla normal en pantallas grandes (opcional) */
+        @media (min-width: 768px) {
+            table {
+                width: 80%;
+                max-width: 900px;
+                margin: 20px auto;
+            }
+            thead {
+                display: table-header-group;
+            }
+            tr {
+                display: table-row;
+                margin-bottom: 0;
+                border: none;
+                box-shadow: none;
+            }
+            td {
+                display: table-cell;
+                border: 1px solid #ddd;
+                border-bottom: 1px solid #ddd;
+                padding: 8px;
+                text-align: center;
+            }
+            td::before {
+                content: none;
+            }
+            tr td:first-child {
+                background-color: inherit;
+                color: inherit;
+                font-size: 1em;
+                padding: 8px;
+            }
+            .resultado-final {
+                display: table-cell;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <h1>🧠 Pronosticador con Prioridad BetMines</h1>
-    <p>➡️ Se asigna **50% de peso** a la Probabilidad Propia (BetMines) para un pronóstico lógico. Desliza para ver todos los datos.</p>
+    <h1>🧠 Pronosticador Vertical (BetMines)</h1>
+    <p>Introduce los datos para cada mercado. Los pesos están optimizados para la Probabilidad de BetMines (50%).</p>
 
-    <div class="table-container">
-        <table id="pronosticador">
-            <thead>
-                <tr>
-                    <th rowspan="2">Mercado</th>
-                    <th rowspan="2" style="background-color: #ff9800;">Probabilidad Propia (BetMines %)</th> 
-                    <th colspan="2">Últimos 10 (20% peso total)</th>
-                    <th colspan="2">Estadísticas/Valor (30% peso total)</th>
-                    <th rowspan="2" class="final-result-col">Pronóstico Final</th>
-                </tr>
-                <tr class="sub-header">
-                    <th>Local</th>
-                    <th>Visita</th>
-                    <th>Local</th>
-                    <th>Visita</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr data-mercado="over">
-                    <td>**Over 2.5 FT**</td>
-                    <td class="input-cell" data-input="propia">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('over')" placeholder="50% Peso">
-                    </td>
-                    <td class="input-cell" data-input="u10l">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('over')" placeholder="5% Peso">
-                    </td>
-                    <td class="input-cell" data-input="u10v">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('over')" placeholder="5% Peso">
-                    </td>
-                    <td class="input-cell" data-input="estl">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('over')" placeholder="15% Peso">
-                    </td>
-                    <td class="input-cell" data-input="estv">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('over')" placeholder="15% Peso">
-                    </td>
-                    <td id="resultado-over" class="recomendacion final-result-col">Esperando datos...</td>
-                </tr>
+    <table id="pronosticador-over">
+        <thead>
+            <tr>
+                <th>Mercado</th>
+                <th>Prob. Propia (50% Peso)</th> 
+                <th>U10 Local (5%)</th>
+                <th>U10 Visita (5%)</th>
+                <th>Est. Local (15%)</th>
+                <th>Est. Visita (15%)</th>
+                <th>Pronóstico Final</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr data-mercado="over">
+                <td data-label="">**Over 2.5 FT**</td>
+                <td data-label="Prob. BetMines (50%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="propia-over" placeholder="50%">
+                </td>
+                <td data-label="Últimos 10 Local (5%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="u10l-over" placeholder="5%">
+                </td>
+                <td data-label="Últimos 10 Visita (5%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="u10v-over" placeholder="5%">
+                </td>
+                <td data-label="Est. Valor Local (15%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="estl-over" placeholder="15%">
+                </td>
+                <td data-label="Est. Valor Visita (15%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('over')" id="estv-over" placeholder="15%">
+                </td>
+                <td data-label="Recomendación Final" class="resultado-final">
+                    <span id="resultado-over" class="recomendacion">Esperando datos...</span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 
-                <tr data-mercado="btts">
-                    <td>**BTTS Yes**</td>
-                    <td class="input-cell" data-input="propia">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" placeholder="50% Peso">
-                    </td>
-                    <td class="input-cell" data-input="u10l">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" placeholder="5% Peso">
-                    </td>
-                    <td class="input-cell" data-input="u10v">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" placeholder="5% Peso">
-                    </td>
-                    <td class="input-cell" data-input="estl">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" placeholder="15% Peso">
-                    </td>
-                    <td class="input-cell" data-input="estv">
-                        <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" placeholder="15% Peso">
-                    </td>
-                    <td id="resultado-btts" class="recomendacion final-result-col">Esperando datos...</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <table id="pronosticador-btts">
+        <thead>
+            <tr>
+                <th>Mercado</th>
+                <th>Prob. Propia (50% Peso)</th> 
+                <th>U10 Local (5%)</th>
+                <th>U10 Visita (5%)</th>
+                <th>Est. Local (15%)</th>
+                <th>Est. Visita (15%)</th>
+                <th>Pronóstico Final</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr data-mercado="btts">
+                <td data-label="">**BTTS Yes**</td>
+                <td data-label="Prob. BetMines (50%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="propia-btts" placeholder="50%">
+                </td>
+                <td data-label="Últimos 10 Local (5%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="u10l-btts" placeholder="5%">
+                </td>
+                <td data-label="Últimos 10 Visita (5%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="u10v-btts" placeholder="5%">
+                </td>
+                <td data-label="Est. Valor Local (15%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="estl-btts" placeholder="15%">
+                </td>
+                <td data-label="Est. Valor Visita (15%)">
+                    <input type="number" min="0" max="100" oninput="calcularPronostico('btts')" id="estv-btts" placeholder="15%">
+                </td>
+                <td data-label="Recomendación Final" class="resultado-final">
+                    <span id="resultado-btts" class="recomendacion">Esperando datos...</span>
+                </td>
+            </tr>
+        </tbody>
+    </table>
 
     <script>
-        // --- Lógica del Cálculo Ponderado (Ajustada para Prioridad BetMines) ---
+        // --- Lógica del Cálculo Ponderado (Prioridad BetMines) ---
         function calcularPronostico(mercado) {
-            const row = document.querySelector(`tr[data-mercado="${mercado}"]`);
-            const resultadoCell = row.cells[6]; 
-
+            // Obtenemos los valores usando los IDs específicos del mercado
             const inputs = {
-                propia: parseFloat(row.cells[1].querySelector('input').value),
-                u10l: parseFloat(row.cells[2].querySelector('input').value),
-                u10v: parseFloat(row.cells[3].querySelector('input').value),
-                estl: parseFloat(row.cells[4].querySelector('input').value),
-                estv: parseFloat(row.cells[5].querySelector('input').value)
+                propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
+                u10l: parseFloat(document.getElementById(`u10l-${mercado}`).value),
+                u10v: parseFloat(document.getElementById(`u10v-${mercado}`).value),
+                estl: parseFloat(document.getElementById(`estl-${mercado}`).value),
+                estv: parseFloat(document.getElementById(`estv-${mercado}`).value)
             };
+            
+            const resultadoSpan = document.getElementById(`resultado-${mercado}`);
 
+            // 1. Validación
             let todosValidos = true;
             for (const key in inputs) {
                 const val = inputs[key];
@@ -206,16 +263,17 @@
             }
 
             if (!todosValidos) {
-                resultadoCell.innerHTML = 'Datos incompletos/inválidos.';
-                resultadoCell.className = 'recomendacion final-result-col'; 
+                resultadoSpan.textContent = 'Datos incompletos/inválidos.';
+                resultadoSpan.className = 'recomendacion'; 
                 return;
             }
 
-            // Nuevos Pesos: Propia 50%, U10 Unitario 5%, Est. Unitario 15%
+            // 2. Pesos Fijos (Prioridad BetMines)
             const PESO_PROPIA = 0.50;
             const PESO_U10_UNITARIO = 0.05; 
             const PESO_EST_UNITARIO = 0.15;
             
+            // 3. Cálculo Ponderado
             let puntuacionFinal = 
                 (inputs.propia * PESO_PROPIA) + 
                 (inputs.u10l * PESO_U10_UNITARIO) + 
@@ -226,24 +284,26 @@
             puntuacionFinal = Math.round(puntuacionFinal * 10) / 10;
 
             let recomendacion = '';
-            let clase = 'recomendacion final-result-col '; 
+            let clase = 'recomendacion '; 
 
+            // 4. Umbrales de Recomendación
             const UMBRAL_APOSTAR = 65; 
             const UMBRAL_CONSIDERAR = 50; 
 
             if (puntuacionFinal >= UMBRAL_APOSTAR) {
-                recomendacion = `✅ Apostar (${puntuacionFinal}%)`;
+                recomendacion = `✅ APOSTAR (${puntuacionFinal}%)`;
                 clase += 'apostar';
             } else if (puntuacionFinal >= UMBRAL_CONSIDERAR) {
-                recomendacion = `🤔 Considerar (${puntuacionFinal}%)`;
+                recomendacion = `🤔 CONSIDERAR (${puntuacionFinal}%)`;
                 clase += 'considerar';
             } else {
-                recomendacion = `❌ No Apostar (${puntuacionFinal}%)`;
+                recomendacion = `❌ NO APOSTAR (${puntuacionFinal}%)`;
                 clase += 'no-apostar';
             }
 
-            resultadoCell.innerHTML = recomendacion;
-            resultadoCell.className = clase;
+            // 5. Actualizar Resultado
+            resultadoSpan.textContent = recomendacion;
+            resultadoSpan.className = clase;
         }
     </script>
 </body>
