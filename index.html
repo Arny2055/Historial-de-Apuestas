@@ -2,33 +2,58 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Rentabilidad por Equipo</title>
+<title>Analizador Profesional de Rentabilidad por Equipo</title>
 <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
 body { font-family: Arial; background: #f4f4f9; padding: 20px; }
-.container { max-width: 950px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
-h1 { text-align: center; color: #4caf50; border-bottom: 2px solid #4caf50; padding-bottom: 10px; }
-input { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; }
-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.95em; }
-th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+.container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 8px; }
+h1 { text-align: center; color: #4caf50; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+select, input, button { padding: 10px; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { border: 1px solid #ddd; padding: 10px; }
 th { background: #4caf50; color: white; }
-.rentable { color: #2e7d32; font-weight: bold; }
-.no-rentable { color: #d32f2f; font-weight: bold; }
-.neutral { color: #555; font-weight: bold; }
-.resumen { margin-top: 30px; padding: 15px; border: 2px dashed #4caf50; border-radius: 8px; background: #e8f5e9; }
+.rentable { color: green; font-weight: bold; }
+.no-rentable { color: red; font-weight: bold; }
+.neutral { color: gray; font-weight: bold; }
+button { cursor: pointer; background: #4caf50; color: white; border: none; }
 </style>
 </head>
 
 <body>
 <div class="container">
-<h1>⚽ Rentabilidad por Equipo (desde Match)</h1>
+<h1>⚽ Analizador Profesional de Equipos</h1>
+
+<div class="controls">
 <input type="file" id="fileInput" accept=".xlsx">
+<select id="filtroPosicion">
+    <option value="all">Local + Visitante</option>
+    <option value="home">Solo Local</option>
+    <option value="away">Solo Visitante</option>
+</select>
+
+<select id="filtroLiga">
+    <option value="all">Todas las Ligas</option>
+</select>
+
+<select id="filtroLimite">
+    <option value="0">Todos los partidos</option>
+    <option value="15">Últimos 15 partidos</option>
+</select>
+
+<button onclick="exportarExcel()">Exportar a Excel</button>
+</div>
+
 <div id="resultados"></div>
 </div>
 
 <script>
+let datosGlobales = [];
+let rankingFinal = [];
+
 document.getElementById('fileInput').addEventListener('change', cargarArchivo);
+document.querySelectorAll('select').forEach(e => e.addEventListener('change', recalcular));
 
 function cargarArchivo(e) {
     const reader = new FileReader();
@@ -36,128 +61,105 @@ function cargarArchivo(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        datosGlobales = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-        procesarDatos(json);
+        cargarLigas();
+        recalcular();
     };
     reader.readAsArrayBuffer(e.target.files[0]);
 }
 
-function procesarDatos(data) {
-    const resultados = {};
-    let totalRegistrosProcesados = 0; // Contador de registros de apuestas
-
-    data.forEach(row => {
-        const match = String(row["Match"] || "").trim();
-        const odd = parseFloat(row["Odd"]) > 1 ? parseFloat(row["Odd"]) : 1; 
-        const result = String(row["Result"]).toUpperCase();
-
-        // 1. Manejo de Separadores Flexibles (Guion corto/largo o 'vs')
-        let teams = [];
-        if (match.includes("-") || match.includes("–")) {
-            // Separar por guion corto o largo, ignorando espacios alrededor.
-            teams = match.split(/\s*[-–]\s*/).map(e => e.trim());
-        } else if (match.toLowerCase().includes("vs")) {
-            // Separar por 'vs' (case-insensitive), ignorando espacios.
-            teams = match.split(/\s+vs\s+/i).map(e => e.trim());
-        }
-
-        // Si no encontramos exactamente dos equipos, saltamos la fila.
-        if (teams.length !== 2) return;
-        
-        const [home, away] = teams;
-        
-        // Si alguno de los nombres está vacío después del split, saltamos.
-        if (!home || !away) return; 
-
-        totalRegistrosProcesados++;
-
-        // Determinación del éxito de la apuesta
-        const isWin = result === "WIN" || result === "WINNING" || result === "1";
-        
-        // Cálculo de Profit
-        const profit = isWin ? (odd - 1) : -1;
-
-        // 2. Agregación de resultados a AMBOS equipos
-        [home, away].forEach(team => {
-            if (!resultados[team]) {
-                resultados[team] = { partidos: 0, aciertos: 0, profit: 0 };
-            }
-            resultados[team].partidos++;
-            if (isWin) resultados[team].aciertos++;
-            resultados[team].profit += profit;
-        });
+function cargarLigas() {
+    const ligas = [...new Set(datosGlobales.map(r => r.League))];
+    const select = document.getElementById("filtroLiga");
+    ligas.forEach(l => {
+        const opt = document.createElement("option");
+        opt.value = l;
+        opt.textContent = l;
+        select.appendChild(opt);
     });
-
-    mostrarTabla(resultados, totalRegistrosProcesados);
 }
 
-function mostrarTabla(resultados, totalRegistrosProcesados) {
+function recalcular() {
+    const posicion = document.getElementById("filtroPosicion").value;
+    const liga = document.getElementById("filtroLiga").value;
+    const limite = parseInt(document.getElementById("filtroLimite").value);
+
+    let datos = [...datosGlobales];
+
+    if (liga !== "all") datos = datos.filter(d => d.League === liga);
+    if (limite > 0) datos = datos.slice(-limite);
+
+    procesarDatos(datos, posicion);
+}
+
+function procesarDatos(data, posicion) {
+    const resultados = {};
+
+    data.forEach(row => {
+        if (!row.Match.includes("-")) return;
+
+        const [home, away] = row.Match.split("-").map(t => t.trim());
+        const odd = parseFloat(row.Odd) || 1;
+        const isWin = String(row.Result).toUpperCase() === "WIN";
+
+        const aplicar = (team, tipo) => {
+            if (posicion !== "all" && posicion !== tipo) return;
+
+            if (!resultados[team]) resultados[team] = { partidos: 0, aciertos: 0, profit: 0 };
+            resultados[team].partidos++;
+            if (isWin) resultados[team].aciertos++;
+            resultados[team].profit += isWin ? (odd - 1) : -1;
+        };
+
+        aplicar(home, "home");
+        aplicar(away, "away");
+    });
+
+    rankingFinal = Object.entries(resultados).map(([name, d]) => ({
+        Equipo: name,
+        Partidos: d.partidos,
+        Aciertos: d.aciertos,
+        WinRate: ((d.aciertos / d.partidos) * 100).toFixed(1),
+        Profit: d.profit.toFixed(2),
+        ROI: ((d.profit / d.partidos) * 100).toFixed(2)
+    })).sort((a, b) => b.Profit - a.Profit);
+
+    mostrarTabla();
+}
+
+function mostrarTabla() {
     let html = `<table>
-        <tr>
-            <th>Equipo</th>
-            <th>Partidos Analizados</th>
-            <th>Apuestas Ganadoras*</th>
-            <th>Tasa de Acierto (%)</th>
-            <th>Profit (Unidades)</th>
-            <th>Estado</th>
-        </tr>`;
+    <tr>
+        <th>Equipo</th><th>Partidos</th><th>Aciertos</th><th>Win%</th>
+        <th>Profit</th><th>ROI%</th><th>Estado</th>
+    </tr>`;
 
-    // 1. Convertir a array, calcular tasa y ordenar por Profit
-    const equipos = Object.entries(resultados)
-        .map(([name, d]) => ({
-            name,
-            partidos: d.partidos,
-            aciertos: d.aciertos,
-            tasa: d.partidos > 0 ? (d.aciertos / d.partidos) * 100 : 0,
-            profit: d.profit
-        }))
-        .sort((a, b) => b.profit - a.profit);
-
-    let totalProfitGlobal = 0;
-    let equiposPositivosCount = 0;
-    
-    // 2. Generar filas de la tabla
-    equipos.forEach(e => {
-        totalProfitGlobal += e.profit; 
-        
-        const estado = e.profit > 0 ? "Rentable" : e.profit < 0 ? "Pérdida" : "Neutro";
-        const clase = e.profit > 0 ? "rentable" : e.profit < 0 ? "no-rentable" : "neutral";
-        
-        if (e.profit > 0) equiposPositivosCount++;
+    rankingFinal.forEach(e => {
+        const estado = e.Profit > 0 ? "Rentable" : e.Profit < 0 ? "Pérdida" : "Neutro";
+        const clase = e.Profit > 0 ? "rentable" : e.Profit < 0 ? "no-rentable" : "neutral";
 
         html += `
         <tr>
-            <td>${e.name}</td>
-            <td>${e.partidos}</td>
-            <td>${e.aciertos}</td>
-            <td>${e.tasa.toFixed(1)}%</td>
-            <td class="${clase}">${e.profit.toFixed(2)} u</td>
+            <td>${e.Equipo}</td>
+            <td>${e.Partidos}</td>
+            <td>${e.Aciertos}</td>
+            <td>${e.WinRate}%</td>
+            <td class="${clase}">${e.Profit} u</td>
+            <td class="${clase}">${e.ROI}%</td>
             <td class="${clase}">${estado}</td>
         </tr>`;
     });
 
     html += "</table>";
-    
-    // 3. Agregar Resumen Global
-    // El profit total se sumó dos veces (Home y Away), por eso se divide entre 2.
-    const profitGlobalPromedio = totalProfitGlobal / 2; 
-    const profitGlobalFmt = profitGlobalPromedio.toFixed(2);
-    
-    html += `
-        <div class="resumen">
-            <h3>⭐ Resumen del Análisis Global</h3>
-            <ul>
-                <li>Total de Apuestas (Registros Procesados): <b>${totalRegistrosProcesados}</b></li>
-                <li>Equipos Únicos Analizados: <b>${equipos.length}</b></li>
-                <li>Profit Neto Total (Suma de todos los mercados): <b>${profitGlobalFmt} u</b></li>
-                <li>Equipos con Rentabilidad Positiva: <b>${equiposPositivosCount}</b></li>
-            </ul>
-            <p style="font-size: 0.85em; color: #555;">*<b>Profit</b> representa la ganancia o pérdida neta acumulada por cada equipo cada vez que participa en un partido con una apuesta registrada.</p>
-        </div>
-    `;
-
     document.getElementById("resultados").innerHTML = html;
+}
+
+function exportarExcel() {
+    const ws = XLSX.utils.json_to_sheet(rankingFinal);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ranking Equipos");
+    XLSX.writeFile(wb, "ranking_rentabilidad_equipos.xlsx");
 }
 </script>
 </body>
