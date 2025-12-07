@@ -17,7 +17,8 @@ th { background:#4caf50; color:white; }
 .rentable { color:#2e7d32; font-weight:bold; }
 .no-rentable { color:#d32f2f; font-weight:bold; }
 .neutral { color:#555; font-weight:bold; }
-button { cursor:pointer; background:#4caf50; color:white; border:none; }
+button { cursor:pointer; background:#4caf50; color:white; border:none; transition:.3s; }
+button:hover { background:#388e3c; }
 </style>
 </head>
 
@@ -39,8 +40,8 @@ button { cursor:pointer; background:#4caf50; color:white; border:none; }
 </select>
 
 <select id="filtroLimite">
-    <option value="0">Todos los partidos</option>
-    <option value="15">Últimos 15 por equipo</option>
+    <option value="0">Histórico completo</option>
+    <option value="15">Últimos 15 partidos por equipo</option>
 </select>
 
 <button onclick="exportarExcel()">Exportar a Excel</button>
@@ -56,6 +57,21 @@ let rankingFinal = [];
 document.getElementById('fileInput').addEventListener('change', cargarArchivo);
 document.querySelectorAll('select').forEach(e => e.addEventListener('change', recalcular));
 
+function parseFechaSeguro(fecha) {
+    if (!fecha) return new Date(0);
+    if (typeof fecha === "number") return XLSX.SSF.parse_date_code(fecha);
+    const partes = String(fecha).split("/");
+    if (partes.length === 3) {
+        return new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
+    }
+    return new Date(fecha);
+}
+
+function esWinSeguro(valor) {
+    const v = String(valor).toUpperCase().trim();
+    return ["WIN","WINNING","1","W","TRUE","SI"].includes(v);
+}
+
 function cargarArchivo(e) {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -64,8 +80,7 @@ function cargarArchivo(e) {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         datosGlobales = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-        // ✅ ORDENAR POR FECHA PARA QUE "ÚLTIMOS 15" SEA REAL
-        datosGlobales.sort((a,b)=> new Date(a.Date) - new Date(b.Date));
+        datosGlobales.sort((a,b)=> parseFechaSeguro(a.Date) - parseFechaSeguro(b.Date));
 
         cargarLigas();
         recalcular();
@@ -74,7 +89,7 @@ function cargarArchivo(e) {
 }
 
 function cargarLigas() {
-    const ligas = [...new Set(datosGlobales.map(r => r.League).filter(l => l))];
+    const ligas = [...new Set(datosGlobales.map(r => r.League).filter(l => l && l.trim() !== ''))];
     const select = document.getElementById("filtroLiga");
     select.innerHTML = '<option value="all">Todas las Ligas</option>';
     ligas.forEach(l => {
@@ -91,7 +106,7 @@ function recalcular() {
     const limite = Number(document.getElementById("filtroLimite").value);
 
     let datos = [...datosGlobales];
-    if (liga !== "all") datos = datos.filter(d => d.League === liga);
+    if (liga !== "all") datos = datos.filter(d => String(d.League) === liga);
 
     procesarDatos(datos, posicion, limite);
 }
@@ -100,27 +115,27 @@ function procesarDatos(data, posicion, limite) {
     const porEquipo = {};
 
     data.forEach(row => {
-        if (!row.Match || !row.Match.includes("-")) return;
+        if (!row.Match || !String(row.Match).includes("-")) return;
 
-        const [home, away] = row.Match.split("-").map(t => t.trim());
-        const odd = parseFloat(row.Odd) || 1;
-        const isWin = ["WIN","WINNING","1"].includes(String(row.Result).toUpperCase());
+        const [home, away] = String(row.Match).split("-").map(t => t.trim());
+        const odd = Math.max(parseFloat(row.Odd) || 1, 1);
+        const isWin = esWinSeguro(row.Result);
 
         if (!porEquipo[home]) porEquipo[home] = [];
         if (!porEquipo[away]) porEquipo[away] = [];
 
-        porEquipo[home].push({ tipo:"home", isWin, odd });
-        porEquipo[away].push({ tipo:"away", isWin, odd });
+        porEquipo[home].push({ tipo: "home", isWin, odd });
+        porEquipo[away].push({ tipo: "away", isWin, odd });
     });
 
     const resultados = {};
 
     Object.entries(porEquipo).forEach(([team, partidos]) => {
-        let partidosUsados = limite > 0 ? partidos.slice(-limite) : partidos;
 
+        let partidosUsados = limite > 0 ? partidos.slice(-limite) : partidos;
         let usados = partidosUsados.filter(p => posicion === "all" || p.tipo === posicion);
 
-        if (usados.length === 0) return;
+        if (!usados.length) return;
 
         let profit = 0, aciertos = 0;
 
@@ -158,8 +173,8 @@ function mostrarTabla() {
 
     rankingFinal.forEach(e => {
         const p = parseFloat(e.Profit);
-        const estado = p>0 ? "Rentable" : p<0 ? "Pérdida" : "Neutro";
-        const clase = p>0 ? "rentable" : p<0 ? "no-rentable" : "neutral";
+        const estado = p > 0 ? "Rentable" : p < 0 ? "Pérdida" : "Neutro";
+        const clase = p > 0 ? "rentable" : p < 0 ? "no-rentable" : "neutral";
 
         html += `
         <tr>
@@ -178,7 +193,10 @@ function mostrarTabla() {
 }
 
 function exportarExcel() {
-    if (!rankingFinal.length) return alert("No hay datos para exportar");
+    if (!rankingFinal.length) {
+        alert("No hay datos para exportar.");
+        return;
+    }
     const ws = XLSX.utils.json_to_sheet(rankingFinal);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Ranking Equipos");
