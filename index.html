@@ -3,360 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronosticador +EV 5% Mínimo + Kelly</title>
+    <title>Calculadora de Rentabilidad de Equipos de Fútbol</title>
+    
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+
     <style>
-        /* --- Estilos Generales --- */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            margin: 0; 
-            padding: 10px;
-            background-color: #f0f0f5; 
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            font-size: 1.4em;
-            text-align: center;
-            margin-bottom: 5px;
             color: #333;
-        }
-        p {
-            font-size: 0.9em;
             text-align: center;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
             margin-bottom: 20px;
-            color: #555;
-            padding: 0 10px;
         }
-
-        /* --- Estilos de Input --- */
-        input[type="number"] {
-            width: 95%;
-            padding: 8px 5px;
+        input[type="file"] {
+            display: block;
+            margin: 20px 0;
+            padding: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            text-align: center;
-            font-size: 0.9em;
-            -webkit-appearance: none; 
+            width: 100%;
             box-sizing: border-box;
         }
-        .cuota-bookie-input {
-            font-weight: bold;
-            color: #00897b;
+        #resultados {
+            margin-top: 30px;
         }
-
-        /* --- Colores de Recomendación --- */
-        .recomendacion-box {
-            font-weight: bold;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 5px;
-            display: block;
-            line-height: 1.4;
-        }
-        .apostar-ev { 
-            background-color: #388e3c; 
-            color: white; 
-        } 
-        .no-apostar { 
-            background-color: #f44336; 
-            color: white; 
-        } 
-        
-        /* Estilos de Contenido dentro del Box */
-        .detalle-final, .cuota-esperar, .stake-final {
-            display: block;
-            font-weight: normal;
-            margin-top: 5px;
-            color: rgba(255, 255, 255, 0.9);
-        }
-        .stake-final {
-            font-size: 1.1em;
-            font-weight: bold;
-            color: #ffeb3b; 
-        }
-        .cuota-esperar {
-            font-size: 0.9em;
-            font-weight: bold;
-            color: #ffeb3b; 
-        }
-        .tiempo-espera {
-            font-size: 0.85em;
-            font-weight: bold;
-            color: #bdbdbd;
-            display: block;
-        }
-
-        /* --- Estilos de Tabla (Modo Tarjeta) --- */
         table {
             width: 100%;
             border-collapse: collapse;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            background-color: white;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            margin-top: 15px;
         }
-        thead { display: none; }
-        tr {
-            display: block;
-            margin-bottom: 10px;
+        th, td {
             border: 1px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        td {
-            display: flex; 
             padding: 10px;
-            border: none;
-            border-bottom: 1px solid #eee;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.9em;
-        }
-        td::before {
-            content: attr(data-label); 
-            font-weight: bold;
-            color: #1a73e8;
-            flex-basis: 60%; 
             text-align: left;
         }
-        tr td:first-child {
-            background-color: #00bcd4;
+        th {
+            background-color: #007bff;
             color: white;
-            justify-content: center;
-            font-size: 1.1em;
-            padding: 12px 10px;
         }
-        tr td:first-child::before {
-            content: ""; 
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
         }
-        .resultado-final {
-            display: block; 
-            text-align: center;
-            border-bottom: none;
+        .rentable {
+            color: green;
+            font-weight: bold;
+        }
+        .no-rentable {
+            color: red;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <h1>💰 Filtro Mínimo: EV ≥ 5%</h1>
-    <p>Solo se recomienda apostar si el **Valor Esperado (+EV)** es del **5% o superior**. Kelly: 15%.</p>
+<div class="container">
+    <h1>⚽ Analizador de Rentabilidad de Equipos de Fútbol</h1>
+    
+    <p>Sube tu archivo **.xlsx** para calcular la rentabilidad operativa de cada equipo.</p>
+    
+    <p>**Estructura esperada del Excel:** La primera hoja debe tener columnas llamadas **Equipo**, **Ingresos** y **Costos**.</p>
+    
+    <input type="file" id="archivoExcel" accept=".xlsx" onchange="cargarArchivo()">
 
-    <table id="pronosticador-universal">
-        <tbody>
-            <tr data-mercado="universal">
-                <td data-label="">**1. Análisis Universal (Cualquier Mercado)**</td>
-                <td data-label="Prob. BetMines (60% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="propia-universal" placeholder="60% Prob.">
-                </td>
-                <td data-label="Cuota Bookie (Decimal)">
-                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('universal')" id="bookie-universal" class="cuota-bookie-input" placeholder="Cuota Real">
-                </td>
-                <td data-label="Est. Valor Local (20% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="estl-universal" placeholder="20% L">
-                </td>
-                <td data-label="Est. Valor Visita (20% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('universal')" id="estv-universal" placeholder="20% V">
-                </td>
-                <td data-label="Resultado y Stake" class="resultado-final">
-                    <span id="resultado-universal" class="recomendacion-box">Esperando datos...</span>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+    <div id="resultados">
+        </div>
+</div>
 
-    <table id="pronosticador-golht">
-        <tbody>
-            <tr data-mercado="golht">
-                <td data-label="">**2. Análisis Gol en 1er Tiempo**</td>
-                <td data-label="Prob. BetMines (60% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('golht')" id="propia-golht" placeholder="60% Prob.">
-                </td>
-                <td data-label="Cuota Bookie (Decimal)">
-                    <input type="number" step="0.01" min="1.01" oninput="calcularPronostico('golht')" id="bookie-golht" class="cuota-bookie-input" placeholder="Cuota Real">
-                </td>
-                <td data-label="Prob. Minutos Goles (40% Peso)">
-                    <input type="number" min="0" max="100" oninput="calcularPronostico('golht')" id="minutos-golht" placeholder="40% (Suma 0-45)">
-                </td>
-                <td data-label="Est. Valor Visita (0% Peso)">
-                    <input type="number" min="0" max="100" disabled value="0" placeholder="0% V">
-                </td>
-                <td data-label="Resultado y Stake" class="resultado-final">
-                    <span id="resultado-golht" class="recomendacion-box">Esperando datos...</span>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+<script>
+    /**
+     * Función para cargar y procesar el archivo Excel.
+     */
+    function cargarArchivo() {
+        const file = document.getElementById('archivoExcel').files[0];
+        const resultadosDiv = document.getElementById('resultados');
+        resultadosDiv.innerHTML = ''; // Limpiar resultados anteriores
 
-    <script>
-        // --- Constantes de Gestión de Riesgo ---
-        const BANKROLL = 100; 
-        const KELLY_FRACTION = 0.15; 
-        const MIN_EV_THRESHOLD = 0.05; // Nuevo umbral: 5% EV Mínimo
-
-        // Pesos de Ponderación Universal
-        const PESO_PROPIA_UNIV = 0.60;
-        const PESO_EST_UNIV = 0.20; 
-
-        // Pesos de Ponderación GOL HT
-        const PESO_PROPIA_HT = 0.60;
-        const PESO_MINUTOS_HT = 0.40;
-
-        // --- FUNCIONES LÓGICAS ---
-
-        // Función para determinar el tiempo prudente de espera
-        function determinarTiempoEspera(probabilidadFinal, mercado) {
-            if (mercado === 'golht') {
-                if (probabilidadFinal >= 76) {
-                    return "Minuto 25 - 35 (Si el marcador sigue 0-0)";
-                } else if (probabilidadFinal >= 56) {
-                    return "Minuto 15 - 25 (Si el marcador sigue 0-0)";
-                } else {
-                    return "Al inicio o Minuto 10";
-                }
-            } else { // Mercado Universal (basado en FT)
-                if (probabilidadFinal >= 76) {
-                    return "Minuto 60 - 70 (Si el marcador sigue sin goles)";
-                } else if (probabilidadFinal >= 56) {
-                    return "Descanso (Minuto 45)";
-                } else if (probabilidadFinal >= 30) {
-                    return "Minuto 15 - 30";
-                } else {
-                    return "Evaluar al inicio (Probabilidad Baja)";
-                }
-            }
+        if (!file) {
+            resultadosDiv.innerHTML = '<p style="color:red;">Por favor, selecciona un archivo Excel (.xlsx).</p>';
+            return;
         }
 
-        // Función principal de cálculo
-        function calcularPronostico(mercado) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
             
-            const resultadoSpan = document.getElementById(`resultado-${mercado}`);
-            let inputs;
-            let puntuacionFinal;
+            // Suponemos que los datos están en la primera hoja
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Convertir la hoja a un array de objetos JSON (con encabezados)
+            const json = XLSX.utils.sheet_to_json(worksheet);
 
-            if (mercado === 'golht') {
-                // 1. Obtención de Inputs GOL HT
-                inputs = {
-                    propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
-                    bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
-                    minutos: parseFloat(document.getElementById(`minutos-${mercado}`).value)
-                };
-                
-                // 2. Validación GOL HT
-                let todosValidos = !isNaN(inputs.propia) && inputs.propia > 0 && inputs.propia <= 100 &&
-                                   !isNaN(inputs.bookie) && inputs.bookie >= 1.01 &&
-                                   !isNaN(inputs.minutos) && inputs.minutos > 0 && inputs.minutos <= 100;
-                
-                if (!todosValidos) {
-                    resultadoSpan.innerHTML = 'Datos HT incompletos o inválidos.';
-                    resultadoSpan.className = 'recomendacion-box'; 
-                    return;
-                }
-
-                // 3. Cálculo de Probabilidad Ponderada GOL HT
-                puntuacionFinal = 
-                    (inputs.propia * PESO_PROPIA_HT) + 
-                    (inputs.minutos * PESO_MINUTOS_HT);
-
-            } else { // Mercado Universal (universal)
-                 // 1. Obtención de Inputs Universal
-                inputs = {
-                    propia: parseFloat(document.getElementById(`propia-${mercado}`).value),
-                    bookie: parseFloat(document.getElementById(`bookie-${mercado}`).value),
-                    estl: parseFloat(document.getElementById(`estl-${mercado}`).value),
-                    estv: parseFloat(document.getElementById(`estv-${mercado}`).value)
-                };
-
-                 // 2. Validación Universal
-                let todosValidos = !isNaN(inputs.propia) && inputs.propia > 0 && inputs.propia <= 100 &&
-                                   !isNaN(inputs.bookie) && inputs.bookie >= 1.01 &&
-                                   !isNaN(inputs.estl) && inputs.estl > 0 && inputs.estl <= 100 &&
-                                   !isNaN(inputs.estv) && inputs.estv > 0 && inputs.estv <= 100;
-
-                if (!todosValidos) {
-                    resultadoSpan.innerHTML = 'Datos Universal incompletos o inválidos.';
-                    resultadoSpan.className = 'recomendacion-box'; 
-                    return;
-                }
-                
-                // 3. Cálculo de Probabilidad Ponderada Universal
-                puntuacionFinal = 
-                    (inputs.propia * PESO_PROPIA_UNIV) + 
-                    (inputs.estl * PESO_EST_UNIV) + 
-                    (inputs.estv * PESO_EST_UNIV);
+            if (json.length === 0) {
+                resultadosDiv.innerHTML = '<p style="color:red;">El archivo no contiene datos o la hoja está vacía.</p>';
+                return;
             }
-            
-            puntuacionFinal = Math.round(puntuacionFinal * 10) / 10;
-            
-            // 4. Cálculo de Cuota Justa (CJ)
-            const cuotaJusta = (100 / puntuacionFinal);
-            const cuotaJustaDisplay = cuotaJusta.toFixed(2); 
 
-            // 5. CÁLCULO DE VALOR ESPERADO (EV)
-            const probDecimal = puntuacionFinal / 100;
-            const ev = (probDecimal * inputs.bookie) - 1;
-            const evDisplay = (ev * 100).toFixed(2); 
+            mostrarResultados(json);
+        };
+        
+        reader.onerror = function(e) {
+            resultadosDiv.innerHTML = '<p style="color:red;">Error al leer el archivo: ' + e.target.error.name + '</p>';
+        };
 
-            let recomendacion = '';
-            let clase = 'recomendacion-box '; 
-            let stakeDisplay = '0.00';
-            let mensajeCuotaEsperar = '';
-            let tiempoEspera = determinarTiempoEspera(puntuacionFinal, mercado);
+        reader.readAsArrayBuffer(file);
+    }
 
-            // 6. DECISIÓN FINAL BASADA EN EV Y CÁLCULO KELLY (NUEVA CONDICIÓN)
-            if (ev >= MIN_EV_THRESHOLD) {
-                // EV POSITIVO y CUMPLE EL UMBRAL MÍNIMO: ¡Es una apuesta de valor significativo!
-                
-                // Cálculo de Kelly Fraccional
-                const v = ev; 
-                const b = inputs.bookie - 1; 
-                const kellyFraction = (v / b); 
-                
-                let stake = BANKROLL * kellyFraction * KELLY_FRACTION;
-                
-                if (stake <= 0 || isNaN(stake)) { 
-                    stake = 0;
-                }
-                
-                stakeDisplay = stake.toFixed(2);
+    /**
+     * Función para procesar los datos y mostrar la tabla de resultados.
+     * @param {Array<Object>} data - Array de objetos con los datos del Excel.
+     */
+    function mostrarResultados(data) {
+        const resultadosDiv = document.getElementById('resultados');
+        let html = '<h2>Resultados de Rentabilidad</h2>';
 
-                recomendacion = `✅ APOSTAR (+EV ${evDisplay}%)`;
-                clase += 'apostar-ev';
-
-            } else {
-                // EV NEGATIVO o EV < 5% (No cumple el umbral mínimo)
-                
-                // Calculamos la Cuota Mínima que se necesita para alcanzar el 5% EV
-                // Cuota_Min = (1 + EV_Min) / Prob_Final
-                const cuotaMinimaRequerida = (1 + MIN_EV_THRESHOLD) / probDecimal;
-                const cuotaMinimaRequeridaDisplay = cuotaMinimaRequerida.toFixed(2);
-
-                recomendacion = `❌ NO APOSTAR (EV < ${MIN_EV_THRESHOLD * 100}%)`;
-                clase += 'no-apostar';
-                
-                // Mensaje de Cuota a esperar y el tiempo
-                mensajeCuotaEsperar = `<span class="cuota-esperar">🎯 Esperar cuota ≥ ${cuotaMinimaRequeridaDisplay}</span>`;
-                mensajeCuotaEsperar += `<span class="tiempo-espera">⏳ Buscar entre: ${tiempoEspera}</span>`;
-            }
-            
-            // 7. Actualizar Resultado y Stake
-            const detalle = `Prob. Final: ${puntuacionFinal}% | EV Real: ${evDisplay}%`;
-            
-            if (ev >= MIN_EV_THRESHOLD) {
-                resultadoSpan.innerHTML = `
-                    ${recomendacion}
-                    <span class="stake-final">Stake: ${stakeDisplay} U.</span>
-                    <span class="detalle-final">${detalle}</span>
-                `;
-            } else {
-                 resultadoSpan.innerHTML = `
-                    ${recomendacion}
-                    <span class="stake-final">Stake: ${stakeDisplay} U.</span>
-                    ${mensajeCuotaEsperar}
-                    <span class="detalle-final">${detalle}</span>
-                `;
-            }
-            
-            resultadoSpan.className = clase;
+        // Validar la estructura de la columna
+        if (!data[0].hasOwnProperty('Equipo') || !data[0].hasOwnProperty('Ingresos') || !data[0].hasOwnProperty('Costos')) {
+            resultadosDiv.innerHTML = '<p style="color:red;">Error: El Excel debe tener las columnas "Equipo", "Ingresos" y "Costos" (sensible a mayúsculas/minúsculas).</p>';
+            return;
         }
-    </script>
+
+        // Iniciar la tabla
+        html += '<table><thead><tr><th>Equipo</th><th>Ingresos</th><th>Costos</th><th>Rentabilidad Operativa</th><th>Estado</th></tr></thead><tbody>';
+
+        let rentablesCount = 0;
+        let totalRentabilidad = 0;
+
+        // Procesar cada fila de datos
+        data.forEach(row => {
+            const ingresos = parseFloat(row.Ingresos) || 0;
+            const costos = parseFloat(row.Costos) || 0;
+            
+            // Cálculo principal: Rentabilidad Operativa = Ingresos - Costos
+            const rentabilidad = ingresos - costos;
+            totalRentabilidad += rentabilidad;
+
+            // Formato de moneda (simple, se puede mejorar)
+            const ingresosFmt = ingresos.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
+            const costosFmt = costos.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
+            const rentabilidadFmt = rentabilidad.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
+            
+            const estado = rentabilidad > 0 ? 'Rentable' : (rentabilidad < 0 ? 'No Rentable' : 'Punto de Equilibrio');
+            const estadoClass = rentabilidad > 0 ? 'rentable' : 'no-rentable';
+            
+            if (rentabilidad > 0) {
+                rentablesCount++;
+            }
+
+            html += `
+                <tr>
+                    <td>${row.Equipo}</td>
+                    <td>${ingresosFmt}</td>
+                    <td>${costosFmt}</td>
+                    <td class="${estadoClass}">${rentabilidadFmt}</td>
+                    <td class="${estadoClass}">${estado}</td>
+                </tr>
+            `;
+        });
+
+        // Cerrar tabla y añadir resumen
+        html += '</tbody></table>';
+
+        const totalRentabilidadFmt = totalRentabilidad.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
+
+        html += `
+            <div style="margin-top: 20px; padding: 10px; border: 1px dashed #ccc;">
+                <p>📊 **Resumen Global**:</p>
+                <ul>
+                    <li>Equipos Analizados: **${data.length}**</li>
+                    <li>Equipos Rentables: **${rentablesCount}**</li>
+                    <li>Rentabilidad Operativa Total: **${totalRentabilidadFmt}**</li>
+                </ul>
+            </div>
+        `;
+
+        resultadosDiv.innerHTML = html;
+    }
+</script>
+
 </body>
 </html>
