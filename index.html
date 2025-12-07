@@ -10,7 +10,9 @@ body { font-family: Arial; background: #f4f4f9; padding: 20px; }
 .container { max-width: 1150px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
 h1 { text-align: center; color: #4caf50; border-bottom: 2px solid #4caf50; padding-bottom: 10px; }
 .controls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; }
-select, input, button { padding:10px; border:1px solid #ccc; border-radius:4px; }
+.input-group { display: flex; flex-direction: column; width: 150px; }
+.input-group label { font-size: 0.8em; color: #555; margin-bottom: 4px; }
+select, input:not([type="file"]), button { padding:10px; border:1px solid #ccc; border-radius:4px; }
 table { width:100%; border-collapse:collapse; margin-top:15px; }
 th, td { border:1px solid #ddd; padding:10px; }
 th { background:#4caf50; color:white; }
@@ -45,6 +47,11 @@ button:hover { background:#388e3c; }
     <option value="15">Últimos 15 partidos por equipo</option>
 </select>
 
+<div class="input-group">
+    <label for="victoryInput">Valor de Victoria (Excel):</label>
+    <input type="text" id="victoryInput" placeholder="Ej: Acierto, Correcto" value="" onchange="recalcular()">
+</div>
+
 <button onclick="exportarExcel()">Exportar a Excel</button>
 </div>
 
@@ -54,30 +61,22 @@ button:hover { background:#388e3c; }
 <script>
 let datosGlobales = [];
 let rankingFinal = [];
-let columnasMapeadas = {}; // Objeto para guardar los nombres reales de las columnas
+let columnasMapeadas = {}; 
 
 document.getElementById('fileInput').addEventListener('change', cargarArchivo);
 document.querySelectorAll('select').forEach(e => e.addEventListener('change', recalcular));
 
 // --- FUNCIONES DE UTILIDAD PARA ROBUSTEZ DE DATOS ---
 
-/**
- * Normaliza un encabezado para comparación (elimina espacios y convierte a minúsculas).
- */
 const normalizeHeader = (header) => String(header).toLowerCase().replace(/[^a-z0-9]/g, '');
 
-/**
- * Busca los nombres reales de las columnas necesarias en los datos cargados,
- * siendo más flexible en la detección de 'Result'.
- */
 function obtenerNombresColumnas(data) {
     if (data.length === 0) return false;
     
-    // Nombres requeridos y palabras clave alternativas para búsqueda flexible
     const requiredCols = { 
         'Match': ['match'], 
         'Odd': ['odd', 'cuota'], 
-        'Result': ['result', 'resultado', 'outcome', 'resul'], // <-- Búsqueda mejorada aquí
+        'Result': ['result', 'resultado', 'outcome', 'resul'],
         'League': ['league', 'liga'], 
         'Date': ['date', 'fecha'] 
     };
@@ -92,7 +91,6 @@ function obtenerNombresColumnas(data) {
         for (const realHeader of realHeaders) {
             const normalizedReal = normalizeHeader(realHeader);
             
-            // Comprobar si el encabezado real contiene alguna de las palabras clave
             if (requiredCols[key].some(keyword => normalizedReal.includes(keyword))) {
                 mappedCols[key] = realHeader;
                 found = true;
@@ -101,8 +99,7 @@ function obtenerNombresColumnas(data) {
         }
         
         if (!found) {
-            console.error(`Columna requerida no encontrada: ${key}`);
-            document.getElementById('resultados').innerHTML = `<p class="error-message">Error: No se encontró la columna clave "${key}" en el archivo. Se intentó buscar [${requiredCols[key].join(', ')}].</p>`;
+            document.getElementById('resultados').innerHTML = `<p class="error-message">Error: No se encontró la columna clave "${key}". Se intentó buscar [${requiredCols[key].join(', ')}].</p>`;
             foundAll = false;
         }
     }
@@ -111,9 +108,6 @@ function obtenerNombresColumnas(data) {
     return foundAll;
 }
 
-/**
- * Intenta convertir varios formatos de fecha (numérico de Excel, DD/MM/YYYY) a un objeto Date.
- */
 function parseFechaSeguro(fecha) {
     if (!fecha) return new Date(0);
     if (typeof fecha === "number") return XLSX.SSF.parse_date_code(fecha); 
@@ -125,14 +119,36 @@ function parseFechaSeguro(fecha) {
 }
 
 /**
- * Determina si el resultado de la apuesta es una victoria de forma flexible.
+ * Determina si el resultado es victoria, incluyendo valores fijos y el valor personalizado del input.
  */
 function esWinSeguro(valor) {
-    // 💡 Asegurar que solo procesamos cadenas no vacías. Si es nulo/vacío, devuelve false.
     if (!valor) return false; 
     const v = String(valor).toUpperCase().trim();
-    // Lista de valores que indican victoria
-    return ["WIN","WINNING","1","W","TRUE","SI"].includes(v);
+    
+    // Lista de valores fijos para victoria, incluyendo 'WINNING'
+    let winValues = ["WIN","WINNING","1","W","TRUE","SI"];
+
+    // Agregar valor personalizado del input
+    const customWinValue = document.getElementById('victoryInput').value;
+    if (customWinValue) {
+        winValues.push(String(customWinValue).toUpperCase().trim());
+    }
+
+    return winValues.includes(v);
+}
+
+/**
+ * Determina si el resultado es derrota (pérdida de la unidad).
+ * Se asume que si el resultado no es WIN, es LOSS/VOID/DRAW, pero esta función busca valores explícitos.
+ */
+function esLossSeguro(valor) {
+    if (!valor) return false;
+    const v = String(valor).toUpperCase().trim();
+    // Lista de valores explícitos para derrota, incluyendo 'LOSING'
+    let lossValues = ["LOSS", "LOSING", "0", "L", "FALSE", "NO", "FALLO", "FAIL"];
+    // Si la columna de resultado está vacía, o contiene algo que no es victoria,
+    // pero queremos una detección más estricta de la derrota.
+    return lossValues.includes(v);
 }
 
 
@@ -150,9 +166,8 @@ function cargarArchivo(e) {
 
         if (!obtenerNombresColumnas(datosGlobales)) return; 
         
-        // Ordenar cronológicamente usando el nombre de columna mapeado
         datosGlobales.sort((a,b)=> parseFechaSeguro(a[columnasMapeadas.Date]) - parseFechaSeguro(b[columnasMapeadas.Date]));
-
+        
         cargarLigas();
         recalcular();
     };
@@ -172,7 +187,13 @@ function cargarLigas() {
 }
 
 function recalcular() {
-    if (Object.keys(columnasMapeadas).length < 5) return; 
+    if (Object.keys(columnasMapeadas).length < 5 || datosGlobales.length === 0) {
+        if (document.getElementById('fileInput').files.length > 0) {
+            // Este mensaje se muestra si se cargó el archivo pero falló el mapeo
+             document.getElementById("resultados").innerHTML = `<p class="error-message">Falta el mapeo de columnas. Por favor, asegúrate que los encabezados coinciden o intenta recargar el archivo.</p>`;
+        }
+        return; 
+    }
 
     const posicion = document.getElementById("filtroPosicion").value;
     const liga = document.getElementById("filtroLiga").value;
@@ -180,7 +201,6 @@ function recalcular() {
 
     let datos = [...datosGlobales];
     
-    // Filtro por Liga
     if (liga !== "all") datos = datos.filter(d => String(d[columnasMapeadas.League]) === liga);
 
     procesarDatos(datos, posicion, limite);
@@ -192,7 +212,7 @@ function procesarDatos(data, posicion, limite) {
     data.forEach(row => {
         const matchValue = String(row[columnasMapeadas.Match] || "");
 
-        // Extracción de Equipos (Más flexible: - , vs, guion largo)
+        // Extracción de Equipos
         let teams = [];
         if (matchValue.includes("-") || matchValue.includes("–")) {
              teams = matchValue.split(/\s*[-–]\s*/).map(t => t.trim());
@@ -203,9 +223,11 @@ function procesarDatos(data, posicion, limite) {
         if (teams.length !== 2 || !teams[0] || !teams[1]) return;
         const [home, away] = teams;
         
-        // Uso de nombres de columna mapeados
         const odd = Math.max(parseFloat(row[columnasMapeadas.Odd]) || 1, 1);
-        const isWin = esWinSeguro(row[columnasMapeadas.Result]); // <-- isWin ahora usa el mapeo
+        const resultValue = row[columnasMapeadas.Result];
+        
+        const isWin = esWinSeguro(resultValue);
+        // const isLoss = esLossSeguro(resultValue); // Esta línea es para referencia, pero no la usaremos directamente para el cálculo de Profit/Loss.
 
         if (!porEquipo[home]) porEquipo[home] = [];
         if (!porEquipo[away]) porEquipo[away] = [];
@@ -226,7 +248,7 @@ function procesarDatos(data, posicion, limite) {
         let profit = 0, aciertos = 0;
 
         usados.forEach(p => {
-            // El cálculo de Profit depende directamente de isWin.
+            // 💡 LÓGICA CLAVE: Si es Victoria, suma la ganancia. Si NO es Victoria, resta 1 (asume pérdida/nulo).
             profit += p.isWin ? (p.odd - 1) : -1;
             if (p.isWin) aciertos++;
         });
@@ -256,7 +278,7 @@ function procesarDatos(data, posicion, limite) {
 function mostrarTabla() {
     if (rankingFinal.length === 0) {
         const msg = datosGlobales.length > 0 && Object.keys(columnasMapeadas).length === 5 
-            ? "No se encontraron equipos o no hay datos válidos para los filtros." 
+            ? "No se encontraron equipos o no hay datos válidos para los filtros seleccionados." 
             : "Cargue un archivo válido para comenzar el análisis.";
             
         document.getElementById("resultados").innerHTML = `<p class="error-message">${msg}</p>`;
