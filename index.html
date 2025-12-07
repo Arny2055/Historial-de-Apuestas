@@ -82,7 +82,7 @@
     
     <p>Sube tu archivo **.xlsx** para analizar la rentabilidad por nombre/equipo.</p>
     
-    <p>⚙️ **Estructura esperada del Excel:** La primera hoja debe tener las columnas **Name**, **Desired Outcome** y **Odd**.</p>
+    <p>⚙️ **Estructura esperada del Excel:** La primera hoja debe tener las columnas **Name**, **Desired Outcome** y **Odd**. El cálculo se basa en el **Profit/Pérdida** asumiendo 1 unidad apostada.</p>
     
     <input type="file" id="archivoExcel" accept=".xlsx" onchange="cargarArchivo()">
 
@@ -132,8 +132,6 @@
 
     /**
      * Función para procesar los datos y mostrar la tabla de resultados.
-     * Calcula la rentabilidad (Profit/Pérdida) asumiendo una apuesta de 1 unidad.
-     * @param {Array<Object>} data - Array de objetos con los datos del Excel.
      */
     function mostrarResultados(data) {
         const resultadosDiv = document.getElementById('resultados');
@@ -165,7 +163,7 @@
                 resultadosAgrupados[name] = {
                     totalMatches: 0,
                     successfulOutcomes: 0,
-                    totalProfit: 0 // Asumiendo una apuesta de 1 unidad por partido
+                    totalProfit: 0 
                 };
             }
 
