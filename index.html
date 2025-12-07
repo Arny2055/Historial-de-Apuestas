@@ -2,72 +2,34 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calculadora de Rentabilidad por Equipo</title>
+<title>Rentabilidad por Equipo</title>
 <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f4f4f9;
-}
-.container {
-    max-width: 900px;
-    margin: auto;
-    background: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-h1 {
-    color: #4caf50;
-    text-align: center;
-    border-bottom: 2px solid #4caf50;
-    padding-bottom: 10px;
-}
-input[type="file"] {
-    width: 100%;
-    padding: 10px;
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-th, td {
-    border: 1px solid #ddd;
-    padding: 10px;
-}
-th {
-    background-color: #4caf50;
-    color: white;
-}
-tr:nth-child(even) {
-    background-color: #f2f2f2;
-}
+body { font-family: Arial; background: #f4f4f9; padding: 20px; }
+.container { max-width: 950px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; }
+h1 { text-align: center; color: #4caf50; }
+input { width: 100%; padding: 10px; margin-top: 10px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { border: 1px solid #ddd; padding: 10px; }
+th { background: #4caf50; color: white; }
 .rentable { color: green; font-weight: bold; }
 .no-rentable { color: red; font-weight: bold; }
-.neutral { color: gray; }
+.neutral { color: gray; font-weight: bold; }
 </style>
 </head>
 
 <body>
 <div class="container">
-<h1>⚽ Analizador de Rentabilidad por Equipo</h1>
-
-<input type="file" id="archivoExcel" accept=".xlsx" onchange="cargarArchivo()">
+<h1>⚽ Rentabilidad por Equipo (desde Match)</h1>
+<input type="file" id="fileInput" accept=".xlsx">
 <div id="resultados"></div>
 </div>
 
 <script>
-function cargarArchivo() {
-    const file = document.getElementById('archivoExcel').files[0];
-    const resultadosDiv = document.getElementById('resultados');
-    resultadosDiv.innerHTML = '';
+document.getElementById('fileInput').addEventListener('change', cargarArchivo);
 
-    if (!file) return;
-
+function cargarArchivo(e) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
@@ -75,80 +37,61 @@ function cargarArchivo() {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-        if (json.length === 0) {
-            resultadosDiv.innerHTML = '<p class="no-rentable">El archivo está vacío.</p>';
-            return;
-        }
-
-        mostrarResultado(json);
+        procesarDatos(json);
     };
-
-    reader.readAsArrayBuffer(file);
+    reader.readAsArrayBuffer(e.target.files[0]);
 }
 
-function mostrarResultado(data) {
-    const resultadosDiv = document.getElementById('resultados');
-    let html = '<h2>Resultados por Equipo</h2>';
-
-    const headers = Object.keys(data[0]).map(h => h.toLowerCase());
-
-    const findCol = keys => headers.find(h => keys.some(k => h.includes(k)));
-
-    const COL_HOME = findCol(['home', 'local']);
-    const COL_AWAY = findCol(['away', 'visit']);
-    const COL_ODD = findCol(['odd', 'cuota']);
-    const COL_RESULT = findCol(['result', 'resultado', 'win']);
-
-    if (!COL_HOME || !COL_AWAY || !COL_ODD || !COL_RESULT) {
-        resultadosDiv.innerHTML = '<p class="no-rentable">Faltan columnas necesarias.</p>';
-        return;
-    }
-
-    const resultadosAgrupados = {};
-
-    const esGanada = val => {
-        val = String(val).toLowerCase();
-        return val === "win" || val === "winning" || val === "1" || val === "si";
-    };
+function procesarDatos(data) {
+    const resultados = {};
 
     data.forEach(row => {
-        const home = String(row[COL_HOME]).trim();
-        const away = String(row[COL_AWAY]).trim();
-        if (!home || !away) return;
+        const match = String(row["Match"] || "").trim();
+        const odd = parseFloat(row["Odd"]) || 1;
+        const result = String(row["Result"]).toUpperCase();
 
-        const odd = parseFloat(row[COL_ODD]) || 1;
-        const result = esGanada(row[COL_RESULT]);
-        const profit = result ? (odd - 1) : -1;
+        if (!match.includes("-")) return;
+
+        const [home, away] = match.split("-").map(e => e.trim());
+
+        const isWin = result === "WIN" || result === "WINNING" || result === "1";
+        const profit = isWin ? (odd - 1) : -1;
 
         [home, away].forEach(team => {
-            if (!resultadosAgrupados[team]) {
-                resultadosAgrupados[team] = { partidos: 0, aciertos: 0, profit: 0 };
+            if (!resultados[team]) {
+                resultados[team] = { partidos: 0, aciertos: 0, profit: 0 };
             }
-            resultadosAgrupados[team].partidos++;
-            if (result) resultadosAgrupados[team].aciertos++;
-            resultadosAgrupados[team].profit += profit;
+            resultados[team].partidos++;
+            if (isWin) resultados[team].aciertos++;
+            resultados[team].profit += profit;
         });
     });
 
-    const equiposFinal = Object.entries(resultadosAgrupados).map(([name, d]) => ({
-        name,
-        partidos: d.partidos,
-        aciertos: d.aciertos,
-        tasa: (d.aciertos / d.partidos) * 100,
-        profit: d.profit
-    })).sort((a, b) => b.profit - a.profit);
+    mostrarTabla(resultados);
+}
 
-    html += `<table>
-    <tr>
-        <th>Equipo</th>
-        <th>Partidos</th>
-        <th>Aciertos</th>
-        <th>Win %</th>
-        <th>Profit</th>
-        <th>Estado</th>
-    </tr>`;
+function mostrarTabla(resultados) {
+    let html = `<table>
+        <tr>
+            <th>Equipo</th>
+            <th>Partidos</th>
+            <th>Aciertos</th>
+            <th>Win %</th>
+            <th>Profit</th>
+            <th>Estado</th>
+        </tr>`;
 
-    equiposFinal.forEach(e => {
+    const equipos = Object.entries(resultados)
+        .map(([name, d]) => ({
+            name,
+            partidos: d.partidos,
+            aciertos: d.aciertos,
+            tasa: (d.aciertos / d.partidos) * 100,
+            profit: d.profit
+        }))
+        .sort((a, b) => b.profit - a.profit);
+
+    equipos.forEach(e => {
         const estado = e.profit > 0 ? "Rentable" : e.profit < 0 ? "Pérdida" : "Neutro";
         const clase = e.profit > 0 ? "rentable" : e.profit < 0 ? "no-rentable" : "neutral";
 
@@ -160,12 +103,11 @@ function mostrarResultado(data) {
             <td>${e.tasa.toFixed(1)}%</td>
             <td class="${clase}">${e.profit.toFixed(2)} u</td>
             <td class="${clase}">${estado}</td>
-        </tr>
-        `;
+        </tr>`;
     });
 
     html += "</table>";
-    resultadosDiv.innerHTML = html;
+    document.getElementById("resultados").innerHTML = html;
 }
 </script>
 </body>
