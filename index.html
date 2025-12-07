@@ -19,6 +19,7 @@ th { background:#4caf50; color:white; }
 .neutral { color:#555; font-weight:bold; }
 button { cursor:pointer; background:#4caf50; color:white; border:none; transition:.3s; }
 button:hover { background:#388e3c; }
+.error-message { color: red; font-weight: bold; margin-top: 15px; padding: 10px; border: 1px solid red; border-radius: 4px; }
 </style>
 </head>
 
@@ -53,34 +54,96 @@ button:hover { background:#388e3c; }
 <script>
 let datosGlobales = [];
 let rankingFinal = [];
+let columnasMapeadas = {}; // Objeto para guardar los nombres reales de las columnas
 
 document.getElementById('fileInput').addEventListener('change', cargarArchivo);
 document.querySelectorAll('select').forEach(e => e.addEventListener('change', recalcular));
 
-function parseFechaSeguro(fecha) {
-    if (!fecha) return new Date(0);
-    if (typeof fecha === "number") return XLSX.SSF.parse_date_code(fecha);
-    const partes = String(fecha).split("/");
-    if (partes.length === 3) {
-        return new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
+// --- FUNCIONES DE UTILIDAD PARA ROBUSTEZ DE DATOS ---
+
+/**
+ * Normaliza un encabezado para comparación (elimina espacios y convierte a minúsculas).
+ */
+const normalizeHeader = (header) => String(header).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * Busca los nombres reales de las columnas necesarias en los datos cargados.
+ */
+function obtenerNombresColumnas(data) {
+    if (data.length === 0) return false;
+    
+    const requiredCols = { 
+        'Match': null, 
+        'Odd': null, 
+        'Result': null, 
+        'League': null, 
+        'Date': null 
+    };
+    const realHeaders = Object.keys(data[0]);
+
+    let foundAll = true;
+    
+    for (const key in requiredCols) {
+        const normalizedKey = normalizeHeader(key);
+        let found = false;
+
+        for (const realHeader of realHeaders) {
+            const normalizedReal = normalizeHeader(realHeader);
+            // Busca una coincidencia exacta o que el encabezado real contenga la clave (Match, Odd, etc.)
+            if (normalizedReal.includes(normalizedKey)) { 
+                requiredCols[key] = realHeader;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            console.error(`Columna requerida no encontrada: ${key}`);
+            document.getElementById('resultados').innerHTML = `<p class="error-message">Error: No se encontró la columna clave "${key}" en el archivo. Asegúrate de que los encabezados existan y estén escritos correctamente.</p>`;
+            foundAll = false;
+        }
     }
-    return new Date(fecha);
+    columnasMapeadas = requiredCols;
+    return foundAll;
 }
 
+/**
+ * Intenta convertir varios formatos de fecha (numérico de Excel, DD/MM/YYYY) a un objeto Date.
+ */
+function parseFechaSeguro(fecha) {
+    if (!fecha) return new Date(0);
+    if (typeof fecha === "number") return XLSX.SSF.parse_date_code(fecha); 
+    const partes = String(fecha).split("/");
+    if (partes.length === 3) {
+        return new Date(`${partes[2]}-${partes[1]}-${partes[0]}`); 
+    }
+    return new Date(fecha); 
+}
+
+/**
+ * Determina si el resultado de la apuesta es una victoria de forma flexible.
+ */
 function esWinSeguro(valor) {
     const v = String(valor).toUpperCase().trim();
     return ["WIN","WINNING","1","W","TRUE","SI"].includes(v);
 }
 
+
+// --- LÓGICA PRINCIPAL ---
+
 function cargarArchivo(e) {
     const reader = new FileReader();
+    document.getElementById('resultados').innerHTML = ''; // Limpiar mensajes de error
+    
     reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         datosGlobales = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-        datosGlobales.sort((a,b)=> parseFechaSeguro(a.Date) - parseFechaSeguro(b.Date));
+        if (!obtenerNombresColumnas(datosGlobales)) return; // Detener si falla el mapeo
+        
+        // Ordenar cronológicamente usando el nombre de columna mapeado
+        datosGlobales.sort((a,b)=> parseFechaSeguro(a[columnasMapeadas.Date]) - parseFechaSeguro(b[columnasMapeadas.Date]));
 
         cargarLigas();
         recalcular();
@@ -89,7 +152,8 @@ function cargarArchivo(e) {
 }
 
 function cargarLigas() {
-    const ligas = [...new Set(datosGlobales.map(r => r.League).filter(l => l && l.trim() !== ''))];
+    // Usar el nombre de columna mapeado
+    const ligas = [...new Set(datosGlobales.map(r => r[columnasMapeadas.League]).filter(l => l && String(l).trim() !== ''))];
     const select = document.getElementById("filtroLiga");
     select.innerHTML = '<option value="all">Todas las Ligas</option>';
     ligas.forEach(l => {
@@ -101,12 +165,17 @@ function cargarLigas() {
 }
 
 function recalcular() {
+    // Si no se han cargado columnas válidas, no se puede recalcular
+    if (Object.keys(columnasMapeadas).length < 5) return; 
+
     const posicion = document.getElementById("filtroPosicion").value;
     const liga = document.getElementById("filtroLiga").value;
     const limite = Number(document.getElementById("filtroLimite").value);
 
     let datos = [...datosGlobales];
-    if (liga !== "all") datos = datos.filter(d => String(d.League) === liga);
+    
+    // Filtro por Liga (usando el nombre de columna mapeado)
+    if (liga !== "all") datos = datos.filter(d => String(d[columnasMapeadas.League]) === liga);
 
     procesarDatos(datos, posicion, limite);
 }
@@ -115,11 +184,22 @@ function procesarDatos(data, posicion, limite) {
     const porEquipo = {};
 
     data.forEach(row => {
-        if (!row.Match || !String(row.Match).includes("-")) return;
+        const matchValue = String(row[columnasMapeadas.Match] || "");
 
-        const [home, away] = String(row.Match).split("-").map(t => t.trim());
-        const odd = Math.max(parseFloat(row.Odd) || 1, 1);
-        const isWin = esWinSeguro(row.Result);
+        // Extracción de Equipos (Más flexible: - , vs, guion largo)
+        let teams = [];
+        if (matchValue.includes("-") || matchValue.includes("–")) {
+             teams = matchValue.split(/\s*[-–]\s*/).map(t => t.trim());
+        } else if (matchValue.toLowerCase().includes("vs")) {
+            teams = matchValue.split(/\s+vs\s+/i).map(t => t.trim());
+        }
+
+        if (teams.length !== 2 || !teams[0] || !teams[1]) return;
+        const [home, away] = teams;
+        
+        // Uso de nombres de columna mapeados
+        const odd = Math.max(parseFloat(row[columnasMapeadas.Odd]) || 1, 1);
+        const isWin = esWinSeguro(row[columnasMapeadas.Result]);
 
         if (!porEquipo[home]) porEquipo[home] = [];
         if (!porEquipo[away]) porEquipo[away] = [];
@@ -164,7 +244,14 @@ function procesarDatos(data, posicion, limite) {
     mostrarTabla();
 }
 
+// --- VISUALIZACIÓN Y EXPORTACIÓN ---
+
 function mostrarTabla() {
+    if (rankingFinal.length === 0 && datosGlobales.length > 0) {
+        document.getElementById("resultados").innerHTML = `<p class="error-message">No se encontraron equipos o no hay datos válidos para los filtros seleccionados. Asegúrate que la columna 'Match' contenga el formato 'Equipo A - Equipo B'.</p>`;
+        return;
+    }
+    
     let html = `<table>
     <tr>
         <th>Equipo</th><th>Partidos</th><th>Aciertos</th><th>Win%</th>
