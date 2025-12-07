@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Rendimiento por Mercado de Apuestas</title>
+    <title>Calculadora de Rentabilidad por Equipo</title>
     
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
@@ -22,9 +22,9 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            color: #1e88e5;
+            color: #4caf50; /* Verde para rentabilidad */
             text-align: center;
-            border-bottom: 2px solid #1e88e5;
+            border-bottom: 2px solid #4caf50;
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
@@ -55,7 +55,7 @@
             text-align: left;
         }
         th {
-            background-color: #1e88e5;
+            background-color: #4caf50;
             color: white;
             font-weight: bold;
         }
@@ -78,11 +78,11 @@
 <body>
 
 <div class="container">
-    <h1>📈 Analizador de Rendimiento por Mercado de Apuestas</h1>
+    <h1>⚽ Analizador de Rentabilidad por Equipo</h1>
     
-    <p>Sube tu archivo **.xlsx** para analizar la rentabilidad de cada mercado.</p>
+    <p>Sube tu archivo **.xlsx** para analizar la rentabilidad de cada equipo (Local y Visitante).</p>
     
-    <p>⚙️ **Columnas clave para el cálculo:** **Name** (Mercado), **Odd** (Cuota) y **Result** (Ganador/Perdedor).</p>
+    <p>⚙️ **Columnas clave para el cálculo:** **Home** (Local), **Away** (Visitante), **Odd** (Cuota) y **Result** (Ganador/Perdedor).</p>
     
     <input type="file" id="archivoExcel" accept=".xlsx" onchange="cargarArchivo()">
 
@@ -134,11 +134,12 @@
      */
     function mostrarResultado(data) {
         const resultadosDiv = document.getElementById('resultados');
-        let html = '<h2>Resultados Agrupados por Mercado (Name)</h2>';
+        let html = '<h2>Resultados Agrupados por Equipo (Local y Visitante)</h2>';
 
         // 1. Mapeo flexible de columnas
         const expectedCols = {
-            'Name': null,
+            'Home': null,
+            'Away': null,
             'Odd': null,
             'Result': null 
         };
@@ -152,7 +153,7 @@
             for (const realHeader of realHeaders) {
                 const normalizedReal = normalize(realHeader);
                 
-                // Buscamos una coincidencia flexible
+                // Buscamos una coincidencia flexible (que contenga el nombre esperado)
                 if (normalizedReal.includes(normalizedExpected)) {
                     expectedCols[expected] = realHeader;
                     break;
@@ -161,85 +162,96 @@
         }
         
         // Asignar las columnas clave
-        const COL_MERCADO = expectedCols['Name'];
+        const COL_HOME = expectedCols['Home'];
+        const COL_AWAY = expectedCols['Away'];
         const COL_ODD = expectedCols['Odd'];
         const COL_RESULT = expectedCols['Result'];
 
         // 2. Validación de columnas necesarias 
-        if (!COL_MERCADO || !COL_ODD || !COL_RESULT) {
-            resultadosDiv.innerHTML = `<p class="no-rentable">Error: No se pudieron encontrar las columnas clave ('Name', 'Odd', 'Result') en la hoja.<br>Asegúrate de que la primera hoja contiene estos encabezados.</p>`;
+        if (!COL_HOME || !COL_AWAY || !COL_ODD || !COL_RESULT) {
+            resultadosDiv.innerHTML = `<p class="no-rentable">Error: No se pudieron encontrar las columnas clave ('Home', 'Away', 'Odd', 'Result') en la hoja.<br>Asegúrate de que la primera hoja contiene estos encabezados.</p>`;
             return;
         }
 
-        // Estructura para agrupar resultados por mercado
+        // Estructura para agrupar resultados por equipo
         const resultadosAgrupados = {};
 
         data.forEach(row => {
-            // Usar los nombres de columna reales encontrados
-            const name = String(row[COL_MERCADO]).trim();
+            // Obtener equipos
+            const homeTeam = String(row[COL_HOME]).trim();
+            const awayTeam = String(row[COL_AWAY]).trim();
+
+            if (!homeTeam || !awayTeam) return; // Saltar si faltan nombres de equipos
+
+            // Obtener resultado y cuota
             const resultOutcome = String(row[COL_RESULT]).toUpperCase().trim();
-            // La cuota debe ser un número mayor o igual a 1
             const odd = parseFloat(row[COL_ODD]) > 1 ? parseFloat(row[COL_ODD]) : 1; 
 
-            if (!name) return;
-
-            if (!resultadosAgrupados[name]) {
-                resultadosAgrupados[name] = {
-                    totalMatches: 0,
-                    successfulOutcomes: 0,
-                    totalProfit: 0 
-                };
-            }
-
-            // Un acierto se considera si el Result es 'WINNING'
+            // Cálculo de Profit: (Odd - 1) si acierta ('WINNING'), o -1 si falla ('LOSING')
             const isSuccess = (resultOutcome === 'WINNING');
-            
-            // Cálculo de Profit: (Odd - 1) si acierta, o -1 si falla
             const profit = isSuccess ? (odd - 1) : -1; 
+            
+            // Función para agregar los datos a un equipo
+            const agregarResultado = (teamName) => {
+                if (!resultadosAgrupados[teamName]) {
+                    resultadosAgrupados[teamName] = {
+                        totalMatches: 0,
+                        successfulBets: 0, // En este contexto, 'apuestas exitosas' se refiere a que el mercado fue ganador.
+                        totalProfit: 0 
+                    };
+                }
 
-            resultadosAgrupados[name].totalMatches++;
-            if (isSuccess) {
-                resultadosAgrupados[name].successfulOutcomes++;
-            }
-            resultadosAgrupados[name].totalProfit += profit;
+                resultadosAgrupados[teamName].totalMatches++;
+                if (isSuccess) {
+                    resultadosAgrupados[teamName].successfulBets++;
+                }
+                // Atribuir la ganancia/pérdida del mercado registrado al equipo
+                resultadosAgrupados[teamName].totalProfit += profit;
+            };
+
+            // 3. Agregar el resultado al equipo local y al equipo visitante
+            agregarResultado(homeTeam);
+            agregarResultado(awayTeam);
         });
 
-        // 3. Generación de resultados finales
-        const mercadosCalculados = Object.keys(resultadosAgrupados).map(name => {
+        // 4. Generación de resultados finales
+        const equiposCalculados = Object.keys(resultadosAgrupados).map(name => {
             const data = resultadosAgrupados[name];
-            const winRate = (data.successfulOutcomes / data.totalMatches) * 100;
+            // La tasa de acierto aquí es la frecuencia con que el mercado fue ganador cuando el equipo jugó
+            const winRate = (data.successfulBets / data.totalMatches) * 100;
             
             return {
                 name: name,
                 partidos: data.totalMatches,
-                ganados: data.successfulOutcomes,
+                aciertos: data.successfulBets,
                 tasaAcierto: winRate,
-                profitTotal: data.profitTotal
+                profitTotal: data.totalProfit
             };
         });
 
-        // Ordenar por Profit Total (de mayor a menor)
-        mercadosCalculados.sort((a, b) => b.profitTotal - a.profitTotal);
+        // Ordenar por Rentabilidad/Profit Total (de mayor a menor)
+        equiposCalculados.sort((a, b) => b.profitTotal - a.profitTotal);
 
-        // 4. Iniciar la tabla
-        html += '<table><thead><tr><th>Mercado (Name)</th><th>Eventos Analizados</th><th>Aciertos</th><th>Tasa de Acierto (%)</th><th>Rentabilidad (Profit/Pérdida)</th><th>Estado</th></tr></thead><tbody>';
+        // 5. Iniciar la tabla
+        html += '<table><thead><tr><th>Equipo</th><th>Partidos Analizados</th><th>Apuestas Ganadoras*</th><th>Tasa de Acierto (%)</th><th>Rentabilidad (Profit/Pérdida)</th><th>Estado</th></tr></thead><tbody>';
 
         let totalProfitGlobal = 0;
-        let positivosCount = 0;
+        let equiposPositivosCount = 0;
 
-        // Mostrar cada mercado en la tabla
-        mercadosCalculados.forEach(mercado => {
-            totalProfitGlobal += mercado.profitTotal;
+        // Mostrar cada equipo en la tabla
+        equiposCalculados.forEach(equipo => {
+            // Esto es solo para un resumen global, no el total del equipo
+            totalProfitGlobal += equipo.profitTotal; 
 
-            const profitFmt = mercado.profitTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 });
-            const tasaAciertoFmt = mercado.tasaAcierto.toFixed(1);
+            const profitFmt = equipo.profitTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 });
+            const tasaAciertoFmt = equipo.tasaAcierto.toFixed(1);
             
             let estado, estadoClass;
-            if (mercado.profitTotal > 0) {
+            if (equipo.profitTotal > 0) {
                 estado = 'Rentable';
                 estadoClass = 'rentable';
-                positivosCount++;
-            } else if (mercado.profitTotal < 0) {
+                equiposPositivosCount++;
+            } else if (equipo.profitTotal < 0) {
                 estado = 'Pérdida';
                 estadoClass = 'no-rentable';
             } else {
@@ -249,9 +261,9 @@
 
             html += `
                 <tr>
-                    <td>${mercado.name}</td>
-                    <td>${mercado.partidos}</td>
-                    <td>${mercado.ganados}</td>
+                    <td>${equipo.name}</td>
+                    <td>${equipo.partidos}</td>
+                    <td>${equipo.aciertos}</td>
                     <td>${tasaAciertoFmt}%</td>
                     <td class="${estadoClass}">${profitFmt} u</td>
                     <td class="${estadoClass}">${estado}</td>
@@ -259,21 +271,17 @@
             `;
         });
 
-        // 5. Cierre y resumen
+        // 6. Cierre y resumen
         html += '</tbody></table>';
 
-        const totalProfitGlobalFmt = totalProfitGlobal.toLocaleString('es-ES', { minimumFractionDigits: 2 });
-
         html += `
-            <div style="margin-top: 25px; padding: 15px; border: 2px dashed #1e88e5; border-radius: 4px;">
-                <p>⭐ **Resumen Global del Rendimiento**:</p>
+            <div style="margin-top: 25px; padding: 15px; border: 2px dashed #4caf50; border-radius: 4px;">
+                <p>⭐ **Nota Importante sobre la Rentabilidad por Equipo**:</p>
                 <ul>
-                    <li>Registros Totales Analizados: **${data.length}**</li>
-                    <li>Mercados Únicos Analizados: **${mercadosCalculados.length}**</li>
-                    <li>Rendimiento Total Global (Profit/Pérdida): **${totalProfitGlobalFmt} u**</li>
-                    <li>Mercados con Profit Positivo: **${positivosCount}**</li>
+                    <li>**Rentabilidad (Profit/Pérdida)**: Muestra la suma de la ganancia/pérdida de **todas las apuestas registradas** en tu archivo cada vez que ese equipo jugó (Local o Visitante).</li>
+                    <li>**Apuestas Ganadoras***: Muestra cuántas veces la apuesta registrada (`Result = winning`) fue un acierto en los partidos de ese equipo.</li>
                 </ul>
-                <p style="font-size: 0.85em; color: #555;">*La unidad (u) representa la cantidad hipotética apostada en cada evento. El Profit se calcula usando la columna **Result** (si es 'winning' es acierto).</p>
+                <p style="font-size: 0.85em; color: #555;">*La unidad (u) representa la cantidad hipotética apostada en cada evento. El equipo más rentable está en la primera fila.</p>
             </div>
         `;
 
