@@ -7,15 +7,16 @@
 
 <style>
 body { font-family: Arial; background: #f4f4f9; padding: 20px; }
-.container { max-width: 950px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; }
-h1 { text-align: center; color: #4caf50; }
-input { width: 100%; padding: 10px; margin-top: 10px; }
-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-th, td { border: 1px solid #ddd; padding: 10px; }
+.container { max-width: 950px; margin: auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+h1 { text-align: center; color: #4caf50; border-bottom: 2px solid #4caf50; padding-bottom: 10px; }
+input { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.95em; }
+th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
 th { background: #4caf50; color: white; }
-.rentable { color: green; font-weight: bold; }
-.no-rentable { color: red; font-weight: bold; }
-.neutral { color: gray; font-weight: bold; }
+.rentable { color: #2e7d32; font-weight: bold; }
+.no-rentable { color: #d32f2f; font-weight: bold; }
+.neutral { color: #555; font-weight: bold; }
+.resumen { margin-top: 30px; padding: 15px; border: 2px dashed #4caf50; border-radius: 8px; background: #e8f5e9; }
 </style>
 </head>
 
@@ -35,6 +36,7 @@ function cargarArchivo(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        // { defval: "" } asegura que las celdas vacías se traten como cadenas vacías
         const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
         procesarDatos(json);
@@ -44,19 +46,30 @@ function cargarArchivo(e) {
 
 function procesarDatos(data) {
     const resultados = {};
+    let totalRegistrosProcesados = 0; // Contador de registros de apuestas
 
     data.forEach(row => {
         const match = String(row["Match"] || "").trim();
-        const odd = parseFloat(row["Odd"]) || 1;
+        // Aseguramos que la cuota sea al menos 1 para evitar divisiones o cálculos inválidos
+        const odd = parseFloat(row["Odd"]) > 1 ? parseFloat(row["Odd"]) : 1; 
         const result = String(row["Result"]).toUpperCase();
 
-        if (!match.includes("-")) return;
+        if (!match.includes("-")) return; // Si no hay un formato de partido (Ej: "Local - Visitante"), saltar
 
-        const [home, away] = match.split("-").map(e => e.trim());
+        const teams = match.split("-").map(e => e.trim());
+        if (teams.length !== 2) return; // Si el split no funciona correctamente, saltar
 
+        const [home, away] = teams;
+        
+        // Determinar el éxito de la apuesta
         const isWin = result === "WIN" || result === "WINNING" || result === "1";
+        
+        // Cálculo de Profit: Ganancia = Cuota - 1; Pérdida = -1 (por unidad apostada)
         const profit = isWin ? (odd - 1) : -1;
+        
+        totalRegistrosProcesados++;
 
+        // Agregamos el resultado a AMBOS equipos
         [home, away].forEach(team => {
             if (!resultados[team]) {
                 resultados[team] = { partidos: 0, aciertos: 0, profit: 0 };
@@ -67,33 +80,42 @@ function procesarDatos(data) {
         });
     });
 
-    mostrarTabla(resultados);
+    mostrarTabla(resultados, totalRegistrosProcesados);
 }
 
-function mostrarTabla(resultados) {
+function mostrarTabla(resultados, totalRegistrosProcesados) {
     let html = `<table>
         <tr>
             <th>Equipo</th>
-            <th>Partidos</th>
-            <th>Aciertos</th>
-            <th>Win %</th>
-            <th>Profit</th>
+            <th>Partidos Analizados</th>
+            <th>Apuestas Ganadoras*</th>
+            <th>Tasa de Acierto (%)</th>
+            <th>Profit (Unidades)</th>
             <th>Estado</th>
         </tr>`;
 
+    // 1. Convertir a array, calcular tasa y ordenar por Profit
     const equipos = Object.entries(resultados)
         .map(([name, d]) => ({
             name,
             partidos: d.partidos,
             aciertos: d.aciertos,
-            tasa: (d.aciertos / d.partidos) * 100,
+            tasa: d.partidos > 0 ? (d.aciertos / d.partidos) * 100 : 0,
             profit: d.profit
         }))
         .sort((a, b) => b.profit - a.profit);
 
+    let totalProfitGlobal = 0;
+    let equiposPositivosCount = 0;
+    
+    // 2. Generar filas de la tabla
     equipos.forEach(e => {
+        totalProfitGlobal += e.profit; // Suma de todos los profits, debe ser igual a dos veces el profit total del mercado
+        
         const estado = e.profit > 0 ? "Rentable" : e.profit < 0 ? "Pérdida" : "Neutro";
         const clase = e.profit > 0 ? "rentable" : e.profit < 0 ? "no-rentable" : "neutral";
+        
+        if (e.profit > 0) equiposPositivosCount++;
 
         html += `
         <tr>
@@ -107,6 +129,24 @@ function mostrarTabla(resultados) {
     });
 
     html += "</table>";
+    
+    // 3. Agregar Resumen Global
+    const profitGlobalPromedio = totalProfitGlobal / 2; // El profit total se sumó dos veces (Home y Away)
+    const profitGlobalFmt = profitGlobalPromedio.toFixed(2);
+    
+    html += `
+        <div class="resumen">
+            <h3>⭐ Resumen del Análisis Global</h3>
+            <ul>
+                <li>Total de Apuestas (Registros Procesados): <b>${totalRegistrosProcesados}</b></li>
+                <li>Equipos Únicos Analizados: <b>${equipos.length}</b></li>
+                <li>Profit Neto Total (Suma de todos los mercados): <b>${profitGlobalFmt} u</b></li>
+                <li>Equipos con Rentabilidad Positiva: <b>${equiposPositivosCount}</b></li>
+            </ul>
+            <p style="font-size: 0.85em; color: #555;">*<b>Profit</b> representa la ganancia o pérdida neta acumulada por cada equipo cada vez que participa en un partido con una apuesta registrada.</p>
+        </div>
+    `;
+
     document.getElementById("resultados").innerHTML = html;
 }
 </script>
