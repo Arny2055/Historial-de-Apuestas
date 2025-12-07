@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Rentabilidad de Equipos de Fútbol</title>
+    <title>Calculadora de Rendimiento de Apuestas Deportivas</title>
     
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
@@ -14,7 +14,7 @@
             background-color: #f4f4f9;
         }
         .container {
-            max-width: 800px;
+            max-width: 900px;
             margin: auto;
             background: white;
             padding: 30px;
@@ -22,11 +22,14 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            color: #333;
+            color: #1e88e5; /* Azul vibrante */
             text-align: center;
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid #1e88e5;
             padding-bottom: 10px;
             margin-bottom: 20px;
+        }
+        p {
+            line-height: 1.5;
         }
         input[type="file"] {
             display: block;
@@ -44,6 +47,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
+            font-size: 0.9em;
         }
         th, td {
             border: 1px solid #ddd;
@@ -51,30 +55,34 @@
             text-align: left;
         }
         th {
-            background-color: #007bff;
+            background-color: #1e88e5;
             color: white;
+            font-weight: bold;
         }
         tr:nth-child(even) {
             background-color: #f2f2f2;
         }
         .rentable {
-            color: green;
+            color: #2e7d32; /* Verde oscuro */
             font-weight: bold;
         }
         .no-rentable {
-            color: red;
+            color: #d32f2f; /* Rojo oscuro */
             font-weight: bold;
+        }
+        .neutral {
+            color: #555;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>⚽ Analizador de Rentabilidad de Equipos de Fútbol</h1>
+    <h1>📈 Analizador de Rendimiento de Apuestas</h1>
     
-    <p>Sube tu archivo **.xlsx** para calcular la rentabilidad operativa de cada equipo.</p>
+    <p>Sube tu archivo **.xlsx** para analizar la rentabilidad por nombre/equipo.</p>
     
-    <p>**Estructura esperada del Excel:** La primera hoja debe tener columnas llamadas **Equipo**, **Ingresos** y **Costos**.</p>
+    <p>⚙️ **Estructura esperada del Excel:** La primera hoja debe tener las columnas **Name**, **Desired Outcome** y **Odd**.</p>
     
     <input type="file" id="archivoExcel" accept=".xlsx" onchange="cargarArchivo()">
 
@@ -92,7 +100,7 @@
         resultadosDiv.innerHTML = ''; // Limpiar resultados anteriores
 
         if (!file) {
-            resultadosDiv.innerHTML = '<p style="color:red;">Por favor, selecciona un archivo Excel (.xlsx).</p>';
+            resultadosDiv.innerHTML = '<p class="no-rentable">Por favor, selecciona un archivo Excel (.xlsx).</p>';
             return;
         }
 
@@ -101,15 +109,14 @@
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, {type: 'array'});
             
-            // Suponemos que los datos están en la primera hoja
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Convertir la hoja a un array de objetos JSON (con encabezados)
+            // Convertir la hoja a un array de objetos JSON
             const json = XLSX.utils.sheet_to_json(worksheet);
 
             if (json.length === 0) {
-                resultadosDiv.innerHTML = '<p style="color:red;">El archivo no contiene datos o la hoja está vacía.</p>';
+                resultadosDiv.innerHTML = '<p class="no-rentable">El archivo no contiene datos o la hoja está vacía.</p>';
                 return;
             }
 
@@ -117,7 +124,7 @@
         };
         
         reader.onerror = function(e) {
-            resultadosDiv.innerHTML = '<p style="color:red;">Error al leer el archivo: ' + e.target.error.name + '</p>';
+            resultadosDiv.innerHTML = '<p class="no-rentable">Error al leer el archivo: ' + e.target.error.name + '</p>';
         };
 
         reader.readAsArrayBuffer(file);
@@ -125,51 +132,106 @@
 
     /**
      * Función para procesar los datos y mostrar la tabla de resultados.
+     * Calcula la rentabilidad (Profit/Pérdida) asumiendo una apuesta de 1 unidad.
      * @param {Array<Object>} data - Array de objetos con los datos del Excel.
      */
     function mostrarResultados(data) {
         const resultadosDiv = document.getElementById('resultados');
-        let html = '<h2>Resultados de Rentabilidad</h2>';
+        let html = '<h2>Resultados Agrupados por Nombre/Equipo</h2>';
 
-        // Validar la estructura de la columna
-        if (!data[0].hasOwnProperty('Equipo') || !data[0].hasOwnProperty('Ingresos') || !data[0].hasOwnProperty('Costos')) {
-            resultadosDiv.innerHTML = '<p style="color:red;">Error: El Excel debe tener las columnas "Equipo", "Ingresos" y "Costos" (sensible a mayúsculas/minúsculas).</p>';
+        // Definir las columnas que vamos a usar (sensible a mayúsculas/minúsculas)
+        const COL_EQUIPO = 'Name';
+        const COL_OUTCOME = 'Desired Outcome';
+        const COL_ODD = 'Odd';
+
+        // Validación de columnas necesarias
+        if (!data[0].hasOwnProperty(COL_EQUIPO) || !data[0].hasOwnProperty(COL_OUTCOME) || !data[0].hasOwnProperty(COL_ODD)) {
+            resultadosDiv.innerHTML = `<p class="no-rentable">Error: El Excel debe tener las columnas "${COL_EQUIPO}", "${COL_OUTCOME}" y "${COL_ODD}".</p>`;
             return;
         }
 
-        // Iniciar la tabla
-        html += '<table><thead><tr><th>Equipo</th><th>Ingresos</th><th>Costos</th><th>Rentabilidad Operativa</th><th>Estado</th></tr></thead><tbody>';
+        // Estructura para agrupar resultados por equipo/nombre
+        const resultadosAgrupados = {};
 
-        let rentablesCount = 0;
-        let totalRentabilidad = 0;
-
-        // Procesar cada fila de datos
         data.forEach(row => {
-            const ingresos = parseFloat(row.Ingresos) || 0;
-            const costos = parseFloat(row.Costos) || 0;
-            
-            // Cálculo principal: Rentabilidad Operativa = Ingresos - Costos
-            const rentabilidad = ingresos - costos;
-            totalRentabilidad += rentabilidad;
+            const name = String(row[COL_EQUIPO]).trim();
+            const outcome = String(row[COL_OUTCOME]).toUpperCase().trim();
+            // La cuota debe ser un número mayor o igual a 1
+            const odd = parseFloat(row[COL_ODD]) > 1 ? parseFloat(row[COL_ODD]) : 1; 
 
-            // Formato de moneda (simple, se puede mejorar)
-            const ingresosFmt = ingresos.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
-            const costosFmt = costos.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
-            const rentabilidadFmt = rentabilidad.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
+            if (!name) return; // Saltar filas sin nombre
+
+            if (!resultadosAgrupados[name]) {
+                resultadosAgrupados[name] = {
+                    totalMatches: 0,
+                    successfulOutcomes: 0,
+                    totalProfit: 0 // Asumiendo una apuesta de 1 unidad por partido
+                };
+            }
+
+            // Un acierto se considera si el Desired Outcome es 'W', 'WIN', o 1
+            const isSuccess = (outcome === '1' || outcome === 'W' || outcome === 'WIN');
             
-            const estado = rentabilidad > 0 ? 'Rentable' : (rentabilidad < 0 ? 'No Rentable' : 'Punto de Equilibrio');
-            const estadoClass = rentabilidad > 0 ? 'rentable' : 'no-rentable';
+            // Cálculo de Profit: (Odd - 1) si acierta (gana la apuesta), o -1 si falla (pierde la unidad apostada)
+            const profit = isSuccess ? (odd - 1) : -1; 
+
+            resultadosAgrupados[name].totalMatches++;
+            if (isSuccess) {
+                resultadosAgrupados[name].successfulOutcomes++;
+            }
+            resultadosAgrupados[name].totalProfit += profit;
+        });
+
+        // Convertir resultados agrupados a un array para la tabla
+        const equiposCalculados = Object.keys(resultadosAgrupados).map(name => {
+            const data = resultadosAgrupados[name];
+            const winRate = (data.successfulOutcomes / data.totalMatches) * 100;
             
-            if (rentabilidad > 0) {
-                rentablesCount++;
+            return {
+                name: name,
+                partidos: data.totalMatches,
+                ganados: data.successfulOutcomes,
+                tasaAcierto: winRate,
+                profitTotal: data.totalProfit
+            };
+        });
+
+        // Ordenar por Profit Total (de mayor a menor)
+        equiposCalculados.sort((a, b) => b.profitTotal - a.profitTotal);
+
+        // Iniciar la tabla
+        html += '<table><thead><tr><th>Nombre/Equipo</th><th>Partidos Analizados</th><th>Aciertos</th><th>Tasa de Acierto (%)</th><th>Rentabilidad (Profit/Pérdida)</th><th>Estado</th></tr></thead><tbody>';
+
+        let totalProfitGlobal = 0;
+        let positivosCount = 0;
+
+        // Mostrar cada equipo en la tabla
+        equiposCalculados.forEach(equipo => {
+            totalProfitGlobal += equipo.profitTotal;
+
+            const profitFmt = equipo.profitTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 });
+            const tasaAciertoFmt = equipo.tasaAcierto.toFixed(1);
+            
+            let estado, estadoClass;
+            if (equipo.profitTotal > 0) {
+                estado = 'Rentable';
+                estadoClass = 'rentable';
+                positivosCount++;
+            } else if (equipo.profitTotal < 0) {
+                estado = 'Pérdida';
+                estadoClass = 'no-rentable';
+            } else {
+                estado = 'Neutro';
+                estadoClass = 'neutral';
             }
 
             html += `
                 <tr>
-                    <td>${row.Equipo}</td>
-                    <td>${ingresosFmt}</td>
-                    <td>${costosFmt}</td>
-                    <td class="${estadoClass}">${rentabilidadFmt}</td>
+                    <td>${equipo.name}</td>
+                    <td>${equipo.partidos}</td>
+                    <td>${equipo.ganados}</td>
+                    <td>${tasaAciertoFmt}%</td>
+                    <td class="${estadoClass}">${profitFmt} u</td>
                     <td class="${estadoClass}">${estado}</td>
                 </tr>
             `;
@@ -178,16 +240,18 @@
         // Cerrar tabla y añadir resumen
         html += '</tbody></table>';
 
-        const totalRentabilidadFmt = totalRentabilidad.toLocaleString('es-ES', { style: 'currency', currency: 'USD' });
+        const totalProfitGlobalFmt = totalProfitGlobal.toLocaleString('es-ES', { minimumFractionDigits: 2 });
 
         html += `
-            <div style="margin-top: 20px; padding: 10px; border: 1px dashed #ccc;">
-                <p>📊 **Resumen Global**:</p>
+            <div style="margin-top: 25px; padding: 15px; border: 2px dashed #1e88e5; border-radius: 4px;">
+                <p>⭐ **Resumen Global del Rendimiento de Apuestas**:</p>
                 <ul>
-                    <li>Equipos Analizados: **${data.length}**</li>
-                    <li>Equipos Rentables: **${rentablesCount}**</li>
-                    <li>Rentabilidad Operativa Total: **${totalRentabilidadFmt}**</li>
+                    <li>Registros de Partidos Analizados: **${data.length}**</li>
+                    <li>Nombres/Equipos Únicos Analizados: **${equiposCalculados.length}**</li>
+                    <li>Rendimiento Total (Profit/Pérdida global asumiendo 1u por apuesta): **${totalProfitGlobalFmt} u**</li>
+                    <li>Nombres/Equipos con Profit Positivo: **${positivosCount}**</li>
                 </ul>
+                <p style="font-size: 0.85em; color: #555;">*La unidad (u) representa la cantidad hipotética apostada en cada evento. El Profit se calcula como: (Cuota - 1) si se acierta, o -1 si se falla.</p>
             </div>
         `;
 
