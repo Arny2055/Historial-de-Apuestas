@@ -67,42 +67,47 @@ document.querySelectorAll('select').forEach(e => e.addEventListener('change', re
 const normalizeHeader = (header) => String(header).toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /**
- * Busca los nombres reales de las columnas necesarias en los datos cargados.
+ * Busca los nombres reales de las columnas necesarias en los datos cargados,
+ * siendo más flexible en la detección de 'Result'.
  */
 function obtenerNombresColumnas(data) {
     if (data.length === 0) return false;
     
+    // Nombres requeridos y palabras clave alternativas para búsqueda flexible
     const requiredCols = { 
-        'Match': null, 
-        'Odd': null, 
-        'Result': null, 
-        'League': null, 
-        'Date': null 
+        'Match': ['match'], 
+        'Odd': ['odd', 'cuota'], 
+        'Result': ['result', 'resultado', 'outcome', 'resul'], // <-- Búsqueda mejorada aquí
+        'League': ['league', 'liga'], 
+        'Date': ['date', 'fecha'] 
     };
+    
     const realHeaders = Object.keys(data[0]);
-
+    const mappedCols = {};
     let foundAll = true;
     
     for (const key in requiredCols) {
-        const normalizedKey = normalizeHeader(key);
         let found = false;
 
         for (const realHeader of realHeaders) {
             const normalizedReal = normalizeHeader(realHeader);
-            // Busca una coincidencia exacta o que el encabezado real contenga la clave (Match, Odd, etc.)
-            if (normalizedReal.includes(normalizedKey)) { 
-                requiredCols[key] = realHeader;
+            
+            // Comprobar si el encabezado real contiene alguna de las palabras clave
+            if (requiredCols[key].some(keyword => normalizedReal.includes(keyword))) {
+                mappedCols[key] = realHeader;
                 found = true;
                 break;
             }
         }
+        
         if (!found) {
             console.error(`Columna requerida no encontrada: ${key}`);
-            document.getElementById('resultados').innerHTML = `<p class="error-message">Error: No se encontró la columna clave "${key}" en el archivo. Asegúrate de que los encabezados existan y estén escritos correctamente.</p>`;
+            document.getElementById('resultados').innerHTML = `<p class="error-message">Error: No se encontró la columna clave "${key}" en el archivo. Se intentó buscar [${requiredCols[key].join(', ')}].</p>`;
             foundAll = false;
         }
     }
-    columnasMapeadas = requiredCols;
+    
+    columnasMapeadas = mappedCols;
     return foundAll;
 }
 
@@ -123,7 +128,10 @@ function parseFechaSeguro(fecha) {
  * Determina si el resultado de la apuesta es una victoria de forma flexible.
  */
 function esWinSeguro(valor) {
+    // 💡 Asegurar que solo procesamos cadenas no vacías. Si es nulo/vacío, devuelve false.
+    if (!valor) return false; 
     const v = String(valor).toUpperCase().trim();
+    // Lista de valores que indican victoria
     return ["WIN","WINNING","1","W","TRUE","SI"].includes(v);
 }
 
@@ -132,7 +140,7 @@ function esWinSeguro(valor) {
 
 function cargarArchivo(e) {
     const reader = new FileReader();
-    document.getElementById('resultados').innerHTML = ''; // Limpiar mensajes de error
+    document.getElementById('resultados').innerHTML = '';
     
     reader.onload = function(e) {
         const data = new Uint8Array(e.target.result);
@@ -140,7 +148,7 @@ function cargarArchivo(e) {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         datosGlobales = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-        if (!obtenerNombresColumnas(datosGlobales)) return; // Detener si falla el mapeo
+        if (!obtenerNombresColumnas(datosGlobales)) return; 
         
         // Ordenar cronológicamente usando el nombre de columna mapeado
         datosGlobales.sort((a,b)=> parseFechaSeguro(a[columnasMapeadas.Date]) - parseFechaSeguro(b[columnasMapeadas.Date]));
@@ -152,7 +160,6 @@ function cargarArchivo(e) {
 }
 
 function cargarLigas() {
-    // Usar el nombre de columna mapeado
     const ligas = [...new Set(datosGlobales.map(r => r[columnasMapeadas.League]).filter(l => l && String(l).trim() !== ''))];
     const select = document.getElementById("filtroLiga");
     select.innerHTML = '<option value="all">Todas las Ligas</option>';
@@ -165,7 +172,6 @@ function cargarLigas() {
 }
 
 function recalcular() {
-    // Si no se han cargado columnas válidas, no se puede recalcular
     if (Object.keys(columnasMapeadas).length < 5) return; 
 
     const posicion = document.getElementById("filtroPosicion").value;
@@ -174,7 +180,7 @@ function recalcular() {
 
     let datos = [...datosGlobales];
     
-    // Filtro por Liga (usando el nombre de columna mapeado)
+    // Filtro por Liga
     if (liga !== "all") datos = datos.filter(d => String(d[columnasMapeadas.League]) === liga);
 
     procesarDatos(datos, posicion, limite);
@@ -199,7 +205,7 @@ function procesarDatos(data, posicion, limite) {
         
         // Uso de nombres de columna mapeados
         const odd = Math.max(parseFloat(row[columnasMapeadas.Odd]) || 1, 1);
-        const isWin = esWinSeguro(row[columnasMapeadas.Result]);
+        const isWin = esWinSeguro(row[columnasMapeadas.Result]); // <-- isWin ahora usa el mapeo
 
         if (!porEquipo[home]) porEquipo[home] = [];
         if (!porEquipo[away]) porEquipo[away] = [];
@@ -220,6 +226,7 @@ function procesarDatos(data, posicion, limite) {
         let profit = 0, aciertos = 0;
 
         usados.forEach(p => {
+            // El cálculo de Profit depende directamente de isWin.
             profit += p.isWin ? (p.odd - 1) : -1;
             if (p.isWin) aciertos++;
         });
@@ -247,8 +254,12 @@ function procesarDatos(data, posicion, limite) {
 // --- VISUALIZACIÓN Y EXPORTACIÓN ---
 
 function mostrarTabla() {
-    if (rankingFinal.length === 0 && datosGlobales.length > 0) {
-        document.getElementById("resultados").innerHTML = `<p class="error-message">No se encontraron equipos o no hay datos válidos para los filtros seleccionados. Asegúrate que la columna 'Match' contenga el formato 'Equipo A - Equipo B'.</p>`;
+    if (rankingFinal.length === 0) {
+        const msg = datosGlobales.length > 0 && Object.keys(columnasMapeadas).length === 5 
+            ? "No se encontraron equipos o no hay datos válidos para los filtros." 
+            : "Cargue un archivo válido para comenzar el análisis.";
+            
+        document.getElementById("resultados").innerHTML = `<p class="error-message">${msg}</p>`;
         return;
     }
     
