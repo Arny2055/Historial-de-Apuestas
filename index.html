@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Rendimiento de Apuestas Deportivas</title>
+    <title>Calculadora de Rendimiento por Mercado de Apuestas</title>
     
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
@@ -78,11 +78,11 @@
 <body>
 
 <div class="container">
-    <h1>📈 Analizador de Rendimiento de Apuestas</h1>
+    <h1>📈 Analizador de Rendimiento por Mercado de Apuestas</h1>
     
-    <p>Sube tu archivo **.xlsx** para analizar la rentabilidad por nombre/equipo.</p>
+    <p>Sube tu archivo **.xlsx** para analizar la rentabilidad de cada mercado.</p>
     
-    <p>⚙️ **Estructura esperada:** El cálculo usa las columnas **Name**, **Desired Outcome** y **Odd**.</p>
+    <p>⚙️ **Columnas clave para el cálculo:** **Name** (Mercado), **Odd** (Cuota) y **Result** (Ganador/Perdedor).</p>
     
     <input type="file" id="archivoExcel" accept=".xlsx" onchange="cargarArchivo()">
 
@@ -112,7 +112,6 @@
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Convertir la hoja a un array de objetos JSON
             const json = XLSX.utils.sheet_to_json(worksheet);
 
             if (json.length === 0) {
@@ -120,7 +119,7 @@
                 return;
             }
 
-            mostrarResultados(json);
+            mostrarResultado(json);
         };
         
         reader.onerror = function(e) {
@@ -132,38 +131,28 @@
 
     /**
      * Función para procesar los datos y mostrar la tabla de resultados.
-     * Incluye lógica flexible para encontrar los encabezados de columna.
-     * @param {Array<Object>} data - Array de objetos con los datos del Excel.
      */
-    function mostrarResultados(data) {
+    function mostrarResultado(data) {
         const resultadosDiv = document.getElementById('resultados');
-        let html = '<h2>Resultados Agrupados por Nombre/Equipo</h2>';
+        let html = '<h2>Resultados Agrupados por Mercado (Name)</h2>';
 
         // 1. Mapeo flexible de columnas
         const expectedCols = {
             'Name': null,
-            'Desired Outcome': null,
-            'Odd': null
+            'Odd': null,
+            'Result': null 
         };
         
-        if (data.length === 0) {
-            resultadosDiv.innerHTML = '<p class="no-rentable">El archivo no contiene datos o la hoja está vacía.</p>';
-            return;
-        }
-
         const realHeaders = Object.keys(data[0]);
-
-        // Función auxiliar para normalizar (quitar espacios, minúsculas)
         const normalize = (header) => String(header).toLowerCase().replace(/\s/g, '');
 
-        // Intentar encontrar una coincidencia flexible para cada columna esperada
         for (const expected in expectedCols) {
             const normalizedExpected = normalize(expected);
             
             for (const realHeader of realHeaders) {
                 const normalizedReal = normalize(realHeader);
                 
-                // Si encontramos una coincidencia flexible, guardamos el nombre real
+                // Buscamos una coincidencia flexible
                 if (normalizedReal.includes(normalizedExpected)) {
                     expectedCols[expected] = realHeader;
                     break;
@@ -172,23 +161,23 @@
         }
         
         // Asignar las columnas clave
-        const COL_EQUIPO = expectedCols['Name'];
-        const COL_OUTCOME = expectedCols['Desired Outcome'];
+        const COL_MERCADO = expectedCols['Name'];
         const COL_ODD = expectedCols['Odd'];
+        const COL_RESULT = expectedCols['Result'];
 
-        // 2. Validación de columnas necesarias (si alguna es null, la búsqueda falló)
-        if (!COL_EQUIPO || !COL_OUTCOME || !COL_ODD) {
-            resultadosDiv.innerHTML = `<p class="no-rentable">Error: No se pudieron encontrar las columnas clave ('Name', 'Desired Outcome', 'Odd') en la hoja.<br>Asegúrate de que la primera hoja contiene estos encabezados.</p>`;
+        // 2. Validación de columnas necesarias 
+        if (!COL_MERCADO || !COL_ODD || !COL_RESULT) {
+            resultadosDiv.innerHTML = `<p class="no-rentable">Error: No se pudieron encontrar las columnas clave ('Name', 'Odd', 'Result') en la hoja.<br>Asegúrate de que la primera hoja contiene estos encabezados.</p>`;
             return;
         }
 
-        // Estructura para agrupar resultados por equipo/nombre
+        // Estructura para agrupar resultados por mercado
         const resultadosAgrupados = {};
 
         data.forEach(row => {
             // Usar los nombres de columna reales encontrados
-            const name = String(row[COL_EQUIPO]).trim();
-            const outcome = String(row[COL_OUTCOME]).toUpperCase().trim();
+            const name = String(row[COL_MERCADO]).trim();
+            const resultOutcome = String(row[COL_RESULT]).toUpperCase().trim();
             // La cuota debe ser un número mayor o igual a 1
             const odd = parseFloat(row[COL_ODD]) > 1 ? parseFloat(row[COL_ODD]) : 1; 
 
@@ -202,8 +191,8 @@
                 };
             }
 
-            // Un acierto se considera si el Desired Outcome es 'W', 'WIN', o 1
-            const isSuccess = (outcome === '1' || outcome === 'W' || outcome === 'WIN');
+            // Un acierto se considera si el Result es 'WINNING'
+            const isSuccess = (resultOutcome === 'WINNING');
             
             // Cálculo de Profit: (Odd - 1) si acierta, o -1 si falla
             const profit = isSuccess ? (odd - 1) : -1; 
@@ -216,7 +205,7 @@
         });
 
         // 3. Generación de resultados finales
-        const equiposCalculados = Object.keys(resultadosAgrupados).map(name => {
+        const mercadosCalculados = Object.keys(resultadosAgrupados).map(name => {
             const data = resultadosAgrupados[name];
             const winRate = (data.successfulOutcomes / data.totalMatches) * 100;
             
@@ -230,27 +219,27 @@
         });
 
         // Ordenar por Profit Total (de mayor a menor)
-        equiposCalculados.sort((a, b) => b.profitTotal - a.profitTotal);
+        mercadosCalculados.sort((a, b) => b.profitTotal - a.profitTotal);
 
-        // Iniciar la tabla
-        html += '<table><thead><tr><th>Nombre/Equipo</th><th>Partidos Analizados</th><th>Aciertos</th><th>Tasa de Acierto (%)</th><th>Rentabilidad (Profit/Pérdida)</th><th>Estado</th></tr></thead><tbody>';
+        // 4. Iniciar la tabla
+        html += '<table><thead><tr><th>Mercado (Name)</th><th>Eventos Analizados</th><th>Aciertos</th><th>Tasa de Acierto (%)</th><th>Rentabilidad (Profit/Pérdida)</th><th>Estado</th></tr></thead><tbody>';
 
         let totalProfitGlobal = 0;
         let positivosCount = 0;
 
-        // Mostrar cada equipo en la tabla
-        equiposCalculados.forEach(equipo => {
-            totalProfitGlobal += equipo.profitTotal;
+        // Mostrar cada mercado en la tabla
+        mercadosCalculados.forEach(mercado => {
+            totalProfitGlobal += mercado.profitTotal;
 
-            const profitFmt = equipo.profitTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 });
-            const tasaAciertoFmt = equipo.tasaAcierto.toFixed(1);
+            const profitFmt = mercado.profitTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 });
+            const tasaAciertoFmt = mercado.tasaAcierto.toFixed(1);
             
             let estado, estadoClass;
-            if (equipo.profitTotal > 0) {
+            if (mercado.profitTotal > 0) {
                 estado = 'Rentable';
                 estadoClass = 'rentable';
                 positivosCount++;
-            } else if (equipo.profitTotal < 0) {
+            } else if (mercado.profitTotal < 0) {
                 estado = 'Pérdida';
                 estadoClass = 'no-rentable';
             } else {
@@ -260,9 +249,9 @@
 
             html += `
                 <tr>
-                    <td>${equipo.name}</td>
-                    <td>${equipo.partidos}</td>
-                    <td>${equipo.ganados}</td>
+                    <td>${mercado.name}</td>
+                    <td>${mercado.partidos}</td>
+                    <td>${mercado.ganados}</td>
                     <td>${tasaAciertoFmt}%</td>
                     <td class="${estadoClass}">${profitFmt} u</td>
                     <td class="${estadoClass}">${estado}</td>
@@ -270,21 +259,21 @@
             `;
         });
 
-        // Cerrar tabla y añadir resumen
+        // 5. Cierre y resumen
         html += '</tbody></table>';
 
         const totalProfitGlobalFmt = totalProfitGlobal.toLocaleString('es-ES', { minimumFractionDigits: 2 });
 
         html += `
             <div style="margin-top: 25px; padding: 15px; border: 2px dashed #1e88e5; border-radius: 4px;">
-                <p>⭐ **Resumen Global del Rendimiento de Apuestas**:</p>
+                <p>⭐ **Resumen Global del Rendimiento**:</p>
                 <ul>
-                    <li>Registros de Partidos Analizados: **${data.length}**</li>
-                    <li>Nombres/Equipos Únicos Analizados: **${equiposCalculados.length}**</li>
-                    <li>Rendimiento Total (Profit/Pérdida global asumiendo 1u por apuesta): **${totalProfitGlobalFmt} u**</li>
-                    <li>Nombres/Equipos con Profit Positivo: **${positivosCount}**</li>
+                    <li>Registros Totales Analizados: **${data.length}**</li>
+                    <li>Mercados Únicos Analizados: **${mercadosCalculados.length}**</li>
+                    <li>Rendimiento Total Global (Profit/Pérdida): **${totalProfitGlobalFmt} u**</li>
+                    <li>Mercados con Profit Positivo: **${positivosCount}**</li>
                 </ul>
-                <p style="font-size: 0.85em; color: #555;">*La unidad (u) representa la cantidad hipotética apostada en cada evento. El Profit se calcula como: (Cuota - 1) si se acierta, o -1 si se falla.</p>
+                <p style="font-size: 0.85em; color: #555;">*La unidad (u) representa la cantidad hipotética apostada en cada evento. El Profit se calcula usando la columna **Result** (si es 'winning' es acierto).</p>
             </div>
         `;
 
