@@ -7,17 +7,17 @@
 
 <style>
 body { font-family: Arial; background: #f4f4f9; padding: 20px; }
-.container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+.container { max-width: 1150px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
 h1 { text-align: center; color: #4caf50; border-bottom: 2px solid #4caf50; padding-bottom: 10px; }
-.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-select, input, button { padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-th, td { border: 1px solid #ddd; padding: 10px; }
-th { background: #4caf50; color: white; }
-.rentable { color: #2e7d32; font-weight: bold; }
-.no-rentable { color: #d32f2f; font-weight: bold; }
-.neutral { color: #555; font-weight: bold; }
-button { cursor: pointer; background: #4caf50; color: white; border: none; }
+.controls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; }
+select, input, button { padding:10px; border:1px solid #ccc; border-radius:4px; }
+table { width:100%; border-collapse:collapse; margin-top:15px; }
+th, td { border:1px solid #ddd; padding:10px; }
+th { background:#4caf50; color:white; }
+.rentable { color:#2e7d32; font-weight:bold; }
+.no-rentable { color:#d32f2f; font-weight:bold; }
+.neutral { color:#555; font-weight:bold; }
+button { cursor:pointer; background:#4caf50; color:white; border:none; }
 </style>
 </head>
 
@@ -27,6 +27,7 @@ button { cursor: pointer; background: #4caf50; color: white; border: none; }
 
 <div class="controls">
 <input type="file" id="fileInput" accept=".xlsx">
+
 <select id="filtroPosicion">
     <option value="all">Local + Visitante</option>
     <option value="home">Solo Local</option>
@@ -39,7 +40,7 @@ button { cursor: pointer; background: #4caf50; color: white; border: none; }
 
 <select id="filtroLimite">
     <option value="0">Todos los partidos</option>
-    <option value="15">Últimos 15 registros</option>
+    <option value="15">Últimos 15 por equipo</option>
 </select>
 
 <button onclick="exportarExcel()">Exportar a Excel</button>
@@ -61,8 +62,10 @@ function cargarArchivo(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        // Aseguramos que los encabezados coincidan o se manejen correctamente (aunque 'Match', 'Odd', 'Result', 'League' parecen ser correctos)
         datosGlobales = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+        // ✅ ORDENAR POR FECHA PARA QUE "ÚLTIMOS 15" SEA REAL
+        datosGlobales.sort((a,b)=> new Date(a.Date) - new Date(b.Date));
 
         cargarLigas();
         recalcular();
@@ -71,12 +74,9 @@ function cargarArchivo(e) {
 }
 
 function cargarLigas() {
-    const ligas = [...new Set(datosGlobales.map(r => r.League).filter(l => l && l.trim() !== ''))];
+    const ligas = [...new Set(datosGlobales.map(r => r.League).filter(l => l))];
     const select = document.getElementById("filtroLiga");
-    
-    // 💡 CORRECCIÓN: Limpiar opciones viejas antes de agregar las nuevas
-    select.innerHTML = '<option value="all">Todas las Ligas</option>'; 
-    
+    select.innerHTML = '<option value="all">Todas las Ligas</option>';
     ligas.forEach(l => {
         const opt = document.createElement("option");
         opt.value = l;
@@ -88,68 +88,63 @@ function cargarLigas() {
 function recalcular() {
     const posicion = document.getElementById("filtroPosicion").value;
     const liga = document.getElementById("filtroLiga").value;
-    const limite = parseInt(document.getElementById("filtroLimite").value);
+    const limite = Number(document.getElementById("filtroLimite").value);
 
-    let datosFiltrados = [...datosGlobales];
+    let datos = [...datosGlobales];
+    if (liga !== "all") datos = datos.filter(d => d.League === liga);
 
-    // Aplicar filtro por Liga
-    if (liga !== "all") {
-        datosFiltrados = datosFiltrados.filter(d => String(d.League) === liga);
-    }
-    
-    // Aplicar filtro de Límite (sobre los registros ya filtrados por liga)
-    if (limite > 0) {
-        // slice(-limite) toma los últimos 'limite' elementos
-        datosFiltrados = datosFiltrados.slice(-limite);
-    }
-
-    procesarDatos(datosFiltrados, posicion);
+    procesarDatos(datos, posicion, limite);
 }
 
-function procesarDatos(data, posicion) {
-    const resultados = {};
+function procesarDatos(data, posicion, limite) {
+    const porEquipo = {};
 
     data.forEach(row => {
-        // Aseguramos que la columna Match exista y tenga el formato correcto
-        if (!row.Match || !String(row.Match).includes("-")) return; 
+        if (!row.Match || !row.Match.includes("-")) return;
 
-        // Extracción robusta de equipos (usando el formato que funciona)
-        const [home, away] = String(row.Match).split("-").map(t => t.trim());
-        
-        // Convertir y validar Odd
+        const [home, away] = row.Match.split("-").map(t => t.trim());
         const odd = parseFloat(row.Odd) || 1;
-        
-        // 💡 CORRECCIÓN CRÍTICA: Asegurar que se detecten todas las palabras de éxito ('WINNING', '1', etc.)
-        const resultUpper = String(row.Result).toUpperCase().trim();
-        const isWin = resultUpper === "WIN" || resultUpper === "WINNING" || resultUpper === "1";
+        const isWin = ["WIN","WINNING","1"].includes(String(row.Result).toUpperCase());
 
-        const aplicar = (team, tipo) => {
-            // Aplicar el filtro de Posición (Home, Away, All)
-            if (posicion !== "all" && posicion !== tipo) return;
+        if (!porEquipo[home]) porEquipo[home] = [];
+        if (!porEquipo[away]) porEquipo[away] = [];
 
-            // Inicializar y agregar estadísticas
-            if (!resultados[team]) resultados[team] = { partidos: 0, aciertos: 0, profit: 0 };
-            resultados[team].partidos++;
-            if (isWin) resultados[team].aciertos++;
-            
-            // Cálculo de Profit
-            resultados[team].profit += isWin ? (odd - 1) : -1;
-        };
-
-        aplicar(home, "home");
-        aplicar(away, "away");
+        porEquipo[home].push({ tipo:"home", isWin, odd });
+        porEquipo[away].push({ tipo:"away", isWin, odd });
     });
-    
-    // Generación del ranking final para la tabla y exportación
-    rankingFinal = Object.entries(resultados).map(([name, d]) => ({
-        Equipo: name,
-        Partidos: d.partidos,
-        Aciertos: d.aciertos,
-        WinRate: ((d.aciertos / d.partidos) * 100).toFixed(1),
-        Profit: d.profit.toFixed(2),
-        // Cálculo del Retorno de Inversión (ROI): (Profit / Unidades Apostadas) * 100
-        ROI: ((d.profit / d.partidos) * 100).toFixed(2) 
-    })).sort((a, b) => parseFloat(b.Profit) - parseFloat(a.Profit)); // Ordenar por Profit (como número)
+
+    const resultados = {};
+
+    Object.entries(porEquipo).forEach(([team, partidos]) => {
+        let partidosUsados = limite > 0 ? partidos.slice(-limite) : partidos;
+
+        let usados = partidosUsados.filter(p => posicion === "all" || p.tipo === posicion);
+
+        if (usados.length === 0) return;
+
+        let profit = 0, aciertos = 0;
+
+        usados.forEach(p => {
+            profit += p.isWin ? (p.odd - 1) : -1;
+            if (p.isWin) aciertos++;
+        });
+
+        resultados[team] = {
+            Partidos: usados.length,
+            Aciertos: aciertos,
+            Profit: profit,
+            ROI: (profit / usados.length) * 100
+        };
+    });
+
+    rankingFinal = Object.entries(resultados).map(([Equipo, d]) => ({
+        Equipo,
+        Partidos: d.Partidos,
+        Aciertos: d.Aciertos,
+        WinRate: ((d.Aciertos / d.Partidos) * 100).toFixed(1),
+        Profit: d.Profit.toFixed(2),
+        ROI: d.ROI.toFixed(2)
+    })).sort((a,b)=> parseFloat(b.Profit) - parseFloat(a.Profit));
 
     mostrarTabla();
 }
@@ -162,10 +157,9 @@ function mostrarTabla() {
     </tr>`;
 
     rankingFinal.forEach(e => {
-        const profitValue = parseFloat(e.Profit);
-        
-        const estado = profitValue > 0 ? "Rentable" : profitValue < 0 ? "Pérdida" : "Neutro";
-        const clase = profitValue > 0 ? "rentable" : profitValue < 0 ? "no-rentable" : "neutral";
+        const p = parseFloat(e.Profit);
+        const estado = p>0 ? "Rentable" : p<0 ? "Pérdida" : "Neutro";
+        const clase = p>0 ? "rentable" : p<0 ? "no-rentable" : "neutral";
 
         html += `
         <tr>
@@ -184,10 +178,7 @@ function mostrarTabla() {
 }
 
 function exportarExcel() {
-    if (rankingFinal.length === 0) {
-        alert("No hay datos para exportar. Por favor, carga un archivo y recalcula.");
-        return;
-    }
+    if (!rankingFinal.length) return alert("No hay datos para exportar");
     const ws = XLSX.utils.json_to_sheet(rankingFinal);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Ranking Equipos");
