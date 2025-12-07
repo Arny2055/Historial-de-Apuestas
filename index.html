@@ -36,7 +36,6 @@ function cargarArchivo(e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        // { defval: "" } asegura que las celdas vacías se traten como cadenas vacías
         const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
         procesarDatos(json);
@@ -50,26 +49,36 @@ function procesarDatos(data) {
 
     data.forEach(row => {
         const match = String(row["Match"] || "").trim();
-        // Aseguramos que la cuota sea al menos 1 para evitar divisiones o cálculos inválidos
         const odd = parseFloat(row["Odd"]) > 1 ? parseFloat(row["Odd"]) : 1; 
         const result = String(row["Result"]).toUpperCase();
 
-        if (!match.includes("-")) return; // Si no hay un formato de partido (Ej: "Local - Visitante"), saltar
+        // 1. Manejo de Separadores Flexibles (Guion corto/largo o 'vs')
+        let teams = [];
+        if (match.includes("-") || match.includes("–")) {
+            // Separar por guion corto o largo, ignorando espacios alrededor.
+            teams = match.split(/\s*[-–]\s*/).map(e => e.trim());
+        } else if (match.toLowerCase().includes("vs")) {
+            // Separar por 'vs' (case-insensitive), ignorando espacios.
+            teams = match.split(/\s+vs\s+/i).map(e => e.trim());
+        }
 
-        const teams = match.split("-").map(e => e.trim());
-        if (teams.length !== 2) return; // Si el split no funciona correctamente, saltar
-
+        // Si no encontramos exactamente dos equipos, saltamos la fila.
+        if (teams.length !== 2) return;
+        
         const [home, away] = teams;
         
-        // Determinar el éxito de la apuesta
-        const isWin = result === "WIN" || result === "WINNING" || result === "1";
-        
-        // Cálculo de Profit: Ganancia = Cuota - 1; Pérdida = -1 (por unidad apostada)
-        const profit = isWin ? (odd - 1) : -1;
-        
+        // Si alguno de los nombres está vacío después del split, saltamos.
+        if (!home || !away) return; 
+
         totalRegistrosProcesados++;
 
-        // Agregamos el resultado a AMBOS equipos
+        // Determinación del éxito de la apuesta
+        const isWin = result === "WIN" || result === "WINNING" || result === "1";
+        
+        // Cálculo de Profit
+        const profit = isWin ? (odd - 1) : -1;
+
+        // 2. Agregación de resultados a AMBOS equipos
         [home, away].forEach(team => {
             if (!resultados[team]) {
                 resultados[team] = { partidos: 0, aciertos: 0, profit: 0 };
@@ -110,7 +119,7 @@ function mostrarTabla(resultados, totalRegistrosProcesados) {
     
     // 2. Generar filas de la tabla
     equipos.forEach(e => {
-        totalProfitGlobal += e.profit; // Suma de todos los profits, debe ser igual a dos veces el profit total del mercado
+        totalProfitGlobal += e.profit; 
         
         const estado = e.profit > 0 ? "Rentable" : e.profit < 0 ? "Pérdida" : "Neutro";
         const clase = e.profit > 0 ? "rentable" : e.profit < 0 ? "no-rentable" : "neutral";
@@ -131,7 +140,8 @@ function mostrarTabla(resultados, totalRegistrosProcesados) {
     html += "</table>";
     
     // 3. Agregar Resumen Global
-    const profitGlobalPromedio = totalProfitGlobal / 2; // El profit total se sumó dos veces (Home y Away)
+    // El profit total se sumó dos veces (Home y Away), por eso se divide entre 2.
+    const profitGlobalPromedio = totalProfitGlobal / 2; 
     const profitGlobalFmt = profitGlobalPromedio.toFixed(2);
     
     html += `
