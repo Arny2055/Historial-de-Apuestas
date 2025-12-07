@@ -22,7 +22,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            color: #1e88e5; /* Azul vibrante */
+            color: #1e88e5;
             text-align: center;
             border-bottom: 2px solid #1e88e5;
             padding-bottom: 10px;
@@ -63,11 +63,11 @@
             background-color: #f2f2f2;
         }
         .rentable {
-            color: #2e7d32; /* Verde oscuro */
+            color: #2e7d32;
             font-weight: bold;
         }
         .no-rentable {
-            color: #d32f2f; /* Rojo oscuro */
+            color: #d32f2f;
             font-weight: bold;
         }
         .neutral {
@@ -82,7 +82,7 @@
     
     <p>Sube tu archivo **.xlsx** para analizar la rentabilidad por nombre/equipo.</p>
     
-    <p>⚙️ **Estructura esperada del Excel:** La primera hoja debe tener las columnas **Name**, **Desired Outcome** y **Odd**. El cálculo se basa en el **Profit/Pérdida** asumiendo 1 unidad apostada.</p>
+    <p>⚙️ **Estructura esperada:** El cálculo usa las columnas **Name**, **Desired Outcome** y **Odd**.</p>
     
     <input type="file" id="archivoExcel" accept=".xlsx" onchange="cargarArchivo()">
 
@@ -132,19 +132,53 @@
 
     /**
      * Función para procesar los datos y mostrar la tabla de resultados.
+     * Incluye lógica flexible para encontrar los encabezados de columna.
+     * @param {Array<Object>} data - Array de objetos con los datos del Excel.
      */
     function mostrarResultados(data) {
         const resultadosDiv = document.getElementById('resultados');
         let html = '<h2>Resultados Agrupados por Nombre/Equipo</h2>';
 
-        // Definir las columnas que vamos a usar (sensible a mayúsculas/minúsculas)
-        const COL_EQUIPO = 'Name';
-        const COL_OUTCOME = 'Desired Outcome';
-        const COL_ODD = 'Odd';
+        // 1. Mapeo flexible de columnas
+        const expectedCols = {
+            'Name': null,
+            'Desired Outcome': null,
+            'Odd': null
+        };
+        
+        if (data.length === 0) {
+            resultadosDiv.innerHTML = '<p class="no-rentable">El archivo no contiene datos o la hoja está vacía.</p>';
+            return;
+        }
 
-        // Validación de columnas necesarias
-        if (!data[0].hasOwnProperty(COL_EQUIPO) || !data[0].hasOwnProperty(COL_OUTCOME) || !data[0].hasOwnProperty(COL_ODD)) {
-            resultadosDiv.innerHTML = `<p class="no-rentable">Error: El Excel debe tener las columnas "${COL_EQUIPO}", "${COL_OUTCOME}" y "${COL_ODD}".</p>`;
+        const realHeaders = Object.keys(data[0]);
+
+        // Función auxiliar para normalizar (quitar espacios, minúsculas)
+        const normalize = (header) => String(header).toLowerCase().replace(/\s/g, '');
+
+        // Intentar encontrar una coincidencia flexible para cada columna esperada
+        for (const expected in expectedCols) {
+            const normalizedExpected = normalize(expected);
+            
+            for (const realHeader of realHeaders) {
+                const normalizedReal = normalize(realHeader);
+                
+                // Si encontramos una coincidencia flexible, guardamos el nombre real
+                if (normalizedReal.includes(normalizedExpected)) {
+                    expectedCols[expected] = realHeader;
+                    break;
+                }
+            }
+        }
+        
+        // Asignar las columnas clave
+        const COL_EQUIPO = expectedCols['Name'];
+        const COL_OUTCOME = expectedCols['Desired Outcome'];
+        const COL_ODD = expectedCols['Odd'];
+
+        // 2. Validación de columnas necesarias (si alguna es null, la búsqueda falló)
+        if (!COL_EQUIPO || !COL_OUTCOME || !COL_ODD) {
+            resultadosDiv.innerHTML = `<p class="no-rentable">Error: No se pudieron encontrar las columnas clave ('Name', 'Desired Outcome', 'Odd') en la hoja.<br>Asegúrate de que la primera hoja contiene estos encabezados.</p>`;
             return;
         }
 
@@ -152,12 +186,13 @@
         const resultadosAgrupados = {};
 
         data.forEach(row => {
+            // Usar los nombres de columna reales encontrados
             const name = String(row[COL_EQUIPO]).trim();
             const outcome = String(row[COL_OUTCOME]).toUpperCase().trim();
             // La cuota debe ser un número mayor o igual a 1
             const odd = parseFloat(row[COL_ODD]) > 1 ? parseFloat(row[COL_ODD]) : 1; 
 
-            if (!name) return; // Saltar filas sin nombre
+            if (!name) return;
 
             if (!resultadosAgrupados[name]) {
                 resultadosAgrupados[name] = {
@@ -170,7 +205,7 @@
             // Un acierto se considera si el Desired Outcome es 'W', 'WIN', o 1
             const isSuccess = (outcome === '1' || outcome === 'W' || outcome === 'WIN');
             
-            // Cálculo de Profit: (Odd - 1) si acierta (gana la apuesta), o -1 si falla (pierde la unidad apostada)
+            // Cálculo de Profit: (Odd - 1) si acierta, o -1 si falla
             const profit = isSuccess ? (odd - 1) : -1; 
 
             resultadosAgrupados[name].totalMatches++;
@@ -180,7 +215,7 @@
             resultadosAgrupados[name].totalProfit += profit;
         });
 
-        // Convertir resultados agrupados a un array para la tabla
+        // 3. Generación de resultados finales
         const equiposCalculados = Object.keys(resultadosAgrupados).map(name => {
             const data = resultadosAgrupados[name];
             const winRate = (data.successfulOutcomes / data.totalMatches) * 100;
@@ -190,7 +225,7 @@
                 partidos: data.totalMatches,
                 ganados: data.successfulOutcomes,
                 tasaAcierto: winRate,
-                profitTotal: data.totalProfit
+                profitTotal: data.profitTotal
             };
         });
 
