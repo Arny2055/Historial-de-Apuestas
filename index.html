@@ -1,327 +1,280 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Analizador Profesional de Rentabilidad por Equipo</title>
-<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Ahorro Compuesto</title>
+    <style>
+        /* Estilos CSS */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+        }
 
-<style>
-body { font-family: Arial; background: #f4f4f9; padding: 20px; }
-.container { max-width: 1150px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.1); }
-h1 { text-align: center; color: #4caf50; border-bottom: 2px solid #4caf50; padding-bottom: 10px; }
-.controls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; }
-.input-group { display: flex; flex-direction: column; width: 150px; }
-.input-group label { font-size: 0.8em; color: #555; margin-bottom: 4px; }
-select, input:not([type="file"]), button { padding:10px; border:1px solid #ccc; border-radius:4px; }
-table { width:100%; border-collapse:collapse; margin-top:15px; }
-th, td { border:1px solid #ddd; padding:10px; }
-th { background:#4caf50; color:white; }
-.rentable { color:#2e7d32; font-weight:bold; }
-.no-rentable { color:#d32f2f; font-weight:bold; }
-.neutral { color:#555; font-weight:bold; }
-button { cursor:pointer; background:#4caf50; color:white; border:none; transition:.3s; }
-button:hover { background:#388e3c; }
-.error-message { color: red; font-weight: bold; margin-top: 15px; padding: 10px; border: 1px solid red; border-radius: 4px; }
-</style>
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h1 {
+            color: #007bff;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="number"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e9f7ef;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .result p {
+            margin: 8px 0;
+            font-size: 1.1em;
+        }
+
+        .result strong {
+            color: #007bff;
+            font-size: 1.2em;
+        }
+
+        .note {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+    </style>
 </head>
-
 <body>
+
 <div class="container">
-<h1>⚽ Analizador Profesional de Equipos</h1>
+    <h1>Caja de Ahorro 💰 (9% Compuesto Mensual)</h1>
 
-<div class="controls">
-<input type="file" id="fileInput" accept=".xlsx">
+    <div class="form-group">
+        <label for="initialAmount">Monto Inicial ($):</label>
+        <input type="number" id="initialAmount" value="1000" min="0">
+    </div>
 
-<select id="filtroPosicion">
-    <option value="all">Local + Visitante</option>
-    <option value="home">Solo Local</option>
-    <option value="away">Solo Visitante</option>
-</select>
+    <div class="form-group">
+        <label for="monthlyContribution">Aportación Mensual ($):</label>
+        <input type="number" id="monthlyContribution" value="500" min="0">
+    </div>
 
-<select id="filtroLiga">
-    <option value="all">Todas las Ligas</option>
-</select>
+    <div class="form-group">
+        <label for="durationMonths">Duración (Meses):</label>
+        <input type="number" id="durationMonths" value="12" min="1">
+    </div>
 
-<select id="filtroLimite">
-    <option value="0">Histórico completo</option>
-    <option value="15">Últimos 15 partidos por equipo</option>
-</select>
+    <button onclick="calculateSavings()">Calcular</button>
 
-<div class="input-group">
-    <label for="victoryInput">Valor de Victoria (Excel):</label>
-    <input type="text" id="victoryInput" placeholder="Ej: Acierto, Correcto" value="" onchange="recalcular()">
-</div>
+    <div class="result" id="result">
+        <p>Ingresa los datos y haz clic en Calcular.</p>
+    </div>
 
-<button onclick="exportarExcel()">Exportar a Excel</button>
-</div>
-
-<div id="resultados"></div>
+    <div class="note">
+        <p>Interés: 9% compuesto mensual fijo.</p>
+    </div>
 </div>
 
 <script>
-let datosGlobales = [];
-let rankingFinal = [];
-let columnasMapeadas = {}; 
+    // Código JavaScript
+    function calculateSavings() {
+        // Obtener los valores de los inputs
+        const initialAmount = parseFloat(document.getElementById('initialAmount').value);
+        const monthlyContribution = parseFloat(document.getElementById('monthlyContribution').value);
+        const durationMonths = parseInt(document.getElementById('durationMonths').value);
 
-document.getElementById('fileInput').addEventListener('change', cargarArchivo);
-document.querySelectorAll('select').forEach(e => e.addEventListener('change', recalcular));
+        // Validar que los campos sean números positivos
+        if (isNaN(initialAmount) || isNaN(monthlyContribution) || isNaN(durationMonths) || initialAmount < 0 || monthlyContribution < 0 || durationMonths < 1) {
+            document.getElementById('result').innerHTML = '<p style="color: red;">⚠️ Por favor, ingresa valores numéricos válidos (Monto Inicial y Aportación Mensual no pueden ser negativos, Duración debe ser al menos 1).</p>';
+            return;
+        }
 
-// --- FUNCIONES DE UTILIDAD PARA ROBUSTEZ DE DATOS ---
+        // Tasa de interés mensual (9%)
+        const monthlyRate = 0.09;
 
-const normalizeHeader = (header) => String(header).toLowerCase().replace(/[^a-z0-9]/g, '');
+        // Variables para el cálculo
+        let futureValue = initialAmount; // Valor futuro inicial es el monto inicial
+        let totalDeposits = initialAmount; // Total de depósitos incluye el monto inicial
 
-function obtenerNombresColumnas(data) {
-    if (data.length === 0) return false;
-    
-    const requiredCols = { 
-        'Match': ['match'], 
-        'Odd': ['odd', 'cuota'], 
-        'Result': ['result', 'resultado', 'outcome', 'resul'],
-        'League': ['league', 'liga'], 
-        'Date': ['date', 'fecha'] 
-    };
-    
-    const realHeaders = Object.keys(data[0]);
-    const mappedCols = {};
-    let foundAll = true;
-    
-    for (const key in requiredCols) {
-        let found = false;
+        // Simulación del interés compuesto mes a mes
+        for (let i = 0; i < durationMonths; i++) {
+            // 1. Acumular interés del mes anterior
+            futureValue = futureValue * (1 + monthlyRate);
 
-        for (const realHeader of realHeaders) {
-            const normalizedReal = normalizeHeader(realHeader);
-            
-            if (requiredCols[key].some(keyword => normalizedReal.includes(keyword))) {
-                mappedCols[key] = realHeader;
-                found = true;
-                break;
+            // 2. Agregar la nueva aportación mensual (al inicio del siguiente mes)
+            futureValue += monthlyContribution;
+
+            // 3. Sumar la aportación al total depositado (solo si no es el último mes, ya que el último mes de aportación es al inicio y ya está sumado)
+            if (i < durationMonths - 1) {
+                 totalDeposits += monthlyContribution;
+            } else {
+                 // Si es el último mes de la duración, la aportación mensual se hizo al final del mes anterior o al inicio de este mes.
+                 // La lógica de la fórmula se complica si la aportación es al inicio o al final del período.
+                 // Siguiendo el modelo tradicional de "anualidad vencida" (aportación al final del periodo), 
+                 // la última aportación no gana interés en el mes.
+                 // Simplificaremos asumiendo: Aportación inicial + N-1 aportaciones mensuales que ganan interés + 1 última aportación.
+
+                 // Ajuste: En la iteración anterior (i=duracionMeses-2), se sumó la aportación mensual.
+                 // Si la duración es N, hay N meses de interés. 
+                 // Inicial + N aportaciones.
+                 totalDeposits += monthlyContribution; // Corregimos para contar todas las aportaciones
+                 // Nota: el loop suma la aportación ANTES de calcular el interés del mes siguiente.
             }
         }
         
-        if (!found) {
-            document.getElementById('resultados').innerHTML = `<p class="error-message">Error: No se encontró la columna clave "${key}". Se intentó buscar [${requiredCols[key].join(', ')}].</p>`;
-            foundAll = false;
+        // Volver a calcular las variables para la salida, ajustando la última aportación
+
+        let finalValue = initialAmount;
+        let totalAportado = initialAmount;
+
+        for (let i = 0; i < durationMonths; i++) {
+            // El saldo al inicio del mes (después de la aportación del mes anterior) gana interés
+            finalValue = finalValue * (1 + monthlyRate); 
+
+            // Se realiza la aportación mensual (al final del mes o al inicio del siguiente mes). 
+            // Para que la última aportación gane interés, se debe hacer al inicio del último mes.
+            // Si la aportación es al final del mes 'i', solo N-1 aportaciones ganan interés si la duración es N.
+
+            if (i < durationMonths) {
+                // Aportación se hace al inicio del siguiente período
+                // Para una duración de N meses, hay N-1 aportaciones después del monto inicial
+                // Aportacion se suma ANTES de que finalice el loop (es decir, antes de calcular el interés del mes siguiente).
+                if (i < durationMonths - 1) {
+                    finalValue += monthlyContribution;
+                    totalAportado += monthlyContribution;
+                }
+            }
         }
-    }
-    
-    columnasMapeadas = mappedCols;
-    return foundAll;
-}
-
-function parseFechaSeguro(fecha) {
-    if (!fecha) return new Date(0);
-    if (typeof fecha === "number") return XLSX.SSF.parse_date_code(fecha); 
-    const partes = String(fecha).split("/");
-    if (partes.length === 3) {
-        return new Date(`${partes[2]}-${partes[1]}-${partes[0]}`); 
-    }
-    return new Date(fecha); 
-}
-
-/**
- * Determina si el resultado es victoria, incluyendo valores fijos y el valor personalizado del input.
- */
-function esWinSeguro(valor) {
-    if (!valor) return false; 
-    const v = String(valor).toUpperCase().trim();
-    
-    // Lista de valores fijos para victoria, incluyendo 'WINNING'
-    let winValues = ["WIN","WINNING","1","W","TRUE","SI"];
-
-    // Agregar valor personalizado del input
-    const customWinValue = document.getElementById('victoryInput').value;
-    if (customWinValue) {
-        winValues.push(String(customWinValue).toUpperCase().trim());
-    }
-
-    return winValues.includes(v);
-}
-
-/**
- * Determina si el resultado es derrota (pérdida de la unidad).
- * Se asume que si el resultado no es WIN, es LOSS/VOID/DRAW, pero esta función busca valores explícitos.
- */
-function esLossSeguro(valor) {
-    if (!valor) return false;
-    const v = String(valor).toUpperCase().trim();
-    // Lista de valores explícitos para derrota, incluyendo 'LOSING'
-    let lossValues = ["LOSS", "LOSING", "0", "L", "FALSE", "NO", "FALLO", "FAIL"];
-    // Si la columna de resultado está vacía, o contiene algo que no es victoria,
-    // pero queremos una detección más estricta de la derrota.
-    return lossValues.includes(v);
-}
-
-
-// --- LÓGICA PRINCIPAL ---
-
-function cargarArchivo(e) {
-    const reader = new FileReader();
-    document.getElementById('resultados').innerHTML = '';
-    
-    reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        datosGlobales = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-        if (!obtenerNombresColumnas(datosGlobales)) return; 
         
-        datosGlobales.sort((a,b)=> parseFechaSeguro(a[columnasMapeadas.Date]) - parseFechaSeguro(b[columnasMapeadas.Date]));
+        // La fórmula simplificada (para N períodos de capitalización) es:
+        // FV = P(1+r)^n + M * [((1+r)^n - 1) / r] * (1+r) (para aportaciones al inicio)
+        // FV = P(1+r)^n + M * [((1+r)^n - 1) / r] (para aportaciones al final)
         
-        cargarLigas();
-        recalcular();
-    };
-    reader.readAsArrayBuffer(e.target.files[0]);
-}
+        // Usaremos el loop para la mayor precisión y claridad, 
+        // asumiendo que la aportación se hace **al inicio del mes**, y gana interés.
 
-function cargarLigas() {
-    const ligas = [...new Set(datosGlobales.map(r => r[columnasMapeadas.League]).filter(l => l && String(l).trim() !== ''))];
-    const select = document.getElementById("filtroLiga");
-    select.innerHTML = '<option value="all">Todas las Ligas</option>';
-    ligas.forEach(l => {
-        const opt = document.createElement("option");
-        opt.value = l;
-        opt.textContent = l;
-        select.appendChild(opt);
-    });
-}
-
-function recalcular() {
-    if (Object.keys(columnasMapeadas).length < 5 || datosGlobales.length === 0) {
-        if (document.getElementById('fileInput').files.length > 0) {
-            // Este mensaje se muestra si se cargó el archivo pero falló el mapeo
-             document.getElementById("resultados").innerHTML = `<p class="error-message">Falta el mapeo de columnas. Por favor, asegúrate que los encabezados coinciden o intenta recargar el archivo.</p>`;
+        let saldo_final = initialAmount;
+        let aportaciones_totales = initialAmount;
+        
+        for (let i = 1; i <= durationMonths; i++) {
+            // El saldo actual gana interés
+            saldo_final = saldo_final * (1 + monthlyRate);
+            
+            // Se realiza la aportación mensual al final del mes 'i', excepto en el último mes
+            if (i < durationMonths) {
+                saldo_final += monthlyContribution;
+                aportaciones_totales += monthlyContribution;
+            } else {
+                // Para simplificar la salida y ser conservadores, la última aportación no se considera en el interés final.
+                // Ajustaremos la suma de aportaciones para ser precisos:
+                // Sumaremos la última aportación al final del período, pero NO la capitalizaremos
+                // (esto asume que la última aportación es al final del último mes).
+                aportaciones_totales += monthlyContribution;
+            }
         }
-        return; 
-    }
+        
+        // AJUSTE FINAL: Si la aportación es al INICIO de cada mes, incluso en el último mes
+        let saldo = initialAmount;
+        let aportado = initialAmount;
 
-    const posicion = document.getElementById("filtroPosicion").value;
-    const liga = document.getElementById("filtroLiga").value;
-    const limite = Number(document.getElementById("filtroLimite").value);
-
-    let datos = [...datosGlobales];
-    
-    if (liga !== "all") datos = datos.filter(d => String(d[columnasMapeadas.League]) === liga);
-
-    procesarDatos(datos, posicion, limite);
-}
-
-function procesarDatos(data, posicion, limite) {
-    const porEquipo = {};
-
-    data.forEach(row => {
-        const matchValue = String(row[columnasMapeadas.Match] || "");
-
-        // Extracción de Equipos
-        let teams = [];
-        if (matchValue.includes("-") || matchValue.includes("–")) {
-             teams = matchValue.split(/\s*[-–]\s*/).map(t => t.trim());
-        } else if (matchValue.toLowerCase().includes("vs")) {
-            teams = matchValue.split(/\s+vs\s+/i).map(t => t.trim());
+        // Se hace la aportación al inicio de cada mes, ganando interés.
+        for (let i = 1; i <= durationMonths; i++) {
+            // Al inicio de cada mes, se suma la aportación
+            if (i > 1) { // La primera aportación ya es el Monto Inicial
+                saldo += monthlyContribution;
+                aportado += monthlyContribution;
+            }
+            // El saldo gana interés durante el mes
+            saldo = saldo * (1 + monthlyRate); 
         }
 
-        if (teams.length !== 2 || !teams[0] || !teams[1]) return;
-        const [home, away] = teams;
+        const totalEarnedInterest = saldo - aportado;
         
-        const odd = Math.max(parseFloat(row[columnasMapeadas.Odd]) || 1, 1);
-        const resultValue = row[columnasMapeadas.Result];
-        
-        const isWin = esWinSeguro(resultValue);
-        // const isLoss = esLossSeguro(resultValue); // Esta línea es para referencia, pero no la usaremos directamente para el cálculo de Profit/Loss.
-
-        if (!porEquipo[home]) porEquipo[home] = [];
-        if (!porEquipo[away]) porEquipo[away] = [];
-
-        porEquipo[home].push({ tipo: "home", isWin, odd });
-        porEquipo[away].push({ tipo: "away", isWin, odd });
-    });
-
-    const resultados = {};
-
-    Object.entries(porEquipo).forEach(([team, partidos]) => {
-
-        let partidosUsados = limite > 0 ? partidos.slice(-limite) : partidos;
-        let usados = partidosUsados.filter(p => posicion === "all" || p.tipo === posicion);
-
-        if (!usados.length) return;
-
-        let profit = 0, aciertos = 0;
-
-        usados.forEach(p => {
-            // 💡 LÓGICA CLAVE: Si es Victoria, suma la ganancia. Si NO es Victoria, resta 1 (asume pérdida/nulo).
-            profit += p.isWin ? (p.odd - 1) : -1;
-            if (p.isWin) aciertos++;
+        // Formatear los resultados a moneda (ejemplo: USD o MXN)
+        const formatter = new Intl.NumberFormat('es-MX', {
+            style: 'currency',
+            currency: 'MXN', // Puedes cambiar a 'USD' si lo prefieres
+            minimumFractionDigits: 2,
         });
 
-        resultados[team] = {
-            Partidos: usados.length,
-            Aciertos: aciertos,
-            Profit: profit,
-            ROI: (profit / usados.length) * 100
-        };
-    });
+        const finalValueFormatted = formatter.format(saldo);
+        const totalDepositsFormatted = formatter.format(aportado);
+        const totalInterestFormatted = formatter.format(totalEarnedInterest);
 
-    rankingFinal = Object.entries(resultados).map(([Equipo, d]) => ({
-        Equipo,
-        Partidos: d.Partidos,
-        Aciertos: d.Aciertos,
-        WinRate: ((d.Aciertos / d.Partidos) * 100).toFixed(1),
-        Profit: d.Profit.toFixed(2),
-        ROI: d.ROI.toFixed(2)
-    })).sort((a,b)=> parseFloat(b.Profit) - parseFloat(a.Profit));
-
-    mostrarTabla();
-}
-
-// --- VISUALIZACIÓN Y EXPORTACIÓN ---
-
-function mostrarTabla() {
-    if (rankingFinal.length === 0) {
-        const msg = datosGlobales.length > 0 && Object.keys(columnasMapeadas).length === 5 
-            ? "No se encontraron equipos o no hay datos válidos para los filtros seleccionados." 
-            : "Cargue un archivo válido para comenzar el análisis.";
-            
-        document.getElementById("resultados").innerHTML = `<p class="error-message">${msg}</p>`;
-        return;
+        // Mostrar el resultado
+        document.getElementById('result').innerHTML = `
+            <p><strong>Monto Final Estimado:</strong></p>
+            <p style="font-size: 1.5em; color: #28a745;">${finalValueFormatted}</p>
+            <hr style="border-top: 1px dashed #ccc;">
+            <p>Total Aportado (Capital): ${totalDepositsFormatted}</p>
+            <p>Total de Intereses Ganados: ${totalInterestFormatted}</p>
+        `;
     }
-    
-    let html = `<table>
-    <tr>
-        <th>Equipo</th><th>Partidos</th><th>Aciertos</th><th>Win%</th>
-        <th>Profit</th><th>ROI%</th><th>Estado</th>
-    </tr>`;
 
-    rankingFinal.forEach(e => {
-        const p = parseFloat(e.Profit);
-        const estado = p > 0 ? "Rentable" : p < 0 ? "Pérdida" : "Neutro";
-        const clase = p > 0 ? "rentable" : p < 0 ? "no-rentable" : "neutral";
-
-        html += `
-        <tr>
-            <td>${e.Equipo}</td>
-            <td>${e.Partidos}</td>
-            <td>${e.Aciertos}</td>
-            <td>${e.WinRate}%</td>
-            <td class="${clase}">${e.Profit} u</td>
-            <td class="${clase}">${e.ROI}%</td>
-            <td class="${clase}">${estado}</td>
-        </tr>`;
-    });
-
-    html += "</table>";
-    document.getElementById("resultados").innerHTML = html;
-}
-
-function exportarExcel() {
-    if (!rankingFinal.length) {
-        alert("No hay datos para exportar.");
-        return;
-    }
-    const ws = XLSX.utils.json_to_sheet(rankingFinal);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Ranking Equipos");
-    XLSX.writeFile(wb, "ranking_rentabilidad_equipos.xlsx");
-}
+    // Calcular al cargar la página con los valores por defecto
+    document.addEventListener('DOMContentLoaded', calculateSavings);
 </script>
 </body>
 </html>
