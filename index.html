@@ -3,278 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Ahorro Compuesto</title>
+    <title>Estadísticas Bet-Analytix</title>
     <style>
-        /* Estilos CSS */
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             margin: 0;
-            color: #333;
+            padding: 20px;
+            font-family: sans-serif;
+            background-color: #f4f4f4;
         }
-
         .container {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 450px;
-        }
-
-        h1 {
-            color: #007bff;
-            text-align: center;
-            margin-bottom: 25px;
-            font-size: 1.8em;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #555;
-        }
-
-        input[type="number"] {
-            width: calc(100% - 20px);
+            max-width: 1000px;
+            margin: auto;
+            background: white;
             padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-
-        input[type="number"]:focus {
-            border-color: #007bff;
-            outline: none;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s;
-        }
-
-        button:hover {
-            background-color: #218838;
-        }
-
-        button:active {
-            transform: translateY(1px);
-        }
-
-        .result {
-            margin-top: 30px;
-            padding: 15px;
-            background-color: #e9f7ef;
-            border: 1px solid #c3e6cb;
             border-radius: 8px;
-            text-align: center;
-        }
-
-        .result p {
-            margin: 8px 0;
-            font-size: 1.1em;
-        }
-
-        .result strong {
-            color: #007bff;
-            font-size: 1.2em;
-        }
-
-        .note {
-            margin-top: 15px;
-            text-align: center;
-            font-size: 0.9em;
-            color: #6c757d;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Caja de Ahorro 💰 (9% Compuesto Mensual)</h1>
-
-    <div class="form-group">
-        <label for="initialAmount">Monto Inicial ($):</label>
-        <input type="number" id="initialAmount" value="1000" min="0">
+    <div class="container">
+        <h2>Mis Estadísticas</h2>
+        <iframe src="https://integration.bet-analytix.com/statistics/full/1672092" width="100%" height="430" style="border:none"></iframe>
     </div>
 
-    <div class="form-group">
-        <label for="monthlyContribution">Aportación Mensual ($):</label>
-        <input type="number" id="monthlyContribution" value="500" min="0">
-    </div>
-
-    <div class="form-group">
-        <label for="durationMonths">Duración (Meses):</label>
-        <input type="number" id="durationMonths" value="12" min="1">
-    </div>
-
-    <button onclick="calculateSavings()">Calcular</button>
-
-    <div class="result" id="result">
-        <p>Ingresa los datos y haz clic en Calcular.</p>
-    </div>
-
-    <div class="note">
-        <p>Interés: 9% compuesto mensual fijo.</p>
-    </div>
-</div>
-
-<script>
-    // Código JavaScript
-    function calculateSavings() {
-        // Obtener los valores de los inputs
-        const initialAmount = parseFloat(document.getElementById('initialAmount').value);
-        const monthlyContribution = parseFloat(document.getElementById('monthlyContribution').value);
-        const durationMonths = parseInt(document.getElementById('durationMonths').value);
-
-        // Validar que los campos sean números positivos
-        if (isNaN(initialAmount) || isNaN(monthlyContribution) || isNaN(durationMonths) || initialAmount < 0 || monthlyContribution < 0 || durationMonths < 1) {
-            document.getElementById('result').innerHTML = '<p style="color: red;">⚠️ Por favor, ingresa valores numéricos válidos (Monto Inicial y Aportación Mensual no pueden ser negativos, Duración debe ser al menos 1).</p>';
-            return;
-        }
-
-        // Tasa de interés mensual (9%)
-        const monthlyRate = 0.09;
-
-        // Variables para el cálculo
-        let futureValue = initialAmount; // Valor futuro inicial es el monto inicial
-        let totalDeposits = initialAmount; // Total de depósitos incluye el monto inicial
-
-        // Simulación del interés compuesto mes a mes
-        for (let i = 0; i < durationMonths; i++) {
-            // 1. Acumular interés del mes anterior
-            futureValue = futureValue * (1 + monthlyRate);
-
-            // 2. Agregar la nueva aportación mensual (al inicio del siguiente mes)
-            futureValue += monthlyContribution;
-
-            // 3. Sumar la aportación al total depositado (solo si no es el último mes, ya que el último mes de aportación es al inicio y ya está sumado)
-            if (i < durationMonths - 1) {
-                 totalDeposits += monthlyContribution;
-            } else {
-                 // Si es el último mes de la duración, la aportación mensual se hizo al final del mes anterior o al inicio de este mes.
-                 // La lógica de la fórmula se complica si la aportación es al inicio o al final del período.
-                 // Siguiendo el modelo tradicional de "anualidad vencida" (aportación al final del periodo), 
-                 // la última aportación no gana interés en el mes.
-                 // Simplificaremos asumiendo: Aportación inicial + N-1 aportaciones mensuales que ganan interés + 1 última aportación.
-
-                 // Ajuste: En la iteración anterior (i=duracionMeses-2), se sumó la aportación mensual.
-                 // Si la duración es N, hay N meses de interés. 
-                 // Inicial + N aportaciones.
-                 totalDeposits += monthlyContribution; // Corregimos para contar todas las aportaciones
-                 // Nota: el loop suma la aportación ANTES de calcular el interés del mes siguiente.
-            }
-        }
-        
-        // Volver a calcular las variables para la salida, ajustando la última aportación
-
-        let finalValue = initialAmount;
-        let totalAportado = initialAmount;
-
-        for (let i = 0; i < durationMonths; i++) {
-            // El saldo al inicio del mes (después de la aportación del mes anterior) gana interés
-            finalValue = finalValue * (1 + monthlyRate); 
-
-            // Se realiza la aportación mensual (al final del mes o al inicio del siguiente mes). 
-            // Para que la última aportación gane interés, se debe hacer al inicio del último mes.
-            // Si la aportación es al final del mes 'i', solo N-1 aportaciones ganan interés si la duración es N.
-
-            if (i < durationMonths) {
-                // Aportación se hace al inicio del siguiente período
-                // Para una duración de N meses, hay N-1 aportaciones después del monto inicial
-                // Aportacion se suma ANTES de que finalice el loop (es decir, antes de calcular el interés del mes siguiente).
-                if (i < durationMonths - 1) {
-                    finalValue += monthlyContribution;
-                    totalAportado += monthlyContribution;
-                }
-            }
-        }
-        
-        // La fórmula simplificada (para N períodos de capitalización) es:
-        // FV = P(1+r)^n + M * [((1+r)^n - 1) / r] * (1+r) (para aportaciones al inicio)
-        // FV = P(1+r)^n + M * [((1+r)^n - 1) / r] (para aportaciones al final)
-        
-        // Usaremos el loop para la mayor precisión y claridad, 
-        // asumiendo que la aportación se hace **al inicio del mes**, y gana interés.
-
-        let saldo_final = initialAmount;
-        let aportaciones_totales = initialAmount;
-        
-        for (let i = 1; i <= durationMonths; i++) {
-            // El saldo actual gana interés
-            saldo_final = saldo_final * (1 + monthlyRate);
-            
-            // Se realiza la aportación mensual al final del mes 'i', excepto en el último mes
-            if (i < durationMonths) {
-                saldo_final += monthlyContribution;
-                aportaciones_totales += monthlyContribution;
-            } else {
-                // Para simplificar la salida y ser conservadores, la última aportación no se considera en el interés final.
-                // Ajustaremos la suma de aportaciones para ser precisos:
-                // Sumaremos la última aportación al final del período, pero NO la capitalizaremos
-                // (esto asume que la última aportación es al final del último mes).
-                aportaciones_totales += monthlyContribution;
-            }
-        }
-        
-        // AJUSTE FINAL: Si la aportación es al INICIO de cada mes, incluso en el último mes
-        let saldo = initialAmount;
-        let aportado = initialAmount;
-
-        // Se hace la aportación al inicio de cada mes, ganando interés.
-        for (let i = 1; i <= durationMonths; i++) {
-            // Al inicio de cada mes, se suma la aportación
-            if (i > 1) { // La primera aportación ya es el Monto Inicial
-                saldo += monthlyContribution;
-                aportado += monthlyContribution;
-            }
-            // El saldo gana interés durante el mes
-            saldo = saldo * (1 + monthlyRate); 
-        }
-
-        const totalEarnedInterest = saldo - aportado;
-        
-        // Formatear los resultados a moneda (ejemplo: USD o MXN)
-        const formatter = new Intl.NumberFormat('es-MX', {
-            style: 'currency',
-            currency: 'MXN', // Puedes cambiar a 'USD' si lo prefieres
-            minimumFractionDigits: 2,
-        });
-
-        const finalValueFormatted = formatter.format(saldo);
-        const totalDepositsFormatted = formatter.format(aportado);
-        const totalInterestFormatted = formatter.format(totalEarnedInterest);
-
-        // Mostrar el resultado
-        document.getElementById('result').innerHTML = `
-            <p><strong>Monto Final Estimado:</strong></p>
-            <p style="font-size: 1.5em; color: #28a745;">${finalValueFormatted}</p>
-            <hr style="border-top: 1px dashed #ccc;">
-            <p>Total Aportado (Capital): ${totalDepositsFormatted}</p>
-            <p>Total de Intereses Ganados: ${totalInterestFormatted}</p>
-        `;
-    }
-
-    // Calcular al cargar la página con los valores por defecto
-    document.addEventListener('DOMContentLoaded', calculateSavings);
-</script>
 </body>
 </html>
