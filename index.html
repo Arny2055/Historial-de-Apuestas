@@ -3,29 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estadísticas Bet-Analytix</title>
+    <title>Dashboard de Estadísticas - Bet-Analytix</title>
     <style>
         body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
             margin: 0;
             padding: 20px;
-            font-family: sans-serif;
-            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .container {
-            max-width: 1000px;
-            margin: auto;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 900px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+            padding: 15px;
+            overflow: hidden;
+        }
+        h2 {
+            color: #333;
+            font-size: 1.2rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 8px;
+        }
+        .scroll-container {
+            width: 100%;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        iframe {
+            display: block;
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>Mis Estadísticas</h2>
-        <iframe src="https://integration.bet-analytix.com/statistics/full/1672092" width="100%" height="430" style="border:none"></iframe>
+        
+        <div class="card">
+            <h2>Evolución de Bankroll</h2>
+            <iframe src="https://integration.bet-analytix.com/chart/1672092" width="100%" height="420" style="border:none"></iframe>
+        </div>
+
+        <div class="card">
+            <h2>Resumen General</h2>
+            <iframe src="https://integration.bet-analytix.com/statistics/basic/1672092" width="100%" height="180" style="border:none"></iframe>
+        </div>
+
+        <div class="card">
+            <h2>Estadísticas Detalladas</h2>
+            <iframe src="https://integration.bet-analytix.com/statistics/full/1672092" width="100%" height="430" style="border:none"></iframe>
+        </div>
+
+        <div class="card">
+            <h2>Historial de Apuestas</h2>
+            <div class="scroll-container">
+                <iframe src="https://integration.bet-analytix.com/bets/1672092" width="100%" height="1000" style="border:none"></iframe>
+            </div>
+        </div>
+
     </div>
 
 </body>
