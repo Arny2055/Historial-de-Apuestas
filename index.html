@@ -3,201 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Trader Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Quantum Trader | High-Frequency Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --neon-blue: #00d2ff;
-            --neon-green: #39ff14;
-            --bg-dark: #05070a;
-            --glass: rgba(255, 255, 255, 0.03);
-            --border-glass: rgba(255, 255, 255, 0.1);
+            --accent: #00ffa3;
+            --bg: #080a0f;
+            --panel: rgba(16, 20, 28, 0.7);
+            --border: rgba(0, 255, 163, 0.15);
+            --text: #e2e8f0;
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background: var(--bg-dark);
-            color: #e0e0e0;
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-image: 
-                linear-gradient(rgba(0, 210, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 210, 255, 0.02) 1px, transparent 1px);
-            background-size: 30px 30px;
-        }
-
-        .main-container {
-            max-width: 1300px;
-            margin: 0 auto;
-        }
-
-        /* Header Estilo Terminal */
-        header {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
             display: flex;
-            justify-content: space-between;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Pro */
+        nav {
+            width: 80px;
+            background: rgba(0,0,0,0.3);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            border-bottom: 1px solid var(--border-glass);
-            padding-bottom: 15px;
-            margin-bottom: 30px;
-        }
-
-        .brand {
-            font-family: 'Orbitron', sans-serif;
-            letter-spacing: 2px;
-            color: var(--neon-blue);
-            text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
-        }
-
-        /* Widgets Rápidos */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .kpi-card {
-            background: var(--glass);
-            border: 1px solid var(--border-glass);
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
+            padding: 30px 0;
+            gap: 40px;
             backdrop-filter: blur(10px);
         }
 
-        .kpi-card span {
-            display: block;
+        .nav-icon {
+            width: 40px; height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .nav-icon:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent); }
+
+        /* Main Content */
+        main { flex: 1; padding: 30px; max-width: 1400px; margin: 0 auto; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 40px;
+        }
+
+        .title-group h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(90deg, #fff, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .data-meta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            background: rgba(0, 255, 163, 0.05);
+            padding: 5px 15px;
+            border-radius: 5px;
+            border: 1px solid var(--border);
+        }
+
+        /* Grid System */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: auto auto;
+            gap: 25px;
+        }
+
+        .chart-main { grid-column: span 2; }
+        .stats-sidebar { grid-column: span 1; }
+        .history-full { grid-column: span 3; }
+
+        .glass-panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 25px;
+            backdrop-filter: blur(20px);
+            position: relative;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .glass-panel:hover {
+            border-color: var(--accent);
+            transform: translateY(-5px);
+        }
+
+        .panel-label {
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.7rem;
             text-transform: uppercase;
-            color: #888;
-            margin-bottom: 5px;
-        }
-
-        .kpi-card strong {
-            font-size: 1.2rem;
-            color: var(--neon-green);
-        }
-
-        /* Dashboard Grid */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 8fr 4fr;
-            gap: 20px;
-        }
-
-        .main-chart { grid-column: 1 / 2; }
-        .side-stats { grid-column: 2 / 3; }
-        .full-width { grid-column: 1 / 3; }
-
-        @media (max-width: 1024px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .main-chart, .side-stats, .full-width { grid-column: 1 / 2; }
-        }
-
-        .panel {
-            background: var(--glass);
-            border: 1px solid var(--border-glass);
-            border-radius: 20px;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .panel::before {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
-        }
-
-        h2 {
-            font-size: 0.85rem;
-            margin-top: 0;
+            color: #64748b;
             margin-bottom: 20px;
-            text-transform: uppercase;
-            color: var(--neon-blue);
             display: flex;
-            align-items: center;
-            gap: 10px;
+            justify-content: space-between;
         }
+
+        .panel-label b { color: var(--accent); }
 
         iframe {
-            border-radius: 12px;
-            background: transparent !important;
-        }
-
-        .scroll-box {
             width: 100%;
-            overflow-y: auto;
-            border-radius: 12px;
+            background: transparent !important;
+            filter: invert(0.9) hue-rotate(150deg) brightness(1.2); /* Esto adapta el iframe blanco al modo oscuro de forma agresiva */
         }
 
-        /* Efecto de pulso para el estado online */
-        .live-indicator {
-            height: 8px; width: 8px;
-            background: var(--neon-green);
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 8px var(--neon-green);
-            animation: pulse 1.5s infinite;
+        .scroll-wrapper {
+            border-radius: 15px;
+            overflow: hidden;
+            mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
         }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .analytics-grid { grid-template-columns: 1fr; }
+            .chart-main, .stats-sidebar, .history-full { grid-column: span 1; }
+            nav { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <div class="main-container">
+    <nav>
+        <div class="nav-icon">📈</div>
+        <div class="nav-icon">📊</div>
+        <div class="nav-icon">📋</div>
+        <div class="nav-icon">⚙️</div>
+    </nav>
+
+    <main>
         <header>
-            <div class="brand"><h1>QUANTUM-STATS v2.0</h1></div>
-            <div>
-                <span class="live-indicator"></span> 
-                <small style="margin-left:5px; color: var(--neon-green)">SYSTEM ONLINE</small>
+            <div class="title-group">
+                <div class="data-meta">LIVE ANALYTICS ENGINE // ID 1672092</div>
+                <h1>QUANTUM PERFORMANCE</h1>
+            </div>
+            <div style="text-align: right">
+                <div style="font-size: 0.8rem; color: #64748b">ESTADO DE RED</div>
+                <div style="color: var(--accent); font-weight: bold">SINCRO OK</div>
             </div>
         </header>
 
-        <div class="kpi-grid">
-            <div class="kpi-card"><span>Yield Proyectado</span><strong>+12.4%</strong></div>
-            <div class="kpi-card"><span>Win Rate</span><strong>68.2%</strong></div>
-            <div class="kpi-card"><span>Drawdown Máx</span><strong>-4.1%</strong></div>
-            <div class="kpi-card"><span>Profit Factor</span><strong>2.15</strong></div>
-        </div>
-
-        <div class="dashboard-grid">
-            <div class="panel main-chart">
-                <h2>📊 Gráfico de Performance</h2>
-                <iframe src="https://integration.bet-analytix.com/chart/1672092" width="100%" height="420" style="border:none"></iframe>
+        <div class="analytics-grid">
+            
+            <div class="glass-panel chart-main">
+                <div class="panel-label"><b>01</b> Equity Curve / Growth Analysis</div>
+                <iframe src="https://integration.bet-analytix.com/chart/1672092" height="420" style="border:none"></iframe>
             </div>
 
-            <div class="panel side-stats">
-                <h2>📈 Resumen Rápido</h2>
-                <iframe src="https://integration.bet-analytix.com/statistics/basic/1672092" width="100%" height="180" style="border:none"></iframe>
-                <div style="margin-top: 20px; padding: 10px; border-top: 1px solid var(--border-glass)">
-                    <p style="font-size: 0.75rem; color: #666">Actualización automática sincronizada con Bet-Analytix API.</p>
+            <div class="glass-panel stats-sidebar">
+                <div class="panel-label"><b>02</b> Risk Metrics / Basic</div>
+                <iframe src="https://integration.bet-analytix.com/statistics/basic/1672092" height="180" style="border:none"></iframe>
+                <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
+                    <div class="panel-label" style="margin-bottom: 5px;">Eficiencia de Staking</div>
+                    <div style="height: 4px; background: #1e293b; border-radius: 2px;">
+                        <div style="width: 85%; height: 100%; background: var(--accent); box-shadow: 0 0 10px var(--accent);"></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="panel full-width">
-                <h2>🔬 Análisis de Métricas Avanzadas</h2>
-                <iframe src="https://integration.bet-analytix.com/statistics/full/1672092" width="100%" height="430" style="border:none"></iframe>
+            <div class="glass-panel history-full">
+                <div class="panel-label"><b>03</b> Deep Analytics / Full Metrics</div>
+                <iframe src="https://integration.bet-analytix.com/statistics/full/1672092" height="430" style="border:none"></iframe>
             </div>
 
-            <div class="panel full-width">
-                <h2>📑 Log de Operaciones Recientes</h2>
-                <div class="scroll-box">
-                    <iframe src="https://integration.bet-analytix.com/bets/1672092" width="100%" height="900" style="border:none"></iframe>
+            <div class="glass-panel history-full">
+                <div class="panel-label"><b>04</b> Transaction Log / Real-Time History</div>
+                <div class="scroll-wrapper">
+                    <iframe src="https://integration.bet-analytix.com/bets/1672092" height="900" style="border:none"></iframe>
                 </div>
             </div>
+
         </div>
 
-        <footer style="margin-top: 50px; text-align: center; font-size: 0.7rem; color: #444; border-top: 1px solid var(--border-glass); padding-top: 20px;">
-            TERMINAL ENCRYPTED ACCESS | 2025 ALL RIGHTS RESERVED
+        <footer style="margin-top: 60px; padding: 20px; text-align: center; font-family: 'JetBrains Mono'; font-size: 0.7rem; color: #475569;">
+            > DEPLOYED VIA GITHUB PAGES // SYSTEM_STATUS: OPERATIONAL
         </footer>
-    </div>
+    </main>
 
 </body>
 </html>
