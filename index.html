@@ -3,161 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro Completo</title>
+    <title>Poisson Elite - Auditoría Pro</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f0f2f5; --accent: #1a73e8; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #1a1a1a; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); box-sizing: border-box; }
-        h1 { text-align: center; color: var(--secondary); font-size: 1.4rem; margin: 0 0 20px 0; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
-        .input-group { margin-bottom: 12px; }
-        label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.75rem; color: #666; text-transform: uppercase; }
-        textarea { width: 100%; height: 80px; border: 1px solid #ddd; border-radius: 12px; padding: 10px; font-size: 11px; box-sizing: border-box; background: #fafafa; font-family: monospace; resize: none; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; color: #1c1c1e; }
+        .container { max-width: 480px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; }
+        h1 { text-align: center; color: var(--secondary); font-size: 1.3rem; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+        
+        label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.7rem; color: #8e8e93; text-transform: uppercase; }
+        textarea { width: 100%; height: 65px; border: 1px solid #d1d1d6; border-radius: 12px; padding: 10px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 12px; }
         .avg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; font-weight: bold; text-align: center; }
-        button.main-btn { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-size: 1.1rem; font-weight: 800; cursor: pointer; box-shadow: 0 4px 15px rgba(61, 25, 90, 0.3); }
+        input { width: 100%; padding: 14px; border: 1px solid #d1d1d6; border-radius: 12px; box-sizing: border-box; font-size: 16px; font-weight: 700; text-align: center; }
         
-        .match-card { margin-top: 20px; border-radius: 16px; background: white; overflow: hidden; border: 1px solid #e0e0e0; animation: fadeIn 0.4s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .match-header { background: var(--secondary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
-        .team-names { font-size: 0.9rem; font-weight: 700; flex: 1; }
-        .xg-total { background: var(--primary); color: var(--secondary); padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 900; }
-        
-        .btts-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f8faff; border-bottom: 1px solid #edf2f7; }
-        .btts-label { font-size: 0.85rem; font-weight: 600; color: #4a5568; }
-        .btts-value { color: var(--accent); font-weight: 800; display: flex; align-items: center; gap: 8px; }
+        button.calc-btn { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 16px; font-size: 1rem; font-weight: 800; cursor: pointer; }
 
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 12px 15px; border-bottom: 1px solid #f7f7f7; font-size: 0.9rem; }
-        .mkt-name { color: #4a5568; font-weight: 500; }
-        .mkt-prob { text-align: right; font-weight: 800; color: #2d3748; }
-        .share-cell { width: 40px; text-align: center; }
+        .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; }
+        .match-header { background: var(--secondary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
         
-        .share-icon-btn { background: #edf2f7; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .share-icon-btn:active { background: var(--primary); transform: scale(0.9); }
+        /* Consola de Auditoría */
+        .audit-toggle { background: #444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; }
+        .audit-panel { display: none; background: #2c2c2e; color: #00ff85; padding: 12px; font-family: monospace; font-size: 10px; line-height: 1.4; }
+        
+        .btts-row { display: flex; justify-content: space-between; padding: 12px 15px; background: #f8faff; font-weight: 700; border-bottom: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 12px 15px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
+        .mkt-prob { text-align: right; font-weight: 800; color: #1c1c1e; }
+        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Poisson Mobile Elite</h1>
-    <div class="input-group"><label>1. Calendario de Partidos:</label><textarea id="matchesInput" placeholder="Fri 26 Dec Manchester Utd 14:00 Newcastle Utd..."></textarea></div>
-    <div class="input-group"><label>2. Tabla Local (Formato completo):</label><textarea id="homeStatsInput" placeholder="1 Man City 9 8 0 1 25 6..."></textarea></div>
-    <div class="input-group"><label>3. Tabla Visita (Formato completo):</label><textarea id="awayStatsInput" placeholder="1 Arsenal 9 5 2 2 11 7..."></textarea></div>
+    <h1>Poisson Auditor v1.0</h1>
+    <label>Partidos:</label><textarea id="matchesInput"></textarea>
+    <label>Stats Local:</label><textarea id="homeStatsInput"></textarea>
+    <label>Stats Visitante:</label><textarea id="awayStatsInput"></textarea>
+    
     <div class="avg-grid">
-        <div><label>Avg Goles Local:</label><input type="number" id="avgHomeGoals" step="0.01" value="1.61"></div>
-        <div><label>Avg Goles Visita:</label><input type="number" id="avgAwayGoals" step="0.01" value="1.22"></div>
+        <div><label>Avg Liga L:</label><input type="number" id="avgH" step="0.01" value="1.61"></div>
+        <div><label>Avg Liga V:</label><input type="number" id="avgA" step="0.01" value="1.22"></div>
     </div>
-    <button class="main-btn" onclick="calculatePoisson()">CALCULAR Y ANALIZAR</button>
+    
+    <button class="calc-btn" onclick="calculate()">ANALIZAR CON AUDITORÍA</button>
     <div id="results"></div>
 </div>
 
 <script>
-    function factorial(n) { let res = 1; for (let i = 2; i <= n; i++) res *= i; return res; }
-    function poisson(l, x) { return (Math.exp(-l) * Math.pow(l, x)) / factorial(x); }
+    const fact = n => n <= 1 ? 1 : n * fact(n - 1);
+    const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
 
-    function parseAdvancedStats(text) {
-        const stats = {};
-        const lines = text.trim().split('\n');
-        lines.forEach(line => {
-            const p = line.trim().split(/\t|\s{2,}/);
-            if (p.length >= 8) {
-                // El nombre del equipo puede tener espacios, lo buscamos dinámicamente
-                const teamName = p[1].trim();
-                stats[teamName] = {
-                    pj: parseFloat(p[2]), // Partidos Jugados
-                    gf: parseFloat(p[6]), // Goles Favor
-                    gc: parseFloat(p[7])  // Goles Contra
-                };
-            }
+    function toggleAudit(id) {
+        const el = document.getElementById(id);
+        el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function parse(txt) {
+        const s = {};
+        txt.split('\n').forEach(l => {
+            const p = l.trim().split(/\t|\s{2,}/);
+            if (p.length >= 8) s[p[1].trim()] = { pj: parseFloat(p[2]), gf: parseFloat(p[6]), gc: parseFloat(p[7]) };
         });
-        return stats;
+        return s;
     }
 
-    function share(match, mkt, prob, lH, lA) {
-        const text = `🎯 *PRONÓSTICO POISSON*\n\n🏟️ ${match}\n🏆 Mercado: *${mkt}*\n📈 Probabilidad: *${prob}%*\n\n⚽ xG Local: ${lH}\n⚽ xG Visita: ${lA}\n📊 xG Total: ${(parseFloat(lH)+parseFloat(lA)).toFixed(2)}`;
-        if (navigator.share) {
-            navigator.share({ title: 'Pick Poisson', text: text }).catch(() => {});
-        } else {
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-        }
-    }
+    function calculate() {
+        const hs = parse(document.getElementById('homeStatsInput').value);
+        const as = parse(document.getElementById('awayStatsInput').value);
+        const avH = parseFloat(document.getElementById('avgH').value);
+        const avA = parseFloat(document.getElementById('avgA').value);
+        const res = document.getElementById('results');
+        res.innerHTML = '';
 
-    function calculatePoisson() {
-        const hStats = parseAdvancedStats(document.getElementById('homeStatsInput').value);
-        const aStats = parseAdvancedStats(document.getElementById('awayStatsInput').value);
-        const leagueAvgH = parseFloat(document.getElementById('avgHomeGoals').value);
-        const leagueAvgA = parseFloat(document.getElementById('avgAwayGoals').value);
-        const resultsDiv = document.getElementById('results');
-        resultsDiv.innerHTML = '';
-
-        document.getElementById('matchesInput').value.trim().split('\n').forEach(line => {
+        document.getElementById('matchesInput').value.split('\n').forEach((line, idx) => {
             const p = line.split(/\t|\s{2,}/);
             if (p.length < 4) return;
-            const home = p[1].trim(), away = p[3].trim();
+            const hName = p[1].trim(), aName = p[3].trim();
 
-            if (hStats[home] && aStats[away]) {
-                const teamH = hStats[home], teamA = aStats[away];
+            if (hs[hName] && as[aName]) {
+                const h = hs[hName], a = as[aName];
+                
+                // --- AUDITORÍA MATEMÁTICA ---
+                const attH = (h.gf / h.pj) / avH; // Fuerza Ataque Local
+                const defA = (a.gc / a.pj) / avH; // Fuerza Defensa Visita
+                const lamH = attH * defA * avH;   // Lambda Local
 
-                // --- LÓGICA POISSON COMPLETA ---
-                // 1. Fuerza Ataque Local = (Goles Favor Local / Partidos Local) / Promedio Liga Local
-                const attH = (teamH.gf / teamH.pj) / leagueAvgH;
-                // 2. Fuerza Defensa Visitante = (Goles Contra Visita / Partidos Visita) / Promedio Liga Local
-                const defA = (teamA.gc / teamA.pj) / leagueAvgH;
-                // Lambda Local
-                const lambdaH = attH * defA * leagueAvgH;
+                const attA = (a.gf / a.pj) / avA; // Fuerza Ataque Visita
+                const defH = (h.gc / h.pj) / avA; // Fuerza Defensa Local
+                const lamA = attA * defH * avA;   // Lambda Visita
 
-                // 3. Fuerza Ataque Visitante = (Goles Favor Visita / Partidos Visita) / Promedio Liga Visita
-                const attA = (teamA.gf / teamA.pj) / leagueAvgA;
-                // 4. Fuerza Defensa Local = (Goles Contra Local / Partidos Local) / Promedio Liga Visita
-                const defH = (teamH.gc / teamH.pj) / leagueAvgA;
-                // Lambda Visitante
-                const lambdaA = attA * defH * leagueAvgA;
-
-                // Probabilidades
                 let over = { 0.5:0, 1.5:0, 2.5:0, 3.5:0 };
-                for(let i=0; i<=10; i++) {
-                    for(let j=0; j<=10; j++) {
-                        const prob = poisson(lambdaH, i) * poisson(lambdaA, j);
-                        const total = i + j;
-                        if(total > 0.5) over[0.5] += prob;
-                        if(total > 1.5) over[1.5] += prob;
-                        if(total > 2.5) over[2.5] += prob;
-                        if(total > 3.5) over[3.5] += prob;
-                    }
+                for(let i=0; i<=10; i++) for(let j=0; j<=10; j++) {
+                    const prob = poi(lamH, i) * poi(lamA, j);
+                    const tg = i+j;
+                    if(tg>0.5) over[0.5]+=prob; if(tg>1.5) over[1.5]+=prob;
+                    if(tg>2.5) over[2.5]+=prob; if(tg>3.5) over[3.5]+=prob;
                 }
-                const btts = ((1-poisson(lambdaH, 0))*(1-poisson(lambdaA, 0))*100).toFixed(1);
-                const matchName = `${home} vs ${away}`;
+                
+                const btts = (1 - poi(lamH,0)) * (1 - poi(lamA,0)) * 100;
+                const matchId = `audit-${idx}`;
 
-                const card = document.createElement('div');
-                card.className = 'match-card';
-                card.innerHTML = `
-                    <div class="match-header">
-                        <span class="team-names">${matchName}</span>
-                        <span class="xg-total">xG ${(lambdaH+lambdaA).toFixed(2)}</span>
-                    </div>
-                    <div class="btts-row">
-                        <span class="btts-label">Ambos Anotan (BTTS)</span>
-                        <span class="btts-value">${btts}% 
-                            <button class="share-icon-btn" onclick="share('${matchName}','Ambos Anotan','${btts}','${lambdaH.toFixed(2)}','${lambdaA.toFixed(2)}')">📲</button>
-                        </span>
-                    </div>
-                    <table>
-                        ${[0.5, 1.5, 2.5, 3.5].map(v => {
-                            const p = (over[v]*100).toFixed(1);
-                            return `<tr>
-                                <td class="mkt-name">Over ${v} Goles</td>
-                                <td class="mkt-prob">${p}%</td>
-                                <td class="share-cell">
-                                    <button class="share-icon-btn" onclick="share('${matchName}','Over ${v}','${p}','${lambdaH.toFixed(2)}','${lambdaA.toFixed(2)}')">🚀</button>
-                                </td>
-                            </tr>`;
-                        }).join('')}
-                    </table>
-                `;
-                resultsDiv.appendChild(card);
+                res.innerHTML += `
+                    <div class="match-card">
+                        <div class="match-header">
+                            <span>${hName} vs ${aName}</span>
+                            <button class="audit-toggle" onclick="toggleAudit('${matchId}')">ℹ️</button>
+                        </div>
+                        <div id="${matchId}" class="audit-panel">
+                            LOG DE CÁLCULO:<br>
+                            - AttH: (${h.gf}/${h.pj})/${avH} = ${attH.toFixed(2)}<br>
+                            - DefA: (${a.gc}/${a.pj})/${avH} = ${defA.toFixed(2)}<br>
+                            - λ Local: ${attH.toFixed(2)}*${defA.toFixed(2)}*${avH} = ${lamH.toFixed(2)}<hr>
+                            - AttA: (${a.gf}/${a.pj})/${avA} = ${attA.toFixed(2)}<br>
+                            - DefH: (${h.gc}/${h.pj})/${avA} = ${defH.toFixed(2)}<br>
+                            - λ Visita: ${attA.toFixed(2)}*${defH.toFixed(2)}*${avA} = ${lamA.toFixed(2)}
+                        </div>
+                        <div class="btts-row">
+                            <span>Ambos Anotan</span>
+                            <span style="color:var(--accent)">${btts.toFixed(1)}%</span>
+                        </div>
+                        <table>
+                            ${[0.5, 1.5, 2.5, 3.5].map(v => `
+                                <tr>
+                                    <td>Over ${v} Goles</td>
+                                    <td class="mkt-prob">${(over[v]*100).toFixed(1)}%</td>
+                                    <td style="width:40px"><button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v}','${(over[v]*100).toFixed(1)}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button></td>
+                                </tr>
+                            `).join('')}
+                        </table>
+                    </div>`;
             }
         });
+    }
+
+    function share(m, mk, p, lh, la) {
+        const text = `⚽ *PICK POISSON*\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG: ${lh} - ${la}`;
+        navigator.share ? navigator.share({text}) : window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
     }
 </script>
 </body>
