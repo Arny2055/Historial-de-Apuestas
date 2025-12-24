@@ -3,62 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador de Patrones de Aciertos</title>
+    <title>Analizador de Sumatorias</title>
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        textarea { width: 100%; height: 100px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; padding: 10px; }
-        button { background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #218838; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background-color: #f8f9fa; }
-        .positive { color: green; font-weight: bold; }
-        .negative { color: red; font-weight: bold; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f0f2f5; color: #1c1e21; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #007bff; text-align: center; }
+        textarea { width: 100%; height: 150px; margin-bottom: 15px; border: 2px solid #ddd; border-radius: 8px; padding: 12px; font-family: monospace; resize: vertical; }
+        textarea:focus { border-color: #007bff; outline: none; }
+        .controls { text-align: center; margin-bottom: 20px; }
+        button { background-color: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background-color: #0056b3; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th, td { border: 1px solid #e0e0e0; padding: 14px; text-align: center; }
+        th { background-color: #f8f9fa; color: #333; }
+        tr:nth-child(even) { background-color: #fafafa; }
+        .positive { color: #28a745; font-weight: bold; }
+        .negative { color: #dc3545; font-weight: bold; }
+        .info { font-size: 0.9em; color: #666; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📊 Analizador de Patrones</h2>
-    <p>Introduce tus resultados separados por comas o espacios (ejemplo: <b>1, -1, 1, 1, -1</b> o usa palabras como <b>ganado, perdido</b>).</p>
+    <h2>📊 Analizador de Patrones por Sumatoria</h2>
+    <p class="info">Pega tu columna de números (sumatorias). El sistema detectará si el siguiente paso subió o bajó.</p>
     
-    <textarea id="dataInput" placeholder="Ejemplo: 1, 1, -1, 1, -1, -1, 1"></textarea>
-    <br>
-    <button onclick="analizarPatrones()">Analizar Coincidencias</button>
+    <textarea id="dataInput" placeholder="Pega aquí tus datos, por ejemplo:&#10;1&#10;2&#10;1&#10;0&#10;1"></textarea>
+    
+    <div class="controls">
+        <button onclick="analizarSumas()">Analizar Patrones de Siguiente Paso</button>
+    </div>
 
-    <div id="resultado">
-        </div>
+    <div id="resultado"></div>
 </div>
 
 <script>
-function analizarPatrones() {
+function analizarSumas() {
     const input = document.getElementById('dataInput').value;
-    // Limpiar datos: convertir a array de números 1 y -1
-    const rawData = input.replace(/ganado/gi, "1").replace(/perdido/gi, "-1").split(/[\s,]+/);
-    const valores = rawData.map(v => parseInt(v)).filter(v => v === 1 || v === -1);
+    // Convertir el texto en un array de números, filtrando espacios vacíos
+    const sumas = input.split(/\s+/).map(Number).filter(n => !isNaN(n));
 
-    if (valores.length < 2) {
-        alert("Por favor, introduce al menos 2 resultados para encontrar un patrón.");
+    if (sumas.length < 2) {
+        alert("Necesito al menos 2 números para comparar el cambio.");
         return;
     }
 
-    let sumaActual = 0;
-    let historialSumas = [];
-    let patrones = {}; // Objeto para guardar { valorSuma: {aciertos: X, total: Y} }
+    let patrones = {}; 
 
-    // Calcular sumas y registrar qué pasa después de cada suma
-    for (let i = 0; i < valores.length - 1; i++) {
-        sumaActual += valores[i];
-        let siguienteResultado = valores[i+1];
+    // Recorremos las sumas para ver qué pasa DESPUÉS de cada valor
+    for (let i = 0; i < sumas.length - 1; i++) {
+        let sumaActual = sumas[i];
+        let sumaSiguiente = sumas[i+1];
+
+        // Determinar si el resultado fue Acierto (subió) o Fallo (bajó)
+        let resultado = (sumaSiguiente > sumaActual) ? "acierto" : "fallo";
 
         if (!patrones[sumaActual]) {
-            patrones[sumaActual] = { aciertos: 0, total: 0 };
+            patrones[sumaActual] = { aciertos: 0, fallos: 0, total: 0 };
         }
 
         patrones[sumaActual].total++;
-        if (siguienteResultado === 1) {
+        if (resultado === "acierto") {
             patrones[sumaActual].aciertos++;
+        } else {
+            patrones[sumaActual].fallos++;
         }
     }
 
@@ -69,27 +77,27 @@ function renderizarTabla(patrones) {
     let html = `<table>
         <thead>
             <tr>
-                <th>Si la Sumatoria fue...</th>
-                <th>Veces Detectado</th>
-                <th>Siguiente fue Acierto (%)</th>
-                <th>Siguiente fue Error (%)</th>
+                <th>Si la Suma está en...</th>
+                <th>Veces que ocurrió</th>
+                <th>Prob. de Subir (+1)</th>
+                <th>Prob. de Bajar (-1)</th>
             </tr>
         </thead>
         <tbody>`;
 
-    // Ordenar claves de menor a mayor
-    const sumasOrdenadas = Object.keys(patrones).sort((a, b) => a - b);
+    // Ordenar de mayor a menor para ver primero los números positivos
+    const sumasOrdenadas = Object.keys(patrones).sort((a, b) => b - a);
 
     sumasOrdenadas.forEach(suma => {
         let p = patrones[suma];
-        let porcAcierto = ((p.aciertos / p.total) * 100).toFixed(2);
-        let porcError = (100 - porcAcierto).toFixed(2);
+        let porcAcierto = ((p.aciertos / p.total) * 100).toFixed(1);
+        let porcFallos = ((p.fallos / p.total) * 100).toFixed(1);
 
         html += `<tr>
             <td><strong>${suma}</strong></td>
-            <td>${p.total}</td>
+            <td>${p.total} datos</td>
             <td class="positive">${porcAcierto}%</td>
-            <td class="negative">${porcError}%</td>
+            <td class="negative">${porcFallos}%</td>
         </tr>`;
     });
 
