@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Elite - Auditoría Pro</title>
+    <title>Poisson Elite Auditor - Time Edition</title>
     <style>
         :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; color: #1c1c1e; }
@@ -18,24 +18,25 @@
         button.calc-btn { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 16px; font-size: 1rem; font-weight: 800; cursor: pointer; }
 
         .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; }
-        .match-header { background: var(--secondary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; }
+        .match-header { background: var(--secondary); color: white; padding: 12px 15px; }
+        .match-info-line { font-size: 10px; text-transform: uppercase; opacity: 0.8; margin-bottom: 4px; display: block; }
+        .match-teams-line { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; }
         
-        /* Consola de Auditoría */
-        .audit-toggle { background: #444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; }
-        .audit-panel { display: none; background: #2c2c2e; color: #00ff85; padding: 12px; font-family: monospace; font-size: 10px; line-height: 1.4; }
+        .audit-toggle { background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; }
+        .audit-panel { display: none; background: #1c1c1e; color: #00ff85; padding: 12px; font-family: monospace; font-size: 10px; line-height: 1.4; border-bottom: 1px solid #333; }
         
         .btts-row { display: flex; justify-content: space-between; padding: 12px 15px; background: #f8faff; font-weight: 700; border-bottom: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 12px 15px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
         .mkt-prob { text-align: right; font-weight: 800; color: #1c1c1e; }
-        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Poisson Auditor v1.0</h1>
-    <label>Partidos:</label><textarea id="matchesInput"></textarea>
+    <h1>Poisson Elite Auditor</h1>
+    <label>Calendario Partidos:</label><textarea id="matchesInput" placeholder="Fri 26 Dec Manchester Utd 14:00 Newcastle Utd..."></textarea>
     <label>Stats Local:</label><textarea id="homeStatsInput"></textarea>
     <label>Stats Visitante:</label><textarea id="awayStatsInput"></textarea>
     
@@ -44,7 +45,7 @@
         <div><label>Avg Liga V:</label><input type="number" id="avgA" step="0.01" value="1.22"></div>
     </div>
     
-    <button class="calc-btn" onclick="calculate()">ANALIZAR CON AUDITORÍA</button>
+    <button class="calc-btn" onclick="calculate()">ANALIZAR PRONÓSTICOS</button>
     <div id="results"></div>
 </div>
 
@@ -74,22 +75,26 @@
         const res = document.getElementById('results');
         res.innerHTML = '';
 
-        document.getElementById('matchesInput').value.split('\n').forEach((line, idx) => {
+        document.getElementById('matchesInput').value.trim().split('\n').forEach((line, idx) => {
             const p = line.split(/\t|\s{2,}/);
+            // Formato esperado: [0]Fecha [1]Local [2]Hora [3]Visitante
             if (p.length < 4) return;
-            const hName = p[1].trim(), aName = p[3].trim();
+            
+            const dateStr = p[0].trim();
+            const hName = p[1].trim();
+            const timeStr = p[2].trim();
+            const aName = p[3].trim();
 
             if (hs[hName] && as[aName]) {
                 const h = hs[hName], a = as[aName];
                 
-                // --- AUDITORÍA MATEMÁTICA ---
-                const attH = (h.gf / h.pj) / avH; // Fuerza Ataque Local
-                const defA = (a.gc / a.pj) / avH; // Fuerza Defensa Visita
-                const lamH = attH * defA * avH;   // Lambda Local
+                const attH = (h.gf / h.pj) / avH;
+                const defA = (a.gc / a.pj) / avH;
+                const lamH = attH * defA * avH;
 
-                const attA = (a.gf / a.pj) / avA; // Fuerza Ataque Visita
-                const defH = (h.gc / h.pj) / avA; // Fuerza Defensa Local
-                const lamA = attA * defH * avA;   // Lambda Visita
+                const attA = (a.gf / a.pj) / avA;
+                const defH = (h.gc / h.pj) / avA;
+                const lamA = attA * defH * avA;
 
                 let over = { 0.5:0, 1.5:0, 2.5:0, 3.5:0 };
                 for(let i=0; i<=10; i++) for(let j=0; j<=10; j++) {
@@ -101,43 +106,50 @@
                 
                 const btts = (1 - poi(lamH,0)) * (1 - poi(lamA,0)) * 100;
                 const matchId = `audit-${idx}`;
+                const fullDateTime = `${dateStr} | ${timeStr}`;
 
                 res.innerHTML += `
                     <div class="match-card">
                         <div class="match-header">
-                            <span>${hName} vs ${aName}</span>
-                            <button class="audit-toggle" onclick="toggleAudit('${matchId}')">ℹ️</button>
+                            <span class="match-info-line">${fullDateTime}</span>
+                            <div class="match-teams-line">
+                                <span>${hName} vs ${aName}</span>
+                                <button class="audit-toggle" onclick="toggleAudit('${matchId}')">ℹ️</button>
+                            </div>
                         </div>
                         <div id="${matchId}" class="audit-panel">
-                            LOG DE CÁLCULO:<br>
-                            - AttH: (${h.gf}/${h.pj})/${avH} = ${attH.toFixed(2)}<br>
-                            - DefA: (${a.gc}/${a.pj})/${avH} = ${defA.toFixed(2)}<br>
-                            - λ Local: ${attH.toFixed(2)}*${defA.toFixed(2)}*${avH} = ${lamH.toFixed(2)}<hr>
-                            - AttA: (${a.gf}/${a.pj})/${avA} = ${attA.toFixed(2)}<br>
-                            - DefH: (${h.gc}/${h.pj})/${avA} = ${defH.toFixed(2)}<br>
-                            - λ Visita: ${attA.toFixed(2)}*${defH.toFixed(2)}*${avA} = ${lamA.toFixed(2)}
+                            LOG MATEMÁTICO:<br>
+                            λ Local: ${lamH.toFixed(2)} (Att:${attH.toFixed(2)} * Def:${defA.toFixed(2)})<br>
+                            λ Visita: ${lamA.toFixed(2)} (Att:${attA.toFixed(2)} * Def:${defH.toFixed(2)})
                         </div>
                         <div class="btts-row">
                             <span>Ambos Anotan</span>
                             <span style="color:var(--accent)">${btts.toFixed(1)}%</span>
                         </div>
                         <table>
-                            ${[0.5, 1.5, 2.5, 3.5].map(v => `
-                                <tr>
+                            ${[0.5, 1.5, 2.5, 3.5].map(v => {
+                                const p = (over[v]*100).toFixed(1);
+                                return `<tr>
                                     <td>Over ${v} Goles</td>
-                                    <td class="mkt-prob">${(over[v]*100).toFixed(1)}%</td>
-                                    <td style="width:40px"><button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v}','${(over[v]*100).toFixed(1)}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button></td>
-                                </tr>
-                            `).join('')}
+                                    <td class="mkt-prob">${p}%</td>
+                                    <td style="width:40px">
+                                        <button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v}','${p}','${fullDateTime}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button>
+                                    </td>
+                                </tr>`;
+                            }).join('')}
                         </table>
                     </div>`;
             }
         });
     }
 
-    function share(m, mk, p, lh, la) {
-        const text = `⚽ *PICK POISSON*\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG: ${lh} - ${la}`;
-        navigator.share ? navigator.share({text}) : window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+    function share(m, mk, p, dt, lh, la) {
+        const text = `⚽ *PICK POISSON*\n📅 ${dt}\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG: ${lh} - ${la}`;
+        if (navigator.share) {
+            navigator.share({text});
+        } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+        }
     }
 </script>
 </body>
