@@ -3,67 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Poisson Premier League</title>
+    <title>Poisson Pro - Matriz de Over/Under</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 20px; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { color: #333; text-align: center; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 20px; color: #333; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { text-align: center; color: #1a73e8; border-bottom: 2px solid #e8f0fe; padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
         .full-width { grid-column: 1 / span 2; }
-        label { font-weight: bold; display: block; margin-bottom: 5px; color: #555; }
-        textarea { width: 100%; height: 120px; border: 1px solid #ccc; border-radius: 5px; padding: 10px; box-sizing: border-box; resize: vertical; }
-        input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; transition: 0.3s; }
-        button:hover { background-color: #218838; }
-        #results { margin-top: 30px; }
-        .match-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; background: #fff; }
-        .match-header { font-weight: bold; font-size: 1.1em; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; }
-        .prob-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .prob-table td, .prob-table th { border: 1px solid #eee; padding: 8px; text-align: center; }
-        .best-bet { color: #d9534f; font-weight: bold; }
-        .stats-summary { font-size: 0.9em; color: #666; margin-bottom: 10px; }
+        label { font-weight: 600; margin-bottom: 8px; display: block; }
+        textarea { width: 100%; height: 100px; border: 1px solid #ddd; border-radius: 6px; padding: 10px; font-size: 13px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        button { width: 100%; padding: 15px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #1557b0; }
+        
+        .match-card { border: 1px solid #e0e0e0; padding: 20px; margin-top: 20px; border-radius: 10px; background: #fff; }
+        .match-header { font-size: 1.2em; font-weight: bold; color: #1a73e8; margin-bottom: 15px; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        
+        .tables-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+        th { background: #f8f9fa; color: #555; }
+        th, td { border: 1px solid #eee; padding: 8px; text-align: center; }
+        
+        .over-highlight { background-color: #e6f4ea; font-weight: bold; color: #1e8e3e; }
+        .under-highlight { background-color: #fce8e6; font-weight: bold; color: #d93025; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Predicciones de Poisson</h1>
+    <h1>Herramienta Poisson & Over/Under</h1>
     
     <div class="grid">
         <div class="full-width">
-            <label>1. Próximos Partidos (Copia la lista):</label>
+            <label>Próximos Partidos:</label>
             <textarea id="matchesInput" placeholder="Fri 26 Dec Manchester Utd 14:00 Newcastle Utd..."></textarea>
         </div>
-        
         <div>
-            <label>2. Estadística de Local:</label>
-            <textarea id="homeStatsInput" placeholder="1 Manchester City 9 8 0 1 25 6..."></textarea>
+            <label>Estadística Local:</label>
+            <textarea id="homeStatsInput"></textarea>
         </div>
-        
         <div>
-            <label>3. Estadística de Visitante:</label>
-            <textarea id="awayStatsInput" placeholder="1 Arsenal 9 5 2 2 11 7..."></textarea>
+            <label>Estadística Visitante:</label>
+            <textarea id="awayStatsInput"></textarea>
         </div>
-
         <div>
-            <label>4. Promedio Goles Local (Ej: 1.61):</label>
+            <label>Goles Promedio Local:</label>
             <input type="number" id="avgHomeGoals" step="0.01" value="1.61">
         </div>
-
         <div>
-            <label>5. Promedio Goles Visita (Ej: 1.22):</label>
+            <label>Goles Promedio Visita:</label>
             <input type="number" id="avgAwayGoals" step="0.01" value="1.22">
         </div>
     </div>
 
-    <button onclick="calculatePoisson()">Calcular Probabilidades</button>
+    <button onclick="calculatePoisson()">GENERAR ANÁLISIS</button>
 
     <div id="results"></div>
 </div>
 
 <script>
     function factorial(n) {
-        if (n === 0 || n === 1) return 1;
         let res = 1;
         for (let i = 2; i <= n; i++) res *= i;
         return res;
@@ -79,14 +78,8 @@
         lines.forEach(line => {
             const parts = line.trim().split(/\t|\s{2,}/);
             if (parts.length >= 7) {
-                // Nombre del equipo suele ser el segundo elemento
-                // Ajuste para nombres compuestos (ej: Manchester Utd)
                 const teamName = parts[1].trim();
-                stats[teamName] = {
-                    pj: parseFloat(parts[2]),
-                    gf: parseFloat(parts[6]),
-                    gc: parseFloat(parts[7])
-                };
+                stats[teamName] = { pj: parseFloat(parts[2]), gf: parseFloat(parts[6]), gc: parseFloat(parts[7]) };
             }
         });
         return stats;
@@ -102,11 +95,7 @@
         const resultsDiv = document.getElementById('results');
         resultsDiv.innerHTML = '';
 
-        const lines = matchesText.split('\n');
-        
-        lines.forEach(line => {
-            // Regex simple para detectar equipos: busca patrones de nombres entre fechas y horas
-            // Formato esperado: Day Date Team1 Time Team2
+        matchesText.split('\n').forEach(line => {
             const parts = line.split(/\t|\s{2,}/);
             if (parts.length < 4) return;
 
@@ -114,35 +103,29 @@
             const awayTeam = parts[3].trim();
 
             if (homeStats[homeTeam] && awayStats[awayTeam]) {
-                const h = homeStats[homeTeam];
-                const a = awayStats[awayTeam];
+                const h = homeStats[homeTeam], a = awayStats[awayTeam];
+                
+                const lH = (h.gf/h.pj/leagueAvgHome) * (a.gc/a.pj/leagueAvgAway) * leagueAvgHome;
+                const lA = (a.gf/a.pj/leagueAvgAway) * (h.gc/h.pj/leagueAvgHome) * leagueAvgAway;
 
-                // Cálculo de Expectativa de Goles (xG)
-                const attackStrengthH = (h.gf / h.pj) / leagueAvgHome;
-                const defenseStrengthA = (a.gc / a.pj) / leagueAvgAway;
-                const lambdaH = attackStrengthH * defenseStrengthA * leagueAvgHome;
-
-                const attackStrengthA = (a.gf / a.pj) / leagueAvgAway;
-                const defenseStrengthH = (h.gc / h.pj) / leagueAvgHome;
-                const lambdaA = attackStrengthA * defenseStrengthH * leagueAvgAway;
-
-                displayMatch(homeTeam, awayTeam, lambdaH, lambdaA, resultsDiv);
+                processMatch(homeTeam, awayTeam, lH, lA, resultsDiv);
             }
         });
     }
 
-    function displayMatch(home, away, lH, lA, container) {
-        let probH = 0, probD = 0, probA = 0;
+    function processMatch(home, away, lH, lA, container) {
         let matrix = [];
-
-        for (let i = 0; i <= 5; i++) {
-            matrix[i] = [];
-            for (let j = 0; j <= 5; j++) {
-                const p = poissonProb(lH, i) * poissonProb(lA, j);
-                matrix[i][j] = p;
-                if (i > j) probH += p;
-                else if (i === j) probD += p;
-                else probA += p;
+        let totalGoalsProb = { 0.5: 0, 1.5: 0, 2.5: 0, 3.5: 0 };
+        
+        // Generar matriz 6x6 para precisión
+        for (let i = 0; i <= 6; i++) {
+            for (let j = 0; j <= 6; j++) {
+                const prob = poissonProb(lH, i) * poissonProb(lA, j);
+                const totalG = i + j;
+                if (totalG > 0.5) totalGoalsProb[0.5] += prob;
+                if (totalG > 1.5) totalGoalsProb[1.5] += prob;
+                if (totalG > 2.5) totalGoalsProb[2.5] += prob;
+                if (totalG > 3.5) totalGoalsProb[3.5] += prob;
             }
         }
 
@@ -151,28 +134,33 @@
         card.innerHTML = `
             <div class="match-header">
                 <span>${home} vs ${away}</span>
-                <span>xG: ${lH.toFixed(2)} - ${lA.toFixed(2)}</span>
+                <span>xG Total: ${(lH + lA).toFixed(2)}</span>
             </div>
-            <div class="stats-summary">
-                Probabilidades: <b>L: ${(probH * 100).toFixed(1)}%</b> | 
-                <b>E: ${(probD * 100).toFixed(1)}%</b> | 
-                <b>V: ${(probA * 100).toFixed(1)}%</b>
+            <div class="tables-container">
+                <div>
+                    <strong>Probabilidades Over/Under</strong>
+                    <table>
+                        <tr><th>Mercado</th><th>Over (+)</th><th>Under (-)</th></tr>
+                        <tr><td>0.5 Goles</td><td class="over-highlight">${(totalGoalsProb[0.5]*100).toFixed(1)}%</td><td>${((1-totalGoalsProb[0.5])*100).toFixed(1)}%</td></tr>
+                        <tr><td>1.5 Goles</td><td class="over-highlight">${(totalGoalsProb[1.5]*100).toFixed(1)}%</td><td>${((1-totalGoalsProb[1.5])*100).toFixed(1)}%</td></tr>
+                        <tr><td>2.5 Goles</td><td class="over-highlight">${(totalGoalsProb[2.5]*100).toFixed(1)}%</td><td>${((1-totalGoalsProb[2.5])*100).toFixed(1)}%</td></tr>
+                        <tr><td>3.5 Goles</td><td class="over-highlight">${(totalGoalsProb[3.5]*100).toFixed(1)}%</td><td>${((1-totalGoalsProb[3.5])*100).toFixed(1)}%</td></tr>
+                    </table>
+                </div>
+                <div>
+                    <strong>Probabilidad de Goles Individual</strong>
+                    <table>
+                        <tr><th>Goles</th><th>${home} (L)</th><th>${away} (V)</th></tr>
+                        ${[0,1,2,3].map(g => `
+                            <tr>
+                                <td>${g}</td>
+                                <td>${(poissonProb(lH, g)*100).toFixed(1)}%</td>
+                                <td>${(poissonProb(lA, g)*100).toFixed(1)}%</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                </div>
             </div>
-            <table class="prob-table">
-                <tr><th>Goles</th><th>0</th><th>1</th><th>2</th><th>3</th></tr>
-                <tr><th>${home}</th>
-                    <td>${(poissonProb(lH, 0)*100).toFixed(1)}%</td>
-                    <td>${(poissonProb(lH, 1)*100).toFixed(1)}%</td>
-                    <td>${(poissonProb(lH, 2)*100).toFixed(1)}%</td>
-                    <td>${(poissonProb(lH, 3)*100).toFixed(1)}%</td>
-                </tr>
-                <tr><th>${away}</th>
-                    <td>${(poissonProb(lA, 0)*100).toFixed(1)}%</td>
-                    <td>${(poissonProb(lA, 1)*100).toFixed(1)}%</td>
-                    <td>${(poissonProb(lA, 2)*100).toFixed(1)}%</td>
-                    <td>${(poissonProb(lA, 3)*100).toFixed(1)}%</td>
-                </tr>
-            </table>
         `;
         container.appendChild(card);
     }
