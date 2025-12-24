@@ -2,154 +2,152 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poisson Pro Mobile - Premier League</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Poisson Predictor Pro</title>
     <style>
         :root {
-            --primary: #00ff85; /* Color Premier League */
+            --primary: #00ff85; 
             --secondary: #3d195a;
-            --bg: #f8f9fa;
+            --bg: #f4f4f9;
         }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            font-family: -apple-system, system-ui, sans-serif; 
             background-color: var(--bg); 
             margin: 0; 
-            padding: 10px; 
+            padding: 15px; 
             color: #333; 
         }
         .container { 
-            max-width: 100%; 
+            max-width: 500px; 
             margin: auto; 
             background: white; 
-            padding: 15px; 
-            border-radius: 15px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+            padding: 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
             box-sizing: border-box;
         }
-        h1 { text-align: center; color: var(--secondary); font-size: 1.4rem; margin-bottom: 20px; }
+        h1 { text-align: center; color: var(--secondary); font-size: 1.5rem; margin-top: 0; }
         
         .input-group { margin-bottom: 15px; }
-        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--secondary); }
+        label { font-weight: 700; display: block; margin-bottom: 6px; font-size: 0.85rem; color: #555; text-transform: uppercase; }
         textarea { 
             width: 100%; 
-            height: 80px; 
+            height: 90px; 
             border: 1px solid #ddd; 
-            border-radius: 8px; 
-            padding: 10px; 
-            font-size: 12px; 
+            border-radius: 12px; 
+            padding: 12px; 
+            font-size: 13px; 
             box-sizing: border-box;
-            background: #fafafa;
+            background: #fdfdfd;
+            font-family: monospace;
         }
         .avg-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            margin-bottom: 15px; 
+            gap: 12px; 
+            margin-bottom: 20px; 
         }
         input { 
             width: 100%; 
             padding: 12px; 
             border: 1px solid #ddd; 
-            border-radius: 8px; 
+            border-radius: 12px; 
             box-sizing: border-box;
+            font-size: 16px; /* Evita zoom automático en iOS */
         }
         
         button { 
             width: 100%; 
-            padding: 15px; 
-            background-color: var(--primary); 
-            color: var(--secondary); 
+            padding: 18px; 
+            background-color: var(--secondary); 
+            color: white; 
             border: none; 
-            border-radius: 10px; 
+            border-radius: 15px; 
             font-size: 1rem; 
             font-weight: bold; 
-            cursor: pointer; 
-            transition: 0.2s;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(61, 25, 90, 0.3);
         }
-        button:active { transform: scale(0.98); opacity: 0.8; }
+        button:active { transform: scale(0.96); }
 
-        /* Tarjetas de Resultados */
         .match-card { 
-            border: 1px solid #eee; 
-            padding: 15px; 
-            margin-top: 20px; 
-            border-radius: 12px; 
+            border: none; 
+            padding: 0; 
+            margin-top: 25px; 
+            border-radius: 15px; 
             background: #fff; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #eee;
         }
         .match-header { 
             background: var(--secondary);
             color: white;
-            padding: 10px;
-            margin: -15px -15px 15px -15px;
-            border-radius: 12px 12px 0 0;
+            padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.9rem;
-        }
-        
-        .btts-box {
-            background: #eef2ff;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 15px;
+            font-size: 0.95rem;
             font-weight: bold;
-            border: 1px solid #d1d5db;
         }
-
-        /* Responsive Tables */
-        .tables-stack { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
-        }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { background: #f1f1f1; padding: 8px; border: 1px solid #eee; }
-        td { padding: 8px; border: 1px solid #eee; text-align: center; }
         
-        .highlight { font-weight: bold; color: #059669; }
+        .btts-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #e8f0fe;
+            font-weight: bold;
+            border-bottom: 1px solid #dce4f5;
+        }
 
-        /* Estilo para iPhone 14 y similares (Pantallas grandes > 600px) */
-        @media (min-width: 600px) {
-            .tables-stack { flex-direction: row; }
-            .container { max-width: 800px; padding: 25px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th { background: #fcfcfc; padding: 12px; border-bottom: 2px solid #eee; color: #666; }
+        td { padding: 12px; border-bottom: 1px solid #f9f9f9; text-align: center; }
+        
+        .highlight-over { color: #008a4e; font-weight: 800; background: #f0fff4; }
+        .highlight-under { color: #a80000; font-weight: 500; }
+
+        .xg-badge {
+            background: var(--primary);
+            color: var(--secondary);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Premier Poisson Predictor</h1>
+    <h1>Poisson Predictor</h1>
     
     <div class="input-group">
-        <label>1. Pega Próximos Partidos:</label>
-        <textarea id="matchesInput" placeholder="Ej: Fri 26 Dec Manchester Utd 14:00 Newcastle Utd"></textarea>
+        <label>Partidos:</label>
+        <textarea id="matchesInput" placeholder="Pega aquí los próximos encuentros..."></textarea>
     </div>
     
     <div class="input-group">
-        <label>2. Stats Local:</label>
+        <label>Estadísticas Local:</label>
         <textarea id="homeStatsInput"></textarea>
     </div>
     
     <div class="input-group">
-        <label>3. Stats Visitante:</label>
+        <label>Estadísticas Visitante:</label>
         <textarea id="awayStatsInput"></textarea>
     </div>
 
     <div class="avg-grid">
         <div>
-            <label>Prom. Goles Local:</label>
+            <label>Prom. Local:</label>
             <input type="number" id="avgHomeGoals" step="0.01" value="1.61">
         </div>
         <div>
-            <label>Prom. Goles Visita:</label>
+            <label>Prom. Visita:</label>
             <input type="number" id="avgAwayGoals" step="0.01" value="1.22">
         </div>
     </div>
 
-    <button onclick="calculatePoisson()">CALCULAR EN IPHONE</button>
+    <button onclick="calculatePoisson()">CALCULAR PRONÓSTICO</button>
 
     <div id="results"></div>
 </div>
@@ -209,15 +207,12 @@
     function processMatch(home, away, lH, lA, container) {
         let overProbs = { 0.5: 0, 1.5: 0, 2.5: 0, 3.5: 0 };
         
-        // Probabilidades de 0 goles (para BTTS)
         const probHomeZero = poissonProb(lH, 0);
         const probAwayZero = poissonProb(lA, 0);
-        
-        // Ambos anotan = (1 - Prob Local 0) * (1 - Prob Visita 0)
         const probBTTS = (1 - probHomeZero) * (1 - probAwayZero) * 100;
 
-        for (let i = 0; i <= 6; i++) {
-            for (let j = 0; j <= 6; j++) {
+        for (let i = 0; i <= 8; i++) {
+            for (let j = 0; j <= 8; j++) {
                 const p = poissonProb(lH, i) * poissonProb(lA, j);
                 const total = i + j;
                 if (total > 0.5) overProbs[0.5] += p;
@@ -231,37 +226,48 @@
         card.className = 'match-card';
         card.innerHTML = `
             <div class="match-header">
-                <strong>${home} vs ${away}</strong>
-                <span>xG: ${(lH+lA).toFixed(2)}</span>
+                <span>${home} - ${away}</span>
+                <span class="xg-badge">xG: ${(lH+lA).toFixed(2)}</span>
             </div>
             
-            <div class="btts-box">
-                Ambos Anotan (BTTS): <span style="color:#1a73e8">${probBTTS.toFixed(1)}%</span>
+            <div class="btts-row">
+                <span>AMBOS ANOTAN</span>
+                <span style="color:#1a73e8">${probBTTS.toFixed(1)}%</span>
             </div>
 
-            <div class="tables-stack">
-                <table boder="0">
-                    <thead><tr><th>Mercado</th><th>Over</th><th>Under</th></tr></thead>
-                    <tbody>
-                        <tr><td>0.5 Goles</td><td class="highlight">${(overProbs[0.5]*100).toFixed(1)}%</td><td>${((1-overProbs[0.5])*100).toFixed(1)}%</td></tr>
-                        <tr><td>1.5 Goles</td><td class="highlight">${(overProbs[1.5]*100).toFixed(1)}%</td><td>${((1-overProbs[1.5])*100).toFixed(1)}%</td></tr>
-                        <tr><td>2.5 Goles</td><td class="highlight">${(overProbs[2.5]*100).toFixed(1)}%</td><td>${((1-overProbs[2.5])*100).toFixed(1)}%</td></tr>
-                        <tr><td>3.5 Goles</td><td class="highlight">${(overProbs[3.5]*100).toFixed(1)}%</td><td>${((1-overProbs[3.5])*100).toFixed(1)}%</td></tr>
-                    </tbody>
-                </table>
-
-                <table>
-                    <thead><tr><th>Goles</th><th>L (${home})</th><th>V (${away})</th></tr></thead>
-                    <tbody>
-                        ${[0,1,2,3].map(g => `
-                            <tr><td>${g}</td><td>${(poissonProb(lH, g)*100).toFixed(1)}%</td><td>${(poissonProb(lA, g)*100).toFixed(1)}%</td></tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mercado</th>
+                        <th>Over (+)</th>
+                        <th>Under (-)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>0.5 Goles</td>
+                        <td class="highlight-over">${(overProbs[0.5]*100).toFixed(1)}%</td>
+                        <td class="highlight-under">${((1-overProbs[0.5])*100).toFixed(1)}%</td>
+                    </tr>
+                    <tr>
+                        <td>1.5 Goles</td>
+                        <td class="highlight-over">${(overProbs[1.5]*100).toFixed(1)}%</td>
+                        <td class="highlight-under">${((1-overProbs[1.5])*100).toFixed(1)}%</td>
+                    </tr>
+                    <tr>
+                        <td>2.5 Goles</td>
+                        <td class="highlight-over">${(overProbs[2.5]*100).toFixed(1)}%</td>
+                        <td class="highlight-under">${((1-overProbs[2.5])*100).toFixed(1)}%</td>
+                    </tr>
+                    <tr>
+                        <td>3.5 Goles</td>
+                        <td class="highlight-over">${(overProbs[3.5]*100).toFixed(1)}%</td>
+                        <td class="highlight-under">${((1-overProbs[3.5])*100).toFixed(1)}%</td>
+                    </tr>
+                </tbody>
+            </table>
         `;
         container.appendChild(card);
-        window.scrollTo(0, document.body.scrollHeight);
     }
 </script>
 
