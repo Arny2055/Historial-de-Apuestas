@@ -3,161 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Home/Away Fix</title>
+    <title>Poisson Pro - Custom Filter</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f4f4f9; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .btn-fetch { width: 100%; padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; margin: 10px 0; }
-        .tables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .table-box { background: #fff; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
-        .table-header { background: #444; color: white; padding: 5px; font-size: 10px; text-align: center; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; font-size: 9px; text-align: center; }
-        th { background: #eee; padding: 4px; border-bottom: 1px solid #ddd; }
-        td { padding: 4px; border-bottom: 1px solid #eee; }
-        .calc-box { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 15px; border: 2px dashed #ccc; }
-        select { width: 100%; padding: 10px; border-radius: 8px; margin-top: 5px; margin-bottom: 10px; font-size: 14px; }
-        .result-display { background: var(--secondary); color: white; padding: 15px; border-radius: 12px; text-align: center; margin-top:10px; }
-        .prob-large { font-size: 35px; font-weight: 800; color: var(--primary); }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; color: #1c1c1e; }
+        .container { max-width: 480px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; }
+        h1 { text-align: center; color: var(--secondary); font-size: 1.3rem; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+        
+        /* Estilos del Filtro Personalizable */
+        .filter-section { background: #fef9e7; padding: 15px; border-radius: 12px; border: 1px solid #f39c12; margin-bottom: 20px; }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .filter-label { font-weight: 800; font-size: 0.8rem; color: #d35400; }
+        .filter-value { background: #d35400; color: white; padding: 2px 10px; border-radius: 10px; font-size: 14px; }
+        input[type=range] { width: 100%; accent-color: #d35400; }
+
+        label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.7rem; color: #8e8e93; text-transform: uppercase; }
+        textarea { width: 100%; height: 65px; border: 1px solid #d1d1d6; border-radius: 12px; padding: 10px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 12px; }
+        .avg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        input[type=number] { width: 100%; padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; box-sizing: border-box; font-size: 16px; font-weight: 700; text-align: center; }
+        
+        button.calc-btn { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 16px; font-size: 1rem; font-weight: 800; cursor: pointer; }
+
+        .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; }
+        .match-header { background: var(--secondary); color: white; padding: 12px 15px; }
+        .match-info-line { font-size: 10px; opacity: 0.8; display: block; margin-bottom: 2px; }
+        .match-teams-line { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; }
+        
+        .btts-row { display: flex; justify-content: space-between; padding: 12px 15px; background: #f0f7ff; font-weight: 700; border-bottom: 1px solid #e1e8f0; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 12px 15px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
+        .mkt-prob { text-align: right; font-weight: 800; }
+        .highlight-mkt { background: #eafff2; color: #008a4e; }
+        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3 style="text-align:center; margin:0; color:var(--secondary);">Poisson Corrected (H/A)</h3>
+    <h1>Poisson Scanner Pro</h1>
 
-    <input id="urlInput" type="text" class="btn-fetch" style="background:white; color:black; border:1px solid #ccc; font-weight:normal;" value="https://www.soccerstats.com/homeaway.asp?league=england">
-    <button class="btn-fetch" onclick="importSplitData()">CORREGIR Y DESCARGAR</button>
+    <div class="filter-section">
+        <div class="filter-header">
+            <span class="filter-label">FILTRAR OVER 2.5 ≥</span>
+            <span id="rangeValue" class="filter-value">60%</span>
+        </div>
+        <input type="range" id="threshold" min="50" max="90" value="60" oninput="updateRange(this.value)">
+    </div>
     
-    <div id="status" style="font-size:10px; text-align:center; color:#666;">Selecciona la liga para procesar...</div>
-
-    <div class="tables-grid" id="gridArea" style="display:none;">
-        <div class="table-box">
-            <div class="table-header">LOCAL (HOME)</div>
-            <table>
-                <thead><tr><th>Equipo</th><th>GF</th><th>GC</th></tr></thead>
-                <tbody id="homeBody"></tbody>
-            </table>
-        </div>
-        <div class="table-box">
-            <div class="table-header">VISITA (AWAY)</div>
-            <table>
-                <thead><tr><th>Equipo</th><th>GF</th><th>GC</th></tr></thead>
-                <tbody id="awayBody"></tbody>
-            </table>
-        </div>
+    <label>Partidos:</label><textarea id="matchesInput"></textarea>
+    <label>Stats Local:</label><textarea id="homeStatsInput"></textarea>
+    <label>Stats Visitante:</label><textarea id="awayStatsInput"></textarea>
+    
+    <div class="avg-grid">
+        <div><label>Avg Liga L:</label><input type="number" id="avgH" step="0.01" value="1.61"></div>
+        <div><label>Avg Liga V:</label><input type="number" id="avgA" step="0.01" value="1.22"></div>
     </div>
-
-    <div id="calcArea" class="calc-box" style="display:none;">
-        <select id="homeSel" onchange="runCalc()"></select>
-        <select id="awaySel" onchange="runCalc()"></select>
-        <div id="resBox" class="result-display" style="display:none;">
-            <div style="font-size:11px;">PROBABILIDAD OVER 2.5</div>
-            <div id="probVal" class="prob-large">0%</div>
-            <div id="debugInfo" style="font-size:9px; margin-top:5px; opacity:0.7;"></div>
-        </div>
-    </div>
+    
+    <button class="calc-btn" onclick="calculate()">ESCUDRIÑAR PARTIDOS</button>
+    <div id="results"></div>
 </div>
 
 <script>
-    let homeStats = {};
-    let awayStats = {};
+    function updateRange(val) { document.getElementById('rangeValue').innerText = val + '%'; }
 
-    async function importSplitData() {
-        const url = document.getElementById('urlInput').value;
-        const status = document.getElementById('status');
-        status.innerText = "⏳ Extrayendo datos reales...";
+    const fact = n => n <= 1 ? 1 : n * fact(n - 1);
+    const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
 
-        try {
-            const proxy = "https://api.codetabs.com/v1/proxy?quest=";
-            const resp = await fetch(proxy + encodeURIComponent(url));
-            const html = await resp.text();
-            const doc = new DOMParser().parseFromString(html, "text/html");
+    function parse(txt) {
+        const s = {};
+        txt.split('\n').forEach(l => {
+            const p = l.trim().split(/\t|\s{2,}/);
+            if (p.length >= 8) s[p[1].trim()] = { pj: parseFloat(p[2]), gf: parseFloat(p[6]), gc: parseFloat(p[7]) };
+        });
+        return s;
+    }
 
-            // Soccerstats: La tabla 1 es Home, la tabla 2 es Away (usando el selector btable)
-            const tables = doc.querySelectorAll('table#btable'); 
+    function calculate() {
+        const hs = parse(document.getElementById('homeStatsInput').value);
+        const as = parse(document.getElementById('awayStatsInput').value);
+        const avH = parseFloat(document.getElementById('avgH').value);
+        const avA = parseFloat(document.getElementById('avgA').value);
+        const thr = parseFloat(document.getElementById('threshold').value);
+        const res = document.getElementById('results');
+        res.innerHTML = '';
+
+        document.getElementById('matchesInput').value.trim().split('\n').forEach(line => {
+            const p = line.split(/\t|\s{2,}/);
+            if (p.length < 4) return;
             
-            if (tables.length < 3) {
-                status.innerText = "❌ No se encontraron las tablas Home/Away.";
-                return;
-            }
+            const dt = p[0].trim(), hName = p[1].trim(), tm = p[2].trim(), aName = p[3].trim();
 
-            homeStats = processTable(tables[1], 'homeBody');
-            awayStats = processTable(tables[2], 'awayBody');
+            if (hs[hName] && as[aName]) {
+                const h = hs[hName], a = as[aName];
+                const lamH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
+                const lamA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
 
-            fillSelectors();
-            document.getElementById('gridArea').style.display = "grid";
-            document.getElementById('calcArea').style.display = "block";
-            status.innerText = "✅ Datos cargados correctamente.";
-
-        } catch (e) {
-            status.innerText = "❌ Error de conexión.";
-        }
-    }
-
-    function processTable(tableObj, bodyId) {
-        const rows = tableObj.querySelectorAll('tr.odd, tr.even');
-        const body = document.getElementById(bodyId);
-        body.innerHTML = "";
-        let data = {};
-        
-        rows.forEach(r => {
-            const c = r.cells;
-            if(c.length >= 8) {
-                const name = c[1].innerText.trim();
-                const pj = parseInt(c[2].innerText);
-                const gf = parseInt(c[6].innerText);
-                const gc = parseInt(c[7].innerText);
-                
-                if (!isNaN(pj) && !isNaN(gf) && !isNaN(gc)) {
-                    data[name] = { pj, gf, gc };
-                    body.innerHTML += `<tr><td style="text-align:left">${name}</td><td>${gf}</td><td>${gc}</td></tr>`;
+                let over = { 0.5:0, 1.5:0, 2.5:0, 3.5:0 };
+                for(let i=0; i<=10; i++) for(let j=0; j<=10; j++) {
+                    const prob = poi(lamH, i) * poi(lamA, j);
+                    const total = i + j;
+                    if(total>0.5) over[0.5]+=prob; if(total>1.5) over[1.5]+=prob;
+                    if(total>2.5) over[2.5]+=prob; if(total>3.5) over[3.5]+=prob;
                 }
+                
+                const pO25 = (over[2.5] * 100);
+                if (pO25 < thr) return; // Aplicación del filtro dinámico
+
+                const btts = ((1 - poi(lamH,0)) * (1 - poi(lamA,0)) * 100).toFixed(1);
+                const dtStr = `${dt} | ${tm}`;
+
+                res.innerHTML += `
+                    <div class="match-card">
+                        <div class="match-header">
+                            <span class="match-info-line">${dtStr}</span>
+                            <div class="match-teams-line"><span>${hName} vs ${aName}</span></div>
+                        </div>
+                        <div class="btts-row"><span>Ambos Anotan</span><span style="color:var(--accent)">${btts}%</span></div>
+                        <table>
+                            ${[0.5, 1.5, 2.5, 3.5].map(v => {
+                                const p = (over[v]*100).toFixed(1);
+                                const hit = v === 2.5;
+                                return `<tr class="${hit ? 'highlight-mkt' : ''}">
+                                    <td>Over ${v} Goles ${hit ? '🎯' : ''}</td>
+                                    <td class="mkt-prob">${p}%</td>
+                                    <td><button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v}','${p}','${dtStr}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button></td>
+                                </tr>`;
+                            }).join('')}
+                        </table>
+                    </div>`;
             }
         });
-        return data;
     }
 
-    function fillSelectors() {
-        const hSel = document.getElementById('homeSel');
-        const aSel = document.getElementById('awaySel');
-        hSel.innerHTML = '<option value="">-- Selecciona Local --</option>';
-        aSel.innerHTML = '<option value="">-- Selecciona Visita --</option>';
-        
-        Object.keys(homeStats).sort().forEach(n => {
-            hSel.innerHTML += `<option value="${n}">${n}</option>`;
-        });
-        Object.keys(awayStats).sort().forEach(n => {
-            aSel.innerHTML += `<option value="${n}">${n}</option>`;
-        });
-    }
-
-    function runCalc() {
-        const hN = document.getElementById('homeSel').value;
-        const aN = document.getElementById('awaySel').value;
-        if (!hN || !aN) return;
-
-        const h = homeStats[hN];
-        const a = awayStats[aN];
-        
-        // Poisson con medias reales
-        const avH = 1.61, avA = 1.22;
-        const lH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
-        const lA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
-
-        let o25 = 0;
-        const f = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
-        const p = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / f(x);
-
-        for(let i=0; i<=6; i++) {
-            for(let j=0; j<=6; j++) {
-                if(i+j > 2.5) o25 += p(lH, i) * p(lA, j);
-            }
-        }
-
-        document.getElementById('probVal').innerText = (o25 * 100).toFixed(1) + "%";
-        document.getElementById('debugInfo').innerText = `Medias: L(${lH.toFixed(2)}) - V(${lA.toFixed(2)})`;
-        document.getElementById('resBox').style.display = "block";
+    function share(m, mk, p, dt, lh, la) {
+        const text = `⚽ *PICK POISSON*\n📅 ${dt}\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG: ${lh} - ${la}`;
+        navigator.share ? navigator.share({text}) : window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
     }
 </script>
 </body>
