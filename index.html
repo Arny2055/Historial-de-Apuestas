@@ -3,66 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Selector Pro</title>
+    <title>Poisson Table Viewer</title>
     <style>
         :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
-        .container { max-width: 450px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .config-section { background: #eee; padding: 10px; border-radius: 12px; margin-bottom: 20px; }
-        .selector-section { display: flex; flex-direction: column; gap: 10px; }
-        select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; background: white; -webkit-appearance: none; }
-        .btn-fetch { width: 100%; padding: 12px; background: var(--secondary); color: white; border: none; border-radius: 10px; font-weight: bold; margin-bottom: 15px; cursor: pointer; }
-        .result-card { margin-top: 20px; padding: 20px; background: #fff; border: 2px solid var(--primary); border-radius: 15px; text-align: center; display: none; }
-        .prob-number { font-size: 48px; font-weight: 800; color: var(--secondary); margin: 10px 0; }
-        .log { font-size: 10px; color: #666; font-family: monospace; margin-bottom: 10px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .card { background: #fff; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #eee; }
+        
+        /* Tabla de Datos */
+        .table-container { width: 100%; overflow-x: auto; margin-top: 10px; border-radius: 10px; border: 1px solid #ddd; display: none; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; }
+        th { background: var(--secondary); color: white; padding: 8px; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+        tr:nth-child(even) { background: #fafafa; }
+
+        select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; margin-top: 5px; background: #fff; }
+        .btn-fetch { width: 100%; padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; margin: 10px 0; }
+        
+        .result-box { padding: 20px; background: var(--secondary); color: white; border-radius: 15px; text-align: center; margin-top: 15px; display: none; }
+        .prob-val { font-size: 40px; font-weight: 900; color: var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="text-align:center; color:var(--secondary); margin-top:0;">Calculadora Poisson</h2>
-    
-    <div class="config-section">
-        <label style="font-size:11px; font-weight:bold;">URL DE ESTADÍSTICAS (SOCCERSTATS):</label>
-        <input id="urlInput" type="text" style="width:100%; padding:8px; margin:5px 0; border-radius:5px; border:1px solid #ccc;" value="https://www.soccerstats.com/homeaway.asp?league=england">
-        <button class="btn-fetch" onclick="fetchTable()">DESCARGAR EQUIPOS</button>
-        <div id="status" class="log">Estado: Esperando descarga...</div>
+    <h3 style="text-align:center; color:var(--secondary); margin-bottom:20px;">Poisson & Data Viewer</h3>
+
+    <div class="card">
+        <label style="font-size:11px; font-weight:bold;">URL SOCCERSTATS (HOME/AWAY):</label>
+        <input id="urlInput" type="text" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; margin-top:5px;" value="https://www.soccerstats.com/homeaway.asp?league=england">
+        <button class="btn-fetch" onclick="fetchAndDisplay()">DESCARGAR Y VISUALIZAR</button>
+        <div id="status" style="font-size:10px; color:#666;">Listo para importar.</div>
     </div>
 
-    <div class="selector-section">
-        <div>
-            <label style="font-size:11px; font-weight:bold; color: #555;">EQUIPO LOCAL:</label>
-            <select id="homeTeam" onchange="calculate()">
-                <option value="">-- Selecciona Local --</option>
-            </select>
-        </div>
-        <div>
-            <label style="font-size:11px; font-weight:bold; color: #555;">EQUIPO VISITANTE:</label>
-            <select id="awayTeam" onchange="calculate()">
-                <option value="">-- Selecciona Visita --</option>
-            </select>
-        </div>
+    <div id="tableWrapper" class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Equipo</th>
+                    <th>PJ</th>
+                    <th>GF</th>
+                    <th>GC</th>
+                    <th>Prom GF</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
     </div>
 
-    <div id="resultArea" class="result-card">
-        <div style="font-size:12px; font-weight:bold; color:#888;">PROBABILIDAD OVER 2.5</div>
-        <div id="probResult" class="prob-number">0%</div>
-        <div id="teamsMatch" style="font-size:14px; font-weight:bold;"></div>
+    <div id="calculatorUI" class="card" style="display:none; margin-top:15px;">
+        <div style="margin-bottom:15px;">
+            <label style="font-size:11px; font-weight:bold;">LOCAL:</label>
+            <select id="homeTeam" onchange="calculate()"></select>
+        </div>
+        <div>
+            <label style="font-size:11px; font-weight:bold;">VISITANTE:</label>
+            <select id="awayTeam" onchange="calculate()"></select>
+        </div>
+
+        <div id="resultArea" class="result-box">
+            <div style="font-size:12px; opacity:0.8;">PROBABILIDAD OVER 2.5</div>
+            <div id="probResult" class="prob-val">0%</div>
+            <div id="matchTeams" style="font-size:13px; font-weight:bold; margin-top:5px;"></div>
+        </div>
     </div>
 </div>
 
 <script>
     let statsData = {};
 
-    async function fetchTable() {
+    async function fetchAndDisplay() {
         const url = document.getElementById('urlInput').value;
         const status = document.getElementById('status');
+        const tableBody = document.getElementById('tableBody');
         const homeSel = document.getElementById('homeTeam');
         const awaySel = document.getElementById('awayTeam');
         
-        status.innerText = "Cargando datos...";
-        homeSel.innerHTML = '<option value="">-- Selecciona Local --</option>';
-        awaySel.innerHTML = '<option value="">-- Selecciona Visita --</option>';
+        status.innerText = "⏳ Descargando datos desde Soccerstats...";
 
         try {
             const proxy = "https://api.codetabs.com/v1/proxy?quest=";
@@ -72,17 +89,32 @@
             const rows = doc.querySelectorAll('tr.odd, tr.even');
 
             statsData = {};
+            tableBody.innerHTML = "";
+            homeSel.innerHTML = '<option value="">-- Selecciona Local --</option>';
+            awaySel.innerHTML = '<option value="">-- Selecciona Visita --</option>';
+
             rows.forEach(r => {
                 const c = r.cells;
                 if(c && c.length >= 8) {
                     const name = c[1].innerText.trim();
                     const pj = parseFloat(c[2].innerText);
+                    const gf = parseFloat(c[6].innerText);
+                    const gc = parseFloat(c[7].innerText);
+                    
                     if(!isNaN(pj) && pj > 0) {
-                        statsData[name] = {
-                            pj: pj,
-                            gf: parseFloat(c[6].innerText),
-                            gc: parseFloat(c[7].innerText)
-                        };
+                        statsData[name] = { pj, gf, gc };
+                        
+                        // Añadir a la tabla visual
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td style="text-align:left; font-weight:bold;">${name}</td>
+                                <td>${pj}</td>
+                                <td style="color:green">${gf}</td>
+                                <td style="color:red">${gc}</td>
+                                <td>${(gf/pj).toFixed(2)}</td>
+                            </tr>`;
+                        
+                        // Añadir a los selectores
                         const opt = `<option value="${name}">${name}</option>`;
                         homeSel.innerHTML += opt;
                         awaySel.innerHTML += opt;
@@ -91,12 +123,16 @@
             });
 
             const count = Object.keys(statsData).length;
-            status.innerText = `✅ ${count} equipos descargados con éxito.`;
-            if(count === 0) status.innerText = "❌ No se hallaron datos. Verifica el URL.";
+            if(count > 0) {
+                document.getElementById('tableWrapper').style.display = "block";
+                document.getElementById('calculatorUI').style.display = "block";
+                status.innerText = `✅ ${count} equipos cargados correctamente.`;
+            } else {
+                status.innerText = "❌ No se encontraron datos. Revisa el link.";
+            }
 
         } catch (e) {
-            status.innerText = "❌ Error de conexión.";
-            console.error(e);
+            status.innerText = "❌ Error al conectar con el servidor.";
         }
     }
 
@@ -105,22 +141,18 @@
         const aName = document.getElementById('awayTeam').value;
         const resultArea = document.getElementById('resultArea');
 
-        if (!hName || !aName) {
+        if (!hName || !aName || hName === aName) {
             resultArea.style.display = "none";
             return;
         }
 
         const h = statsData[hName];
         const a = statsData[aName];
-
-        // Promedios de liga estándar
         const avH = 1.61, avA = 1.22;
         
-        // Lambdas
         const lH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
         const lA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
 
-        // Poisson
         let o25 = 0;
         const f = n => n <= 1 ? 1 : n * f(n - 1);
         const p = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / f(x);
@@ -133,11 +165,9 @@
 
         const prob = (o25 * 100).toFixed(1);
         document.getElementById('probResult').innerText = prob + "%";
-        document.getElementById('teamsMatch').innerText = `${hName} vs ${aName}`;
+        document.getElementById('matchTeams').innerText = `${hName} vs ${aName}`;
         resultArea.style.display = "block";
-        
-        // Color dinámico
-        resultArea.style.borderColor = prob >= 60 ? "#00ff85" : "#ff4b4b";
+        document.getElementById('probResult').style.color = prob >= 65 ? "#00ff85" : "#ffcc00";
     }
 </script>
 </body>
