@@ -3,31 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro - Custom Filter</title>
+    <title>Poisson Pro - Dual Filter</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; --warning: #f39c12; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; color: #1c1c1e; }
         .container { max-width: 480px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; }
         h1 { text-align: center; color: var(--secondary); font-size: 1.3rem; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
         
-        /* Estilos del Filtro Personalizable */
-        .filter-section { background: #fef9e7; padding: 15px; border-radius: 12px; border: 1px solid #f39c12; margin-bottom: 20px; }
-        .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .filter-label { font-weight: 800; font-size: 0.8rem; color: #d35400; }
-        .filter-value { background: #d35400; color: white; padding: 2px 10px; border-radius: 10px; font-size: 14px; }
-        input[type=range] { width: 100%; accent-color: #d35400; }
+        /* Estilos de la Sección de Filtros Duales */
+        .filter-container { background: #fffcf0; padding: 15px; border-radius: 16px; border: 1px solid #f39c12; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; }
+        .filter-label { font-weight: 800; font-size: 0.75rem; color: #d35400; text-transform: uppercase; }
+        .filter-value { background: #d35400; color: white; padding: 2px 10px; border-radius: 10px; font-size: 13px; font-weight: bold; min-width: 35px; text-align: center; }
+        input[type=range] { width: 100%; accent-color: #d35400; cursor: pointer; }
 
         label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.7rem; color: #8e8e93; text-transform: uppercase; }
-        textarea { width: 100%; height: 65px; border: 1px solid #d1d1d6; border-radius: 12px; padding: 10px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 12px; }
+        textarea { width: 100%; height: 65px; border: 1px solid #d1d1d6; border-radius: 12px; padding: 10px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 12px; resize: none; }
         .avg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         input[type=number] { width: 100%; padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; box-sizing: border-box; font-size: 16px; font-weight: 700; text-align: center; }
         
-        button.calc-btn { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 16px; font-size: 1rem; font-weight: 800; cursor: pointer; }
+        button.calc-btn { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 16px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: 0.3s; }
+        button.calc-btn:active { transform: scale(0.98); opacity: 0.9; }
 
-        .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; }
+        .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         .match-header { background: var(--secondary); color: white; padding: 12px 15px; }
         .match-info-line { font-size: 10px; opacity: 0.8; display: block; margin-bottom: 2px; }
-        .match-teams-line { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; }
+        .match-teams-line { font-weight: 700; font-size: 15px; }
         
         .btts-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f0f7ff; font-weight: 700; border-bottom: 1px solid #e1e8f0; }
         .btts-data { display: flex; align-items: center; gap: 10px; }
@@ -36,8 +40,8 @@
         td { padding: 12px 15px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
         .mkt-prob { text-align: right; font-weight: 800; }
         .highlight-mkt { background: #eafff2; color: #008a4e; }
-        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-        .share-btn:active { background: #e2e2e7; transform: scale(0.95); }
+        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 16px; }
+        .share-btn:hover { background: #e2e2e7; }
     </style>
 </head>
 <body>
@@ -45,22 +49,32 @@
 <div class="container">
     <h1>Poisson Scanner Pro</h1>
 
-    <div class="filter-section">
-        <div class="filter-header">
-            <span class="filter-label">FILTRAR OVER 2.5 ≥</span>
-            <span id="rangeValue" class="filter-value">60%</span>
+    <div class="filter-container">
+        <div class="filter-group">
+            <div class="filter-header">
+                <span class="filter-label">Min. Over 2.5 Goles</span>
+                <span id="o25Val" class="filter-value">60%</span>
+            </div>
+            <input type="range" id="o25Threshold" min="40" max="90" value="60" oninput="document.getElementById('o25Val').innerText = this.value + '%'">
         </div>
-        <input type="range" id="threshold" min="50" max="90" value="60" oninput="updateRange(this.value)">
+
+        <div class="filter-group">
+            <div class="filter-header">
+                <span class="filter-label">Min. Ambos Anotan (BTTS)</span>
+                <span id="bttsVal" class="filter-value">60%</span>
+            </div>
+            <input type="range" id="bttsThreshold" min="40" max="90" value="60" oninput="document.getElementById('bttsVal').innerText = this.value + '%'">
+        </div>
     </div>
     
     <label>Partidos (Fecha | Local | Hora | Visita):</label>
     <textarea id="matchesInput" placeholder="20/10 | Real Madrid | 21:00 | Barcelona"></textarea>
     
     <label>Stats Local (Equipo | PJ | ... | GF | GC):</label>
-    <textarea id="homeStatsInput"></textarea>
+    <textarea id="homeStatsInput" placeholder="Pega aquí las estadísticas del local..."></textarea>
     
     <label>Stats Visitante:</label>
-    <textarea id="awayStatsInput"></textarea>
+    <textarea id="awayStatsInput" placeholder="Pega aquí las estadísticas del visitante..."></textarea>
     
     <div class="avg-grid">
         <div><label>Avg Liga Goles L:</label><input type="number" id="avgH" step="0.01" value="1.61"></div>
@@ -72,11 +86,7 @@
 </div>
 
 <script>
-    function updateRange(val) { document.getElementById('rangeValue').innerText = val + '%'; }
-
-    // Función Factorial para Poisson
     const fact = n => n <= 1 ? 1 : n * fact(n - 1);
-    // Fórmula de Distribución de Poisson
     const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
 
     function parse(txt) {
@@ -93,7 +103,11 @@
         const as = parse(document.getElementById('awayStatsInput').value);
         const avH = parseFloat(document.getElementById('avgH').value);
         const avA = parseFloat(document.getElementById('avgA').value);
-        const thr = parseFloat(document.getElementById('threshold').value);
+        
+        // Valores de los Sliders
+        const o25Thr = parseFloat(document.getElementById('o25Threshold').value);
+        const bttsThr = parseFloat(document.getElementById('bttsThreshold').value);
+
         const res = document.getElementById('results');
         res.innerHTML = '';
 
@@ -107,12 +121,9 @@
 
             if (hs[hName] && as[aName]) {
                 const h = hs[hName], a = as[aName];
-                
-                // Cálculo de Fuerza de Ataque y Defensa
                 const lamH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
                 const lamA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
 
-                // Probabilidades de Over Goles
                 let over = { 0.5:0, 1.5:0, 2.5:0, 3.5:0 };
                 for(let i=0; i<=10; i++) {
                     for(let j=0; j<=10; j++) {
@@ -126,24 +137,26 @@
                 }
                 
                 const pO25 = (over[2.5] * 100);
-                if (pO25 < thr) return; 
+                const pBTTS = ((1 - poi(lamH, 0)) * (1 - poi(lamA, 0)) * 100);
 
-                // Probabilidad Ambos Anotan (1 - prob de que alguno quede en 0)
-                const bttsProb = ((1 - poi(lamH, 0)) * (1 - poi(lamA, 0)) * 100).toFixed(1);
+                // APLICACIÓN DE FILTRO DUAL
+                if (pO25 < o25Thr || pBTTS < bttsThr) return; 
+
+                const bttsDisplay = pBTTS.toFixed(1);
                 const dtStr = `${dt} | ${tm}`;
 
                 res.innerHTML += `
                     <div class="match-card">
                         <div class="match-header">
                             <span class="match-info-line">${dtStr}</span>
-                            <div class="match-teams-line"><span>${hName} vs ${aName}</span></div>
+                            <div class="match-teams-line">${hName} vs ${aName}</div>
                         </div>
                         
                         <div class="btts-row">
                             <span>Ambos Anotan</span>
                             <div class="btts-data">
-                                <span style="color:var(--accent)">${bttsProb}%</span>
-                                <button class="share-btn" onclick="share('${hName} vs ${aName}','Ambos Anotan','${bttsProb}','${dtStr}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button>
+                                <span style="color:var(--accent)">${bttsDisplay}%</span>
+                                <button class="share-btn" onclick="share('${hName} vs ${aName}','Ambos Anotan','${bttsDisplay}','${dtStr}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button>
                             </div>
                         </div>
 
@@ -161,6 +174,10 @@
                     </div>`;
             }
         });
+        
+        if(res.innerHTML === '') {
+            res.innerHTML = '<p style="text-align:center; color:#8e8e93; margin-top:20px;">No hay partidos que cumplan ambos criterios.</p>';
+        }
     }
 
     function share(m, mk, p, dt, lh, la) {
