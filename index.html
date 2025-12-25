@@ -3,33 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro - Fix Calendario</title>
+    <title>Poisson Pro - Global Scanner</title>
     <style>
         :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f4f4f9; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .container { max-width: 450px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin: 10px 0; white-space: pre-wrap; height: 100px; overflow-y: auto; }
+        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin: 10px 0; white-space: pre-wrap; height: 80px; overflow-y: auto; }
         .btn-main { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-weight: bold; font-size: 16px; cursor: pointer; }
-        .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); display: flex; flex-direction: column; }
-        .match-teams { font-weight: bold; font-size: 14px; color: var(--secondary); }
-        .match-info { display: flex; justify-content: space-between; margin-top: 8px; align-items: center; }
-        .prob-val { color: #008a4e; font-weight: 800; font-size: 16px; }
-        .time-val { color: #888; font-size: 11px; }
+        .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); }
+        .input-box { width: 100%; padding: 10px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 8px; font-size: 12px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3 style="text-align:center; margin-top:0;">Scanner de Próximos Partidos</h3>
+    <h3 style="text-align:center; margin-top:0;">Scanner Pro (Próximos 5 Días)</h3>
     
-    <div id="urls" style="display:none;">
-        <input id="urlStats" value="https://www.soccerstats.com/homeaway.asp?league=england">
-        <input id="urlCal" value="https://www.soccerstats.com/results.asp?league=england">
+    <div id="config">
+        <label style="font-size:10px; font-weight:bold;">URL STATS:</label>
+        <input id="urlStats" class="input-box" value="https://www.soccerstats.com/homeaway.asp?league=egypt">
+        <label style="font-size:10px; font-weight:bold;">URL CALENDARIO:</label>
+        <input id="urlCal" class="input-box" value="https://www.soccerstats.com/latest.asp?league=egypt">
     </div>
 
-    <button class="btn-main" onclick="processData()">BUSCAR PARTIDOS PRÓXIMOS</button>
+    <button class="btn-main" onclick="processData()">ESCANEAR LIGA</button>
     
-    <div id="statusLog" class="log">Estado: Esperando...</div>
+    <div id="statusLog" class="log">Esperando...</div>
     <div id="results"></div>
 </div>
 
@@ -45,79 +44,66 @@
     async function processData() {
         const log = document.getElementById('statusLog');
         const res = document.getElementById('results');
-        log.innerHTML = "> Conectando con Soccerstats...";
+        log.innerHTML = "> Conectando...";
         res.innerHTML = "";
 
         try {
-            // 1. OBTENER ESTADÍSTICAS
-            const htmlStats = await fetchData(document.getElementById('urlStats').value);
-            const parser = new DOMParser();
-            const docS = parser.parseFromString(htmlStats, "text/html");
+            // 1. CARGAR STATS
+            const htmlS = await fetchData(document.getElementById('urlStats').value);
+            const docS = new DOMParser().parseFromString(htmlS, "text/html");
             const rowsS = docS.querySelectorAll('tr.odd, tr.even');
             
-            let statsMap = {};
+            let stats = {};
             rowsS.forEach(r => {
                 const c = r.cells;
                 if(c && c.length >= 8) {
                     const name = c[1].innerText.trim();
                     const pj = parseFloat(c[2].innerText);
-                    if(!isNaN(pj)) {
-                        statsMap[norm(name)] = { 
-                            display: name, 
-                            pj: pj, 
-                            gf: parseFloat(c[6].innerText), 
-                            gc: parseFloat(c[7].innerText) 
-                        };
+                    if(!isNaN(pj) && pj > 0) {
+                        stats[norm(name)] = { n: name, pj: pj, gf: parseFloat(c[6].innerText), gc: parseFloat(c[7].innerText) };
                     }
                 }
             });
+            log.innerHTML += `\n> Equipos: ${Object.keys(stats).length}`;
 
-            log.innerHTML += `\n> Base de datos: ${Object.keys(statsMap).length} equipos.`;
+            // 2. CARGAR CALENDARIO (Uso de 'latest.asp' que es más fiable para próximos partidos)
+            const htmlC = await fetchData(document.getElementById('urlCal').value);
+            const docC = new DOMParser().parseFromString(htmlC, "text/html");
+            const allRows = docC.querySelectorAll('tr');
 
-            // 2. OBTENER CALENDARIO (Búsqueda exhaustiva)
-            const htmlCal = await fetchData(document.getElementById('urlCal').value);
-            const docC = parser.parseFromString(htmlCal, "text/html");
-            const allRows = docC.querySelectorAll('tr'); // Revisamos TODAS las filas
-
-            let count = 0;
+            let found = 0;
             allRows.forEach(row => {
                 const cells = row.cells;
-                if (cells && cells.length >= 4) {
-                    // Intentamos identificar equipos en las celdas 1 y 3 (formato estándar)
-                    const hRaw = cells[1].innerText.trim();
-                    const aRaw = cells[3].innerText.trim();
-                    const info = cells[2].innerText.trim();
+                if (cells && cells.length >= 3) {
+                    // Buscamos celdas que contengan nombres de nuestra lista
+                    for (let i = 0; i < cells.length - 2; i++) {
+                        const t1Raw = cells[i].innerText.trim();
+                        const t2Raw = cells[i+2] ? cells[i+2].innerText.trim() : "";
+                        const info = cells[i+1] ? cells[i+1].innerText.trim() : "";
 
-                    const hKey = norm(hRaw);
-                    const aKey = norm(aRaw);
+                        const k1 = norm(t1Raw);
+                        const k2 = norm(t2Raw);
 
-                    // REGLAS: 1. Ambos deben ser equipos. 2. La celda central NO debe ser un resultado (ej: 2-1)
-                    if (statsMap[hKey] && statsMap[aKey]) {
-                        // Si info tiene un guion rodeado de números, es un resultado pasado
-                        const isPlayed = /\d\s?-\s?\d/.test(info);
-                        
-                        if (!isPlayed) {
-                            count++;
-                            const p = calcPoisson(statsMap[hKey], statsMap[aKey]);
+                        if (stats[k1] && stats[k2]) {
+                            // Si en medio hay un "-" con números, ya se jugó
+                            if (/\d-\d/.test(info)) continue;
+
+                            found++;
+                            const p = calcPoisson(stats[k1], stats[k2]);
                             res.innerHTML += `
                             <div class="match-card">
-                                <div class="match-teams">${statsMap[hKey].display} vs ${statsMap[aKey].display}</div>
-                                <div class="match-info">
-                                    <span class="time-val">${info}</span>
-                                    <span class="prob-val">${p}%</span>
-                                </div>
+                                <b>${stats[k1].n} vs ${stats[k2].n}</b><br>
+                                <small>${info}</small> | <span style="color:#008a4e; font-weight:800;">Over 2.5: ${p}%</span>
                             </div>`;
+                            break; // Evitar duplicados en la misma fila
                         }
                     }
                 }
             });
 
-            log.innerHTML += `\n> Partidos futuros hallados: ${count}`;
-            if(count === 0) log.innerHTML += `\n> ⚠️ No se hallaron partidos sin jugar.`;
+            log.innerHTML += `\n> Partidos hallados: ${found}`;
 
-        } catch (e) {
-            log.innerHTML += "\n> ❌ ERROR: " + e.message;
-        }
+        } catch (e) { log.innerHTML += "\n> Error: " + e.message; }
     }
 
     function calcPoisson(h, a) {
@@ -125,7 +111,7 @@
         const lH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
         const lA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
         let o25 = 0;
-        const f = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
+        const f = n => n<=1?1:n*f(n-1);
         const p = (l,x) => (Math.exp(-l)*Math.pow(l,x))/f(x);
         for(let i=0; i<=5; i++) for(let j=0; j<=5; j++) if(i+j > 2.5) o25 += p(lH,i)*p(lA,j);
         return (o25*100).toFixed(1);
