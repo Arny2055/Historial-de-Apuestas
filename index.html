@@ -3,206 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro - Custom Scraper</title>
+    <title>Poisson ImportHTML</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f4f4f9; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        
-        .tabs { display: flex; gap: 5px; margin-bottom: 15px; background: #eee; padding: 5px; border-radius: 12px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
-        .active-tab { background: white; color: var(--secondary); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
+        .container { max-width: 480px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .tab-nav { display: flex; gap: 5px; margin-bottom: 15px; }
+        .tab-nav button { flex: 1; padding: 10px; border: none; border-radius: 10px; background: #ddd; font-weight: bold; }
+        .tab-nav button.active { background: var(--secondary); color: white; }
         .view { display: none; }
         .view.active { display: block; }
-
-        /* Tabla de Configuración Avanzada */
-        .config-card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 12px; padding: 12px; margin-bottom: 15px; }
-        .config-card h4 { margin: 0 0 10px 0; color: var(--secondary); font-size: 14px; }
-        .input-group { margin-bottom: 8px; }
-        label { font-size: 10px; font-weight: bold; color: #666; display: block; text-transform: uppercase; }
-        .url-input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 11px; box-sizing: border-box; }
-        
-        .btn-action { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; margin-top: 10px; }
-        .status-log { font-size: 11px; background: #222; color: #0f0; padding: 10px; border-radius: 8px; margin-top: 10px; font-family: monospace; display: none; }
-        
-        /* Resultados */
-        .match-card { background: white; border: 1px solid #eee; border-radius: 15px; margin-top: 15px; overflow: hidden; border-left: 5px solid var(--primary); }
-        .match-header { background: var(--secondary); color: white; padding: 10px; font-size: 12px; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 10px; border-bottom: 1px solid #f9f9f9; font-size: 14px; }
+        .input-box { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+        .btn-main { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; }
+        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 11px; margin-top: 10px; line-height: 1.4; }
+        .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="tabs">
-        <button class="tab-btn active-tab" onclick="switchTab('analisis')">📊 Análisis</button>
-        <button class="tab-btn" onclick="switchTab('config')">⚙️ Configuración</button>
+    <div class="tab-nav">
+        <button id="btn-an" class="active" onclick="showTab('an')">Análisis</button>
+        <button id="btn-cf" onclick="showTab('cf')">Configurar URLs</button>
     </div>
 
-    <div id="analisis" class="view active">
-        <label>Selecciona Liga:</label>
-        <select id="activeLeague" class="url-input" style="height: 40px; font-size: 14px; margin-bottom: 15px;"></select>
-        
-        <div style="background: #fff3cd; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
-            <label>Filtrar Over 2.5 ≥ <span id="val">60</span>%</label>
-            <input type="range" id="threshold" min="50" max="90" value="60" style="width:100%" oninput="document.getElementById('val').innerText=this.value">
-        </div>
-
-        <button class="btn-action" onclick="runCustomScraper()">ESCANEAR LIGA</button>
-        <div id="statusLog" class="status-log"></div>
+    <div id="view-an" class="view active">
+        <label style="font-size: 12px; font-weight: bold;">LIGA A IMPORTAR:</label>
+        <select id="selLeague" class="input-box"></select>
+        <button class="btn-main" onclick="importAndCalculate()">IMPORTAR Y CALCULAR</button>
+        <div id="statusLog" class="log">Listo para importar...</div>
         <div id="results"></div>
     </div>
 
-    <div id="config" class="view">
-        <div id="leagueConfigs"></div>
-        <button onclick="addNewLeague()" style="width:100%; padding:10px; border-radius:8px; border:1px dashed #666; background:none; font-weight:bold;">+ Añadir Nueva Liga</button>
+    <div id="view-cf" class="view">
+        <div id="configList"></div>
+        <button onclick="addLeague()" style="width:100%; padding:10px; border-radius:8px; border:1px dashed #666; background:none; margin-top:10px;">+ Añadir Liga</button>
     </div>
 </div>
 
 <script>
-    // Configuración con selectores editables
-    let leagues = JSON.parse(localStorage.getItem('poisson_v4')) || [
-        { 
-            name: 'Premier League', 
-            calUrl: 'https://www.soccerstats.com/results.asp?league=england',
-            calSelector: 'tr[height="34"]',
-            statsUrl: 'https://www.soccerstats.com/homeaway.asp?league=england',
-            statsSelector: 'tr.odd' 
-        }
-    ];
+    // 1. GESTIÓN DE URLs (Base de Datos Local)
+    let leagues = JSON.parse(localStorage.getItem('poisson_importhtml')) || [{
+        name: 'Premier League',
+        statsUrl: 'https://www.soccerstats.com/homeaway.asp?league=england',
+        calUrl: 'https://www.soccerstats.com/results.asp?league=england'
+    }];
 
-    function save() { localStorage.setItem('poisson_v4', JSON.stringify(leagues)); renderConfigs(); }
+    function showTab(t) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('view-'+t).classList.add('active');
+        document.getElementById('btn-'+t).classList.add('active');
+    }
 
-    function renderConfigs() {
-        const container = document.getElementById('leagueConfigs');
-        const select = document.getElementById('activeLeague');
-        container.innerHTML = ''; select.innerHTML = '';
-
+    function renderConfig() {
+        const list = document.getElementById('configList');
+        const sel = document.getElementById('selLeague');
+        list.innerHTML = ''; sel.innerHTML = '';
         leagues.forEach((l, i) => {
-            container.innerHTML += `
-                <div class="config-card">
-                    <input class="url-input" style="font-weight:bold; color:var(--secondary); margin-bottom:10px" value="${l.name}" onchange="update(${i},'name',this.value)">
-                    <div class="input-group">
-                        <label>URL Estadísticas (Home/Away)</label>
-                        <input class="url-input" value="${l.statsUrl}" onchange="update(${i},'statsUrl',this.value)">
-                        <label>Selector CSS Filas Stats (ej: tr.odd)</label>
-                        <input class="url-input" value="${l.statsSelector}" onchange="update(${i},'statsSelector',this.value)">
-                    </div>
-                    <div class="input-group">
-                        <label>URL Calendario (Partidos)</label>
-                        <input class="url-input" value="${l.calUrl}" onchange="update(${i},'calUrl',this.value)">
-                        <label>Selector CSS Filas Partidos (ej: tr[height="34"])</label>
-                        <input class="url-input" value="${l.calSelector}" onchange="update(${i},'calSelector',this.value)">
-                    </div>
-                    <button onclick="deleteLeague(${i})" style="color:red; border:none; background:none; font-size:10px;">Eliminar Liga</button>
-                </div>`;
-            select.innerHTML += `<option value="${i}">${l.name}</option>`;
+            sel.innerHTML += `<option value="${i}">${l.name}</option>`;
+            list.innerHTML += `<div style="background:#f9f9f9; padding:10px; border-radius:10px; margin-bottom:10px;">
+                <input class="input-box" value="${l.name}" onchange="upd(${i},'name',this.value)" placeholder="Nombre Liga">
+                <input class="input-box" value="${l.statsUrl}" onchange="upd(${i},'statsUrl',this.value)" placeholder="URL Home/Away">
+                <input class="input-box" value="${l.calUrl}" onchange="upd(${i},'calUrl',this.value)" placeholder="URL Calendario">
+            </div>`;
         });
     }
 
-    function update(i, k, v) { leagues[i][k] = v; save(); }
-    function addNewLeague() { leagues.push({name:'Nueva', calUrl:'', calSelector:'', statsUrl:'', statsSelector:''}); renderConfigs(); }
-    function deleteLeague(i) { leagues.splice(i,1); save(); }
-    function switchTab(id) {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
-        document.getElementById(id).classList.add('active');
-        event.currentTarget.classList.add('active-tab');
-    }
+    function upd(i, k, v) { leagues[i][k] = v; localStorage.setItem('poisson_importhtml', JSON.stringify(leagues)); renderConfig(); }
+    function addLeague() { leagues.push({name:'Nueva Liga', statsUrl:'', calUrl:''}); renderConfig(); }
 
-    // --- MOTOR DE SCRAPING DINÁMICO ---
-    async function runCustomScraper() {
-        const idx = document.getElementById('activeLeague').value;
-        const L = leagues[idx];
+    // 2. LÓGICA DE IMPORTACIÓN (IMPORTHTML)
+    async function importAndCalculate() {
+        const l = leagues[document.getElementById('selLeague').value];
         const log = document.getElementById('statusLog');
         const res = document.getElementById('results');
-        const thr = document.getElementById('threshold').value;
-
-        log.style.display = 'block';
-        res.innerHTML = '';
-        log.innerHTML = "> Iniciando conexión...";
+        const proxy = "https://api.allorigins.win/get?url=";
+        
+        log.style.display = 'block'; res.innerHTML = '';
+        log.innerHTML = "> Conectando a Soccerstats...";
 
         try {
-            const proxy = "https://api.allorigins.win/get?url=";
-            
-            // 1. Scraping Stats
-            log.innerHTML += "<br>> Extrayendo Stats...";
-            const sResp = await fetch(proxy + encodeURIComponent(L.statsUrl));
-            const sJson = await sResp.json();
+            // IMPORTAR TABLA HOME/AWAY
+            log.innerHTML += "<br>> Importando Tabla Stats...";
+            const sReq = await fetch(proxy + encodeURIComponent(l.statsUrl));
+            const sJson = await sReq.json();
             const sDoc = new DOMParser().parseFromString(sJson.contents, 'text/html');
-            const sRows = sDoc.querySelectorAll(L.statsSelector);
             
+            // Selector específico para las filas de datos de Soccerstats
+            const sRows = sDoc.querySelectorAll('tr.odd, tr.even');
             let statsMap = {};
+            
             sRows.forEach(row => {
                 const c = row.querySelectorAll('td');
                 if(c.length >= 8) {
                     const name = c[1].innerText.trim();
-                    statsMap[name] = { pj: parseFloat(c[2].innerText), gf: parseFloat(c[6].innerText), gc: parseFloat(c[7].innerText) };
+                    statsMap[name] = {
+                        pj: parseFloat(c[2].innerText),
+                        gf: parseFloat(c[6].innerText),
+                        gc: parseFloat(c[7].innerText)
+                    };
                 }
             });
-            log.innerHTML += `<br>> ${Object.keys(statsMap).length} equipos encontrados.`;
+            log.innerHTML += `<br>> ✅ ${Object.keys(statsMap).length} equipos importados.`;
 
-            // 2. Scraping Calendario
-            log.innerHTML += "<br>> Extrayendo Calendario...";
-            const cResp = await fetch(proxy + encodeURIComponent(L.calUrl));
-            const cJson = await cResp.json();
+            // IMPORTAR CALENDARIO
+            log.innerHTML += "<br>> Importando Calendario...";
+            const cReq = await fetch(proxy + encodeURIComponent(l.calUrl));
+            const cJson = await cReq.json();
             const cDoc = new DOMParser().parseFromString(cJson.contents, 'text/html');
-            const cRows = cDoc.querySelectorAll(L.calSelector);
-
-            log.innerHTML += `<br>> Analizando partidos...`;
+            
+            // Selector para los partidos (Soccerstats suele usar height="34" o clases específicas)
+            const cRows = cDoc.querySelectorAll('tr[height="34"]');
+            
+            log.innerHTML += `<br>> Procesando partidos...`;
 
             cRows.forEach(row => {
                 const c = row.querySelectorAll('td');
                 if(c.length >= 4) {
-                    const h = c[1].innerText.trim(), a = c[3].innerText.trim(), t = c[2].innerText.trim();
+                    const h = c[1].innerText.trim();
+                    const a = c[3].innerText.trim();
+                    const t = c[2].innerText.trim();
+
                     if(statsMap[h] && statsMap[a]) {
-                        calculatePoisson(h, a, t, statsMap, thr, res);
+                        calculatePoisson(h, a, t, statsMap, res);
                     }
                 }
             });
-            log.innerHTML += "<br>> Proceso finalizado.";
+            log.innerHTML += "<br>> ✅ Análisis Completo.";
 
         } catch (e) {
-            log.innerHTML += `<br>> ERROR: ${e.message}`;
+            log.innerHTML += "<br>> ❌ Error: " + e.message;
         }
     }
 
-    function calculatePoisson(hN, aN, time, stats, thr, container) {
-        // Matemáticas de Poisson (Dixon-Coles simplificado)
+    // 3. MOTOR MATEMÁTICO
+    function calculatePoisson(hN, aN, time, stats, container) {
         const avH = 1.61, avA = 1.22;
-        const h = stats[hN], a = stats[aN];
-        const lH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
-        const lA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
+        const sH = stats[hN], sA = stats[aN];
+        
+        const lH = (sH.gf/sH.pj/avH) * (sA.gc/sA.pj/avH) * avH;
+        const lA = (sA.gf/sA.pj/avA) * (sH.gc/sH.pj/avA) * avA;
 
         let o25 = 0;
-        const f = n => n<=1?1:n*f(n-1);
-        const p = (l,x) => (Math.exp(-l)*Math.pow(l,x))/f(x);
+        const fact = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
+        const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
 
-        for(let i=0; i<=8; i++) for(let j=0; j<=8; j++) if(i+j > 2.5) o25 += p(lH,i)*p(lA,j);
+        for(let i=0; i<=8; i++) for(let j=0; j<=8; j++) if(i+j > 2.5) o25 += poi(lH,i)*poi(lA,j);
         
         const prob = (o25*100).toFixed(1);
-        if(prob >= thr) {
-            container.innerHTML += `
-                <div class="match-card">
-                    <div class="match-header">${hN} vs ${aN} | ${time}</div>
-                    <table>
-                        <tr style="background:#e8fff3">
-                            <td><b>Over 2.5 Goles 🎯</b></td>
-                            <td style="text-align:right; font-weight:800; color:#008a4e">${prob}%</td>
-                        </tr>
-                    </table>
-                    <button onclick="share('${hN} vs ${aN}','${prob}')" style="width:100%; border:none; padding:10px; background:#f2f2f7; font-size:11px;">ENVIAR POR TELEGRAM/WA</button>
-                </div>`;
+        if(prob >= 60) {
+            container.innerHTML += `<div class="match-card">
+                <b>${hN} vs ${aN}</b><br>
+                <span style="font-size:12px; color:#666;">${time}</span><br>
+                <span style="color:#008a4e; font-weight:bold;">Over 2.5: ${prob}%</span>
+            </div>`;
         }
     }
 
-    function share(m, p) {
-        navigator.share({text: `⚽ *POISSON PICK*\n🏟️ ${m}\n🎯 Over 2.5 Goles\n📈 Prob: ${p}%`});
-    }
-
-    renderConfigs();
+    renderConfig();
 </script>
 </body>
 </html>
