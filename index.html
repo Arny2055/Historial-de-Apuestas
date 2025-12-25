@@ -3,153 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Table Viewer</title>
+    <title>Poisson Home/Away Split</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f0f0f5; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .card { background: #fff; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #eee; }
+        .btn-fetch { width: 100%; padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; margin: 10px 0; }
         
-        /* Tabla de Datos */
-        .table-container { width: 100%; overflow-x: auto; margin-top: 10px; border-radius: 10px; border: 1px solid #ddd; display: none; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; }
-        th { background: var(--secondary); color: white; padding: 8px; }
-        td { padding: 8px; border-bottom: 1px solid #eee; }
-        tr:nth-child(even) { background: #fafafa; }
+        .tables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; display: none; }
+        .table-box { background: #fff; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
+        .table-header { background: #444; color: white; padding: 5px; font-size: 10px; text-align: center; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; font-size: 9px; text-align: center; }
+        th { background: #eee; padding: 4px; border-bottom: 1px solid #ddd; }
+        td { padding: 4px; border-bottom: 1px solid #eee; }
 
-        select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; margin-top: 5px; background: #fff; }
-        .btn-fetch { width: 100%; padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; margin: 10px 0; }
-        
-        .result-box { padding: 20px; background: var(--secondary); color: white; border-radius: 15px; text-align: center; margin-top: 15px; display: none; }
-        .prob-val { font-size: 40px; font-weight: 900; color: var(--primary); }
+        .calc-box { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 15px; border: 2px dashed #ccc; }
+        select { width: 100%; padding: 10px; border-radius: 8px; margin-top: 5px; margin-bottom: 10px; font-size: 14px; }
+        .result-display { background: var(--secondary); color: white; padding: 15px; border-radius: 12px; text-align: center; display: none; }
+        .prob-large { font-size: 35px; font-weight: 800; color: var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3 style="text-align:center; color:var(--secondary); margin-bottom:20px;">Poisson & Data Viewer</h3>
+    <h3 style="text-align:center; margin:0; color:var(--secondary);">Poisson Split Home/Away</h3>
 
-    <div class="card">
-        <label style="font-size:11px; font-weight:bold;">URL SOCCERSTATS (HOME/AWAY):</label>
-        <input id="urlInput" type="text" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; margin-top:5px;" value="https://www.soccerstats.com/homeaway.asp?league=england">
-        <button class="btn-fetch" onclick="fetchAndDisplay()">DESCARGAR Y VISUALIZAR</button>
-        <div id="status" style="font-size:10px; color:#666;">Listo para importar.</div>
+    <input id="urlInput" type="text" class="btn-fetch" style="background:white; color:black; border:1px solid #ccc; font-weight:normal;" value="https://www.soccerstats.com/homeaway.asp?league=england">
+    <button class="btn-fetch" onclick="importSplitData()">DESCARGAR TABLAS SEPARADAS</button>
+    
+    <div id="status" style="font-size:10px; text-align:center; color:#666;">Esperando...</div>
+
+    <div id="gridArea" class="tables-grid">
+        <div class="table-box">
+            <div class="table-header">TABLA LOCAL (HOME)</div>
+            <table>
+                <thead><tr><th>Equipo</th><th>GF</th><th>GC</th></tr></thead>
+                <tbody id="homeBody"></tbody>
+            </table>
+        </div>
+        <div class="table-box">
+            <div class="table-header">TABLA VISITA (AWAY)</div>
+            <table>
+                <thead><tr><th>Equipo</th><th>GF</th><th>GC</th></tr></thead>
+                <tbody id="awayBody"></tbody>
+            </table>
+        </div>
     </div>
 
-    <div id="tableWrapper" class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Equipo</th>
-                    <th>PJ</th>
-                    <th>GF</th>
-                    <th>GC</th>
-                    <th>Prom GF</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
-    </div>
+    <div id="calcArea" class="calc-box" style="display:none;">
+        <label style="font-size:11px; font-weight:bold;">LOCAL (Stats en casa):</label>
+        <select id="homeSel" onchange="runCalc()"></select>
+        
+        <label style="font-size:11px; font-weight:bold;">VISITANTE (Stats fuera):</label>
+        <select id="awaySel" onchange="runCalc()"></select>
 
-    <div id="calculatorUI" class="card" style="display:none; margin-top:15px;">
-        <div style="margin-bottom:15px;">
-            <label style="font-size:11px; font-weight:bold;">LOCAL:</label>
-            <select id="homeTeam" onchange="calculate()"></select>
-        </div>
-        <div>
-            <label style="font-size:11px; font-weight:bold;">VISITANTE:</label>
-            <select id="awayTeam" onchange="calculate()"></select>
-        </div>
-
-        <div id="resultArea" class="result-box">
-            <div style="font-size:12px; opacity:0.8;">PROBABILIDAD OVER 2.5</div>
-            <div id="probResult" class="prob-val">0%</div>
-            <div id="matchTeams" style="font-size:13px; font-weight:bold; margin-top:5px;"></div>
+        <div id="resBox" class="result-display">
+            <div style="font-size:11px;">PROBABILIDAD OVER 2.5</div>
+            <div id="probVal" class="prob-large">0%</div>
         </div>
     </div>
 </div>
 
 <script>
-    let statsData = {};
+    let homeStats = {};
+    let awayStats = {};
 
-    async function fetchAndDisplay() {
+    async function importSplitData() {
         const url = document.getElementById('urlInput').value;
         const status = document.getElementById('status');
-        const tableBody = document.getElementById('tableBody');
-        const homeSel = document.getElementById('homeTeam');
-        const awaySel = document.getElementById('awayTeam');
-        
-        status.innerText = "⏳ Descargando datos desde Soccerstats...";
+        status.innerText = "⏳ Separando tablas...";
 
         try {
             const proxy = "https://api.codetabs.com/v1/proxy?quest=";
-            const response = await fetch(proxy + encodeURIComponent(url));
-            const html = await response.text();
+            const resp = await fetch(proxy + encodeURIComponent(url));
+            const html = await resp.text();
             const doc = new DOMParser().parseFromString(html, "text/html");
-            const rows = doc.querySelectorAll('tr.odd, tr.even');
 
-            statsData = {};
-            tableBody.innerHTML = "";
-            homeSel.innerHTML = '<option value="">-- Selecciona Local --</option>';
-            awaySel.innerHTML = '<option value="">-- Selecciona Visita --</option>';
-
-            rows.forEach(r => {
-                const c = r.cells;
-                if(c && c.length >= 8) {
-                    const name = c[1].innerText.trim();
-                    const pj = parseFloat(c[2].innerText);
-                    const gf = parseFloat(c[6].innerText);
-                    const gc = parseFloat(c[7].innerText);
-                    
-                    if(!isNaN(pj) && pj > 0) {
-                        statsData[name] = { pj, gf, gc };
-                        
-                        // Añadir a la tabla visual
-                        tableBody.innerHTML += `
-                            <tr>
-                                <td style="text-align:left; font-weight:bold;">${name}</td>
-                                <td>${pj}</td>
-                                <td style="color:green">${gf}</td>
-                                <td style="color:red">${gc}</td>
-                                <td>${(gf/pj).toFixed(2)}</td>
-                            </tr>`;
-                        
-                        // Añadir a los selectores
-                        const opt = `<option value="${name}">${name}</option>`;
-                        homeSel.innerHTML += opt;
-                        awaySel.innerHTML += opt;
-                    }
-                }
-            });
-
-            const count = Object.keys(statsData).length;
-            if(count > 0) {
-                document.getElementById('tableWrapper').style.display = "block";
-                document.getElementById('calculatorUI').style.display = "block";
-                status.innerText = `✅ ${count} equipos cargados correctamente.`;
-            } else {
-                status.innerText = "❌ No se encontraron datos. Revisa el link.";
+            // Soccerstats usa tablas con ID 'home' y 'away' o las identifica por posición
+            // Vamos a buscar todas las tablas de clase 'sortable' o similares
+            const tables = doc.querySelectorAll('table#btable'); 
+            
+            // Usualmente: tables[0] es Total, tables[1] es Home, tables[2] es Away
+            if (tables.length < 3) {
+                status.innerText = "❌ Error: No se detectaron las 3 tablas.";
+                return;
             }
 
+            processTable(tables[1], homeStats, 'homeBody');
+            processTable(tables[2], awayStats, 'awayBody');
+
+            fillSelectors();
+            document.getElementById('gridArea').style.display = "grid";
+            document.getElementById('calcArea').style.display = "block";
+            status.innerText = "✅ Tablas Local/Visita cargadas.";
+
         } catch (e) {
-            status.innerText = "❌ Error al conectar con el servidor.";
+            status.innerText = "❌ Error de conexión.";
         }
     }
 
-    function calculate() {
-        const hName = document.getElementById('homeTeam').value;
-        const aName = document.getElementById('awayTeam').value;
-        const resultArea = document.getElementById('resultArea');
-
-        if (!hName || !aName || hName === aName) {
-            resultArea.style.display = "none";
-            return;
-        }
-
-        const h = statsData[hName];
-        const a = statsData[aName];
-        const avH = 1.61, avA = 1.22;
+    function processTable(tableObj, dataObj, bodyId) {
+        const rows = tableObj.querySelectorAll('tr.odd, tr.even');
+        const body = document.getElementById(bodyId);
+        body.innerHTML = "";
         
+        rows.forEach(r => {
+            const c = r.cells;
+            if(c.length >= 8) {
+                const name = c[1].innerText.trim();
+                const pj = parseFloat(c[2].innerText);
+                const gf = parseFloat(c[6].innerText);
+                const gc = parseFloat(c[7].innerText);
+                
+                dataObj[name] = { pj, gf, gc };
+                body.innerHTML += `<tr><td style="text-align:left">${name}</td><td>${gf}</td><td>${gc}</td></tr>`;
+            }
+        });
+    }
+
+    function fillSelectors() {
+        const hSel = document.getElementById('homeSel');
+        const aSel = document.getElementById('awaySel');
+        hSel.innerHTML = '<option value="">-- Elige Local --</option>';
+        aSel.innerHTML = '<option value="">-- Elige Visita --</option>';
+        
+        Object.keys(homeStats).sort().forEach(n => {
+            hSel.innerHTML += `<option value="${n}">${n}</option>`;
+            aSel.innerHTML += `<option value="${n}">${n}</option>`;
+        });
+    }
+
+    function runCalc() {
+        const hName = document.getElementById('homeSel').value;
+        const aName = document.getElementById('awaySel').value;
+        const resBox = document.getElementById('resBox');
+
+        if (!hName || !aName) return;
+
+        const h = homeStats[hName];
+        const a = awayStats[aName];
+        
+        // Poisson con stats segmentadas
+        const avH = 1.61, avA = 1.22;
         const lH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
         const lA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
 
@@ -163,11 +158,8 @@
             }
         }
 
-        const prob = (o25 * 100).toFixed(1);
-        document.getElementById('probResult').innerText = prob + "%";
-        document.getElementById('matchTeams').innerText = `${hName} vs ${aName}`;
-        resultArea.style.display = "block";
-        document.getElementById('probResult').style.color = prob >= 65 ? "#00ff85" : "#ffcc00";
+        document.getElementById('probVal').innerText = (o25 * 100).toFixed(1) + "%";
+        resBox.style.display = "block";
     }
 </script>
 </body>
