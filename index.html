@@ -29,12 +29,15 @@
         .match-info-line { font-size: 10px; opacity: 0.8; display: block; margin-bottom: 2px; }
         .match-teams-line { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; }
         
-        .btts-row { display: flex; justify-content: space-between; padding: 12px 15px; background: #f0f7ff; font-weight: 700; border-bottom: 1px solid #e1e8f0; }
+        .btts-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f0f7ff; font-weight: 700; border-bottom: 1px solid #e1e8f0; }
+        .btts-data { display: flex; align-items: center; gap: 10px; }
+        
         table { width: 100%; border-collapse: collapse; }
         td { padding: 12px 15px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
         .mkt-prob { text-align: right; font-weight: 800; }
         .highlight-mkt { background: #eafff2; color: #008a4e; }
-        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .share-btn:active { background: #e2e2e7; transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -50,13 +53,18 @@
         <input type="range" id="threshold" min="50" max="90" value="60" oninput="updateRange(this.value)">
     </div>
     
-    <label>Partidos:</label><textarea id="matchesInput"></textarea>
-    <label>Stats Local:</label><textarea id="homeStatsInput"></textarea>
-    <label>Stats Visitante:</label><textarea id="awayStatsInput"></textarea>
+    <label>Partidos (Fecha | Local | Hora | Visita):</label>
+    <textarea id="matchesInput" placeholder="20/10 | Real Madrid | 21:00 | Barcelona"></textarea>
+    
+    <label>Stats Local (Equipo | PJ | ... | GF | GC):</label>
+    <textarea id="homeStatsInput"></textarea>
+    
+    <label>Stats Visitante:</label>
+    <textarea id="awayStatsInput"></textarea>
     
     <div class="avg-grid">
-        <div><label>Avg Liga L:</label><input type="number" id="avgH" step="0.01" value="1.61"></div>
-        <div><label>Avg Liga V:</label><input type="number" id="avgA" step="0.01" value="1.22"></div>
+        <div><label>Avg Liga Goles L:</label><input type="number" id="avgH" step="0.01" value="1.61"></div>
+        <div><label>Avg Liga Goles V:</label><input type="number" id="avgA" step="0.01" value="1.22"></div>
     </div>
     
     <button class="calc-btn" onclick="calculate()">ESCUDRIÑAR PARTIDOS</button>
@@ -66,7 +74,9 @@
 <script>
     function updateRange(val) { document.getElementById('rangeValue').innerText = val + '%'; }
 
+    // Función Factorial para Poisson
     const fact = n => n <= 1 ? 1 : n * fact(n - 1);
+    // Fórmula de Distribución de Poisson
     const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
 
     function parse(txt) {
@@ -87,7 +97,9 @@
         const res = document.getElementById('results');
         res.innerHTML = '';
 
-        document.getElementById('matchesInput').value.trim().split('\n').forEach(line => {
+        const matches = document.getElementById('matchesInput').value.trim().split('\n');
+        
+        matches.forEach(line => {
             const p = line.split(/\t|\s{2,}/);
             if (p.length < 4) return;
             
@@ -95,21 +107,29 @@
 
             if (hs[hName] && as[aName]) {
                 const h = hs[hName], a = as[aName];
+                
+                // Cálculo de Fuerza de Ataque y Defensa
                 const lamH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
                 const lamA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
 
+                // Probabilidades de Over Goles
                 let over = { 0.5:0, 1.5:0, 2.5:0, 3.5:0 };
-                for(let i=0; i<=10; i++) for(let j=0; j<=10; j++) {
-                    const prob = poi(lamH, i) * poi(lamA, j);
-                    const total = i + j;
-                    if(total>0.5) over[0.5]+=prob; if(total>1.5) over[1.5]+=prob;
-                    if(total>2.5) over[2.5]+=prob; if(total>3.5) over[3.5]+=prob;
+                for(let i=0; i<=10; i++) {
+                    for(let j=0; j<=10; j++) {
+                        const prob = poi(lamH, i) * poi(lamA, j);
+                        const total = i + j;
+                        if(total > 0.5) over[0.5] += prob;
+                        if(total > 1.5) over[1.5] += prob;
+                        if(total > 2.5) over[2.5] += prob;
+                        if(total > 3.5) over[3.5] += prob;
+                    }
                 }
                 
                 const pO25 = (over[2.5] * 100);
-                if (pO25 < thr) return; // Aplicación del filtro dinámico
+                if (pO25 < thr) return; 
 
-                const btts = ((1 - poi(lamH,0)) * (1 - poi(lamA,0)) * 100).toFixed(1);
+                // Probabilidad Ambos Anotan (1 - prob de que alguno quede en 0)
+                const bttsProb = ((1 - poi(lamH, 0)) * (1 - poi(lamA, 0)) * 100).toFixed(1);
                 const dtStr = `${dt} | ${tm}`;
 
                 res.innerHTML += `
@@ -118,15 +138,23 @@
                             <span class="match-info-line">${dtStr}</span>
                             <div class="match-teams-line"><span>${hName} vs ${aName}</span></div>
                         </div>
-                        <div class="btts-row"><span>Ambos Anotan</span><span style="color:var(--accent)">${btts}%</span></div>
+                        
+                        <div class="btts-row">
+                            <span>Ambos Anotan</span>
+                            <div class="btts-data">
+                                <span style="color:var(--accent)">${bttsProb}%</span>
+                                <button class="share-btn" onclick="share('${hName} vs ${aName}','Ambos Anotan','${bttsProb}','${dtStr}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button>
+                            </div>
+                        </div>
+
                         <table>
                             ${[0.5, 1.5, 2.5, 3.5].map(v => {
                                 const p = (over[v]*100).toFixed(1);
-                                const hit = v === 2.5;
-                                return `<tr class="${hit ? 'highlight-mkt' : ''}">
-                                    <td>Over ${v} Goles ${hit ? '🎯' : ''}</td>
+                                const isO25 = v === 2.5;
+                                return `<tr class="${isO25 ? 'highlight-mkt' : ''}">
+                                    <td>Over ${v} Goles ${isO25 ? '🎯' : ''}</td>
                                     <td class="mkt-prob">${p}%</td>
-                                    <td><button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v}','${p}','${dtStr}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button></td>
+                                    <td><button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v} Goles','${p}','${dtStr}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button></td>
                                 </tr>`;
                             }).join('')}
                         </table>
@@ -136,8 +164,12 @@
     }
 
     function share(m, mk, p, dt, lh, la) {
-        const text = `⚽ *PICK POISSON*\n📅 ${dt}\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG: ${lh} - ${la}`;
-        navigator.share ? navigator.share({text}) : window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+        const text = `⚽ *PICK POISSON*\n📅 ${dt}\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG Estimado: ${lh} - ${la}`;
+        if (navigator.share) {
+            navigator.share({ title: 'Pick Poisson', text: text });
+        } else {
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+        }
     }
 </script>
 </body>
