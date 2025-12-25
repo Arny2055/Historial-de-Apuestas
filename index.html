@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson ImportHTML Fix</title>
+    <title>Poisson Premier Scanner</title>
     <style>
         :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .container { max-width: 480px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .tab-nav { display: flex; gap: 5px; margin-bottom: 15px; }
-        .tab-nav button { flex: 1; padding: 10px; border: none; border-radius: 10px; background: #ddd; font-weight: bold; font-size: 12px; }
+        .tab-nav button { flex: 1; padding: 10px; border: none; border-radius: 10px; background: #ddd; font-weight: bold; }
         .tab-nav button.active { background: var(--secondary); color: white; }
         .view { display: none; }
         .view.active { display: block; }
-        .input-box { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
-        .btn-main { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; }
-        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .btn-main { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin-top: 10px; max-height: 120px; overflow-y: auto; white-space: pre-wrap; }
         .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); }
+        .input-box { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -24,24 +24,23 @@
 <div class="container">
     <div class="tab-nav">
         <button id="btn-an" class="active" onclick="showTab('an')">📊 Análisis</button>
-        <button id="btn-cf" onclick="showTab('cf')">⚙️ Config URLs</button>
+        <button id="btn-cf" onclick="showTab('cf')">⚙️ Config</button>
     </div>
 
     <div id="view-an" class="view active">
         <select id="selLeague" class="input-box"></select>
-        <button class="btn-main" onclick="importAndCalculate()">IMPORTAR Y CALCULAR</button>
-        <div id="statusLog" class="log">Esperando orden...</div>
+        <button class="btn-main" onclick="startImport()">ESCANEAR LIGA</button>
+        <div id="statusLog" class="log">Estado: Esperando...</div>
         <div id="results"></div>
     </div>
 
     <div id="view-cf" class="view">
         <div id="configList"></div>
-        <button onclick="addLeague()" style="width:100%; padding:10px; border-radius:8px; border:1px dashed #666; background:none; margin-top:10px;">+ Añadir Liga</button>
     </div>
 </div>
 
 <script>
-    let leagues = JSON.parse(localStorage.getItem('poisson_importhtml_v2')) || [{
+    let leagues = JSON.parse(localStorage.getItem('poisson_v_final')) || [{
         name: 'Premier League',
         statsUrl: 'https://www.soccerstats.com/homeaway.asp?league=england',
         calUrl: 'https://www.soccerstats.com/results.asp?league=england'
@@ -68,100 +67,88 @@
         });
     }
 
-    function upd(i, k, v) { leagues[i][k] = v; localStorage.setItem('poisson_importhtml_v2', JSON.stringify(leagues)); renderConfig(); }
-    function addLeague() { leagues.push({name:'Nueva Liga', statsUrl:'', calUrl:''}); renderConfig(); }
+    function upd(i, k, v) { leagues[i][k] = v; localStorage.setItem('poisson_v_final', JSON.stringify(leagues)); renderConfig(); }
 
-    // Función para limpiar nombres y que coincidan (Ej: "Man. Utd" -> "manutd")
-    const normalize = (name) => name.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+    const norm = (t) => t.toLowerCase().replace(/[^a-z]/g, "").trim();
 
-    async function importAndCalculate() {
+    async function startImport() {
         const l = leagues[document.getElementById('selLeague').value];
         const log = document.getElementById('statusLog');
         const res = document.getElementById('results');
         const proxy = "https://api.allorigins.win/get?url=";
         
-        log.style.display = 'block'; res.innerHTML = '';
-        log.innerHTML = "> Conectando...";
+        log.innerHTML = "> Conectando a Soccerstats...";
+        res.innerHTML = "";
 
         try {
-            // 1. IMPORTAR STATS
+            // 1. IMPORTAR TABLA DE GOLES
             const sReq = await fetch(proxy + encodeURIComponent(l.statsUrl));
             const sJson = await sReq.json();
             const sDoc = new DOMParser().parseFromString(sJson.contents, 'text/html');
-            const sRows = sDoc.querySelectorAll('tr.odd, tr.even');
+            const rows = sDoc.querySelectorAll('tr.odd, tr.even');
             
             let statsMap = {};
-            sRows.forEach(row => {
-                const c = row.querySelectorAll('td');
-                if(c.length >= 8) {
-                    const originalName = c[1].innerText.trim();
-                    const cleanName = normalize(originalName);
-                    statsMap[cleanName] = {
-                        display: originalName,
+            rows.forEach(r => {
+                const c = r.querySelectorAll('td');
+                if(c.length >= 8 && !isNaN(parseFloat(c[2].innerText))) {
+                    const name = c[1].innerText.trim();
+                    statsMap[norm(name)] = {
+                        display: name,
                         pj: parseFloat(c[2].innerText),
                         gf: parseFloat(c[6].innerText),
                         gc: parseFloat(c[7].innerText)
                     };
                 }
             });
-            log.innerHTML += `<br>> ✅ ${Object.keys(statsMap).length} equipos en base de datos.`;
+            log.innerHTML += `\n> ✅ ${Object.keys(statsMap).length} equipos cargados.`;
 
-            // 2. IMPORTAR CALENDARIO
+            // 2. IMPORTAR PARTIDOS
             const cReq = await fetch(proxy + encodeURIComponent(l.calUrl));
             const cJson = await cReq.json();
             const cDoc = new DOMParser().parseFromString(cJson.contents, 'text/html');
             const cRows = cDoc.querySelectorAll('tr[height="34"]');
-            
-            let foundMatches = 0;
-            cRows.forEach(row => {
-                const c = row.querySelectorAll('td');
+
+            let analizados = 0;
+            cRows.forEach(r => {
+                const c = r.querySelectorAll('td');
                 if(c.length >= 4) {
                     const hRaw = c[1].innerText.trim();
                     const aRaw = c[3].innerText.trim();
                     const time = c[2].innerText.trim();
                     
-                    const hKey = normalize(hRaw);
-                    const aKey = normalize(aRaw);
+                    const hS = statsMap[norm(hRaw)];
+                    const aS = statsMap[norm(aRaw)];
 
-                    if(statsMap[hKey] && statsMap[aKey]) {
-                        foundMatches++;
-                        calculatePoisson(statsMap[hKey], statsMap[aKey], time, res);
-                    } else {
-                        // Debug en log si no encuentra el equipo
-                        if(!statsMap[hKey]) log.innerHTML += `<br>> ⚠️ No encontré stats para: ${hRaw}`;
+                    if(hS && aS) {
+                        analizados++;
+                        const prob = calcPoisson(hS, aS);
+                        if(prob >= 60) {
+                            res.innerHTML += `<div class="match-card">
+                                <b>${hS.display} vs ${aS.display}</b><br>
+                                <small>${time}</small> | <span style="color:#008a4e; font-weight:bold;">Over 2.5: ${prob}%</span>
+                            </div>`;
+                        }
                     }
                 }
             });
 
-            if(foundMatches === 0) {
-                log.innerHTML += "<br>> ❌ No se hallaron cruces válidos. Revisa los nombres.";
-            } else {
-                log.innerHTML += `<br>> ✅ Análisis Completo: ${foundMatches} partidos procesados.`;
-            }
+            log.innerHTML += `\n> ✅ Análisis completo. ${analizados} partidos hoy.`;
+            if(res.innerHTML === "") log.innerHTML += `\n> ⚠️ Ninguno superó el 60%.`;
 
         } catch (e) {
-            log.innerHTML += "<br>> ❌ Error Crítico: " + e.message;
+            log.innerHTML += "\n> ❌ Error: " + e.message;
         }
     }
 
-    function calculatePoisson(home, away, time, container) {
+    function calcPoisson(h, a) {
         const avH = 1.61, avA = 1.22;
-        const lH = (home.gf/home.pj/avH) * (away.gc/away.pj/avH) * avH;
-        const lA = (away.gf/away.pj/avA) * (home.gc/home.pj/avA) * avA;
-
+        const lH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
+        const lA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
         let o25 = 0;
-        const fact = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
-        const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
-
-        for(let i=0; i<=8; i++) for(let j=0; j<=8; j++) if(i+j > 2.5) o25 += poi(lH,i)*poi(lA,j);
-        
-        const prob = (o25*100).toFixed(1);
-        // Mostrar siempre para validar que el motor funciona (luego puedes filtrar por 60%)
-        container.innerHTML += `<div class="match-card">
-            <b>${home.display} vs ${away.display}</b><br>
-            <span style="font-size:11px; color:#666;">${time}</span><br>
-            <span style="color:${prob >= 60 ? '#008a4e' : '#666'}; font-weight:bold;">Over 2.5: ${prob}%</span>
-        </div>`;
+        const f = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
+        const p = (l,x) => (Math.exp(-l)*Math.pow(l,x))/f(x);
+        for(let i=0; i<=8; i++) for(let j=0; j<=8; j++) if(i+j > 2.5) o25 += p(lH,i)*p(lA,j);
+        return (o25*100).toFixed(1);
     }
 
     renderConfig();
