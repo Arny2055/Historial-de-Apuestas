@@ -3,118 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro - Global Scanner</title>
+    <title>Poisson Selector Pro</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f4f4f9; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
-        .container { max-width: 450px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin: 10px 0; white-space: pre-wrap; height: 80px; overflow-y: auto; }
-        .btn-main { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-weight: bold; font-size: 16px; cursor: pointer; }
-        .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); }
-        .input-box { width: 100%; padding: 10px; margin-bottom: 5px; border: 1px solid #ccc; border-radius: 8px; font-size: 12px; }
+        .container { max-width: 450px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .config-section { background: #eee; padding: 10px; border-radius: 12px; margin-bottom: 20px; }
+        .selector-section { display: flex; flex-direction: column; gap: 10px; }
+        select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; background: white; -webkit-appearance: none; }
+        .btn-fetch { width: 100%; padding: 12px; background: var(--secondary); color: white; border: none; border-radius: 10px; font-weight: bold; margin-bottom: 15px; cursor: pointer; }
+        .result-card { margin-top: 20px; padding: 20px; background: #fff; border: 2px solid var(--primary); border-radius: 15px; text-align: center; display: none; }
+        .prob-number { font-size: 48px; font-weight: 800; color: var(--secondary); margin: 10px 0; }
+        .log { font-size: 10px; color: #666; font-family: monospace; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3 style="text-align:center; margin-top:0;">Scanner Pro (Próximos 5 Días)</h3>
+    <h2 style="text-align:center; color:var(--secondary); margin-top:0;">Calculadora Poisson</h2>
     
-    <div id="config">
-        <label style="font-size:10px; font-weight:bold;">URL STATS:</label>
-        <input id="urlStats" class="input-box" value="https://www.soccerstats.com/homeaway.asp?league=egypt">
-        <label style="font-size:10px; font-weight:bold;">URL CALENDARIO:</label>
-        <input id="urlCal" class="input-box" value="https://www.soccerstats.com/latest.asp?league=egypt">
+    <div class="config-section">
+        <label style="font-size:11px; font-weight:bold;">URL DE ESTADÍSTICAS (SOCCERSTATS):</label>
+        <input id="urlInput" type="text" style="width:100%; padding:8px; margin:5px 0; border-radius:5px; border:1px solid #ccc;" value="https://www.soccerstats.com/homeaway.asp?league=england">
+        <button class="btn-fetch" onclick="fetchTable()">DESCARGAR EQUIPOS</button>
+        <div id="status" class="log">Estado: Esperando descarga...</div>
     </div>
 
-    <button class="btn-main" onclick="processData()">ESCANEAR LIGA</button>
-    
-    <div id="statusLog" class="log">Esperando...</div>
-    <div id="results"></div>
+    <div class="selector-section">
+        <div>
+            <label style="font-size:11px; font-weight:bold; color: #555;">EQUIPO LOCAL:</label>
+            <select id="homeTeam" onchange="calculate()">
+                <option value="">-- Selecciona Local --</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-size:11px; font-weight:bold; color: #555;">EQUIPO VISITANTE:</label>
+            <select id="awayTeam" onchange="calculate()">
+                <option value="">-- Selecciona Visita --</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="resultArea" class="result-card">
+        <div style="font-size:12px; font-weight:bold; color:#888;">PROBABILIDAD OVER 2.5</div>
+        <div id="probResult" class="prob-number">0%</div>
+        <div id="teamsMatch" style="font-size:14px; font-weight:bold;"></div>
+    </div>
 </div>
 
 <script>
-    const norm = (t) => t.toLowerCase().replace(/[^a-z]/g, "").trim();
+    let statsData = {};
 
-    async function fetchData(url) {
-        const proxy = "https://api.codetabs.com/v1/proxy?quest=";
-        const response = await fetch(proxy + encodeURIComponent(url));
-        return await response.text();
-    }
-
-    async function processData() {
-        const log = document.getElementById('statusLog');
-        const res = document.getElementById('results');
-        log.innerHTML = "> Conectando...";
-        res.innerHTML = "";
+    async function fetchTable() {
+        const url = document.getElementById('urlInput').value;
+        const status = document.getElementById('status');
+        const homeSel = document.getElementById('homeTeam');
+        const awaySel = document.getElementById('awayTeam');
+        
+        status.innerText = "Cargando datos...";
+        homeSel.innerHTML = '<option value="">-- Selecciona Local --</option>';
+        awaySel.innerHTML = '<option value="">-- Selecciona Visita --</option>';
 
         try {
-            // 1. CARGAR STATS
-            const htmlS = await fetchData(document.getElementById('urlStats').value);
-            const docS = new DOMParser().parseFromString(htmlS, "text/html");
-            const rowsS = docS.querySelectorAll('tr.odd, tr.even');
-            
-            let stats = {};
-            rowsS.forEach(r => {
+            const proxy = "https://api.codetabs.com/v1/proxy?quest=";
+            const response = await fetch(proxy + encodeURIComponent(url));
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, "text/html");
+            const rows = doc.querySelectorAll('tr.odd, tr.even');
+
+            statsData = {};
+            rows.forEach(r => {
                 const c = r.cells;
                 if(c && c.length >= 8) {
                     const name = c[1].innerText.trim();
                     const pj = parseFloat(c[2].innerText);
                     if(!isNaN(pj) && pj > 0) {
-                        stats[norm(name)] = { n: name, pj: pj, gf: parseFloat(c[6].innerText), gc: parseFloat(c[7].innerText) };
-                    }
-                }
-            });
-            log.innerHTML += `\n> Equipos: ${Object.keys(stats).length}`;
-
-            // 2. CARGAR CALENDARIO (Uso de 'latest.asp' que es más fiable para próximos partidos)
-            const htmlC = await fetchData(document.getElementById('urlCal').value);
-            const docC = new DOMParser().parseFromString(htmlC, "text/html");
-            const allRows = docC.querySelectorAll('tr');
-
-            let found = 0;
-            allRows.forEach(row => {
-                const cells = row.cells;
-                if (cells && cells.length >= 3) {
-                    // Buscamos celdas que contengan nombres de nuestra lista
-                    for (let i = 0; i < cells.length - 2; i++) {
-                        const t1Raw = cells[i].innerText.trim();
-                        const t2Raw = cells[i+2] ? cells[i+2].innerText.trim() : "";
-                        const info = cells[i+1] ? cells[i+1].innerText.trim() : "";
-
-                        const k1 = norm(t1Raw);
-                        const k2 = norm(t2Raw);
-
-                        if (stats[k1] && stats[k2]) {
-                            // Si en medio hay un "-" con números, ya se jugó
-                            if (/\d-\d/.test(info)) continue;
-
-                            found++;
-                            const p = calcPoisson(stats[k1], stats[k2]);
-                            res.innerHTML += `
-                            <div class="match-card">
-                                <b>${stats[k1].n} vs ${stats[k2].n}</b><br>
-                                <small>${info}</small> | <span style="color:#008a4e; font-weight:800;">Over 2.5: ${p}%</span>
-                            </div>`;
-                            break; // Evitar duplicados en la misma fila
-                        }
+                        statsData[name] = {
+                            pj: pj,
+                            gf: parseFloat(c[6].innerText),
+                            gc: parseFloat(c[7].innerText)
+                        };
+                        const opt = `<option value="${name}">${name}</option>`;
+                        homeSel.innerHTML += opt;
+                        awaySel.innerHTML += opt;
                     }
                 }
             });
 
-            log.innerHTML += `\n> Partidos hallados: ${found}`;
+            const count = Object.keys(statsData).length;
+            status.innerText = `✅ ${count} equipos descargados con éxito.`;
+            if(count === 0) status.innerText = "❌ No se hallaron datos. Verifica el URL.";
 
-        } catch (e) { log.innerHTML += "\n> Error: " + e.message; }
+        } catch (e) {
+            status.innerText = "❌ Error de conexión.";
+            console.error(e);
+        }
     }
 
-    function calcPoisson(h, a) {
+    function calculate() {
+        const hName = document.getElementById('homeTeam').value;
+        const aName = document.getElementById('awayTeam').value;
+        const resultArea = document.getElementById('resultArea');
+
+        if (!hName || !aName) {
+            resultArea.style.display = "none";
+            return;
+        }
+
+        const h = statsData[hName];
+        const a = statsData[aName];
+
+        // Promedios de liga estándar
         const avH = 1.61, avA = 1.22;
+        
+        // Lambdas
         const lH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
         const lA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
+
+        // Poisson
         let o25 = 0;
-        const f = n => n<=1?1:n*f(n-1);
-        const p = (l,x) => (Math.exp(-l)*Math.pow(l,x))/f(x);
-        for(let i=0; i<=5; i++) for(let j=0; j<=5; j++) if(i+j > 2.5) o25 += p(lH,i)*p(lA,j);
-        return (o25*100).toFixed(1);
+        const f = n => n <= 1 ? 1 : n * f(n - 1);
+        const p = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / f(x);
+
+        for(let i=0; i<=6; i++) {
+            for(let j=0; j<=6; j++) {
+                if(i+j > 2.5) o25 += p(lH, i) * p(lA, j);
+            }
+        }
+
+        const prob = (o25 * 100).toFixed(1);
+        document.getElementById('probResult').innerText = prob + "%";
+        document.getElementById('teamsMatch').innerText = `${hName} vs ${aName}`;
+        resultArea.style.display = "block";
+        
+        // Color dinámico
+        resultArea.style.borderColor = prob >= 60 ? "#00ff85" : "#ff4b4b";
     }
 </script>
 </body>
