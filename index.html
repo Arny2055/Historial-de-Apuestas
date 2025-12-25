@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson ImportHTML</title>
+    <title>Poisson ImportHTML Fix</title>
     <style>
         :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .container { max-width: 480px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .tab-nav { display: flex; gap: 5px; margin-bottom: 15px; }
-        .tab-nav button { flex: 1; padding: 10px; border: none; border-radius: 10px; background: #ddd; font-weight: bold; }
+        .tab-nav button { flex: 1; padding: 10px; border: none; border-radius: 10px; background: #ddd; font-weight: bold; font-size: 12px; }
         .tab-nav button.active { background: var(--secondary); color: white; }
         .view { display: none; }
         .view.active { display: block; }
         .input-box { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
         .btn-main { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; }
-        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 11px; margin-top: 10px; line-height: 1.4; }
+        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
         .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); }
     </style>
 </head>
@@ -23,15 +23,14 @@
 
 <div class="container">
     <div class="tab-nav">
-        <button id="btn-an" class="active" onclick="showTab('an')">Análisis</button>
-        <button id="btn-cf" onclick="showTab('cf')">Configurar URLs</button>
+        <button id="btn-an" class="active" onclick="showTab('an')">📊 Análisis</button>
+        <button id="btn-cf" onclick="showTab('cf')">⚙️ Config URLs</button>
     </div>
 
     <div id="view-an" class="view active">
-        <label style="font-size: 12px; font-weight: bold;">LIGA A IMPORTAR:</label>
         <select id="selLeague" class="input-box"></select>
         <button class="btn-main" onclick="importAndCalculate()">IMPORTAR Y CALCULAR</button>
-        <div id="statusLog" class="log">Listo para importar...</div>
+        <div id="statusLog" class="log">Esperando orden...</div>
         <div id="results"></div>
     </div>
 
@@ -42,8 +41,7 @@
 </div>
 
 <script>
-    // 1. GESTIÓN DE URLs (Base de Datos Local)
-    let leagues = JSON.parse(localStorage.getItem('poisson_importhtml')) || [{
+    let leagues = JSON.parse(localStorage.getItem('poisson_importhtml_v2')) || [{
         name: 'Premier League',
         statsUrl: 'https://www.soccerstats.com/homeaway.asp?league=england',
         calUrl: 'https://www.soccerstats.com/results.asp?league=england'
@@ -63,17 +61,19 @@
         leagues.forEach((l, i) => {
             sel.innerHTML += `<option value="${i}">${l.name}</option>`;
             list.innerHTML += `<div style="background:#f9f9f9; padding:10px; border-radius:10px; margin-bottom:10px;">
-                <input class="input-box" value="${l.name}" onchange="upd(${i},'name',this.value)" placeholder="Nombre Liga">
-                <input class="input-box" value="${l.statsUrl}" onchange="upd(${i},'statsUrl',this.value)" placeholder="URL Home/Away">
-                <input class="input-box" value="${l.calUrl}" onchange="upd(${i},'calUrl',this.value)" placeholder="URL Calendario">
+                <input class="input-box" value="${l.name}" onchange="upd(${i},'name',this.value)">
+                <input class="input-box" value="${l.statsUrl}" onchange="upd(${i},'statsUrl',this.value)">
+                <input class="input-box" value="${l.calUrl}" onchange="upd(${i},'calUrl',this.value)">
             </div>`;
         });
     }
 
-    function upd(i, k, v) { leagues[i][k] = v; localStorage.setItem('poisson_importhtml', JSON.stringify(leagues)); renderConfig(); }
+    function upd(i, k, v) { leagues[i][k] = v; localStorage.setItem('poisson_importhtml_v2', JSON.stringify(leagues)); renderConfig(); }
     function addLeague() { leagues.push({name:'Nueva Liga', statsUrl:'', calUrl:''}); renderConfig(); }
 
-    // 2. LÓGICA DE IMPORTACIÓN (IMPORTHTML)
+    // Función para limpiar nombres y que coincidan (Ej: "Man. Utd" -> "manutd")
+    const normalize = (name) => name.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+
     async function importAndCalculate() {
         const l = leagues[document.getElementById('selLeague').value];
         const log = document.getElementById('statusLog');
@@ -81,69 +81,73 @@
         const proxy = "https://api.allorigins.win/get?url=";
         
         log.style.display = 'block'; res.innerHTML = '';
-        log.innerHTML = "> Conectando a Soccerstats...";
+        log.innerHTML = "> Conectando...";
 
         try {
-            // IMPORTAR TABLA HOME/AWAY
-            log.innerHTML += "<br>> Importando Tabla Stats...";
+            // 1. IMPORTAR STATS
             const sReq = await fetch(proxy + encodeURIComponent(l.statsUrl));
             const sJson = await sReq.json();
             const sDoc = new DOMParser().parseFromString(sJson.contents, 'text/html');
-            
-            // Selector específico para las filas de datos de Soccerstats
             const sRows = sDoc.querySelectorAll('tr.odd, tr.even');
-            let statsMap = {};
             
+            let statsMap = {};
             sRows.forEach(row => {
                 const c = row.querySelectorAll('td');
                 if(c.length >= 8) {
-                    const name = c[1].innerText.trim();
-                    statsMap[name] = {
+                    const originalName = c[1].innerText.trim();
+                    const cleanName = normalize(originalName);
+                    statsMap[cleanName] = {
+                        display: originalName,
                         pj: parseFloat(c[2].innerText),
                         gf: parseFloat(c[6].innerText),
                         gc: parseFloat(c[7].innerText)
                     };
                 }
             });
-            log.innerHTML += `<br>> ✅ ${Object.keys(statsMap).length} equipos importados.`;
+            log.innerHTML += `<br>> ✅ ${Object.keys(statsMap).length} equipos en base de datos.`;
 
-            // IMPORTAR CALENDARIO
-            log.innerHTML += "<br>> Importando Calendario...";
+            // 2. IMPORTAR CALENDARIO
             const cReq = await fetch(proxy + encodeURIComponent(l.calUrl));
             const cJson = await cReq.json();
             const cDoc = new DOMParser().parseFromString(cJson.contents, 'text/html');
-            
-            // Selector para los partidos (Soccerstats suele usar height="34" o clases específicas)
             const cRows = cDoc.querySelectorAll('tr[height="34"]');
             
-            log.innerHTML += `<br>> Procesando partidos...`;
-
+            let foundMatches = 0;
             cRows.forEach(row => {
                 const c = row.querySelectorAll('td');
                 if(c.length >= 4) {
-                    const h = c[1].innerText.trim();
-                    const a = c[3].innerText.trim();
-                    const t = c[2].innerText.trim();
+                    const hRaw = c[1].innerText.trim();
+                    const aRaw = c[3].innerText.trim();
+                    const time = c[2].innerText.trim();
+                    
+                    const hKey = normalize(hRaw);
+                    const aKey = normalize(aRaw);
 
-                    if(statsMap[h] && statsMap[a]) {
-                        calculatePoisson(h, a, t, statsMap, res);
+                    if(statsMap[hKey] && statsMap[aKey]) {
+                        foundMatches++;
+                        calculatePoisson(statsMap[hKey], statsMap[aKey], time, res);
+                    } else {
+                        // Debug en log si no encuentra el equipo
+                        if(!statsMap[hKey]) log.innerHTML += `<br>> ⚠️ No encontré stats para: ${hRaw}`;
                     }
                 }
             });
-            log.innerHTML += "<br>> ✅ Análisis Completo.";
+
+            if(foundMatches === 0) {
+                log.innerHTML += "<br>> ❌ No se hallaron cruces válidos. Revisa los nombres.";
+            } else {
+                log.innerHTML += `<br>> ✅ Análisis Completo: ${foundMatches} partidos procesados.`;
+            }
 
         } catch (e) {
-            log.innerHTML += "<br>> ❌ Error: " + e.message;
+            log.innerHTML += "<br>> ❌ Error Crítico: " + e.message;
         }
     }
 
-    // 3. MOTOR MATEMÁTICO
-    function calculatePoisson(hN, aN, time, stats, container) {
+    function calculatePoisson(home, away, time, container) {
         const avH = 1.61, avA = 1.22;
-        const sH = stats[hN], sA = stats[aN];
-        
-        const lH = (sH.gf/sH.pj/avH) * (sA.gc/sA.pj/avH) * avH;
-        const lA = (sA.gf/sA.pj/avA) * (sH.gc/sH.pj/avA) * avA;
+        const lH = (home.gf/home.pj/avH) * (away.gc/away.pj/avH) * avH;
+        const lA = (away.gf/away.pj/avA) * (home.gc/home.pj/avA) * avA;
 
         let o25 = 0;
         const fact = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
@@ -152,13 +156,12 @@
         for(let i=0; i<=8; i++) for(let j=0; j<=8; j++) if(i+j > 2.5) o25 += poi(lH,i)*poi(lA,j);
         
         const prob = (o25*100).toFixed(1);
-        if(prob >= 60) {
-            container.innerHTML += `<div class="match-card">
-                <b>${hN} vs ${aN}</b><br>
-                <span style="font-size:12px; color:#666;">${time}</span><br>
-                <span style="color:#008a4e; font-weight:bold;">Over 2.5: ${prob}%</span>
-            </div>`;
-        }
+        // Mostrar siempre para validar que el motor funciona (luego puedes filtrar por 60%)
+        container.innerHTML += `<div class="match-card">
+            <b>${home.display} vs ${away.display}</b><br>
+            <span style="font-size:11px; color:#666;">${time}</span><br>
+            <span style="color:${prob >= 60 ? '#008a4e' : '#666'}; font-weight:bold;">Over 2.5: ${prob}%</span>
+        </div>`;
     }
 
     renderConfig();
