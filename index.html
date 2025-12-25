@@ -3,140 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Premier Scanner</title>
+    <title>Poisson Ultra Fix</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f0f0f7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
-        .container { max-width: 480px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .tab-nav { display: flex; gap: 5px; margin-bottom: 15px; }
-        .tab-nav button { flex: 1; padding: 10px; border: none; border-radius: 10px; background: #ddd; font-weight: bold; }
-        .tab-nav button.active { background: var(--secondary); color: white; }
-        .view { display: none; }
-        .view.active { display: block; }
-        .btn-main { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; margin-top: 10px; }
-        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin-top: 10px; max-height: 120px; overflow-y: auto; white-space: pre-wrap; }
-        .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); }
-        .input-box { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
+        .container { max-width: 450px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin: 10px 0; white-space: pre-wrap; height: 80px; overflow-y: auto; }
+        .btn-main { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-weight: bold; font-size: 16px; }
+        .match-card { background: white; border: 1px solid #ddd; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); }
+        .input-box { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="tab-nav">
-        <button id="btn-an" class="active" onclick="showTab('an')">📊 Análisis</button>
-        <button id="btn-cf" onclick="showTab('cf')">⚙️ Config</button>
+    <h3 style="text-align:center; margin-top:0;">Import Poisson Pro</h3>
+    
+    <div id="config-area">
+        <label style="font-size:10px; font-weight:bold;">URL STATS (HOME/AWAY):</label>
+        <input id="urlStats" class="input-box" value="https://www.soccerstats.com/homeaway.asp?league=england">
+        
+        <label style="font-size:10px; font-weight:bold;">URL CALENDARIO:</label>
+        <input id="urlCal" class="input-box" value="https://www.soccerstats.com/results.asp?league=england">
     </div>
 
-    <div id="view-an" class="view active">
-        <select id="selLeague" class="input-box"></select>
-        <button class="btn-main" onclick="startImport()">ESCANEAR LIGA</button>
-        <div id="statusLog" class="log">Estado: Esperando...</div>
-        <div id="results"></div>
-    </div>
-
-    <div id="view-cf" class="view">
-        <div id="configList"></div>
-    </div>
+    <button class="btn-main" onclick="processData()">EJECUTAR IMPORTACIÓN</button>
+    
+    <div id="statusLog" class="log">Estado: Esperando...</div>
+    <div id="results"></div>
 </div>
 
 <script>
-    let leagues = JSON.parse(localStorage.getItem('poisson_v_final')) || [{
-        name: 'Premier League',
-        statsUrl: 'https://www.soccerstats.com/homeaway.asp?league=england',
-        calUrl: 'https://www.soccerstats.com/results.asp?league=england'
-    }];
-
-    function showTab(t) {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
-        document.getElementById('view-'+t).classList.add('active');
-        document.getElementById('btn-'+t).classList.add('active');
-    }
-
-    function renderConfig() {
-        const list = document.getElementById('configList');
-        const sel = document.getElementById('selLeague');
-        list.innerHTML = ''; sel.innerHTML = '';
-        leagues.forEach((l, i) => {
-            sel.innerHTML += `<option value="${i}">${l.name}</option>`;
-            list.innerHTML += `<div style="background:#f9f9f9; padding:10px; border-radius:10px; margin-bottom:10px;">
-                <input class="input-box" value="${l.name}" onchange="upd(${i},'name',this.value)">
-                <input class="input-box" value="${l.statsUrl}" onchange="upd(${i},'statsUrl',this.value)">
-                <input class="input-box" value="${l.calUrl}" onchange="upd(${i},'calUrl',this.value)">
-            </div>`;
-        });
-    }
-
-    function upd(i, k, v) { leagues[i][k] = v; localStorage.setItem('poisson_v_final', JSON.stringify(leagues)); renderConfig(); }
-
     const norm = (t) => t.toLowerCase().replace(/[^a-z]/g, "").trim();
 
-    async function startImport() {
-        const l = leagues[document.getElementById('selLeague').value];
+    async function fetchData(url) {
+        // Usamos un proxy diferente para evitar el error de patrón
+        const proxy = "https://api.codetabs.com/v1/proxy?quest=";
+        const response = await fetch(proxy + encodeURIComponent(url));
+        if (!response.ok) throw new Error("Error en Proxy");
+        return await response.text();
+    }
+
+    async function processData() {
         const log = document.getElementById('statusLog');
         const res = document.getElementById('results');
-        const proxy = "https://api.allorigins.win/get?url=";
+        const urlS = document.getElementById('urlStats').value.trim();
+        const urlC = document.getElementById('urlCal').value.trim();
         
-        log.innerHTML = "> Conectando a Soccerstats...";
+        log.innerHTML = "> Iniciando descarga...";
         res.innerHTML = "";
 
         try {
-            // 1. IMPORTAR TABLA DE GOLES
-            const sReq = await fetch(proxy + encodeURIComponent(l.statsUrl));
-            const sJson = await sReq.json();
-            const sDoc = new DOMParser().parseFromString(sJson.contents, 'text/html');
-            const rows = sDoc.querySelectorAll('tr.odd, tr.even');
+            // 1. Obtener Stats
+            const htmlStats = await fetchData(urlS);
+            const parser = new DOMParser();
+            const docS = parser.parseFromString(htmlStats, "text/html");
+            const rowsS = docS.querySelectorAll('tr.odd, tr.even');
             
             let statsMap = {};
-            rows.forEach(r => {
-                const c = r.querySelectorAll('td');
-                if(c.length >= 8 && !isNaN(parseFloat(c[2].innerText))) {
+            rowsS.forEach(r => {
+                const c = r.cells;
+                if(c && c.length >= 8) {
                     const name = c[1].innerText.trim();
-                    statsMap[norm(name)] = {
-                        display: name,
-                        pj: parseFloat(c[2].innerText),
-                        gf: parseFloat(c[6].innerText),
-                        gc: parseFloat(c[7].innerText)
-                    };
+                    const pj = parseFloat(c[2].innerText);
+                    if(!isNaN(pj)) {
+                        statsMap[norm(name)] = {
+                            display: name,
+                            pj: pj,
+                            gf: parseFloat(c[6].innerText),
+                            gc: parseFloat(c[7].innerText)
+                        };
+                    }
                 }
             });
-            log.innerHTML += `\n> ✅ ${Object.keys(statsMap).length} equipos cargados.`;
 
-            // 2. IMPORTAR PARTIDOS
-            const cReq = await fetch(proxy + encodeURIComponent(l.calUrl));
-            const cJson = await cReq.json();
-            const cDoc = new DOMParser().parseFromString(cJson.contents, 'text/html');
-            const cRows = cDoc.querySelectorAll('tr[height="34"]');
+            log.innerHTML += `\n> Equipos leídos: ${Object.keys(statsMap).length}`;
 
-            let analizados = 0;
-            cRows.forEach(r => {
-                const c = r.querySelectorAll('td');
-                if(c.length >= 4) {
-                    const hRaw = c[1].innerText.trim();
-                    const aRaw = c[3].innerText.trim();
-                    const time = c[2].innerText.trim();
+            // 2. Obtener Calendario
+            const htmlCal = await fetchData(urlC);
+            const docC = parser.parseFromString(htmlCal, "text/html");
+            const rowsC = docC.querySelectorAll('tr[height="34"]');
+
+            let count = 0;
+            rowsC.forEach(r => {
+                const c = r.cells;
+                if(c && c.length >= 4) {
+                    const hN = norm(c[1].innerText);
+                    const aN = norm(c[3].innerText);
                     
-                    const hS = statsMap[norm(hRaw)];
-                    const aS = statsMap[norm(aRaw)];
-
-                    if(hS && aS) {
-                        analizados++;
-                        const prob = calcPoisson(hS, aS);
-                        if(prob >= 60) {
-                            res.innerHTML += `<div class="match-card">
-                                <b>${hS.display} vs ${aS.display}</b><br>
-                                <small>${time}</small> | <span style="color:#008a4e; font-weight:bold;">Over 2.5: ${prob}%</span>
+                    if(statsMap[hN] && statsMap[aN]) {
+                        count++;
+                        const p = calcPoisson(statsMap[hN], statsMap[aN]);
+                        if(p >= 60) {
+                            res.innerHTML += `
+                            <div class="match-card">
+                                <b>${statsMap[hN].display} vs ${statsMap[aN].display}</b><br>
+                                <span style="color:#008a4e; font-weight:bold;">Over 2.5: ${p}%</span>
                             </div>`;
                         }
                     }
                 }
             });
 
-            log.innerHTML += `\n> ✅ Análisis completo. ${analizados} partidos hoy.`;
-            if(res.innerHTML === "") log.innerHTML += `\n> ⚠️ Ninguno superó el 60%.`;
+            log.innerHTML += `\n> Partidos analizados: ${count}`;
+            log.innerHTML += `\n> ✅ Proceso Finalizado.`;
 
         } catch (e) {
-            log.innerHTML += "\n> ❌ Error: " + e.message;
+            log.innerHTML += "\n> ❌ ERROR: " + e.message;
+            console.error(e);
         }
     }
 
@@ -147,11 +121,9 @@
         let o25 = 0;
         const f = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
         const p = (l,x) => (Math.exp(-l)*Math.pow(l,x))/f(x);
-        for(let i=0; i<=8; i++) for(let j=0; j<=8; j++) if(i+j > 2.5) o25 += p(lH,i)*p(lA,j);
+        for(let i=0; i<=5; i++) for(let j=0; j<=5; j++) if(i+j > 2.5) o25 += p(lH,i)*p(lA,j);
         return (o25*100).toFixed(1);
     }
-
-    renderConfig();
 </script>
 </body>
 </html>
