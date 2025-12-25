@@ -3,49 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Scanner - Over 2.5 Filter</title>
+    <title>Poisson Pro - Custom Filter</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; --gold: #f39c12; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; color: #1c1c1e; }
         .container { max-width: 480px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; }
-        h1 { text-align: center; color: var(--secondary); font-size: 1.3rem; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+        h1 { text-align: center; color: var(--secondary); font-size: 1.3rem; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
         
-        .filter-badge { background: var(--gold); color: white; font-size: 10px; padding: 4px 8px; border-radius: 20px; display: inline-block; margin-bottom: 10px; font-weight: bold; }
-        
+        /* Estilos del Filtro Personalizable */
+        .filter-section { background: #fef9e7; padding: 15px; border-radius: 12px; border: 1px solid #f39c12; margin-bottom: 20px; }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .filter-label { font-weight: 800; font-size: 0.8rem; color: #d35400; }
+        .filter-value { background: #d35400; color: white; padding: 2px 10px; border-radius: 10px; font-size: 14px; }
+        input[type=range] { width: 100%; accent-color: #d35400; }
+
         label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.7rem; color: #8e8e93; text-transform: uppercase; }
         textarea { width: 100%; height: 65px; border: 1px solid #d1d1d6; border-radius: 12px; padding: 10px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 12px; }
         .avg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        input { width: 100%; padding: 14px; border: 1px solid #d1d1d6; border-radius: 12px; box-sizing: border-box; font-size: 16px; font-weight: 700; text-align: center; }
+        input[type=number] { width: 100%; padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; box-sizing: border-box; font-size: 16px; font-weight: 700; text-align: center; }
         
         button.calc-btn { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 16px; font-size: 1rem; font-weight: 800; cursor: pointer; }
 
-        .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
+        .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; }
         .match-header { background: var(--secondary); color: white; padding: 12px 15px; }
-        .match-info-line { font-size: 10px; text-transform: uppercase; opacity: 0.8; margin-bottom: 4px; display: block; }
-        .match-teams-line { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; }
+        .match-info-line { font-size: 10px; opacity: 0.8; display: block; margin-bottom: 2px; }
+        .match-teams-line { font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; }
         
-        .audit-toggle { background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; }
-        .audit-panel { display: none; background: #1c1c1e; color: #00ff85; padding: 12px; font-family: monospace; font-size: 10px; line-height: 1.4; }
-        
-        .btts-row { display: flex; justify-content: space-between; padding: 12px 15px; background: #f8faff; font-weight: 700; border-bottom: 1px solid #eee; }
+        .btts-row { display: flex; justify-content: space-between; padding: 12px 15px; background: #f0f7ff; font-weight: 700; border-bottom: 1px solid #e1e8f0; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 12px 15px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
-        .mkt-prob { text-align: right; font-weight: 800; color: #1c1c1e; }
-        .highlight-mkt { background: #e8fff3; color: #008a4e; }
-        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; }
-        
-        #empty-msg { text-align: center; color: #8e8e93; margin-top: 30px; font-size: 14px; display: none; }
+        .mkt-prob { text-align: right; font-weight: 800; }
+        .highlight-mkt { background: #eafff2; color: #008a4e; }
+        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Poisson Elite Filter</h1>
-    <div class="filter-badge">FILTRO ACTIVO: Over 2.5 ≥ 60%</div>
+    <h1>Poisson Scanner Pro</h1>
+
+    <div class="filter-section">
+        <div class="filter-header">
+            <span class="filter-label">FILTRAR OVER 2.5 ≥</span>
+            <span id="rangeValue" class="filter-value">60%</span>
+        </div>
+        <input type="range" id="threshold" min="50" max="90" value="60" oninput="updateRange(this.value)">
+    </div>
     
-    <label>Calendario Partidos:</label><textarea id="matchesInput"></textarea>
+    <label>Partidos:</label><textarea id="matchesInput"></textarea>
     <label>Stats Local:</label><textarea id="homeStatsInput"></textarea>
     <label>Stats Visitante:</label><textarea id="awayStatsInput"></textarea>
     
@@ -54,19 +59,15 @@
         <div><label>Avg Liga V:</label><input type="number" id="avgA" step="0.01" value="1.22"></div>
     </div>
     
-    <button class="calc-btn" onclick="calculate()">ESCANEAR PARTIDOS</button>
-    <div id="empty-msg">No hay partidos que cumplan el criterio de Over 2.5 ≥ 60%.</div>
+    <button class="calc-btn" onclick="calculate()">ESCUDRIÑAR PARTIDOS</button>
     <div id="results"></div>
 </div>
 
 <script>
+    function updateRange(val) { document.getElementById('rangeValue').innerText = val + '%'; }
+
     const fact = n => n <= 1 ? 1 : n * fact(n - 1);
     const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
-
-    function toggleAudit(id) {
-        const el = document.getElementById(id);
-        el.style.display = el.style.display === 'block' ? 'none' : 'block';
-    }
 
     function parse(txt) {
         const s = {};
@@ -82,92 +83,61 @@
         const as = parse(document.getElementById('awayStatsInput').value);
         const avH = parseFloat(document.getElementById('avgH').value);
         const avA = parseFloat(document.getElementById('avgA').value);
+        const thr = parseFloat(document.getElementById('threshold').value);
         const res = document.getElementById('results');
-        const empty = document.getElementById('empty-msg');
-        
         res.innerHTML = '';
-        empty.style.display = 'none';
-        let found = 0;
 
-        document.getElementById('matchesInput').value.trim().split('\n').forEach((line, idx) => {
+        document.getElementById('matchesInput').value.trim().split('\n').forEach(line => {
             const p = line.split(/\t|\s{2,}/);
             if (p.length < 4) return;
             
-            const dateStr = p[0].trim();
-            const hName = p[1].trim();
-            const timeStr = p[2].trim();
-            const aName = p[3].trim();
+            const dt = p[0].trim(), hName = p[1].trim(), tm = p[2].trim(), aName = p[3].trim();
 
             if (hs[hName] && as[aName]) {
                 const h = hs[hName], a = as[aName];
-                
-                const attH = (h.gf / h.pj) / avH;
-                const defA = (a.gc / a.pj) / avH;
-                const lamH = attH * defA * avH;
-
-                const attA = (a.gf / a.pj) / avA;
-                const defH = (h.gc / h.pj) / avA;
-                const lamA = attA * defH * avA;
+                const lamH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
+                const lamA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
 
                 let over = { 0.5:0, 1.5:0, 2.5:0, 3.5:0 };
                 for(let i=0; i<=10; i++) for(let j=0; j<=10; j++) {
                     const prob = poi(lamH, i) * poi(lamA, j);
-                    const tg = i+j;
-                    if(tg>0.5) over[0.5]+=prob; if(tg>1.5) over[1.5]+=prob;
-                    if(tg>2.5) over[2.5]+=prob; if(tg>3.5) over[3.5]+=prob;
+                    const total = i + j;
+                    if(total>0.5) over[0.5]+=prob; if(total>1.5) over[1.5]+=prob;
+                    if(total>2.5) over[2.5]+=prob; if(total>3.5) over[3.5]+=prob;
                 }
                 
-                // --- FILTRO DE VALOR ---
-                const probOver25 = over[2.5] * 100;
-                if (probOver25 < 60) return; // Salta este partido si no cumple
-                
-                found++;
-                const btts = (1 - poi(lamH,0)) * (1 - poi(lamA,0)) * 100;
-                const matchId = `audit-${idx}`;
-                const fullDateTime = `${dateStr} | ${timeStr}`;
+                const pO25 = (over[2.5] * 100);
+                if (pO25 < thr) return; // Aplicación del filtro dinámico
+
+                const btts = ((1 - poi(lamH,0)) * (1 - poi(lamA,0)) * 100).toFixed(1);
+                const dtStr = `${dt} | ${tm}`;
 
                 res.innerHTML += `
                     <div class="match-card">
                         <div class="match-header">
-                            <span class="match-info-line">${fullDateTime}</span>
-                            <div class="match-teams-line">
-                                <span>${hName} vs ${aName}</span>
-                                <button class="audit-toggle" onclick="toggleAudit('${matchId}')">ℹ️</button>
-                            </div>
+                            <span class="match-info-line">${dtStr}</span>
+                            <div class="match-teams-line"><span>${hName} vs ${aName}</span></div>
                         </div>
-                        <div id="${matchId}" class="audit-panel">
-                            xG Local: ${lamH.toFixed(2)} | xG Visita: ${lamA.toFixed(2)}
-                        </div>
-                        <div class="btts-row">
-                            <span>Ambos Anotan</span>
-                            <span style="color:var(--accent)">${btts.toFixed(1)}%</span>
-                        </div>
+                        <div class="btts-row"><span>Ambos Anotan</span><span style="color:var(--accent)">${btts}%</span></div>
                         <table>
                             ${[0.5, 1.5, 2.5, 3.5].map(v => {
                                 const p = (over[v]*100).toFixed(1);
-                                const isTarget = v === 2.5;
-                                return `<tr class="${isTarget ? 'highlight-mkt' : ''}">
-                                    <td>Over ${v} Goles ${isTarget ? '🎯' : ''}</td>
+                                const hit = v === 2.5;
+                                return `<tr class="${hit ? 'highlight-mkt' : ''}">
+                                    <td>Over ${v} Goles ${hit ? '🎯' : ''}</td>
                                     <td class="mkt-prob">${p}%</td>
-                                    <td style="width:40px">
-                                        <button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v}','${p}','${fullDateTime}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button>
-                                    </td>
+                                    <td><button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v}','${p}','${dtStr}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button></td>
                                 </tr>`;
                             }).join('')}
                         </table>
                     </div>`;
             }
         });
-        if (found === 0) empty.style.display = 'block';
     }
 
     function share(m, mk, p, dt, lh, la) {
-        const text = `⚽ *PICK FILTRADO*\n📅 ${dt}\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG: ${lh} - ${la}`;
-        if (navigator.share) {
-            navigator.share({text});
-        } else {
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
-        }
+        const text = `⚽ *PICK POISSON*\n📅 ${dt}\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG: ${lh} - ${la}`;
+        navigator.share ? navigator.share({text}) : window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
     }
 </script>
 </body>
