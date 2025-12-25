@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Elite Auditor - Time Edition</title>
+    <title>Poisson Scanner - Over 2.5 Filter</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; --gold: #f39c12; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; color: #1c1c1e; }
         .container { max-width: 480px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; }
         h1 { text-align: center; color: var(--secondary); font-size: 1.3rem; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+        
+        .filter-badge { background: var(--gold); color: white; font-size: 10px; padding: 4px 8px; border-radius: 20px; display: inline-block; margin-bottom: 10px; font-weight: bold; }
         
         label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.7rem; color: #8e8e93; text-transform: uppercase; }
         textarea { width: 100%; height: 65px; border: 1px solid #d1d1d6; border-radius: 12px; padding: 10px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 12px; }
@@ -17,26 +19,33 @@
         
         button.calc-btn { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 16px; font-size: 1rem; font-weight: 800; cursor: pointer; }
 
-        .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; }
+        .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         .match-header { background: var(--secondary); color: white; padding: 12px 15px; }
         .match-info-line { font-size: 10px; text-transform: uppercase; opacity: 0.8; margin-bottom: 4px; display: block; }
         .match-teams-line { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; }
         
         .audit-toggle { background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer; }
-        .audit-panel { display: none; background: #1c1c1e; color: #00ff85; padding: 12px; font-family: monospace; font-size: 10px; line-height: 1.4; border-bottom: 1px solid #333; }
+        .audit-panel { display: none; background: #1c1c1e; color: #00ff85; padding: 12px; font-family: monospace; font-size: 10px; line-height: 1.4; }
         
         .btts-row { display: flex; justify-content: space-between; padding: 12px 15px; background: #f8faff; font-weight: 700; border-bottom: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; }
         td { padding: 12px 15px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
         .mkt-prob { text-align: right; font-weight: 800; color: #1c1c1e; }
+        .highlight-mkt { background: #e8fff3; color: #008a4e; }
         .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+        
+        #empty-msg { text-align: center; color: #8e8e93; margin-top: 30px; font-size: 14px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Poisson Elite Auditor</h1>
-    <label>Calendario Partidos:</label><textarea id="matchesInput" placeholder="Fri 26 Dec Manchester Utd 14:00 Newcastle Utd..."></textarea>
+    <h1>Poisson Elite Filter</h1>
+    <div class="filter-badge">FILTRO ACTIVO: Over 2.5 ≥ 60%</div>
+    
+    <label>Calendario Partidos:</label><textarea id="matchesInput"></textarea>
     <label>Stats Local:</label><textarea id="homeStatsInput"></textarea>
     <label>Stats Visitante:</label><textarea id="awayStatsInput"></textarea>
     
@@ -45,7 +54,8 @@
         <div><label>Avg Liga V:</label><input type="number" id="avgA" step="0.01" value="1.22"></div>
     </div>
     
-    <button class="calc-btn" onclick="calculate()">ANALIZAR PRONÓSTICOS</button>
+    <button class="calc-btn" onclick="calculate()">ESCANEAR PARTIDOS</button>
+    <div id="empty-msg">No hay partidos que cumplan el criterio de Over 2.5 ≥ 60%.</div>
     <div id="results"></div>
 </div>
 
@@ -73,11 +83,14 @@
         const avH = parseFloat(document.getElementById('avgH').value);
         const avA = parseFloat(document.getElementById('avgA').value);
         const res = document.getElementById('results');
+        const empty = document.getElementById('empty-msg');
+        
         res.innerHTML = '';
+        empty.style.display = 'none';
+        let found = 0;
 
         document.getElementById('matchesInput').value.trim().split('\n').forEach((line, idx) => {
             const p = line.split(/\t|\s{2,}/);
-            // Formato esperado: [0]Fecha [1]Local [2]Hora [3]Visitante
             if (p.length < 4) return;
             
             const dateStr = p[0].trim();
@@ -104,6 +117,11 @@
                     if(tg>2.5) over[2.5]+=prob; if(tg>3.5) over[3.5]+=prob;
                 }
                 
+                // --- FILTRO DE VALOR ---
+                const probOver25 = over[2.5] * 100;
+                if (probOver25 < 60) return; // Salta este partido si no cumple
+                
+                found++;
                 const btts = (1 - poi(lamH,0)) * (1 - poi(lamA,0)) * 100;
                 const matchId = `audit-${idx}`;
                 const fullDateTime = `${dateStr} | ${timeStr}`;
@@ -118,9 +136,7 @@
                             </div>
                         </div>
                         <div id="${matchId}" class="audit-panel">
-                            LOG MATEMÁTICO:<br>
-                            λ Local: ${lamH.toFixed(2)} (Att:${attH.toFixed(2)} * Def:${defA.toFixed(2)})<br>
-                            λ Visita: ${lamA.toFixed(2)} (Att:${attA.toFixed(2)} * Def:${defH.toFixed(2)})
+                            xG Local: ${lamH.toFixed(2)} | xG Visita: ${lamA.toFixed(2)}
                         </div>
                         <div class="btts-row">
                             <span>Ambos Anotan</span>
@@ -129,8 +145,9 @@
                         <table>
                             ${[0.5, 1.5, 2.5, 3.5].map(v => {
                                 const p = (over[v]*100).toFixed(1);
-                                return `<tr>
-                                    <td>Over ${v} Goles</td>
+                                const isTarget = v === 2.5;
+                                return `<tr class="${isTarget ? 'highlight-mkt' : ''}">
+                                    <td>Over ${v} Goles ${isTarget ? '🎯' : ''}</td>
                                     <td class="mkt-prob">${p}%</td>
                                     <td style="width:40px">
                                         <button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v}','${p}','${fullDateTime}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button>
@@ -141,10 +158,11 @@
                     </div>`;
             }
         });
+        if (found === 0) empty.style.display = 'block';
     }
 
     function share(m, mk, p, dt, lh, la) {
-        const text = `⚽ *PICK POISSON*\n📅 ${dt}\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG: ${lh} - ${la}`;
+        const text = `⚽ *PICK FILTRADO*\n📅 ${dt}\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG: ${lh} - ${la}`;
         if (navigator.share) {
             navigator.share({text});
         } else {
