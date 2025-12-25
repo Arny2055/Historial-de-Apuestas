@@ -3,46 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Home/Away Split</title>
+    <title>Poisson Home/Away Fix</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f0f0f5; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f4f4f9; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .btn-fetch { width: 100%; padding: 15px; background: var(--secondary); color: white; border: none; border-radius: 12px; font-weight: bold; margin: 10px 0; }
-        
-        .tables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; display: none; }
+        .tables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .table-box { background: #fff; border: 1px solid #ddd; border-radius: 10px; overflow: hidden; }
         .table-header { background: #444; color: white; padding: 5px; font-size: 10px; text-align: center; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; font-size: 9px; text-align: center; }
         th { background: #eee; padding: 4px; border-bottom: 1px solid #ddd; }
         td { padding: 4px; border-bottom: 1px solid #eee; }
-
         .calc-box { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 15px; border: 2px dashed #ccc; }
         select { width: 100%; padding: 10px; border-radius: 8px; margin-top: 5px; margin-bottom: 10px; font-size: 14px; }
-        .result-display { background: var(--secondary); color: white; padding: 15px; border-radius: 12px; text-align: center; display: none; }
+        .result-display { background: var(--secondary); color: white; padding: 15px; border-radius: 12px; text-align: center; margin-top:10px; }
         .prob-large { font-size: 35px; font-weight: 800; color: var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3 style="text-align:center; margin:0; color:var(--secondary);">Poisson Split Home/Away</h3>
+    <h3 style="text-align:center; margin:0; color:var(--secondary);">Poisson Corrected (H/A)</h3>
 
     <input id="urlInput" type="text" class="btn-fetch" style="background:white; color:black; border:1px solid #ccc; font-weight:normal;" value="https://www.soccerstats.com/homeaway.asp?league=england">
-    <button class="btn-fetch" onclick="importSplitData()">DESCARGAR TABLAS SEPARADAS</button>
+    <button class="btn-fetch" onclick="importSplitData()">CORREGIR Y DESCARGAR</button>
     
-    <div id="status" style="font-size:10px; text-align:center; color:#666;">Esperando...</div>
+    <div id="status" style="font-size:10px; text-align:center; color:#666;">Selecciona la liga para procesar...</div>
 
-    <div id="gridArea" class="tables-grid">
+    <div class="tables-grid" id="gridArea" style="display:none;">
         <div class="table-box">
-            <div class="table-header">TABLA LOCAL (HOME)</div>
+            <div class="table-header">LOCAL (HOME)</div>
             <table>
                 <thead><tr><th>Equipo</th><th>GF</th><th>GC</th></tr></thead>
                 <tbody id="homeBody"></tbody>
             </table>
         </div>
         <div class="table-box">
-            <div class="table-header">TABLA VISITA (AWAY)</div>
+            <div class="table-header">VISITA (AWAY)</div>
             <table>
                 <thead><tr><th>Equipo</th><th>GF</th><th>GC</th></tr></thead>
                 <tbody id="awayBody"></tbody>
@@ -51,15 +49,12 @@
     </div>
 
     <div id="calcArea" class="calc-box" style="display:none;">
-        <label style="font-size:11px; font-weight:bold;">LOCAL (Stats en casa):</label>
         <select id="homeSel" onchange="runCalc()"></select>
-        
-        <label style="font-size:11px; font-weight:bold;">VISITANTE (Stats fuera):</label>
         <select id="awaySel" onchange="runCalc()"></select>
-
-        <div id="resBox" class="result-display">
+        <div id="resBox" class="result-display" style="display:none;">
             <div style="font-size:11px;">PROBABILIDAD OVER 2.5</div>
             <div id="probVal" class="prob-large">0%</div>
+            <div id="debugInfo" style="font-size:9px; margin-top:5px; opacity:0.7;"></div>
         </div>
     </div>
 </div>
@@ -71,7 +66,7 @@
     async function importSplitData() {
         const url = document.getElementById('urlInput').value;
         const status = document.getElementById('status');
-        status.innerText = "⏳ Separando tablas...";
+        status.innerText = "⏳ Extrayendo datos reales...";
 
         try {
             const proxy = "https://api.codetabs.com/v1/proxy?quest=";
@@ -79,77 +74,79 @@
             const html = await resp.text();
             const doc = new DOMParser().parseFromString(html, "text/html");
 
-            // Soccerstats usa tablas con ID 'home' y 'away' o las identifica por posición
-            // Vamos a buscar todas las tablas de clase 'sortable' o similares
+            // Soccerstats: La tabla 1 es Home, la tabla 2 es Away (usando el selector btable)
             const tables = doc.querySelectorAll('table#btable'); 
             
-            // Usualmente: tables[0] es Total, tables[1] es Home, tables[2] es Away
             if (tables.length < 3) {
-                status.innerText = "❌ Error: No se detectaron las 3 tablas.";
+                status.innerText = "❌ No se encontraron las tablas Home/Away.";
                 return;
             }
 
-            processTable(tables[1], homeStats, 'homeBody');
-            processTable(tables[2], awayStats, 'awayBody');
+            homeStats = processTable(tables[1], 'homeBody');
+            awayStats = processTable(tables[2], 'awayBody');
 
             fillSelectors();
             document.getElementById('gridArea').style.display = "grid";
             document.getElementById('calcArea').style.display = "block";
-            status.innerText = "✅ Tablas Local/Visita cargadas.";
+            status.innerText = "✅ Datos cargados correctamente.";
 
         } catch (e) {
             status.innerText = "❌ Error de conexión.";
         }
     }
 
-    function processTable(tableObj, dataObj, bodyId) {
+    function processTable(tableObj, bodyId) {
         const rows = tableObj.querySelectorAll('tr.odd, tr.even');
         const body = document.getElementById(bodyId);
         body.innerHTML = "";
+        let data = {};
         
         rows.forEach(r => {
             const c = r.cells;
             if(c.length >= 8) {
                 const name = c[1].innerText.trim();
-                const pj = parseFloat(c[2].innerText);
-                const gf = parseFloat(c[6].innerText);
-                const gc = parseFloat(c[7].innerText);
+                const pj = parseInt(c[2].innerText);
+                const gf = parseInt(c[6].innerText);
+                const gc = parseInt(c[7].innerText);
                 
-                dataObj[name] = { pj, gf, gc };
-                body.innerHTML += `<tr><td style="text-align:left">${name}</td><td>${gf}</td><td>${gc}</td></tr>`;
+                if (!isNaN(pj) && !isNaN(gf) && !isNaN(gc)) {
+                    data[name] = { pj, gf, gc };
+                    body.innerHTML += `<tr><td style="text-align:left">${name}</td><td>${gf}</td><td>${gc}</td></tr>`;
+                }
             }
         });
+        return data;
     }
 
     function fillSelectors() {
         const hSel = document.getElementById('homeSel');
         const aSel = document.getElementById('awaySel');
-        hSel.innerHTML = '<option value="">-- Elige Local --</option>';
-        aSel.innerHTML = '<option value="">-- Elige Visita --</option>';
+        hSel.innerHTML = '<option value="">-- Selecciona Local --</option>';
+        aSel.innerHTML = '<option value="">-- Selecciona Visita --</option>';
         
         Object.keys(homeStats).sort().forEach(n => {
             hSel.innerHTML += `<option value="${n}">${n}</option>`;
+        });
+        Object.keys(awayStats).sort().forEach(n => {
             aSel.innerHTML += `<option value="${n}">${n}</option>`;
         });
     }
 
     function runCalc() {
-        const hName = document.getElementById('homeSel').value;
-        const aName = document.getElementById('awaySel').value;
-        const resBox = document.getElementById('resBox');
+        const hN = document.getElementById('homeSel').value;
+        const aN = document.getElementById('awaySel').value;
+        if (!hN || !aN) return;
 
-        if (!hName || !aName) return;
-
-        const h = homeStats[hName];
-        const a = awayStats[aName];
+        const h = homeStats[hN];
+        const a = awayStats[aN];
         
-        // Poisson con stats segmentadas
+        // Poisson con medias reales
         const avH = 1.61, avA = 1.22;
         const lH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
         const lA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
 
         let o25 = 0;
-        const f = n => n <= 1 ? 1 : n * f(n - 1);
+        const f = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
         const p = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / f(x);
 
         for(let i=0; i<=6; i++) {
@@ -159,7 +156,8 @@
         }
 
         document.getElementById('probVal').innerText = (o25 * 100).toFixed(1) + "%";
-        resBox.style.display = "block";
+        document.getElementById('debugInfo').innerText = `Medias: L(${lH.toFixed(2)}) - V(${lA.toFixed(2)})`;
+        document.getElementById('resBox').style.display = "block";
     }
 </script>
 </body>
