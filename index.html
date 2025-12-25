@@ -3,27 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro - Próximos 5 Días</title>
+    <title>Poisson Pro - Fix Calendario</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f0f0f7; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f4f4f9; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .container { max-width: 450px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin: 10px 0; white-space: pre-wrap; height: 80px; overflow-y: auto; }
-        .btn-main { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-weight: bold; font-size: 16px; }
-        .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); }
-        .date-badge { background: #eee; font-size: 10px; padding: 2px 6px; border-radius: 4px; color: #666; font-weight: bold; }
+        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin: 10px 0; white-space: pre-wrap; height: 100px; overflow-y: auto; }
+        .btn-main { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); display: flex; flex-direction: column; }
+        .match-teams { font-weight: bold; font-size: 14px; color: var(--secondary); }
+        .match-info { display: flex; justify-content: space-between; margin-top: 8px; align-items: center; }
+        .prob-val { color: #008a4e; font-weight: 800; font-size: 16px; }
+        .time-val { color: #888; font-size: 11px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3 style="text-align:center; margin: 0 0 15px 0;">Poisson: Próximos Partidos</h3>
-    <input id="urlStats" class="input-box" style="width:100%; margin-bottom:10px;" value="https://www.soccerstats.com/homeaway.asp?league=england">
-    <input id="urlCal" class="input-box" style="width:100%; margin-bottom:10px;" value="https://www.soccerstats.com/results.asp?league=england">
-
-    <button class="btn-main" onclick="processData()">ANALIZAR PRÓXIMOS DÍAS</button>
+    <h3 style="text-align:center; margin-top:0;">Scanner de Próximos Partidos</h3>
     
-    <div id="statusLog" class="log">Listo...</div>
+    <div id="urls" style="display:none;">
+        <input id="urlStats" value="https://www.soccerstats.com/homeaway.asp?league=england">
+        <input id="urlCal" value="https://www.soccerstats.com/results.asp?league=england">
+    </div>
+
+    <button class="btn-main" onclick="processData()">BUSCAR PARTIDOS PRÓXIMOS</button>
+    
+    <div id="statusLog" class="log">Estado: Esperando...</div>
     <div id="results"></div>
 </div>
 
@@ -39,10 +45,11 @@
     async function processData() {
         const log = document.getElementById('statusLog');
         const res = document.getElementById('results');
-        log.innerHTML = "> Descargando datos...";
+        log.innerHTML = "> Conectando con Soccerstats...";
         res.innerHTML = "";
 
         try {
+            // 1. OBTENER ESTADÍSTICAS
             const htmlStats = await fetchData(document.getElementById('urlStats').value);
             const parser = new DOMParser();
             const docS = parser.parseFromString(htmlStats, "text/html");
@@ -54,41 +61,50 @@
                 if(c && c.length >= 8) {
                     const name = c[1].innerText.trim();
                     const pj = parseFloat(c[2].innerText);
-                    if(!isNaN(pj) && pj > 0) {
-                        statsMap[norm(name)] = { display: name, pj: pj, gf: parseFloat(c[6].innerText), gc: parseFloat(c[7].innerText) };
+                    if(!isNaN(pj)) {
+                        statsMap[norm(name)] = { 
+                            display: name, 
+                            pj: pj, 
+                            gf: parseFloat(c[6].innerText), 
+                            gc: parseFloat(c[7].innerText) 
+                        };
                     }
                 }
             });
 
+            log.innerHTML += `\n> Base de datos: ${Object.keys(statsMap).length} equipos.`;
+
+            // 2. OBTENER CALENDARIO (Búsqueda exhaustiva)
             const htmlCal = await fetchData(document.getElementById('urlCal').value);
             const docC = parser.parseFromString(htmlCal, "text/html");
-            const rowsC = docC.querySelectorAll('tr[style*="height:34"], tr[height="34"]');
+            const allRows = docC.querySelectorAll('tr'); // Revisamos TODAS las filas
 
             let count = 0;
-            rowsC.forEach(r => {
-                const c = r.cells;
-                if(c && c.length >= 4) {
-                    const hRaw = c[1].innerText.trim();
-                    const aRaw = c[3].innerText.trim();
-                    const info = c[2].innerText.trim(); // Aquí viene la hora o el resultado
-
-                    // VALIDACIÓN: Si contiene un "-" es probable que sea un resultado final (ej: 1 - 2)
-                    if (info.includes("-") && info.length <= 5) return; 
+            allRows.forEach(row => {
+                const cells = row.cells;
+                if (cells && cells.length >= 4) {
+                    // Intentamos identificar equipos en las celdas 1 y 3 (formato estándar)
+                    const hRaw = cells[1].innerText.trim();
+                    const aRaw = cells[3].innerText.trim();
+                    const info = cells[2].innerText.trim();
 
                     const hKey = norm(hRaw);
                     const aKey = norm(aRaw);
 
-                    if(statsMap[hKey] && statsMap[aKey]) {
-                        count++;
-                        const prob = calcPoisson(statsMap[hKey], statsMap[aKey]);
-                        if(!isNaN(prob)) {
+                    // REGLAS: 1. Ambos deben ser equipos. 2. La celda central NO debe ser un resultado (ej: 2-1)
+                    if (statsMap[hKey] && statsMap[aKey]) {
+                        // Si info tiene un guion rodeado de números, es un resultado pasado
+                        const isPlayed = /\d\s?-\s?\d/.test(info);
+                        
+                        if (!isPlayed) {
+                            count++;
+                            const p = calcPoisson(statsMap[hKey], statsMap[aKey]);
                             res.innerHTML += `
                             <div class="match-card">
-                                <span class="date-badge">PRÓXIMO</span>
-                                <div style="font-weight:bold; margin:5px 0;">${statsMap[hKey].display} vs ${statsMap[aKey].display}</div>
-                                <div style="display:flex; justify-content:space-between;">
-                                    <small style="color:#888">${info}</small>
-                                    <b style="color:#008a4e">Over 2.5: ${prob}%</b>
+                                <div class="match-teams">${statsMap[hKey].display} vs ${statsMap[aKey].display}</div>
+                                <div class="match-info">
+                                    <span class="time-val">${info}</span>
+                                    <span class="prob-val">${p}%</span>
                                 </div>
                             </div>`;
                         }
@@ -96,9 +112,12 @@
                 }
             });
 
-            log.innerHTML = `> ✅ ${Object.keys(statsMap).length} Equipos leídos.\n> ✅ ${count} Partidos futuros analizados.`;
+            log.innerHTML += `\n> Partidos futuros hallados: ${count}`;
+            if(count === 0) log.innerHTML += `\n> ⚠️ No se hallaron partidos sin jugar.`;
 
-        } catch (e) { log.innerHTML = "\n> ❌ ERROR: " + e.message; }
+        } catch (e) {
+            log.innerHTML += "\n> ❌ ERROR: " + e.message;
+        }
     }
 
     function calcPoisson(h, a) {
@@ -108,7 +127,7 @@
         let o25 = 0;
         const f = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
         const p = (l,x) => (Math.exp(-l)*Math.pow(l,x))/f(x);
-        for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j > 2.5) o25 += p(lH,i)*p(lA,j);
+        for(let i=0; i<=5; i++) for(let j=0; j<=5; j++) if(i+j > 2.5) o25 += p(lH,i)*p(lA,j);
         return (o25*100).toFixed(1);
     }
 </script>
