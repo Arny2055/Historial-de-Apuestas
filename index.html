@@ -3,31 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro - Fix Final</title>
+    <title>Poisson Pro - Próximos 5 Días</title>
     <style>
         :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f0f0f7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .container { max-width: 450px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin: 10px 0; white-space: pre-wrap; height: 100px; overflow-y: auto; border: 1px solid #333; }
-        .btn-main { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .input-box { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 10px; box-sizing: border-box; font-size: 13px; }
+        .log { background: #1c1c1e; color: #00ff85; padding: 10px; border-radius: 10px; font-family: monospace; font-size: 10px; margin: 10px 0; white-space: pre-wrap; height: 80px; overflow-y: auto; }
+        .btn-main { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 15px; font-weight: bold; font-size: 16px; }
+        .match-card { background: white; border: 1px solid #eee; border-radius: 12px; margin-top: 10px; padding: 12px; border-left: 5px solid var(--primary); }
+        .date-badge { background: #eee; font-size: 10px; padding: 2px 6px; border-radius: 4px; color: #666; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3 style="text-align:center; margin: 0 0 15px 0; color: var(--secondary);">Scanner Poisson Pro</h3>
-    
-    <label style="font-size:10px; font-weight:bold; color:#666;">URL STATS (HOME/AWAY):</label>
-    <input id="urlStats" class="input-box" value="https://www.soccerstats.com/homeaway.asp?league=england">
-    
-    <label style="font-size:10px; font-weight:bold; color:#666;">URL CALENDARIO (RESULTS):</label>
-    <input id="urlCal" class="input-box" value="https://www.soccerstats.com/results.asp?league=england">
+    <h3 style="text-align:center; margin: 0 0 15px 0;">Poisson: Próximos Partidos</h3>
+    <input id="urlStats" class="input-box" style="width:100%; margin-bottom:10px;" value="https://www.soccerstats.com/homeaway.asp?league=england">
+    <input id="urlCal" class="input-box" style="width:100%; margin-bottom:10px;" value="https://www.soccerstats.com/results.asp?league=england">
 
-    <button class="btn-main" onclick="processData()">CALCULAR POISSON</button>
+    <button class="btn-main" onclick="processData()">ANALIZAR PRÓXIMOS DÍAS</button>
     
-    <div id="statusLog" class="log">Listo para escanear...</div>
+    <div id="statusLog" class="log">Listo...</div>
     <div id="results"></div>
 </div>
 
@@ -43,15 +39,11 @@
     async function processData() {
         const log = document.getElementById('statusLog');
         const res = document.getElementById('results');
-        const urlS = document.getElementById('urlStats').value.trim();
-        const urlC = document.getElementById('urlCal').value.trim();
-        
-        log.innerHTML = "> Descargando bases de datos...";
+        log.innerHTML = "> Descargando datos...";
         res.innerHTML = "";
 
         try {
-            // 1. IMPORTAR STATS
-            const htmlStats = await fetchData(urlS);
+            const htmlStats = await fetchData(document.getElementById('urlStats').value);
             const parser = new DOMParser();
             const docS = parser.parseFromString(htmlStats, "text/html");
             const rowsS = docS.querySelectorAll('tr.odd, tr.even');
@@ -63,65 +55,50 @@
                     const name = c[1].innerText.trim();
                     const pj = parseFloat(c[2].innerText);
                     if(!isNaN(pj) && pj > 0) {
-                        statsMap[norm(name)] = {
-                            display: name,
-                            pj: pj,
-                            gf: parseFloat(c[6].innerText),
-                            gc: parseFloat(c[7].innerText)
-                        };
+                        statsMap[norm(name)] = { display: name, pj: pj, gf: parseFloat(c[6].innerText), gc: parseFloat(c[7].innerText) };
                     }
                 }
             });
 
-            log.innerHTML += `\n> Equipos leídos: ${Object.keys(statsMap).length}`;
-
-            // 2. IMPORTAR CALENDARIO (SELECTOR MEJORADO)
-            const htmlCal = await fetchData(urlC);
+            const htmlCal = await fetchData(document.getElementById('urlCal').value);
             const docC = parser.parseFromString(htmlCal, "text/html");
-            
-            // Buscamos filas que tengan el enlace de "h2h" (historial), que indica un partido
-            const rowsC = docC.querySelectorAll('tr');
-            let count = 0;
+            const rowsC = docC.querySelectorAll('tr[style*="height:34"], tr[height="34"]');
 
+            let count = 0;
             rowsC.forEach(r => {
                 const c = r.cells;
-                // En Soccerstats los partidos suelen estar en filas con 4 o más celdas
-                // y la celda del medio (índice 2) suele tener la hora o el enlace h2h
                 if(c && c.length >= 4) {
                     const hRaw = c[1].innerText.trim();
                     const aRaw = c[3].innerText.trim();
-                    const time = c[2].innerText.trim();
-                    
+                    const info = c[2].innerText.trim(); // Aquí viene la hora o el resultado
+
+                    // VALIDACIÓN: Si contiene un "-" es probable que sea un resultado final (ej: 1 - 2)
+                    if (info.includes("-") && info.length <= 5) return; 
+
                     const hKey = norm(hRaw);
                     const aKey = norm(aRaw);
 
                     if(statsMap[hKey] && statsMap[aKey]) {
                         count++;
                         const prob = calcPoisson(statsMap[hKey], statsMap[aKey]);
-                        
-                        // Solo mostramos si hay datos suficientes
-                        res.innerHTML += `
-                        <div class="match-card">
-                            <div style="font-size:14px; font-weight:bold; color:var(--secondary)">${statsMap[hKey].display} vs ${statsMap[aKey].display}</div>
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
-                                <span style="font-size:12px; color:#666;">${time}</span>
-                                <span style="font-size:16px; color:#008a4e; font-weight:800;">Over 2.5: ${prob}%</span>
-                            </div>
-                        </div>`;
+                        if(!isNaN(prob)) {
+                            res.innerHTML += `
+                            <div class="match-card">
+                                <span class="date-badge">PRÓXIMO</span>
+                                <div style="font-weight:bold; margin:5px 0;">${statsMap[hKey].display} vs ${statsMap[aKey].display}</div>
+                                <div style="display:flex; justify-content:space-between;">
+                                    <small style="color:#888">${info}</small>
+                                    <b style="color:#008a4e">Over 2.5: ${prob}%</b>
+                                </div>
+                            </div>`;
+                        }
                     }
                 }
             });
 
-            log.innerHTML += `\n> Partidos detectados: ${count}`;
-            log.innerHTML += `\n> ✅ Análisis finalizado con éxito.`;
+            log.innerHTML = `> ✅ ${Object.keys(statsMap).length} Equipos leídos.\n> ✅ ${count} Partidos futuros analizados.`;
 
-            if(count === 0) {
-                log.innerHTML += `\n> ⚠️ No se detectaron cruces. Revisa si hay partidos hoy en este link.`;
-            }
-
-        } catch (e) {
-            log.innerHTML += "\n> ❌ ERROR: " + e.message;
-        }
+        } catch (e) { log.innerHTML = "\n> ❌ ERROR: " + e.message; }
     }
 
     function calcPoisson(h, a) {
@@ -131,7 +108,6 @@
         let o25 = 0;
         const f = n => { let r=1; for(let i=2; i<=n; i++) r*=i; return r; };
         const p = (l,x) => (Math.exp(-l)*Math.pow(l,x))/f(x);
-        // Calculamos hasta 6 goles para precisión total
         for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j > 2.5) o25 += p(lH,i)*p(lA,j);
         return (o25*100).toFixed(1);
     }
