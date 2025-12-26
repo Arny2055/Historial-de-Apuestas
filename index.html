@@ -3,45 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro - Dual Filter</title>
+    <title>Poisson Pro - Smart Parser</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; --warning: #f39c12; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; color: #1c1c1e; }
         .container { max-width: 480px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; }
-        h1 { text-align: center; color: var(--secondary); font-size: 1.3rem; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+        h1 { text-align: center; color: var(--secondary); font-size: 1.2rem; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
         
-        /* Estilos de la Sección de Filtros Duales */
-        .filter-container { background: #fffcf0; padding: 15px; border-radius: 16px; border: 1px solid #f39c12; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-container { background: #fffcf0; padding: 15px; border-radius: 16px; border: 1px solid #f39c12; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
         .filter-header { display: flex; justify-content: space-between; align-items: center; }
-        .filter-label { font-weight: 800; font-size: 0.75rem; color: #d35400; text-transform: uppercase; }
-        .filter-value { background: #d35400; color: white; padding: 2px 10px; border-radius: 10px; font-size: 13px; font-weight: bold; min-width: 35px; text-align: center; }
+        .filter-label { font-weight: 800; font-size: 0.7rem; color: #d35400; text-transform: uppercase; }
+        .filter-value { background: #d35400; color: white; padding: 2px 8px; border-radius: 8px; font-size: 12px; font-weight: bold; }
         input[type=range] { width: 100%; accent-color: #d35400; cursor: pointer; }
 
+        .league-data-box { background: #eef2ff; padding: 12px; border-radius: 12px; border: 1px solid var(--accent); margin-bottom: 15px; }
         label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.7rem; color: #8e8e93; text-transform: uppercase; }
-        textarea { width: 100%; height: 65px; border: 1px solid #d1d1d6; border-radius: 12px; padding: 10px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 12px; resize: none; }
-        .avg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        input[type=number] { width: 100%; padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; box-sizing: border-box; font-size: 16px; font-weight: 700; text-align: center; }
+        textarea { width: 100%; height: 60px; border: 1px solid #d1d1d6; border-radius: 10px; padding: 8px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 10px; resize: none; }
         
-        button.calc-btn { width: 100%; padding: 18px; background: var(--secondary); color: white; border: none; border-radius: 16px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: 0.3s; }
-        button.calc-btn:active { transform: scale(0.98); opacity: 0.9; }
-
-        .match-card { margin-top: 20px; border-radius: 16px; background: white; border: 1px solid #e5e5ea; overflow: hidden; animation: fadeIn 0.4s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .avg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 10px; }
+        input[type=number] { width: 100%; padding: 10px; border: 1px solid #d1d1d6; border-radius: 8px; box-sizing: border-box; font-size: 15px; font-weight: 700; text-align: center; color: var(--secondary); }
         
-        .match-header { background: var(--secondary); color: white; padding: 12px 15px; }
-        .match-info-line { font-size: 10px; opacity: 0.8; display: block; margin-bottom: 2px; }
-        .match-teams-line { font-weight: 700; font-size: 15px; }
+        button.calc-btn { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 14px; font-size: 1rem; font-weight: 800; cursor: pointer; }
         
-        .btts-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #f0f7ff; font-weight: 700; border-bottom: 1px solid #e1e8f0; }
-        .btts-data { display: flex; align-items: center; gap: 10px; }
-        
+        .match-card { margin-top: 15px; border-radius: 14px; background: white; border: 1px solid #e5e5ea; overflow: hidden; }
+        .match-header { background: var(--secondary); color: white; padding: 10px 15px; }
+        .match-info-line { font-size: 9px; opacity: 0.8; display: block; }
+        .match-teams-line { font-weight: 700; font-size: 14px; }
+        .btts-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #f0f7ff; font-weight: 700; border-bottom: 1px solid #e1e8f0; font-size: 13px; }
         table { width: 100%; border-collapse: collapse; }
-        td { padding: 12px 15px; border-bottom: 1px solid #f2f2f7; font-size: 14px; }
+        td { padding: 10px 15px; border-bottom: 1px solid #f2f2f7; font-size: 13px; }
         .mkt-prob { text-align: right; font-weight: 800; }
         .highlight-mkt { background: #eafff2; color: #008a4e; }
-        .share-btn { background: #f2f2f7; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 16px; }
-        .share-btn:hover { background: #e2e2e7; }
+        .share-btn { border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -49,43 +43,56 @@
 <div class="container">
     <h1>Poisson Scanner Pro</h1>
 
+    <div class="league-data-box">
+        <label>Pegar Info de la Liga (Stats generales):</label>
+        <textarea id="leagueRawInput" placeholder="Pega aquí: Home goals per match: 1.70..." oninput="parseLeagueData(this.value)"></textarea>
+        <div class="avg-grid">
+            <div><label>Avg Goles L:</label><input type="number" id="avgH" step="0.01" value="1.70"></div>
+            <div><label>Avg Goles V:</label><input type="number" id="avgA" step="0.01" value="1.45"></div>
+        </div>
+    </div>
+
     <div class="filter-container">
         <div class="filter-group">
             <div class="filter-header">
-                <span class="filter-label">Min. Over 2.5 Goles</span>
+                <span class="filter-label">Min. Over 2.5</span>
                 <span id="o25Val" class="filter-value">60%</span>
             </div>
             <input type="range" id="o25Threshold" min="40" max="90" value="60" oninput="document.getElementById('o25Val').innerText = this.value + '%'">
         </div>
-
         <div class="filter-group">
             <div class="filter-header">
-                <span class="filter-label">Min. Ambos Anotan (BTTS)</span>
+                <span class="filter-label">Min. Ambos Anotan</span>
                 <span id="bttsVal" class="filter-value">60%</span>
             </div>
             <input type="range" id="bttsThreshold" min="40" max="90" value="60" oninput="document.getElementById('bttsVal').innerText = this.value + '%'">
         </div>
     </div>
     
-    <label>Partidos (Fecha | Local | Hora | Visita):</label>
-    <textarea id="matchesInput" placeholder="20/10 | Real Madrid | 21:00 | Barcelona"></textarea>
+    <label>Partidos:</label>
+    <textarea id="matchesInput" placeholder="Fecha | Local | Hora | Visita"></textarea>
     
-    <label>Stats Local (Equipo | PJ | ... | GF | GC):</label>
-    <textarea id="homeStatsInput" placeholder="Pega aquí las estadísticas del local..."></textarea>
+    <label>Stats Local:</label>
+    <textarea id="homeStatsInput"></textarea>
     
     <label>Stats Visitante:</label>
-    <textarea id="awayStatsInput" placeholder="Pega aquí las estadísticas del visitante..."></textarea>
-    
-    <div class="avg-grid">
-        <div><label>Avg Liga Goles L:</label><input type="number" id="avgH" step="0.01" value="1.61"></div>
-        <div><label>Avg Liga Goles V:</label><input type="number" id="avgA" step="0.01" value="1.22"></div>
-    </div>
+    <textarea id="awayStatsInput"></textarea>
     
     <button class="calc-btn" onclick="calculate()">ESCUDRIÑAR PARTIDOS</button>
     <div id="results"></div>
 </div>
 
 <script>
+    // Función para extraer promedios de texto pegado
+    function parseLeagueData(text) {
+        // Busca patrones como "Home goals per match: 1.70" o "1.70 Home goals"
+        const homeMatch = text.match(/Home goals per match:\s*([\d.]+)/i) || text.match(/Home goals:\s*([\d.]+)/i);
+        const awayMatch = text.match(/Away goals per match:\s*([\d.]+)/i) || text.match(/Away goals:\s*([\d.]+)/i);
+        
+        if (homeMatch) document.getElementById('avgH').value = homeMatch[1];
+        if (awayMatch) document.getElementById('avgA').value = awayMatch[1];
+    }
+
     const fact = n => n <= 1 ? 1 : n * fact(n - 1);
     const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
 
@@ -103,11 +110,8 @@
         const as = parse(document.getElementById('awayStatsInput').value);
         const avH = parseFloat(document.getElementById('avgH').value);
         const avA = parseFloat(document.getElementById('avgA').value);
-        
-        // Valores de los Sliders
         const o25Thr = parseFloat(document.getElementById('o25Threshold').value);
         const bttsThr = parseFloat(document.getElementById('bttsThreshold').value);
-
         const res = document.getElementById('results');
         res.innerHTML = '';
 
@@ -116,7 +120,6 @@
         matches.forEach(line => {
             const p = line.split(/\t|\s{2,}/);
             if (p.length < 4) return;
-            
             const dt = p[0].trim(), hName = p[1].trim(), tm = p[2].trim(), aName = p[3].trim();
 
             if (hs[hName] && as[aName]) {
@@ -128,65 +131,38 @@
                 for(let i=0; i<=10; i++) {
                     for(let j=0; j<=10; j++) {
                         const prob = poi(lamH, i) * poi(lamA, j);
-                        const total = i + j;
-                        if(total > 0.5) over[0.5] += prob;
-                        if(total > 1.5) over[1.5] += prob;
-                        if(total > 2.5) over[2.5] += prob;
-                        if(total > 3.5) over[3.5] += prob;
+                        if(i + j > 0.5) over[0.5] += prob;
+                        if(i + j > 1.5) over[1.5] += prob;
+                        if(i + j > 2.5) over[2.5] += prob;
+                        if(i + j > 3.5) over[3.5] += prob;
                     }
                 }
                 
                 const pO25 = (over[2.5] * 100);
                 const pBTTS = ((1 - poi(lamH, 0)) * (1 - poi(lamA, 0)) * 100);
 
-                // APLICACIÓN DE FILTRO DUAL
                 if (pO25 < o25Thr || pBTTS < bttsThr) return; 
-
-                const bttsDisplay = pBTTS.toFixed(1);
-                const dtStr = `${dt} | ${tm}`;
 
                 res.innerHTML += `
                     <div class="match-card">
                         <div class="match-header">
-                            <span class="match-info-line">${dtStr}</span>
+                            <span class="match-info-line">${dt} | ${tm}</span>
                             <div class="match-teams-line">${hName} vs ${aName}</div>
                         </div>
-                        
                         <div class="btts-row">
                             <span>Ambos Anotan</span>
-                            <div class="btts-data">
-                                <span style="color:var(--accent)">${bttsDisplay}%</span>
-                                <button class="share-btn" onclick="share('${hName} vs ${aName}','Ambos Anotan','${bttsDisplay}','${dtStr}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button>
-                            </div>
+                            <span style="color:var(--accent)">${pBTTS.toFixed(1)}%</span>
                         </div>
-
                         <table>
-                            ${[0.5, 1.5, 2.5, 3.5].map(v => {
-                                const p = (over[v]*100).toFixed(1);
-                                const isO25 = v === 2.5;
-                                return `<tr class="${isO25 ? 'highlight-mkt' : ''}">
-                                    <td>Over ${v} Goles ${isO25 ? '🎯' : ''}</td>
-                                    <td class="mkt-prob">${p}%</td>
-                                    <td><button class="share-btn" onclick="share('${hName} vs ${aName}','Over ${v} Goles','${p}','${dtStr}','${lamH.toFixed(2)}','${lamA.toFixed(2)}')">📲</button></td>
-                                </tr>`;
-                            }).join('')}
+                            ${[1.5, 2.5, 3.5].map(v => `
+                                <tr class="${v === 2.5 ? 'highlight-mkt' : ''}">
+                                    <td>Over ${v} Goles</td>
+                                    <td class="mkt-prob">${(over[v]*100).toFixed(1)}%</td>
+                                </tr>`).join('')}
                         </table>
                     </div>`;
             }
         });
-        
-        if(res.innerHTML === '') {
-            res.innerHTML = '<p style="text-align:center; color:#8e8e93; margin-top:20px;">No hay partidos que cumplan ambos criterios.</p>';
-        }
-    }
-
-    function share(m, mk, p, dt, lh, la) {
-        const text = `⚽ *PICK POISSON*\n📅 ${dt}\n🏟️ ${m}\n🎯 *${mk}*\n📈 Prob: ${p}%\n\n🔥 xG Estimado: ${lh} - ${la}`;
-        if (navigator.share) {
-            navigator.share({ title: 'Pick Poisson', text: text });
-        } else {
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
-        }
     }
 </script>
 </body>
