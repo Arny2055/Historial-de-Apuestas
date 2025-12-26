@@ -3,20 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro - Smart Parser</title>
+    <title>Poisson Pro - Smart Parser & Share</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; }
+        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; --whatsapp: #25D366; --telegram: #0088cc; }
         body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; color: #1c1c1e; }
         .container { max-width: 480px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; }
         h1 { text-align: center; color: var(--secondary); font-size: 1.2rem; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
         
-        .filter-container { background: #fffcf0; padding: 15px; border-radius: 16px; border: 1px solid #f39c12; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
-        .filter-group { display: flex; flex-direction: column; gap: 4px; }
-        .filter-header { display: flex; justify-content: space-between; align-items: center; }
-        .filter-label { font-weight: 800; font-size: 0.7rem; color: #d35400; text-transform: uppercase; }
-        .filter-value { background: #d35400; color: white; padding: 2px 8px; border-radius: 8px; font-size: 12px; font-weight: bold; }
-        input[type=range] { width: 100%; accent-color: #d35400; cursor: pointer; }
-
         .league-data-box { background: #eef2ff; padding: 12px; border-radius: 12px; border: 1px solid var(--accent); margin-bottom: 15px; }
         label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.7rem; color: #8e8e93; text-transform: uppercase; }
         textarea { width: 100%; height: 60px; border: 1px solid #d1d1d6; border-radius: 10px; padding: 8px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 10px; resize: none; }
@@ -24,17 +17,31 @@
         .avg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 10px; }
         input[type=number] { width: 100%; padding: 10px; border: 1px solid #d1d1d6; border-radius: 8px; box-sizing: border-box; font-size: 15px; font-weight: 700; text-align: center; color: var(--secondary); }
         
-        button.calc-btn { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 14px; font-size: 1rem; font-weight: 800; cursor: pointer; }
+        .filter-container { background: #fffcf0; padding: 15px; border-radius: 16px; border: 1px solid #f39c12; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-header { display: flex; justify-content: space-between; align-items: center; }
+        .filter-label { font-weight: 800; font-size: 0.7rem; color: #d35400; text-transform: uppercase; }
+        .filter-value { background: #d35400; color: white; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; }
+        input[type=range] { width: 100%; accent-color: #d35400; cursor: pointer; }
+
+        button.calc-btn { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 14px; font-size: 1rem; font-weight: 800; cursor: pointer; margin-top: 10px; }
         
-        .match-card { margin-top: 15px; border-radius: 14px; background: white; border: 1px solid #e5e5ea; overflow: hidden; }
+        .match-card { margin-top: 15px; border-radius: 14px; background: white; border: 1px solid #e5e5ea; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .match-header { background: var(--secondary); color: white; padding: 10px 15px; }
-        .match-info-line { font-size: 9px; opacity: 0.8; display: block; }
-        .match-teams-line { font-weight: 700; font-size: 14px; }
-        .btts-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #f0f7ff; font-weight: 700; border-bottom: 1px solid #e1e8f0; font-size: 13px; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 10px 15px; border-bottom: 1px solid #f2f2f7; font-size: 13px; }
-        .mkt-prob { text-align: right; font-weight: 800; }
-        .highlight-mkt { background: #eafff2; color: #008a4e; }
+        .match-info-line { font-size: 10px; opacity: 0.8; display: block; }
+        .match-teams-line { font-weight: 700; font-size: 15px; }
+        
+        .xg-badge-row { display: flex; gap: 10px; padding: 8px 15px; background: #f8f9fa; border-bottom: 1px solid #eee; font-size: 11px; font-weight: bold; color: #666; }
+
+        .market-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #f2f2f7; }
+        .mkt-name { font-size: 13px; font-weight: 600; }
+        .mkt-prob { font-weight: 800; color: var(--accent); margin-right: 10px; }
+        
+        .share-actions { display: flex; gap: 5px; }
+        .btn-s { border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; transition: 0.2s; }
+        .btn-wa { background: var(--whatsapp); }
+        .btn-tg { background: var(--telegram); }
+        .btn-s:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
@@ -43,8 +50,8 @@
     <h1>Poisson Scanner Pro</h1>
 
     <div class="league-data-box">
-        <label>Pegar Info de la Liga (Stats generales):</label>
-        <textarea id="leagueRawInput" placeholder="Pega aquí info de la liga..." oninput="parseLeagueData(this.value)"></textarea>
+        <label>Info de la Liga:</label>
+        <textarea id="leagueRawInput" placeholder="Pega stats generales..." oninput="parseLeagueData(this.value)"></textarea>
         <div class="avg-grid">
             <div><label>Avg Goles L:</label><input type="number" id="avgH" step="0.01" value="1.70" onchange="syncSlidersWithPoisson()"></div>
             <div><label>Avg Goles V:</label><input type="number" id="avgA" step="0.01" value="1.45" onchange="syncSlidersWithPoisson()"></div>
@@ -54,28 +61,28 @@
     <div class="filter-container">
         <div class="filter-group">
             <div class="filter-header">
-                <span class="filter-label">Filtro Over 2.5 (Liga)</span>
+                <span class="filter-label">Filtro Over 2.5</span>
                 <span id="o25Val" class="filter-value">60%</span>
             </div>
-            <input type="range" id="o25Threshold" min="20" max="90" value="60" oninput="document.getElementById('o25Val').innerText = this.value + '%'">
+            <input type="range" id="o25Threshold" min="20" max="95" value="60" oninput="document.getElementById('o25Val').innerText = this.value + '%'">
         </div>
         <div class="filter-group">
             <div class="filter-header">
-                <span class="filter-label">Filtro Ambos Anotan (Liga)</span>
+                <span class="filter-label">Filtro Ambos Anotan</span>
                 <span id="bttsVal" class="filter-value">60%</span>
             </div>
-            <input type="range" id="bttsThreshold" min="20" max="90" value="60" oninput="document.getElementById('bttsVal').innerText = this.value + '%'">
+            <input type="range" id="bttsThreshold" min="20" max="95" value="60" oninput="document.getElementById('bttsVal').innerText = this.value + '%'">
         </div>
     </div>
     
     <label>Partidos:</label>
     <textarea id="matchesInput" placeholder="Fecha | Local | Hora | Visita"></textarea>
     
-    <label>Stats Local:</label>
-    <textarea id="homeStatsInput"></textarea>
-    
-    <label>Stats Visitante:</label>
-    <textarea id="awayStatsInput"></textarea>
+    <label>Stats Local / Visitante:</label>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <textarea id="homeStatsInput" placeholder="Stats Home"></textarea>
+        <textarea id="awayStatsInput" placeholder="Stats Away"></textarea>
+    </div>
     
     <button class="calc-btn" onclick="calculate()">ESCUDRIÑAR PARTIDOS</button>
     <div id="results"></div>
@@ -85,44 +92,27 @@
     const fact = n => n <= 1 ? 1 : n * fact(n - 1);
     const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
 
-    // FUNCIÓN CLAVE: Calcula Poisson para el promedio de la liga y mueve los sliders
     function syncSlidersWithPoisson() {
         const avH = parseFloat(document.getElementById('avgH').value);
         const avA = parseFloat(document.getElementById('avgA').value);
-        
         if (isNaN(avH) || isNaN(avA)) return;
 
-        // Calcular Probabilidad BTTS promedio
         const pBTTS = (1 - poi(avH, 0)) * (1 - poi(avA, 0)) * 100;
+        let u25 = 0;
+        [[0,0],[1,0],[0,1],[1,1],[2,0],[0,2]].forEach(c => u25 += poi(avH, c[0]) * poi(avA, c[1]));
+        const pO25 = (1 - u25) * 100;
 
-        // Calcular Probabilidad Over 2.5 promedio
-        let under25 = 0;
-        const combinations = [[0,0],[1,0],[0,1],[1,1],[2,0],[0,2]];
-        combinations.forEach(c => {
-            under25 += poi(avH, c[0]) * poi(avA, c[1]);
-        });
-        const pO25 = (1 - under25) * 100;
-
-        // Ajustar Sliders automáticamente
-        const sO25 = document.getElementById('o25Threshold');
-        const sBTTS = document.getElementById('bttsThreshold');
-        
-        sO25.value = Math.round(pO25);
-        sBTTS.value = Math.round(pBTTS);
-        
-        // Actualizar etiquetas de texto
-        document.getElementById('o25Val').innerText = sO25.value + '%';
-        document.getElementById('bttsVal').innerText = sBTTS.value + '%';
+        document.getElementById('o25Threshold').value = Math.round(pO25);
+        document.getElementById('bttsThreshold').value = Math.round(pBTTS);
+        document.getElementById('o25Val').innerText = Math.round(pO25) + '%';
+        document.getElementById('bttsVal').innerText = Math.round(pBTTS) + '%';
     }
 
     function parseLeagueData(text) {
-        const homeMatch = text.match(/Home goals per match:\s*([\d.]+)/i) || text.match(/Home goals:\s*([\d.]+)/i);
-        const awayMatch = text.match(/Away goals per match:\s*([\d.]+)/i) || text.match(/Away goals:\s*([\d.]+)/i);
-        
-        if (homeMatch) document.getElementById('avgH').value = homeMatch[1];
-        if (awayMatch) document.getElementById('avgA').value = awayMatch[1];
-        
-        // Al detectar datos nuevos, disparamos la sincronización de los sliders
+        const hM = text.match(/(?:Home goals per match|Home goals):\s*([\d.]+)/i);
+        const aM = text.match(/(?:Away goals per match|Away goals):\s*([\d.]+)/i);
+        if (hM) document.getElementById('avgH').value = hM[1];
+        if (aM) document.getElementById('avgA').value = aM[1];
         syncSlidersWithPoisson();
     }
 
@@ -135,68 +125,74 @@
         return s;
     }
 
+    function share(platform, date, time, h, a, xgL, xgV, market, prob) {
+        const msg = encodeURIComponent(`⚽ *PRONÓSTICO POISSON*\n📅 ${date} | ${time}\n⚔️ ${h} vs ${a}\n📊 xG: (L) ${xgL} - (V) ${xgV}\n🎯 *${market}: ${prob}%*`);
+        const url = platform === 'wa' ? `https://api.whatsapp.com/send?text=${msg}` : `https://t.me/share/url?url=${msg}`;
+        window.open(url, '_blank');
+    }
+
     function calculate() {
         const hs = parse(document.getElementById('homeStatsInput').value);
         const as = parse(document.getElementById('awayStatsInput').value);
         const avH = parseFloat(document.getElementById('avgH').value);
         const avA = parseFloat(document.getElementById('avgA').value);
-        const o25Thr = parseFloat(document.getElementById('o25Threshold').value);
-        const bttsThr = parseFloat(document.getElementById('bttsThreshold').value);
+        const o25T = document.getElementById('o25Threshold').value;
+        const bttsT = document.getElementById('bttsThreshold').value;
         const res = document.getElementById('results');
         res.innerHTML = '';
 
-        const matches = document.getElementById('matchesInput').value.trim().split('\n');
-        
-        matches.forEach(line => {
+        document.getElementById('matchesInput').value.trim().split('\n').forEach(line => {
             const p = line.split(/\t|\s{2,}/);
             if (p.length < 4) return;
-            const dt = p[0].trim(), hName = p[1].trim(), tm = p[2].trim(), aName = p[3].trim();
+            const [dt, hN, tm, aN] = [p[0].trim(), p[1].trim(), p[2].trim(), p[3].trim()];
 
-            if (hs[hName] && as[aName]) {
-                const h = hs[hName], a = as[aName];
-                const lamH = (h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH;
-                const lamA = (a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA;
+            if (hs[hN] && as[aN]) {
+                const h = hs[hN], a = as[aN];
+                const xgL = ((h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH).toFixed(2);
+                const xgV = ((a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA).toFixed(2);
 
-                let over = { 0.5:0, 1.5:0, 2.5:0, 3.5:0 };
-                for(let i=0; i<=10; i++) {
-                    for(let j=0; j<=10; j++) {
-                        const prob = poi(lamH, i) * poi(lamA, j);
-                        if(i + j > 0.5) over[0.5] += prob;
-                        if(i + j > 1.5) over[1.5] += prob;
-                        if(i + j > 2.5) over[2.5] += prob;
-                        if(i + j > 3.5) over[3.5] += prob;
-                    }
+                let over = { 1.5:0, 2.5:0 };
+                for(let i=0; i<=8; i++) for(let j=0; j<=8; j++) {
+                    const prob = poi(xgL, i) * poi(xgV, j);
+                    if(i+j > 1.5) over[1.5] += prob;
+                    if(i+j > 2.5) over[2.5] += prob;
                 }
-                
-                const pO25 = (over[2.5] * 100);
-                const pBTTS = ((1 - poi(lamH, 0)) * (1 - poi(lamA, 0)) * 100);
+                const pBTTS = ((1 - poi(xgL, 0)) * (1 - poi(xgV, 0)) * 100).toFixed(1);
+                const pO25 = (over[2.5]*100).toFixed(1);
 
-                // El filtro ahora usa los valores que el slider detectó de la liga
-                if (pO25 < o25Thr || pBTTS < bttsThr) return; 
+                if (pO25 < o25T || pBTTS < bttsT) return;
 
                 res.innerHTML += `
                     <div class="match-card">
                         <div class="match-header">
                             <span class="match-info-line">${dt} | ${tm}</span>
-                            <div class="match-teams-line">${hName} vs ${aName}</div>
+                            <div class="match-teams-line">${hN} vs ${aN}</div>
                         </div>
-                        <div class="btts-row">
-                            <span>Ambos Anotan</span>
-                            <span style="color:var(--accent)">${pBTTS.toFixed(1)}%</span>
+                        <div class="xg-badge-row">xG Sugerido: L ${xgL} - V ${xgV}</div>
+                        <div class="market-item">
+                            <span class="mkt-name">Ambos Anotan</span>
+                            <div style="display:flex; align-items:center;">
+                                <span class="mkt-prob">${pBTTS}%</span>
+                                <div class="share-actions">
+                                    <button class="btn-s btn-wa" onclick="share('wa','${dt}','${tm}','${hN}','${aN}','${xgL}','${xgV}','Ambos Anotan','${pBTTS}')">W</button>
+                                    <button class="btn-s btn-tg" onclick="share('tg','${dt}','${tm}','${hN}','${aN}','${xgL}','${xgV}','Ambos Anotan','${pBTTS}')">T</button>
+                                </div>
+                            </div>
                         </div>
-                        <table>
-                            ${[1.5, 2.5, 3.5].map(v => `
-                                <tr class="${v === 2.5 ? 'highlight-mkt' : ''}">
-                                    <td>Over ${v} Goles</td>
-                                    <td class="mkt-prob">${(over[v]*100).toFixed(1)}%</td>
-                                </tr>`).join('')}
-                        </table>
+                        <div class="market-item" style="background:#eafff2">
+                            <span class="mkt-name">Over 2.5 Goles</span>
+                            <div style="display:flex; align-items:center;">
+                                <span class="mkt-prob">${pO25}%</span>
+                                <div class="share-actions">
+                                    <button class="btn-s btn-wa" onclick="share('wa','${dt}','${tm}','${hN}','${aN}','${xgL}','${xgV}','Over 2.5','${pO25}')">W</button>
+                                    <button class="btn-s btn-tg" onclick="share('tg','${dt}','${tm}','${hN}','${aN}','${xgL}','${xgV}','Over 2.5','${pO25}')">T</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>`;
             }
         });
     }
-
-    // Inicializar sliders al cargar
     window.onload = syncSlidersWithPoisson;
 </script>
 </body>
