@@ -3,174 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot Builder Pro - Optimizador de ROI</title>
+    <title>AI Bot Finder - Optimización de Patrones</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #238636; --text: #c9d1d9; --gold: #d29922; --win: #2ea043; --loss: #f85149; --info: #58a6ff; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
-        .grid { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
-        textarea { width: 100%; height: 250px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: 'Courier New', monospace; }
+        .grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; }
+        textarea { width: 100%; height: 200px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: monospace; }
         .panel { background: var(--card); border: 1px solid #30363d; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
-        button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1em; }
-        button:hover { background: #2ea043; filter: brightness(1.1); }
-        .bot-config { background: #010409; border: 1px solid var(--gold); padding: 15px; border-radius: 6px; color: var(--gold); font-family: monospace; line-height: 1.5; }
-        .match-entry { border-bottom: 1px solid #30363d; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; }
-        .status-win { background: var(--win); color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em; }
-        .status-loss { background: var(--loss); color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em; }
-        .metric { font-size: 0.85em; color: #8b949e; margin-right: 10px; }
-        h2, h3 { color: white; margin-top: 0; }
-        .highlight { color: var(--info); font-weight: bold; }
-        .suggestion-box { background: rgba(88, 166, 255, 0.1); border: 1px solid var(--info); padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 0.9em; }
+        button { background: var(--info); color: white; border: none; padding: 15px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1em; }
+        button:hover { filter: brightness(1.2); }
+        .bot-config { background: #010409; border: 2px solid var(--win); padding: 15px; border-radius: 6px; color: #7ee787; font-family: monospace; }
+        .match-entry { border-bottom: 1px solid #30363d; padding: 8px 0; display: flex; justify-content: space-between; font-size: 0.85em; }
+        .status-win { color: var(--win); font-weight: bold; }
+        .status-loss { color: var(--loss); font-weight: bold; }
+        .loading { display: none; text-align: center; color: var(--gold); font-weight: bold; margin: 10px 0; }
+        .summary-card { background: #21262d; padding: 15px; border-radius: 6px; margin-top: 10px; border-left: 4px solid var(--info); }
+        .log-search { font-size: 0.8em; color: #8b949e; height: 100px; overflow-y: auto; background: #010409; padding: 10px; border-radius: 5px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header" style="text-align:center; margin-bottom: 20px;">
-        <h2>⚽ Generador de Bots Rentables (HT Strategy)</h2>
-        <p>Analizador de Patrones para Cuota 1.60 con Optimización de ROI</p>
+    <div class="header" style="text-align:center;">
+        <h2>🧠 IA Search: Buscador de Bots Rentables</h2>
+        <p>Buscando el patrón que rompa el ROI negativo a cuota 1.60</p>
     </div>
 
     <div class="grid">
         <div class="left-col">
             <div class="panel">
-                <h3>1. Datos del Reporte</h3>
-                <textarea id="dataInput" placeholder="Pega aquí las filas de tu reporte..."></textarea>
-                <button onclick="processData()" style="margin-top: 15px;">Analizar y Optimizar Rentabilidad</button>
+                <h3>1. Inserción de Datos Masivos</h3>
+                <textarea id="dataInput" placeholder="Pega aquí los datos históricos de tus análisis..."></textarea>
+                <button onclick="startDeepSearch()">Ejecutar Búsqueda de Patrón Rentable</button>
+                <div id="loadingText" class="loading">🔍 Analizando miles de combinaciones...</div>
+                <div id="searchLog" class="log-search">Esperando inicio...</div>
             </div>
 
             <div class="panel">
-                <h3>2. Auditoría de Partidos (Filtro HT)</h3>
-                <div id="matchList">Los resultados aparecerán aquí...</div>
+                <h3>2. Partidos que cumplen el patrón ganador</h3>
+                <div id="matchList"></div>
             </div>
         </div>
 
         <div class="right-col">
-            <div class="panel">
-                <h3>🤖 Bot Configurado</h3>
-                <div id="botRecommendation" class="bot-config">Esperando análisis...</div>
-                <div id="botStats" style="margin-top:15px;"></div>
-            </div>
+            <div id="resultPanel" style="display:none;">
+                <div class="panel" style="border-color: var(--win);">
+                    <h3>✅ Bot Rentable Encontrado</h3>
+                    <div id="botConfig" class="bot-config"></div>
+                </div>
 
-            <div class="panel" style="border-color: var(--info);">
-                <h3>📈 Análisis de Rentabilidad</h3>
-                <p style="font-size: 0.9em;">Basado en cuota fija de <span class="highlight">1.60</span>:</p>
-                <div id="roiBox"></div>
-                <div id="optimizationTip"></div>
+                <div class="panel">
+                    <h3>📊 Rendimiento del Bot</h3>
+                    <div id="roiStats"></div>
+                </div>
+            </div>
+            
+            <div id="noResultPanel" class="panel" style="display:none; border-color: var(--loss);">
+                <h3>⚠️ Sin Rentabilidad</h3>
+                <p>Incluso con filtros máximos, estos datos no dan beneficio a cuota 1.60. Se necesita una muestra diferente o más volumen de datos.</p>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-function processData() {
+function startDeepSearch() {
     const input = document.getElementById('dataInput').value;
-    const lines = input.split('\n');
-    const matchList = document.getElementById('matchList');
+    const lines = input.split('\n').filter(l => l.trim() !== "" && !l.toLowerCase().includes('match'));
+    const log = document.getElementById('searchLog');
+    const loading = document.getElementById('loadingText');
     
-    // Variables de control para búsqueda de rentabilidad
-    let totalAnalyzed = 0;
-    let winners = 0;
+    if (lines.length < 5) {
+        alert("Pega más datos para poder encontrar un patrón sólido.");
+        return;
+    }
+
+    loading.style.display = "block";
+    log.innerHTML = "Iniciando Deep Search...<br>";
     
-    // Parámetros de "Filtro Agresivo" para subir el ROI
-    const MIN_AP_MINUTO = 1.35; // Subimos de 1.0 a 1.35 para filtrar ruido
-    const MIN_TIROS_ON = 1;     // Exigimos al menos 1 tiro a puerta
+    // Configuraciones a probar automáticamente
+    const apTests = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0];
+    const shotTests = [0, 1, 2, 3];
+    const cornerTests = [0, 1, 2, 3];
+    
+    let bestBot = null;
+    let maxROI = -100;
 
-    matchList.innerHTML = "";
+    // SIMULACIÓN DE PROCESAMIENTO
+    setTimeout(() => {
+        apTests.forEach(apMin => {
+            shotTests.forEach(shots => {
+                cornerTests.forEach(corners => {
+                    let total = 0;
+                    let wins = 0;
+                    let selectedMatches = [];
 
-    lines.forEach((line) => {
-        if (line.toLowerCase().includes('match') || line.trim() === "") return;
-        const cols = line.split('\t');
-        if (cols.length < 42) return;
+                    lines.forEach(line => {
+                        const cols = line.split('\t');
+                        const minute = parseInt(cols[7]) || 1;
+                        const ap = (parseInt(cols[11]) || 0) + (parseInt(cols[12]) || 0);
+                        const shOn = (parseInt(cols[15]) || 0) + (parseInt(cols[16]) || 0);
+                        const corn = (parseInt(cols[27]) || 0) + (parseInt(cols[28]) || 0);
+                        const resultHT = cols[41].trim();
+                        
+                        const apM = ap / minute;
+                        const isWin = (resultHT !== "0-0" && resultHT !== "");
 
-        const matchName = cols[6];
-        const minute = parseInt(cols[7]);
-        const apH = parseInt(cols[11]) || 0;
-        const apA = parseInt(cols[12]) || 0;
-        const shOnH = parseInt(cols[15]) || 0;
-        const shOnA = parseInt(cols[16]) || 0;
-        const resultHT = cols[41].trim();
+                        if (apM >= apMin && shOn >= shots && corn >= corners) {
+                            total++;
+                            if (isWin) wins++;
+                            selectedMatches.push({name: cols[6], res: resultHT, win: isWin, apm: apM, sh: shOn});
+                        }
+                    });
 
-        const isWin = (resultHT !== "0-0" && resultHT !== "");
-        const totalAP = apH + apA;
-        const apMin = totalAP / (minute || 1);
-        const totalShotsOn = shOnH + shOnA;
+                    if (total >= 5) { // Muestra mínima para considerar patrón
+                        const roi = ((wins * 1.60 - total) / total * 100);
+                        log.innerHTML += `Probando: AP > ${apMin}, Sh > ${shots}... ROI: ${roi.toFixed(1)}%<br>`;
+                        log.scrollTop = log.scrollHeight;
 
-        // APLICACIÓN DEL FILTRO DE RENTABILIDAD
-        // Solo analizamos partidos que realmente tienen presión de gol
-        if (apMin >= MIN_AP_MINUTO && totalShotsOn >= MIN_TIROS_ON) {
-            totalAnalyzed++;
-            if (isWin) winners++;
+                        if (roi > maxROI) {
+                            maxROI = roi;
+                            bestBot = { apMin, shots, corners, roi, wins, total, matches: selectedMatches };
+                        }
+                    }
+                });
+            });
+        });
 
-            const div = document.createElement('div');
-            div.className = 'match-entry';
-            div.innerHTML = `
-                <div>
-                    <strong>${matchName}</strong><br>
-                    <span class="metric">AP/m: ${apMin.toFixed(2)}</span>
-                    <span class="metric">Shots On: ${totalShotsOn}</span>
-                </div>
-                <span class="${isWin ? 'status-win' : 'status-loss'}">
-                    ${isWin ? 'GANADA (' + resultHT + ')' : 'PERDIDA (0-0)'}
-                </span>
-            `;
-            matchList.appendChild(div);
-        }
-    });
-
-    displayResults(totalAnalyzed, winners, MIN_AP_MINUTO, MIN_TIROS_ON);
+        loading.style.display = "none";
+        displayBestBot(bestBot);
+    }, 1000);
 }
 
-function displayResults(total, wins, apMin, shots) {
-    const botRec = document.getElementById('botRecommendation');
-    const roiBox = document.getElementById('roiBox');
-    const optTip = document.getElementById('optimizationTip');
+function displayBestBot(bot) {
+    const resPanel = document.getElementById('resultPanel');
+    const noRes = document.getElementById('noResultPanel');
+    const botConfig = document.getElementById('botConfig');
+    const roiStats = document.getElementById('roiStats');
+    const matchList = document.getElementById('matchList');
 
-    if (total > 0) {
-        const winRate = ((wins / total) * 100).toFixed(1);
-        const roi = ((wins * 1.60 - total) / total * 100).toFixed(1);
-        const isPositive = roi > 0;
-
-        botRec.innerHTML = `
-<strong>ESTRATEGIA:</strong> HT_GOLD_SCANN<br>
-<strong>MERCADO:</strong> Over 0.5 Goles HT<br>
-<strong>CUOTA MIN:</strong> 1.60<br><br>
-<strong>FILTROS RENTABLES:</strong><br>
-1. AP/Min: > ${apMin}<br>
-2. Tiros a Puerta: >= ${shots}<br>
-3. Marcador: 0-0<br>
-4. Tiempo: 18' - 30'
+    if (bot && bot.roi > 0) {
+        resPanel.style.display = "block";
+        noRes.style.display = "none";
+        
+        botConfig.innerHTML = `
+            ESTRATEGIA GANADORA:<br>
+            --------------------<br>
+            Ataques Pel/Min: > ${bot.apMin.toFixed(2)}<br>
+            Tiros a Puerta: >= ${bot.shots}<br>
+            Córners Totales: >= ${bot.corners}<br>
+            Entrada: Cuota 1.60
         `;
 
-        roiBox.innerHTML = `
-            <div style="font-size: 1.2em; margin-bottom:10px;">Strike Rate: <span class="highlight">${winRate}%</span></div>
-            <div style="font-size: 1.4em; font-weight: bold; color: ${isPositive ? '#3fb950' : '#f85149'}">
-                ROI: ${roi}% ${isPositive ? '🚀' : '⚠️'}
+        roiStats.innerHTML = `
+            <div class="summary-card">
+                <span style="font-size: 1.5em; font-weight: bold; color: var(--win);">ROI: ${bot.roi.toFixed(1)}%</span><br>
+                <span>Strike Rate: ${((bot.wins/bot.total)*100).toFixed(1)}%</span><br>
+                <span>Eficiencia: ${bot.wins} de ${bot.total} partidos</span>
             </div>
         `;
 
-        if (!isPositive) {
-            optTip.innerHTML = `
-                <div class="suggestion-box">
-                    <strong>💡 Plan de Mejora:</strong><br>
-                    Tu Strike Rate actual (${winRate}%) no cubre la cuota 1.60. 
-                    Para ser rentable, el bot sugiere subir el filtro de <strong>AP/Min a 1.50</strong> 
-                    o añadir un filtro de <strong>+2 Córners</strong> en los primeros 20 min.
-                </div>
-            `;
-        } else {
-            optTip.innerHTML = `
-                <div class="suggestion-box" style="border-color: #2ea043; background: rgba(46, 160, 67, 0.1);">
-                    <strong>✅ Patrón Validado:</strong><br>
-                    Esta configuración es matemáticamente rentable a cuota 1.60. Mantén el stake plano.
-                </div>
-            `;
-        }
+        matchList.innerHTML = bot.matches.map(m => `
+            <div class="match-entry">
+                <span>${m.name} (APm: ${m.apm.toFixed(1)})</span>
+                <span class="${m.win ? 'status-win' : 'status-loss'}">${m.res}</span>
+            </div>
+        `).join('');
 
     } else {
-        document.getElementById('matchList').innerHTML = "No hay partidos que cumplan los filtros mínimos de presión. Prueba con más datos.";
+        resPanel.style.display = "none";
+        noRes.style.display = "block";
     }
 }
 </script>
+
 </body>
 </html>
