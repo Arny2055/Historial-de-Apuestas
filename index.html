@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Bot Finder - Optimización de Patrones</title>
+    <title>AI Bot Finder - Deep League Optimizer</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #238636; --text: #c9d1d9; --gold: #d29922; --win: #2ea043; --loss: #f85149; --info: #58a6ff; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
@@ -19,29 +19,30 @@
         .status-loss { color: var(--loss); font-weight: bold; }
         .loading { display: none; text-align: center; color: var(--gold); font-weight: bold; margin: 10px 0; }
         .summary-card { background: #21262d; padding: 15px; border-radius: 6px; margin-top: 10px; border-left: 4px solid var(--info); }
-        .log-search { font-size: 0.8em; color: #8b949e; height: 100px; overflow-y: auto; background: #010409; padding: 10px; border-radius: 5px; margin-top: 10px; }
+        .log-search { font-size: 0.8em; color: #8b949e; height: 120px; overflow-y: auto; background: #010409; padding: 10px; border-radius: 5px; margin-top: 10px; }
+        .league-tag { font-size: 0.75em; background: #30363d; padding: 2px 5px; border-radius: 3px; color: #8b949e; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header" style="text-align:center;">
-        <h2>🧠 IA Search: Buscador de Bots Rentables</h2>
-        <p>Buscando el patrón que rompa el ROI negativo a cuota 1.60</p>
+        <h2>🧠 IA Deep Search: Patrones + Ligas Rentables</h2>
+        <p>Buscando rentabilidad real a cuota 1.60 mediante filtrado masivo</p>
     </div>
 
     <div class="grid">
         <div class="left-col">
             <div class="panel">
                 <h3>1. Inserción de Datos Masivos</h3>
-                <textarea id="dataInput" placeholder="Pega aquí los datos históricos de tus análisis..."></textarea>
-                <button onclick="startDeepSearch()">Ejecutar Búsqueda de Patrón Rentable</button>
-                <div id="loadingText" class="loading">🔍 Analizando miles de combinaciones...</div>
-                <div id="searchLog" class="log-search">Esperando inicio...</div>
+                <textarea id="dataInput" placeholder="Pega aquí los datos históricos (incluyendo columna de Liga/League)..."></textarea>
+                <button onclick="startDeepSearch()">Ejecutar Búsqueda de Bot Rentable</button>
+                <div id="loadingText" class="loading">🔍 Escaneando patrones y ligas...</div>
+                <div id="searchLog" class="log-search">Esperando datos...</div>
             </div>
 
             <div class="panel">
-                <h3>2. Partidos que cumplen el patrón ganador</h3>
+                <h3>2. Auditoría de Partidos</h3>
                 <div id="matchList"></div>
             </div>
         </div>
@@ -54,14 +55,19 @@
                 </div>
 
                 <div class="panel">
-                    <h3>📊 Rendimiento del Bot</h3>
+                    <h3>📊 Rendimiento Global</h3>
                     <div id="roiStats"></div>
+                </div>
+
+                <div class="panel" id="leagueBreakdown" style="border-top: 3px solid var(--gold);">
+                    <h3>🏆 Top Ligas para este Bot</h3>
+                    <div id="leagueList" style="font-size: 0.9em;"></div>
                 </div>
             </div>
             
             <div id="noResultPanel" class="panel" style="display:none; border-color: var(--loss);">
-                <h3>⚠️ Sin Rentabilidad</h3>
-                <p>Incluso con filtros máximos, estos datos no dan beneficio a cuota 1.60. Se necesita una muestra diferente o más volumen de datos.</p>
+                <h3>⚠️ Sin Rentabilidad Encontrada</h3>
+                <p>Ninguna combinación de filtros superó el 62.5% de Strike Rate necesario para cuota 1.60. Prueba cargando más datos.</p>
             </div>
         </div>
     </div>
@@ -75,98 +81,112 @@ function startDeepSearch() {
     const loading = document.getElementById('loadingText');
     
     if (lines.length < 5) {
-        alert("Pega más datos para poder encontrar un patrón sólido.");
+        alert("Pega más datos. Se recomienda un mínimo de 15-20 partidos para detectar patrones reales.");
         return;
     }
 
     loading.style.display = "block";
-    log.innerHTML = "Iniciando Deep Search...<br>";
+    log.innerHTML = "Iniciando análisis geográfico y estadístico...<br>";
     
-    // Configuraciones a probar automáticamente
-    const apTests = [1.0, 1.2, 1.4, 1.6, 1.8, 2.0];
-    const shotTests = [0, 1, 2, 3];
-    const cornerTests = [0, 1, 2, 3];
+    // Pruebas de filtros
+    const apTests = [1.0, 1.25, 1.45, 1.65, 1.85];
+    const shotTests = [0, 1, 2];
     
     let bestBot = null;
     let maxROI = -100;
 
-    // SIMULACIÓN DE PROCESAMIENTO
     setTimeout(() => {
         apTests.forEach(apMin => {
             shotTests.forEach(shots => {
-                cornerTests.forEach(corners => {
-                    let total = 0;
-                    let wins = 0;
-                    let selectedMatches = [];
+                let total = 0;
+                let wins = 0;
+                let selectedMatches = [];
+                let leagues = {};
 
-                    lines.forEach(line => {
-                        const cols = line.split('\t');
-                        const minute = parseInt(cols[7]) || 1;
-                        const ap = (parseInt(cols[11]) || 0) + (parseInt(cols[12]) || 0);
-                        const shOn = (parseInt(cols[15]) || 0) + (parseInt(cols[16]) || 0);
-                        const corn = (parseInt(cols[27]) || 0) + (parseInt(cols[28]) || 0);
-                        const resultHT = cols[41].trim();
+                lines.forEach(line => {
+                    const cols = line.split('\t');
+                    if (cols.length < 42) return;
+
+                    const league = cols[1] || "Otros"; // Asumiendo columna 1 para Liga
+                    const minute = parseInt(cols[7]) || 1;
+                    const ap = (parseInt(cols[11]) || 0) + (parseInt(cols[12]) || 0);
+                    const shOn = (parseInt(cols[15]) || 0) + (parseInt(cols[16]) || 0);
+                    const resultHT = cols[41].trim();
+                    
+                    const apM = ap / minute;
+                    const isWin = (resultHT !== "0-0" && resultHT !== "");
+
+                    if (apM >= apMin && shOn >= shots) {
+                        total++;
+                        if (isWin) wins++;
                         
-                        const apM = ap / minute;
-                        const isWin = (resultHT !== "0-0" && resultHT !== "");
+                        // Registro de ligas
+                        if (!leagues[league]) leagues[league] = {t: 0, w: 0};
+                        leagues[league].t++;
+                        if (isWin) leagues[league].w++;
 
-                        if (apM >= apMin && shOn >= shots && corn >= corners) {
-                            total++;
-                            if (isWin) wins++;
-                            selectedMatches.push({name: cols[6], res: resultHT, win: isWin, apm: apM, sh: shOn});
-                        }
-                    });
-
-                    if (total >= 5) { // Muestra mínima para considerar patrón
-                        const roi = ((wins * 1.60 - total) / total * 100);
-                        log.innerHTML += `Probando: AP > ${apMin}, Sh > ${shots}... ROI: ${roi.toFixed(1)}%<br>`;
-                        log.scrollTop = log.scrollHeight;
-
-                        if (roi > maxROI) {
-                            maxROI = roi;
-                            bestBot = { apMin, shots, corners, roi, wins, total, matches: selectedMatches };
-                        }
+                        selectedMatches.push({name: cols[6], res: resultHT, win: isWin, apm: apM, league: league});
                     }
                 });
+
+                if (total >= 4) {
+                    const roi = ((wins * 1.60 - total) / total * 100);
+                    log.innerHTML += `Test: AP>${apMin} + SH>${shots} | ROI: ${roi.toFixed(1)}%<br>`;
+                    log.scrollTop = log.scrollHeight;
+
+                    if (roi > maxROI) {
+                        maxROI = roi;
+                        bestBot = { apMin, shots, roi, wins, total, matches: selectedMatches, leagues };
+                    }
+                }
             });
         });
 
         loading.style.display = "none";
         displayBestBot(bestBot);
-    }, 1000);
+    }, 1200);
 }
 
 function displayBestBot(bot) {
     const resPanel = document.getElementById('resultPanel');
     const noRes = document.getElementById('noResultPanel');
-    const botConfig = document.getElementById('botConfig');
-    const roiStats = document.getElementById('roiStats');
     const matchList = document.getElementById('matchList');
+    const leagueList = document.getElementById('leagueList');
 
     if (bot && bot.roi > 0) {
         resPanel.style.display = "block";
         noRes.style.display = "none";
         
-        botConfig.innerHTML = `
-            ESTRATEGIA GANADORA:<br>
+        document.getElementById('botConfig').innerHTML = `
+            FILTROS ÓPTIMOS:<br>
             --------------------<br>
             Ataques Pel/Min: > ${bot.apMin.toFixed(2)}<br>
             Tiros a Puerta: >= ${bot.shots}<br>
-            Córners Totales: >= ${bot.corners}<br>
-            Entrada: Cuota 1.60
+            Mercado: Over 0.5 HT @1.60
         `;
 
-        roiStats.innerHTML = `
+        document.getElementById('roiStats').innerHTML = `
             <div class="summary-card">
                 <span style="font-size: 1.5em; font-weight: bold; color: var(--win);">ROI: ${bot.roi.toFixed(1)}%</span><br>
-                <span>Strike Rate: ${((bot.wins/bot.total)*100).toFixed(1)}%</span><br>
-                <span>Eficiencia: ${bot.wins} de ${bot.total} partidos</span>
+                <span>Acierto: ${((bot.wins/bot.total)*100).toFixed(1)}% (${bot.wins}/${bot.total})</span>
             </div>
         `;
 
+        // Mostrar desglose de ligas
+        leagueList.innerHTML = "";
+        Object.keys(bot.leagues).forEach(l => {
+            const lData = bot.leagues[l];
+            const lRoi = ((lData.w * 1.60 - lData.t) / lData.t * 100).toFixed(0);
+            leagueList.innerHTML += `
+                <div style="margin-bottom:5px;">
+                    <span class="league-tag">${l}</span> 
+                    <span style="color:${lRoi >= 0 ? 'var(--win)' : 'var(--loss)'}">${lRoi}% ROI</span>
+                </div>`;
+        });
+
         matchList.innerHTML = bot.matches.map(m => `
             <div class="match-entry">
-                <span>${m.name} (APm: ${m.apm.toFixed(1)})</span>
+                <span><small>${m.league}</small><br><strong>${m.name}</strong></span>
                 <span class="${m.win ? 'status-win' : 'status-loss'}">${m.res}</span>
             </div>
         `).join('');
@@ -177,6 +197,5 @@ function displayBestBot(bot) {
     }
 }
 </script>
-
 </body>
 </html>
