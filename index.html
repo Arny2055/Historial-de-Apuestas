@@ -2,208 +2,168 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poisson Pro - Range Scanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Pro - Filtro Cuota 1.60</title>
     <style>
-        :root { --primary: #00ff85; --secondary: #3d195a; --bg: #f2f2f7; --accent: #007aff; --whatsapp: #25D366; --telegram: #0088cc; }
-        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: 12px; color: #1c1c1e; }
-        .container { max-width: 480px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); box-sizing: border-box; }
-        h1 { text-align: center; color: var(--secondary); font-size: 1.2rem; margin-bottom: 15px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
-        
-        .league-data-box { background: #eef2ff; padding: 12px; border-radius: 12px; border: 1px solid var(--accent); margin-bottom: 15px; }
-        label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.7rem; color: #8e8e93; text-transform: uppercase; }
-        textarea { width: 100%; height: 60px; border: 1px solid #d1d1d6; border-radius: 10px; padding: 8px; font-size: 11px; box-sizing: border-box; background: #fbfbfb; font-family: monospace; margin-bottom: 10px; resize: none; }
-        
-        .avg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 10px; }
-        input[type=number] { width: 100%; padding: 10px; border: 1px solid #d1d1d6; border-radius: 8px; box-sizing: border-box; font-size: 15px; font-weight: 700; text-align: center; color: var(--secondary); }
-        
-        /* Estilos para Rangos Min/Max */
-        .filter-container { background: #fffcf0; padding: 15px; border-radius: 16px; border: 1px solid #f39c12; margin-bottom: 20px; }
-        .range-wrapper { margin-bottom: 15px; }
-        .range-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .range-label { font-weight: 800; font-size: 0.7rem; color: #d35400; text-transform: uppercase; }
-        .range-values { background: #d35400; color: white; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; }
-        .dual-input { display: flex; gap: 10px; align-items: center; }
-        .dual-input input { flex: 1; accent-color: #d35400; height: 6px; border-radius: 5px; cursor: pointer; }
-        .input-sublabel { font-size: 9px; color: #a34b00; text-align: center; display: block; margin-top: 4px; }
-
-        button.calc-btn { width: 100%; padding: 16px; background: var(--secondary); color: white; border: none; border-radius: 14px; font-size: 1rem; font-weight: 800; cursor: pointer; margin-top: 10px; }
-        
-        .match-card { margin-top: 15px; border-radius: 14px; background: white; border: 1px solid #e5e5ea; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .match-header { background: var(--secondary); color: white; padding: 10px 15px; }
-        .match-info-line { font-size: 10px; opacity: 0.8; display: block; }
-        .match-teams-line { font-weight: 700; font-size: 15px; }
-        .xg-badge-row { display: flex; gap: 10px; padding: 8px 15px; background: #f8f9fa; border-bottom: 1px solid #eee; font-size: 11px; font-weight: bold; color: #666; }
-        .market-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #f2f2f7; }
-        .mkt-prob { font-weight: 800; color: var(--accent); margin-right: 10px; }
-        .share-actions { display: flex; gap: 5px; }
-        .btn-s { border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; }
-        .btn-wa { background: var(--whatsapp); }
-        .btn-tg { background: var(--telegram); }
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #10b981;
+            --text: #f8fafc;
+            --warning: #f59e0b;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; }
+        .container { max-width: 1100px; margin: auto; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        textarea { 
+            width: 100%; height: 200px; background: var(--card); color: #4ade80; 
+            border: 1px solid #334155; padding: 15px; border-radius: 8px; font-family: monospace;
+            box-sizing: border-box; resize: vertical;
+        }
+        .controls { margin-top: 15px; display: flex; gap: 10px; align-items: center; }
+        button { 
+            background: var(--accent); color: white; border: none; padding: 12px 25px; 
+            border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;
+        }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        .match-card { 
+            background: var(--card); border-right: 4px solid var(--accent); margin: 15px 0; 
+            padding: 20px; border-radius: 8px; display: grid; grid-template-columns: 1fr auto;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .match-info h3 { margin: 0 0 10px 0; color: var(--accent); }
+        .stats-grid { display: flex; gap: 20px; font-size: 0.85em; color: #94a3b8; }
+        .badge { background: #064e3b; color: #4ade80; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; }
+        .score-box { text-align: center; padding: 10px; background: #064e3b; border-radius: 8px; min-width: 80px; }
+        .score-val { font-size: 1.5em; font-weight: bold; display: block; }
+        .reason-list { margin-top: 10px; font-size: 0.9em; font-style: italic; color: #cbd5e1; }
+        .high-conf { border-right-color: #ec4899; } /* Especial para muy alta probabilidad */
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Poisson Scanner Pro</h1>
-
-    <div class="league-data-box">
-        <label>Info de la Liga:</label>
-        <textarea id="leagueRawInput" placeholder="Pega stats generales..." oninput="parseLeagueData(this.value)"></textarea>
-        <div class="avg-grid">
-            <div><label>Avg Goles L:</label><input type="number" id="avgH" step="0.01" value="1.70" onchange="syncSliders()"></div>
-            <div><label>Avg Goles V:</label><input type="number" id="avgA" step="0.01" value="1.45" onchange="syncSliders()"></div>
-        </div>
+    <div class="header">
+        <h1>⚽ Scanner de Patrones - Gol @1.60</h1>
+        <p>Optimizado para entradas entre el minuto 20' y 30' (o inicio 2T)</p>
     </div>
 
-    <div class="filter-container">
-        <div class="range-wrapper">
-            <div class="range-header">
-                <span class="range-label">Rango Over 2.5</span>
-                <span id="o25Display" class="range-values">0% - 100%</span>
-            </div>
-            <div class="dual-input">
-                <div><input type="range" id="o25Min" min="0" max="100" value="0" oninput="updateRangeText()"><span class="input-sublabel">Mín</span></div>
-                <div><input type="range" id="o25Max" min="0" max="100" value="100" oninput="updateRangeText()"><span class="input-sublabel">Máx</span></div>
-            </div>
-        </div>
+    <textarea id="dataInput" placeholder="Pega aquí las filas de tu reporte (incluyendo columnas de Ataques, Tiros y Posesión)..."></textarea>
+    
+    <div class="controls">
+        <button onclick="analyzeData()">Analizar Posibles Entradas</button>
+        <span style="font-size: 0.8em; color: #94a3b8;">* Se requiere que los datos mantengan el formato original de columnas.</span>
+    </div>
 
-        <div class="range-wrapper">
-            <div class="range-header">
-                <span class="range-label">Rango Ambos Anotan</span>
-                <span id="bttsDisplay" class="range-values">0% - 100%</span>
-            </div>
-            <div class="dual-input">
-                <div><input type="range" id="bttsMin" min="0" max="100" value="0" oninput="updateRangeText()"><span class="input-sublabel">Mín</span></div>
-                <div><input type="range" id="bttsMax" min="0" max="100" value="100" oninput="updateRangeText()"><span class="input-sublabel">Máx</span></div>
-            </div>
-        </div>
-    </div>
-    
-    <div style="display:grid; grid-template-columns: 1fr; gap:10px;">
-        <label>Partidos:</label>
-        <textarea id="matchesInput" placeholder="Fecha | Local | Hora | Visita"></textarea>
-    </div>
-    
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-        <div><label>Stats Local:</label><textarea id="homeStatsInput"></textarea></div>
-        <div><label>Stats Visitante:</label><textarea id="awayStatsInput"></textarea></div>
-    </div>
-    
-    <button class="calc-btn" onclick="calculate()">ESCUDRIÑAR PARTIDOS</button>
     <div id="results"></div>
 </div>
 
 <script>
-    const fact = n => n <= 1 ? 1 : n * fact(n - 1);
-    const poi = (l, x) => (Math.exp(-l) * Math.pow(l, x)) / fact(x);
+function analyzeData() {
+    const input = document.getElementById('dataInput').value;
+    const lines = input.split('\n');
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '<h2 style="margin-top:30px;">Análisis de Oportunidades:</h2>';
 
-    function updateRangeText() {
-        document.getElementById('o25Display').innerText = `${document.getElementById('o25Min').value}% - ${document.getElementById('o25Max').value}%`;
-        document.getElementById('bttsDisplay').innerText = `${document.getElementById('bttsMin').value}% - ${document.getElementById('bttsMax').value}%`;
+    let found = 0;
+
+    lines.forEach((line, index) => {
+        // Ignorar encabezados o líneas vacías
+        if (line.toLowerCase().includes('match') || line.trim() === "") return;
+
+        const cols = line.split('\t');
+        if (cols.length < 20) return; // Asegurar que hay suficientes columnas
+
+        // Mapeo de columnas basado en tu estructura:
+        const match = cols[6];
+        const minute = parseInt(cols[7]);
+        const homeAP = parseInt(cols[11]) || 0;
+        const awayAP = parseInt(cols[12]) || 0;
+        const homeShotOn = parseInt(cols[15]) || 0;
+        const awayShotOn = parseInt(cols[16]) || 0;
+        const homeShotsTot = parseInt(cols[17]) || 0;
+        const awayShotsTot = parseInt(cols[18]) || 0;
+        const posH = parseInt(cols[23]) || 50;
+        const hCorners = parseInt(cols[27]) || 0;
+        const aCorners = parseInt(cols[28]) || 0;
+
+        // --- LÓGICA DE FILTRADO PARA CUOTA 1.60 ---
+        let score = 0;
+        let reasons = [];
+
+        const totalAP = homeAP + awayAP;
+        const apPerMinute = totalAP / (minute || 1);
+        const totalShotOn = homeShotOn + awayShotOn;
+        const totalCorners = hCorners + aCorners;
+
+        // 1. Filtro de Intensidad (Ataques Peligrosos)
+        if (apPerMinute >= 1.4) { 
+            score += 35; 
+            reasons.push("Ritmo de ataque asfixiante"); 
+        } else if (apPerMinute >= 1.0) {
+            score += 15;
+            reasons.push("Presión constante");
+        }
+
+        // 2. Filtro de Finalización (Tiros a Puerta)
+        if (totalShotOn >= 2) { 
+            score += 25; 
+            reasons.push("Ya hay puntería (Tiros a puerta)"); 
+        }
+
+        // 3. Filtro de Peligro en Área (Córners)
+        if (totalCorners >= 3) {
+            score += 15;
+            reasons.push("Balones frecuentes al área (Córners)");
+        }
+
+        // 4. Filtro de Dominio (Posesión)
+        if (posH >= 65 || posH <= 35) {
+            score += 15;
+            reasons.push("Dominio territorial absoluto");
+        }
+
+        // 5. Bonus de "Equipo Favorito" (Si el que domina tiene cuota pre-match baja)
+        // Basado en las columnas de cuotas (47, 48, 49 aprox)
+        const preHome = parseFloat(cols[47]);
+        if (preHome < 1.60 && posH > 60) {
+            score += 10;
+            reasons.push("Favorito presionando");
+        }
+
+        // RESULTADO: Solo mostrar si supera un umbral de confianza
+        if (score >= 45) {
+            found++;
+            const isHigh = score >= 70;
+            const card = document.createElement('div');
+            card.className = `match-card ${isHigh ? 'high-conf' : ''}`;
+            
+            card.innerHTML = `
+                <div class="match-info">
+                    <span class="badge">@1.60 Recomendada</span>
+                    <h3>${match}</h3>
+                    <div class="stats-grid">
+                        <span>Min: <b>${minute}'</b></span>
+                        <span>AP/Min: <b>${apPerMinute.toFixed(2)}</b></span>
+                        <span>Tiros (On): <b>${totalShotOn}</b></span>
+                        <span>Córners: <b>${totalCorners}</b></span>
+                    </div>
+                    <div class="reason-list">Razones: ${reasons.join(' + ')}</div>
+                </div>
+                <div class="score-box">
+                    <span style="font-size:0.7em uppercase">Confianza</span>
+                    <span class="score-val">${score}%</span>
+                </div>
+            `;
+            resultsDiv.appendChild(card);
+        }
+    });
+
+    if (found === 0) {
+        resultsDiv.innerHTML += '<p style="text-align:center; padding:20px;">No hay partidos que cumplan los criterios de presión para cuota 1.60 en este momento.</p>';
     }
-
-    function syncSliders() {
-        const avH = parseFloat(document.getElementById('avgH').value);
-        const avA = parseFloat(document.getElementById('avgA').value);
-        if (isNaN(avH) || isNaN(avA)) return;
-
-        const pBTTS = (1 - poi(avH, 0)) * (1 - poi(avA, 0)) * 100;
-        let u25 = 0;
-        [[0,0],[1,0],[0,1],[1,1],[2,0],[0,2]].forEach(c => u25 += poi(avH, c[0]) * poi(avA, c[1]));
-        const pO25 = (1 - u25) * 100;
-
-        // Cuando la liga carga, ponemos el MÍNIMO en el promedio de la liga y el MÁX en 100
-        document.getElementById('o25Min').value = Math.round(pO25);
-        document.getElementById('bttsMin').value = Math.round(pBTTS);
-        document.getElementById('o25Max').value = 100;
-        document.getElementById('bttsMax').value = 100;
-        
-        updateRangeText();
-    }
-
-    function parseLeagueData(text) {
-        const hM = text.match(/(?:Home goals per match|Home goals):\s*([\d.]+)/i);
-        const aM = text.match(/(?:Away goals per match|Away goals):\s*([\d.]+)/i);
-        if (hM) document.getElementById('avgH').value = hM[1];
-        if (aM) document.getElementById('avgA').value = aM[1];
-        syncSliders();
-    }
-
-    function parse(txt) {
-        const s = {};
-        txt.split('\n').forEach(l => {
-            const p = l.trim().split(/\t|\s{2,}/);
-            if (p.length >= 8) s[p[1].trim()] = { pj: parseFloat(p[2]), gf: parseFloat(p[6]), gc: parseFloat(p[7]) };
-        });
-        return s;
-    }
-
-    function share(pform, dt, tm, h, a, xL, xV, mkt, prb) {
-        const msg = encodeURIComponent(`⚽ *PRONÓSTICO POISSON*\n📅 ${dt} | ${tm}\n⚔️ ${h} vs ${a}\n📊 xG: (L) ${xL} - (V) ${xV}\n🎯 *${mkt}: ${prb}%*`);
-        window.open(pform === 'wa' ? `https://api.whatsapp.com/send?text=${msg}` : `https://t.me/share/url?url=${msg}`, '_blank');
-    }
-
-    function calculate() {
-        const hs = parse(document.getElementById('homeStatsInput').value);
-        const as = parse(document.getElementById('awayStatsInput').value);
-        const avH = parseFloat(document.getElementById('avgH').value);
-        const avA = parseFloat(document.getElementById('avgA').value);
-        
-        const o2Min = parseInt(document.getElementById('o25Min').value);
-        const o2Max = parseInt(document.getElementById('o25Max').value);
-        const btMin = parseInt(document.getElementById('bttsMin').value);
-        const btMax = parseInt(document.getElementById('bttsMax').value);
-
-        const res = document.getElementById('results');
-        res.innerHTML = '';
-
-        document.getElementById('matchesInput').value.trim().split('\n').forEach(line => {
-            const p = line.split(/\t|\s{2,}/);
-            if (p.length < 4) return;
-            const [dt, hN, tm, aN] = [p[0].trim(), p[1].trim(), p[2].trim(), p[3].trim()];
-
-            if (hs[hN] && as[aN]) {
-                const h = hs[hN], a = as[aN];
-                const xL = ((h.gf/h.pj/avH) * (a.gc/a.pj/avH) * avH).toFixed(2);
-                const xV = ((a.gf/a.pj/avA) * (h.gc/h.pj/avA) * avA).toFixed(2);
-
-                let o25Prob = 0;
-                for(let i=0; i<=8; i++) for(let j=0; j<=8; j++) {
-                    if(i+j > 2.5) o25Prob += poi(xL, i) * poi(xV, j);
-                }
-                const pBTTS = ((1 - poi(xL, 0)) * (1 - poi(xV, 0)) * 100).toFixed(1);
-                const pO25 = (o25Prob * 100).toFixed(1);
-
-                // FILTRADO POR RANGO MIN/MAX
-                if (pO25 < o2Min || pO25 > o2Max || pBTTS < btMin || pBTTS > btMax) return;
-
-                res.innerHTML += `
-                    <div class="match-card">
-                        <div class="match-header">
-                            <span class="match-info-line">${dt} | ${tm}</span>
-                            <div class="match-teams-line">${hN} vs ${aN}</div>
-                        </div>
-                        <div class="xg-badge-row">xG: L ${xL} - V ${xV}</div>
-                        <div class="market-item">
-                            <span>BTTS: <b>${pBTTS}%</b></span>
-                            <div class="share-actions">
-                                <button class="btn-s btn-wa" onclick="share('wa','${dt}','${tm}','${hN}','${aN}','${xL}','${xV}','BTTS','${pBTTS}')">W</button>
-                                <button class="btn-s btn-tg" onclick="share('tg','${dt}','${tm}','${hN}','${aN}','${xL}','${xV}','BTTS','${pBTTS}')">T</button>
-                            </div>
-                        </div>
-                        <div class="market-item">
-                            <span>Over 2.5: <b>${pO25}%</b></span>
-                            <div class="share-actions">
-                                <button class="btn-s btn-wa" onclick="share('wa','${dt}','${tm}','${hN}','${aN}','${xL}','${xV}','O2.5','${pO25}')">W</button>
-                                <button class="btn-s btn-tg" onclick="share('tg','${dt}','${tm}','${hN}','${aN}','${xL}','${xV}','O2.5','${pO25}')">T</button>
-                            </div>
-                        </div>
-                    </div>`;
-            }
-        });
-    }
-    window.onload = syncSliders;
+}
 </script>
+
 </body>
 </html>
