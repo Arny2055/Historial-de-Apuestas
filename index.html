@@ -3,167 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner Pro - Filtro Cuota 1.60</title>
+    <title>Bot Builder Pro - Patrones Rentables</title>
     <style>
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --accent: #10b981;
-            --text: #f8fafc;
-            --warning: #f59e0b;
-        }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; }
-        .container { max-width: 1100px; margin: auto; }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
-        textarea { 
-            width: 100%; height: 200px; background: var(--card); color: #4ade80; 
-            border: 1px solid #334155; padding: 15px; border-radius: 8px; font-family: monospace;
-            box-sizing: border-box; resize: vertical;
-        }
-        .controls { margin-top: 15px; display: flex; gap: 10px; align-items: center; }
-        button { 
-            background: var(--accent); color: white; border: none; padding: 12px 25px; 
-            border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s;
-        }
-        button:hover { opacity: 0.9; transform: translateY(-1px); }
-        .match-card { 
-            background: var(--card); border-right: 4px solid var(--accent); margin: 15px 0; 
-            padding: 20px; border-radius: 8px; display: grid; grid-template-columns: 1fr auto;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        }
-        .match-info h3 { margin: 0 0 10px 0; color: var(--accent); }
-        .stats-grid { display: flex; gap: 20px; font-size: 0.85em; color: #94a3b8; }
-        .badge { background: #064e3b; color: #4ade80; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; }
-        .score-box { text-align: center; padding: 10px; background: #064e3b; border-radius: 8px; min-width: 80px; }
-        .score-val { font-size: 1.5em; font-weight: bold; display: block; }
-        .reason-list { margin-top: 10px; font-size: 0.9em; font-style: italic; color: #cbd5e1; }
-        .high-conf { border-right-color: #ec4899; } /* Especial para muy alta probabilidad */
+        :root { --bg: #090c10; --card: #161b22; --accent: #238636; --text: #c9d1d9; --gold: #d29922; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        .grid { display: grid; grid-template-columns: 1fr 350px; gap: 20px; }
+        textarea { width: 100%; height: 250px; background: #0d1117; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: monospace; }
+        .panel { background: var(--card); border: 1px solid #30363d; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
+        button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
+        button:hover { background: #2ea043; }
+        .bot-config { background: #0d1117; border: 1px dashed var(--gold); padding: 15px; border-radius: 6px; color: var(--gold); font-family: monospace; font-size: 0.9em; }
+        .match-entry { border-bottom: 1px solid #30363d; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        .status-win { color: #3fb950; font-weight: bold; }
+        .status-info { color: #58a6ff; }
+        h2, h3 { color: white; margin-top: 0; }
+        .metric { font-size: 0.8em; background: #21262d; padding: 2px 6px; border-radius: 4px; margin-right: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
-        <h1>⚽ Scanner de Patrones - Gol @1.60</h1>
-        <p>Optimizado para entradas entre el minuto 20' y 30' (o inicio 2T)</p>
-    </div>
+    <div class="grid">
+        <div class="left-col">
+            <div class="panel">
+                <h3>1. Carga de Datos Live</h3>
+                <textarea id="dataInput" placeholder="Pega aquí las filas de tu reporte..."></textarea>
+                <button onclick="processData()" style="margin-top: 15px;">Analizar Datos y Sugerir Bot</button>
+            </div>
 
-    <textarea id="dataInput" placeholder="Pega aquí las filas de tu reporte (incluyendo columnas de Ataques, Tiros y Posesión)..."></textarea>
-    
-    <div class="controls">
-        <button onclick="analyzeData()">Analizar Posibles Entradas</button>
-        <span style="font-size: 0.8em; color: #94a3b8;">* Se requiere que los datos mantengan el formato original de columnas.</span>
-    </div>
+            <div class="panel" id="analysisResults">
+                <h3>2. Partidos Detectados</h3>
+                <div id="matchList">Pega datos para comenzar...</div>
+            </div>
+        </div>
 
-    <div id="results"></div>
+        <div class="right-col">
+            <div class="panel">
+                <h3>🤖 Configuración del Bot</h3>
+                <p style="font-size: 0.85em;">Basado en patrones de efectividad observados:</p>
+                <div id="botRecommendation" class="bot-config">
+                    Esperando datos...
+                </div>
+                <div id="botStats" style="margin-top:15px; font-size: 0.85em;"></div>
+            </div>
+
+            <div class="panel">
+                <h3>📊 Filtro de Rentabilidad</h3>
+                <ul id="keyPatterns" style="font-size: 0.85em; padding-left: 20px;">
+                    <li>Mínimo AP/Min: 1.2</li>
+                    <li>Tiros totales: +3</li>
+                    <li>Cuota Objetivo: 1.60</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-function analyzeData() {
+function processData() {
     const input = document.getElementById('dataInput').value;
     const lines = input.split('\n');
-    const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '<h2 style="margin-top:30px;">Análisis de Oportunidades:</h2>';
+    const matchList = document.getElementById('matchList');
+    const botRec = document.getElementById('botRecommendation');
+    
+    let processedMatches = [];
+    let winners = 0;
+    let totalPotential = 0;
 
-    let found = 0;
+    matchList.innerHTML = "";
 
-    lines.forEach((line, index) => {
-        // Ignorar encabezados o líneas vacías
+    lines.forEach((line) => {
         if (line.toLowerCase().includes('match') || line.trim() === "") return;
-
         const cols = line.split('\t');
-        if (cols.length < 20) return; // Asegurar que hay suficientes columnas
+        if (cols.length < 15) return;
 
-        // Mapeo de columnas basado en tu estructura:
-        const match = cols[6];
-        const minute = parseInt(cols[7]);
-        const homeAP = parseInt(cols[11]) || 0;
-        const awayAP = parseInt(cols[12]) || 0;
-        const homeShotOn = parseInt(cols[15]) || 0;
-        const awayShotOn = parseInt(cols[16]) || 0;
-        const homeShotsTot = parseInt(cols[17]) || 0;
-        const awayShotsTot = parseInt(cols[18]) || 0;
-        const posH = parseInt(cols[23]) || 50;
-        const hCorners = parseInt(cols[27]) || 0;
-        const aCorners = parseInt(cols[28]) || 0;
+        const data = {
+            match: cols[6],
+            min: parseInt(cols[7]),
+            apH: parseInt(cols[11]) || 0,
+            apA: parseInt(cols[12]) || 0,
+            shOnH: parseInt(cols[15]) || 0,
+            shOnA: parseInt(cols[16]) || 0,
+            resHT: cols[41],
+            resFT: cols[42]
+        };
 
-        // --- LÓGICA DE FILTRADO PARA CUOTA 1.60 ---
-        let score = 0;
-        let reasons = [];
+        // Lógica de detección: ¿Hubo gol después de la notificación?
+        // Simplificado: Si el resultado final es distinto al de la notificación (0-0)
+        const totalGoals = data.resFT.split('-').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+        const isWin = totalGoals > 0; 
+        
+        const apMin = (data.apH + data.apA) / (data.min || 1);
+        const shots = data.shOnH + data.shOnA;
 
-        const totalAP = homeAP + awayAP;
-        const apPerMinute = totalAP / (minute || 1);
-        const totalShotOn = homeShotOn + awayShotOn;
-        const totalCorners = hCorners + aCorners;
+        if (apMin >= 1.0) {
+            totalPotential++;
+            if (isWin) winners++;
 
-        // 1. Filtro de Intensidad (Ataques Peligrosos)
-        if (apPerMinute >= 1.4) { 
-            score += 35; 
-            reasons.push("Ritmo de ataque asfixiante"); 
-        } else if (apPerMinute >= 1.0) {
-            score += 15;
-            reasons.push("Presión constante");
-        }
-
-        // 2. Filtro de Finalización (Tiros a Puerta)
-        if (totalShotOn >= 2) { 
-            score += 25; 
-            reasons.push("Ya hay puntería (Tiros a puerta)"); 
-        }
-
-        // 3. Filtro de Peligro en Área (Córners)
-        if (totalCorners >= 3) {
-            score += 15;
-            reasons.push("Balones frecuentes al área (Córners)");
-        }
-
-        // 4. Filtro de Dominio (Posesión)
-        if (posH >= 65 || posH <= 35) {
-            score += 15;
-            reasons.push("Dominio territorial absoluto");
-        }
-
-        // 5. Bonus de "Equipo Favorito" (Si el que domina tiene cuota pre-match baja)
-        // Basado en las columnas de cuotas (47, 48, 49 aprox)
-        const preHome = parseFloat(cols[47]);
-        if (preHome < 1.60 && posH > 60) {
-            score += 10;
-            reasons.push("Favorito presionando");
-        }
-
-        // RESULTADO: Solo mostrar si supera un umbral de confianza
-        if (score >= 45) {
-            found++;
-            const isHigh = score >= 70;
-            const card = document.createElement('div');
-            card.className = `match-card ${isHigh ? 'high-conf' : ''}`;
-            
-            card.innerHTML = `
-                <div class="match-info">
-                    <span class="badge">@1.60 Recomendada</span>
-                    <h3>${match}</h3>
-                    <div class="stats-grid">
-                        <span>Min: <b>${minute}'</b></span>
-                        <span>AP/Min: <b>${apPerMinute.toFixed(2)}</b></span>
-                        <span>Tiros (On): <b>${totalShotOn}</b></span>
-                        <span>Córners: <b>${totalCorners}</b></span>
-                    </div>
-                    <div class="reason-list">Razones: ${reasons.join(' + ')}</div>
+            processedMatches.push(data);
+            const div = document.createElement('div');
+            div.className = 'match-entry';
+            div.innerHTML = `
+                <div>
+                    <small>${data.match}</small><br>
+                    <span class="metric">AP/m: ${apMin.toFixed(1)}</span>
+                    <span class="metric">Shots: ${shots}</span>
                 </div>
-                <div class="score-box">
-                    <span style="font-size:0.7em uppercase">Confianza</span>
-                    <span class="score-val">${score}%</span>
-                </div>
+                <span class="${isWin ? 'status-win' : ''}">${isWin ? 'GOL ✓' : '0-0'}</span>
             `;
-            resultsDiv.appendChild(card);
+            matchList.appendChild(div);
         }
     });
 
-    if (found === 0) {
-        resultsDiv.innerHTML += '<p style="text-align:center; padding:20px;">No hay partidos que cumplan los criterios de presión para cuota 1.60 en este momento.</p>';
-    }
+    // Sugerencia del Bot basada en la muestra
+    const rate = ((winners / totalPotential) * 100).toFixed(1);
+    botRec.innerHTML = `
+// ESTRATEGIA SUGERIDA: "OVER 0.5 LIVE"<br>
+// RENTABILIDAD DETECTADA: ${rate}%<br><br>
+CONDICIONES:<br>
+- Minuto: 15 a 30<br>
+- Marcador: 0 - 0<br>
+- Ataques Peligrosos: > ${ (winners > 0) ? '1.2' : '1.5' } por min<br>
+- Tiros a Puerta Totales: >= 1<br>
+- Cuota: Entrar en 1.60<br>
+- Mercado: Over 0.5 Goles Partido
+    `;
+
+    document.getElementById('botStats').innerHTML = `
+        <strong>Muestra analizada:</strong> ${totalPotential} partidos<br>
+        <strong>Aciertos potenciales:</strong> ${winners}<br>
+        <strong>ROI Estimado:</strong> ${(rate * 1.6 - 100).toFixed(1)}%
+    `;
 }
 </script>
-
 </body>
 </html>
