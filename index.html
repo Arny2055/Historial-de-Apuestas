@@ -3,56 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poisson Pro - Selector de Equipos</title>
+    <title>Poisson Pro - Analizador de Discrepancia</title>
     <style>
-        :root { --bg: #0e1621; --card: #17212b; --accent: #52a8ff; --success: #27ae60; --text: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; }
-        .container { max-width: 1000px; margin: auto; background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #2b3948; box-sizing: border-box; }
-        h1 { color: var(--accent); text-align: center; font-size: 1.5rem; }
-        textarea { 
-            width: 100%; height: 120px; background: #000; color: #00ff00; 
-            border: 1px solid #3d4b59; border-radius: 8px; padding: 10px; font-family: monospace; font-size: 0.8rem;
-        }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin: 20px 0; }
+        :root { --bg: #0e1621; --card: #17212b; --accent: #52a8ff; --success: #27ae60; --warning: #f1c40f; --danger: #e74c3c; --text: #ffffff; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
+        .container { max-width: 900px; margin: auto; background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #2b3948; box-sizing: border-box; }
+        textarea { width: 100%; height: 100px; background: #000; color: #00ff00; border: 1px solid #3d4b59; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .card { background: #242f3d; padding: 15px; border-radius: 10px; }
-        select, input { 
-            width: 100%; padding: 10px; margin-top: 5px; background: var(--bg); 
-            color: white; border: 1px solid #3d4b59; border-radius: 5px; 
-        }
-        button { 
-            width: 100%; padding: 15px; background: var(--accent); color: white; 
-            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px;
-        }
+        select, input { width: 100%; padding: 10px; margin-top: 5px; background: var(--bg); color: white; border: 1px solid #3d4b59; border-radius: 5px; }
+        button { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .semaforo { padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center; font-weight: bold; display: none; }
         .table-container { overflow-x: auto; margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; border-bottom: 1px solid #2b3948; text-align: center; }
-        .val-win { color: var(--success); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Análisis Poisson por Equipo</h1>
+    <h1>Calculador de Discrepancia Poisson</h1>
     
-    <label>1. Pegue su Base de Datos completa:</label>
-    <textarea id="raw_data" oninput="extraerEquipos()" placeholder="Pegue las filas aquí..."></textarea>
+    <label>Pegue los datos para extraer equipos:</label>
+    <textarea id="raw_data" oninput="extraerEquipos()"></textarea>
 
     <div class="grid">
         <div class="card">
-            <label>🏠 Seleccionar Local:</label>
+            <label>🏠 Local:</label>
             <select id="sel_local"></select>
-            <label style="margin-top:10px; display:block;">Cuota Local:</label>
+            <label>Cuota Casa:</label>
             <input type="number" id="c_local" value="2.10" step="0.01">
         </div>
         <div class="card">
-            <label>🚀 Seleccionar Visitante:</label>
+            <label>🚀 Visitante:</label>
             <select id="sel_visita"></select>
-            <label style="margin-top:10px; display:block;">Cuota Over 2.5:</label>
-            <input type="number" id="c_over" value="1.95" step="0.01">
+            <label>Cuota Over 2.5 Casa:</label>
+            <input type="number" id="c_over" value="2.22" step="0.01">
         </div>
     </div>
 
-    <button onclick="calcularPoissonEquipo()">Analizar Enfrentamiento</button>
+    <button onclick="analizarDiscrepancia()">Calcular Ventaja Real</button>
+
+    <div id="semaforo_v" class="semaforo"></div>
 
     <div id="res_area" style="display:none;">
         <div class="table-container">
@@ -60,9 +52,9 @@
                 <thead>
                     <tr>
                         <th>Mercado</th>
-                        <th>Lambda Proyectado</th>
-                        <th>Probabilidad</th>
-                        <th>Cuota Justa</th>
+                        <th>Tu Prob.</th>
+                        <th>Casa Prob.</th>
+                        <th>Discrepancia</th>
                         <th>EV (%)</th>
                     </tr>
                 </thead>
@@ -80,74 +72,75 @@
         const rawText = document.getElementById('raw_data').value;
         const lineas = rawText.split('\n');
         let equipos = new Set();
-
         lineas.forEach(l => {
             const match = l.match(/([A-Z][a-zñáéíóú]+\s?[A-Z]?[a-zñáéíóú]*)\s-\s([A-Z][a-zñáéíóú]+\s?[A-Z]?[a-zñáéíóú]*)/);
-            if (match) {
-                equipos.add(match[1].trim());
-                equipos.add(match[2].trim());
-            }
+            if (match) { equipos.add(match[1].trim()); equipos.add(match[2].trim()); }
         });
-
-        const sortedEquipos = Array.from(equipos).sort();
-        const fillSelect = (id) => {
-            const el = document.getElementById(id);
-            el.innerHTML = sortedEquipos.map(e => `<option value="${e}">${e}</option>`).join('');
-        };
-        fillSelect('sel_local');
-        fillSelect('sel_visita');
+        const sorted = Array.from(equipos).sort();
+        const fill = (id) => document.getElementById(id).innerHTML = sorted.map(e => `<option value="${e}">${e}</option>`).join('');
+        fill('sel_local'); fill('sel_visita');
     }
 
-    function calcularPoissonEquipo() {
+    function analizarDiscrepancia() {
         const rawText = document.getElementById('raw_data').value;
         const localNom = document.getElementById('sel_local').value;
         const visitaNom = document.getElementById('sel_visita').value;
+        const cOverCasa = parseFloat(document.getElementById('c_over').value);
+        
         const lineas = rawText.split('\n');
+        const partidosL = lineas.filter(l => l.includes(localNom)).slice(-10);
+        const partidosV = lineas.filter(l => l.includes(visitaNom)).slice(-10);
 
-        // Filtrar últimos 10 partidos específicos
-        const partidosLocal = lineas.filter(l => l.includes(localNom)).slice(-10);
-        const partidosVisita = lineas.filter(l => l.includes(visitaNom)).slice(-10);
-
-        const getStats = (partidos, nombreEquipo) => {
-            let marcados = 0, recibidos = 0;
+        const getStats = (partidos, nombre) => {
+            let m = 0, r = 0;
             partidos.forEach(l => {
-                const m = l.match(/(\d+)-(\d+)/);
-                if (m) {
-                    const eqMatch = l.match(new RegExp(`(${nombreEquipo})\\s-\\s|\\s-\\s(${nombreEquipo})`));
-                    const isHome = l.indexOf(nombreEquipo) < l.indexOf('-');
-                    marcados += isHome ? parseInt(m[1]) : parseInt(m[2]);
-                    recibidos += isHome ? parseInt(m[2]) : parseInt(m[1]);
+                const res = l.match(/(\d+)-(\d+)/);
+                if (res) {
+                    const isHome = l.indexOf(nombre) < l.indexOf('-');
+                    m += isHome ? parseInt(res[1]) : parseInt(res[2]);
+                    r += isHome ? parseInt(res[2]) : parseInt(res[1]);
                 }
             });
-            return { favor: marcados / partidos.length || 0, contra: recibidos / partidos.length || 0 };
+            return { f: m / partidos.length || 0, c: r / partidos.length || 0 };
         };
 
-        const statsL = getStats(partidosLocal, localNom);
-        const statsV = getStats(partidosVisita, visitaNom);
+        const sL = getStats(partidosL, localNom);
+        const sV = getStats(partidosV, visitaNom);
+        const lambda = ((sL.f + sV.c) / 2) + ((sV.f + sL.c) / 2);
 
-        // Lambda Proyectado: (Ataque Local + Defensa Visita) / 2 (Aproximación simple para esta versión)
-        const lambdaL = (statsL.favor + statsV.contra) / 2;
-        const lambdaV = (statsV.favor + statsL.contra) / 2;
-
-        let pWinL = 0, pOver25 = 0;
+        let pOver25 = 0;
         for (let i = 0; i <= 8; i++) {
             for (let j = 0; j <= 8; j++) {
-                const prob = poisson(i, lambdaL) * poisson(j, lambdaV);
-                if (i > j) pWinL += prob;
-                if ((i + j) > 2.5) pOver25 += prob;
+                if ((i + j) > 2.5) pOver25 += poisson(i, (sL.f + sV.c)/2) * poisson(j, (sV.f + sL.c)/2);
             }
         }
 
-        const res = [
-            { id: `Victoria ${localNom}`, prob: pWinL, cuota: parseFloat(document.getElementById('c_local').value), l: lambdaL },
-            { id: "Over 2.5 FT", prob: pOver25, cuota: parseFloat(document.getElementById('c_over').value), l: lambdaL + lambdaV }
-        ];
+        const probCasa = (1 / cOverCasa);
+        const discrepancia = (pOver25 - probCasa) * 100;
+        const ev = ((cOverCasa / (1/pOver25)) - 1) * 100;
 
-        document.getElementById('tabla-body').innerHTML = res.map(r => {
-            const cJusta = 1 / r.prob;
-            const ev = ((r.cuota / cJusta) - 1) * 100;
-            return `<tr><td>${r.id}</td><td>${r.l.toFixed(2)}</td><td>${(r.prob * 100).toFixed(1)}%</td><td>${cJusta.toFixed(2)}</td><td class="${ev > 0 ? 'val-win' : ''}">${ev.toFixed(2)}%</td></tr>`;
-        }).join('');
+        const sem = document.getElementById('semaforo_v');
+        sem.style.display = "block";
+        if (discrepancia > 12) {
+            sem.style.background = "var(--danger)";
+            sem.innerHTML = "⚠️ DISCREPANCIA SOSPECHOSA (" + discrepancia.toFixed(1) + "%). Revisa bajas y noticias.";
+        } else if (discrepancia >= 5) {
+            sem.style.background = "var(--success)";
+            sem.innerHTML = "✅ VALOR DETECTADO (" + discrepancia.toFixed(1) + "%). Buena oportunidad.";
+        } else {
+            sem.style.background = "var(--warning)";
+            sem.innerHTML = "ℹ️ POCA VENTAJA (" + discrepancia.toFixed(1) + "%). No vale el riesgo.";
+        }
+
+        document.getElementById('tabla-body').innerHTML = `
+            <tr>
+                <td>Over 2.5 Goles</td>
+                <td>${(pOver25 * 100).toFixed(1)}%</td>
+                <td>${(probCasa * 100).toFixed(1)}%</td>
+                <td>${discrepancia.toFixed(1)}%</td>
+                <td class="${ev > 0 ? 'val-win' : ''}">${ev.toFixed(2)}%</td>
+            </tr>
+        `;
         document.getElementById('res_area').style.display = "block";
     }
 </script>
