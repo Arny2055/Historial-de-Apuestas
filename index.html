@@ -3,199 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Bot Finder - Deep League Optimizer</title>
+    <title>AI Predictor - Entrenamiento de Patrones</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #238636; --text: #c9d1d9; --gold: #d29922; --win: #2ea043; --loss: #f85149; --info: #58a6ff; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
-        .grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; }
-        textarea { width: 100%; height: 200px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: monospace; }
+        .grid { display: grid; grid-template-columns: 1fr 450px; gap: 20px; }
+        textarea { width: 100%; height: 150px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: monospace; }
         .panel { background: var(--card); border: 1px solid #30363d; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
-        button { background: var(--info); color: white; border: none; padding: 15px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1em; }
-        button:hover { filter: brightness(1.2); }
-        .bot-config { background: #010409; border: 2px solid var(--win); padding: 15px; border-radius: 6px; color: #7ee787; font-family: monospace; }
-        .match-entry { border-bottom: 1px solid #30363d; padding: 8px 0; display: flex; justify-content: space-between; font-size: 0.85em; }
-        .status-win { color: var(--win); font-weight: bold; }
-        .status-loss { color: var(--loss); font-weight: bold; }
-        .loading { display: none; text-align: center; color: var(--gold); font-weight: bold; margin: 10px 0; }
-        .summary-card { background: #21262d; padding: 15px; border-radius: 6px; margin-top: 10px; border-left: 4px solid var(--info); }
-        .log-search { font-size: 0.8em; color: #8b949e; height: 120px; overflow-y: auto; background: #010409; padding: 10px; border-radius: 5px; margin-top: 10px; }
-        .league-tag { font-size: 0.75em; background: #30363d; padding: 2px 5px; border-radius: 3px; color: #8b949e; }
+        button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
+        button.predict-btn { background: var(--info); margin-top: 10px; }
+        .prediction-box { padding: 20px; border-radius: 8px; text-align: center; margin-top: 15px; font-weight: bold; display: none; }
+        .bet-yes { background: rgba(46, 160, 67, 0.2); border: 2px solid var(--win); color: #7ee787; }
+        .bet-no { background: rgba(248, 81, 73, 0.2); border: 2px solid var(--loss); color: #ffa198; }
+        input { background: #0d1117; border: 1px solid #30363d; color: white; padding: 8px; border-radius: 4px; width: 60px; text-align: center; }
+        .form-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.9em; }
+        .log-search { font-size: 0.8em; color: #8b949e; height: 80px; overflow-y: auto; background: #010409; padding: 10px; border-radius: 5px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header" style="text-align:center;">
-        <h2>🧠 IA Deep Search: Patrones + Ligas Rentables</h2>
-        <p>Buscando rentabilidad real a cuota 1.60 mediante filtrado masivo</p>
+        <h2>🧠 Predictor de Goles Entrenado</h2>
+        <p>Entrena el modelo con tu historial y predice entradas en vivo</p>
     </div>
 
     <div class="grid">
         <div class="left-col">
             <div class="panel">
-                <h3>1. Inserción de Datos Masivos</h3>
-                <textarea id="dataInput" placeholder="Pega aquí los datos históricos (incluyendo columna de Liga/League)..."></textarea>
-                <button onclick="startDeepSearch()">Ejecutar Búsqueda de Bot Rentable</button>
-                <div id="loadingText" class="loading">🔍 Escaneando patrones y ligas...</div>
-                <div id="searchLog" class="log-search">Esperando datos...</div>
+                <h3>1. Base de Conocimiento (Entrenamiento)</h3>
+                <textarea id="dataInput" placeholder="Pega aquí los datos de todas las ligas para entrenar la herramienta..."></textarea>
+                <button onclick="trainModel()">Entrenar Herramienta con Historial</button>
+                <div id="trainLog" class="log-search">Modelo sin entrenar.</div>
             </div>
 
             <div class="panel">
-                <h3>2. Auditoría de Partidos</h3>
-                <div id="matchList"></div>
+                <h3>2. Auditoría de Entrenamiento</h3>
+                <div id="auditResults" style="font-size: 0.85em;">Carga datos para ver la efectividad por rangos.</div>
             </div>
         </div>
 
         <div class="right-col">
-            <div id="resultPanel" style="display:none;">
-                <div class="panel" style="border-color: var(--win);">
-                    <h3>✅ Bot Rentable Encontrado</h3>
-                    <div id="botConfig" class="bot-config"></div>
+            <div class="panel" style="border-color: var(--info);">
+                <h3>🎯 Datos del Partido en Vivo</h3>
+                
+                <div class="form-row">
+                    <span>Posición Ranking:</span>
+                    <div><input type="number" id="rankH" value="10"> - <input type="number" id="rankA" value="18"></div>
+                </div>
+                <div class="form-row">
+                    <span>Ataques Peligrosos:</span>
+                    <div><input type="number" id="apH" value="3"> - <input type="number" id="apA" value="10"></div>
+                </div>
+                <div class="form-row">
+                    <span>Tiros a Puerta:</span>
+                    <div><input type="number" id="shOnH" value="0"> - <input type="number" id="shOnA" value="1"></div>
+                </div>
+                <div class="form-row">
+                    <span>Córners:</span>
+                    <div><input type="number" id="crnH" value="0"> - <input type="number" id="crnA" value="1"></div>
+                </div>
+                <div class="form-row">
+                    <span>% Ataques:</span>
+                    <div><input type="number" id="atH" value="53">% - <input type="number" id="atA" value="47">%</div>
                 </div>
 
-                <div class="panel">
-                    <h3>📊 Rendimiento Global</h3>
-                    <div id="roiStats"></div>
-                </div>
+                <button class="predict-btn" onclick="predictBet()">¿APOSTAR O NO?</button>
 
-                <div class="panel" id="leagueBreakdown" style="border-top: 3px solid var(--gold);">
-                    <h3>🏆 Top Ligas para este Bot</h3>
-                    <div id="leagueList" style="font-size: 0.9em;"></div>
-                </div>
-            </div>
-            
-            <div id="noResultPanel" class="panel" style="display:none; border-color: var(--loss);">
-                <h3>⚠️ Sin Rentabilidad Encontrada</h3>
-                <p>Ninguna combinación de filtros superó el 62.5% de Strike Rate necesario para cuota 1.60. Prueba cargando más datos.</p>
+                <div id="predictionResult" class="prediction-box"></div>
+                <div id="confidenceNote" style="text-align:center; font-size: 0.8em; margin-top: 10px;"></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-function startDeepSearch() {
+let trainedData = [];
+let modelTrained = false;
+
+function trainModel() {
     const input = document.getElementById('dataInput').value;
     const lines = input.split('\n').filter(l => l.trim() !== "" && !l.toLowerCase().includes('match'));
-    const log = document.getElementById('searchLog');
-    const loading = document.getElementById('loadingText');
+    const log = document.getElementById('trainLog');
     
     if (lines.length < 5) {
-        alert("Pega más datos. Se recomienda un mínimo de 15-20 partidos para detectar patrones reales.");
+        alert("Pega más datos para un entrenamiento fiable.");
         return;
     }
 
-    loading.style.display = "block";
-    log.innerHTML = "Iniciando análisis geográfico y estadístico...<br>";
-    
-    // Pruebas de filtros
-    const apTests = [1.0, 1.25, 1.45, 1.65, 1.85];
-    const shotTests = [0, 1, 2];
-    
-    let bestBot = null;
-    let maxROI = -100;
+    trainedData = [];
+    lines.forEach(line => {
+        const cols = line.split('\t');
+        if (cols.length < 42) return;
 
-    setTimeout(() => {
-        apTests.forEach(apMin => {
-            shotTests.forEach(shots => {
-                let total = 0;
-                let wins = 0;
-                let selectedMatches = [];
-                let leagues = {};
+        const ap = (parseInt(cols[11]) || 0) + (parseInt(cols[12]) || 0);
+        const shOn = (parseInt(cols[15]) || 0) + (parseInt(cols[16]) || 0);
+        const resultHT = cols[41].trim();
+        const isWin = (resultHT !== "0-0" && resultHT !== "");
 
-                lines.forEach(line => {
-                    const cols = line.split('\t');
-                    if (cols.length < 42) return;
+        trainedData.push({ ap, shOn, isWin });
+    });
 
-                    const league = cols[1] || "Otros"; // Asumiendo columna 1 para Liga
-                    const minute = parseInt(cols[7]) || 1;
-                    const ap = (parseInt(cols[11]) || 0) + (parseInt(cols[12]) || 0);
-                    const shOn = (parseInt(cols[15]) || 0) + (parseInt(cols[16]) || 0);
-                    const resultHT = cols[41].trim();
-                    
-                    const apM = ap / minute;
-                    const isWin = (resultHT !== "0-0" && resultHT !== "");
-
-                    if (apM >= apMin && shOn >= shots) {
-                        total++;
-                        if (isWin) wins++;
-                        
-                        // Registro de ligas
-                        if (!leagues[league]) leagues[league] = {t: 0, w: 0};
-                        leagues[league].t++;
-                        if (isWin) leagues[league].w++;
-
-                        selectedMatches.push({name: cols[6], res: resultHT, win: isWin, apm: apM, league: league});
-                    }
-                });
-
-                if (total >= 4) {
-                    const roi = ((wins * 1.60 - total) / total * 100);
-                    log.innerHTML += `Test: AP>${apMin} + SH>${shots} | ROI: ${roi.toFixed(1)}%<br>`;
-                    log.scrollTop = log.scrollHeight;
-
-                    if (roi > maxROI) {
-                        maxROI = roi;
-                        bestBot = { apMin, shots, roi, wins, total, matches: selectedMatches, leagues };
-                    }
-                }
-            });
-        });
-
-        loading.style.display = "none";
-        displayBestBot(bestBot);
-    }, 1200);
+    modelTrained = true;
+    log.innerHTML = `✅ Entrenamiento completado.<br>Muestra analizada: ${trainedData.length} partidos.<br>Acierto global HT: ${((trainedData.filter(d=>d.isWin).length/trainedData.length)*100).toFixed(1)}%`;
 }
 
-function displayBestBot(bot) {
-    const resPanel = document.getElementById('resultPanel');
-    const noRes = document.getElementById('noResultPanel');
-    const matchList = document.getElementById('matchList');
-    const leagueList = document.getElementById('leagueList');
+function predictBet() {
+    if (!modelTrained) {
+        alert("Primero debes pegar los datos históricos y hacer clic en 'Entrenar'.");
+        return;
+    }
 
-    if (bot && bot.roi > 0) {
-        resPanel.style.display = "block";
-        noRes.style.display = "none";
-        
-        document.getElementById('botConfig').innerHTML = `
-            FILTROS ÓPTIMOS:<br>
-            --------------------<br>
-            Ataques Pel/Min: > ${bot.apMin.toFixed(2)}<br>
-            Tiros a Puerta: >= ${bot.shots}<br>
-            Mercado: Over 0.5 HT @1.60
-        `;
+    // Captura de datos live ingresados por el usuario
+    const liveAP = parseInt(document.getElementById('apH').value) + parseInt(document.getElementById('apA').value);
+    const liveSh = parseInt(document.getElementById('shOnH').value) + parseInt(document.getElementById('shOnA').value);
+    
+    const resultDiv = document.getElementById('predictionResult');
+    const noteDiv = document.getElementById('confidenceNote');
 
-        document.getElementById('roiStats').innerHTML = `
-            <div class="summary-card">
-                <span style="font-size: 1.5em; font-weight: bold; color: var(--win);">ROI: ${bot.roi.toFixed(1)}%</span><br>
-                <span>Acierto: ${((bot.wins/bot.total)*100).toFixed(1)}% (${bot.wins}/${bot.total})</span>
-            </div>
-        `;
+    // Lógica de comparación con el modelo entrenado
+    // Buscamos partidos similares en la base de datos (+/- 20% de presión)
+    const similarMatches = trainedData.filter(d => 
+        d.ap >= (liveAP * 0.8) && d.ap <= (liveAP * 1.2) &&
+        d.shOn >= liveSh
+    );
 
-        // Mostrar desglose de ligas
-        leagueList.innerHTML = "";
-        Object.keys(bot.leagues).forEach(l => {
-            const lData = bot.leagues[l];
-            const lRoi = ((lData.w * 1.60 - lData.t) / lData.t * 100).toFixed(0);
-            leagueList.innerHTML += `
-                <div style="margin-bottom:5px;">
-                    <span class="league-tag">${l}</span> 
-                    <span style="color:${lRoi >= 0 ? 'var(--win)' : 'var(--loss)'}">${lRoi}% ROI</span>
-                </div>`;
-        });
+    const wins = similarMatches.filter(m => m.win).length;
+    const total = similarMatches.length;
+    const prob = total > 0 ? (wins / total) : 0;
 
-        matchList.innerHTML = bot.matches.map(m => `
-            <div class="match-entry">
-                <span><small>${m.league}</small><br><strong>${m.name}</strong></span>
-                <span class="${m.win ? 'status-win' : 'status-loss'}">${m.res}</span>
-            </div>
-        `).join('');
+    resultDiv.style.display = "block";
 
+    // Umbral de rentabilidad para cuota 1.60 (62.5%)
+    if (prob >= 0.63 && total >= 3) {
+        resultDiv.className = "prediction-box bet-yes";
+        resultDiv.innerHTML = `Veredicto: ¡APUESTA! ✅`;
+        noteDiv.innerHTML = `Basado en ${total} partidos similares, la probabilidad de gol HT es del ${(prob*100).toFixed(1)}%.`;
     } else {
-        resPanel.style.display = "none";
-        noRes.style.display = "block";
+        resultDiv.className = "prediction-box bet-no";
+        resultDiv.innerHTML = `Veredicto: NO APOSTAR ❌`;
+        noteDiv.innerHTML = `Probabilidad detectada: ${(prob*100).toFixed(1)}%. Insuficiente para cuota 1.60 o muestra muy pequeña (${total}).`;
     }
 }
 </script>
+
 </body>
 </html>
