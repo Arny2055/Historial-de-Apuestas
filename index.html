@@ -3,56 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Valor - Poisson Fútbol</title>
+    <title>Poisson Pro - Valor y Mercados</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; padding: 20px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; text-align: center; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-        .input-group { display: flex; flex-direction: column; }
-        label { font-weight: bold; margin-bottom: 5px; }
-        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        button { width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background: #219150; }
-        #resultado { margin-top: 20px; padding: 15px; border-radius: 4px; display: none; }
-        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
-        .danger { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
-        table { width: 100%; margin-top: 15px; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        th { background: #f2f2f2; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0e1621; color: #ffffff; padding: 20px; line-height: 1.6; }
+        .container { max-width: 900px; margin: auto; background: #17212b; padding: 30px; border-radius: 12px; border: 1px solid #2b3948; }
+        h1, h2 { color: #52a8ff; text-align: center; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 20px; }
+        .card { background: #242f3d; padding: 15px; border-radius: 8px; }
+        .input-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+        label { font-size: 0.9em; color: #abaeb3; margin-bottom: 5px; }
+        input { padding: 10px; background: #0e1621; border: 1px solid #3d4b59; color: white; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background: #52a8ff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1.1em; margin-top: 10px; }
+        button:hover { background: #3d86d4; }
+        #resultado { margin-top: 25px; padding: 20px; border-radius: 8px; display: none; }
+        .success { border-left: 5px solid #27ae60; background: #1c2e25; }
+        .info-box { background: #2b3948; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 0.85em; }
+        table { width: 100%; margin-top: 15px; border-collapse: collapse; background: #17212b; }
+        th, td { padding: 10px; border-bottom: 1px solid #2b3948; text-align: left; }
+        .valor-alto { color: #27ae60; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Análisis de Valor (Poisson)</h1>
-    <p>Calcula la probabilidad real vs la cuota de la casa.</p>
+    <h1>Estrategia de Valor Poisson</h1>
     
+    <div class="info-box">
+        <strong>💡 Recomendación de Muestra:</strong> Para que Poisson sea fiable, usa los <strong>últimos 10 a 15 partidos</strong> de cada equipo. 
+        Muestras menores a 5 partidos son ruidosas; más de 25 no reflejan el estado de forma actual (fichajes, lesiones).
+    </div>
+
     <div class="grid">
-        <div class="input-group">
-            <h3>Equipo Local</h3>
-            <label>Goles Marcados (Local):</label>
-            <input type="number" id="ataque_local" value="1.5" step="0.1">
-            <label>Goles Recibidos (Local):</label>
-            <input type="number" id="defensa_local" value="1.0" step="0.1">
+        <div class="card">
+            <h3>🏠 Equipo Local</h3>
+            <div class="input-group">
+                <label>Goles Proyectados (Ataque):</label>
+                <input type="number" id="al" value="1.6" step="0.1">
+            </div>
+            <div class="input-group">
+                <label>Cuota Local (Casa):</label>
+                <input type="number" id="cl" value="2.00" step="0.01">
+            </div>
         </div>
-        <div class="input-group">
-            <h3>Equipo Visitante</h3>
-            <label>Goles Marcados (Visita):</label>
-            <input type="number" id="ataque_visita" value="1.2" step="0.1">
-            <label>Goles Recibidos (Visita):</label>
-            <input type="number" id="defensa_visita" value="1.4" step="0.1">
+        <div class="card">
+            <h3>🚀 Equipo Visitante</h3>
+            <div class="input-group">
+                <label>Goles Proyectados (Ataque):</label>
+                <input type="number" id="av" value="1.1" step="0.1">
+            </div>
+            <div class="input-group">
+                <label>Cuota Over 2.5 (Casa):</label>
+                <input type="number" id="co" value="1.95" step="0.01">
+            </div>
         </div>
     </div>
 
-    <div class="input-group" style="margin-bottom: 20px;">
-        <label>Cuota de la Casa (Victoria Local):</label>
-        <input type="number" id="cuota_casa" value="2.10" step="0.01">
+    <button onclick="analizarTodo()">Calcular Mercados de Valor</button>
+
+    <div id="resultado" class="success">
+        <h2>Análisis de Probabilidades</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Mercado</th>
+                    <th>Prob. Real</th>
+                    <th>Cuota Justa</th>
+                    <th>EV (%)</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-body"></tbody>
+        </table>
     </div>
 
-    <button onclick="calcularValor()">Calcular Probabilidades y Valor</button>
-
-    <div id="resultado"></div>
+    <div class="info-box" style="border-top: 2px solid #52a8ff;">
+        <strong>🎯 ¿Por qué Over/Under 2.5?</strong> El fútbol es un deporte de baja anotación. Poisson es excepcionalmente bueno prediciendo la suma de goles (frecuencia) más que el ganador exacto, ya que elimina el sesgo psicológico del "quién gana" y se enfoca en la capacidad ofensiva pura.
+    </div>
 </div>
 
 <script>
@@ -64,51 +89,55 @@
     }
 
     function poisson(k, lambda) {
-        return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
+        return (Math.pow(Math.E, -lambda) * Math.pow(lambda, k)) / factorial(k);
     }
 
-    function calcularValor() {
-        const al = parseFloat(document.getElementById('ataque_local').value);
-        const dl = parseFloat(document.getElementById('defensa_local').value);
-        const av = parseFloat(document.getElementById('ataque_visita').value);
-        const dv = parseFloat(document.getElementById('defensa_visita').value);
-        const cuotaCasa = parseFloat(document.getElementById('cuota_casa').value);
+    function analizarTodo() {
+        const lambdaL = parseFloat(document.getElementById('al').value);
+        const lambdaV = parseFloat(document.getElementById('av').value);
+        const cuotaCasaL = parseFloat(document.getElementById('cl').value);
+        const cuotaCasaO = parseFloat(document.getElementById('co').value);
 
-        // Estimación de Lambda (Promedio proyectado)
-        // Simplificado: (Ataque A * Defensa B) / Promedio Liga (asumimos 1.35 como promedio base)
-        const promedioLiga = 1.35;
-        const lambdaLocal = (al * dv) / promedioLiga;
-        const lambdaVisita = (av * dl) / promedioLiga;
+        let pWinL = 0, pDraw = 0, pWinV = 0, pOver25 = 0;
 
-        let probLocalWin = 0;
-        let probEmpate = 0;
-        let probVisitaWin = 0;
+        for (let i = 0; i <= 8; i++) {
+            for (let j = 0; j <= 8; j++) {
+                const prob = poisson(i, lambdaL) * poisson(j, lambdaV);
+                
+                // 1X2
+                if (i > j) pWinL += prob;
+                else if (i === j) pDraw += prob;
+                else pWinV += prob;
 
-        // Generar matriz 6x6 (resultados de 0 a 5 goles)
-        for (let i = 0; i <= 6; i++) {
-            for (let j = 0; j <= 6; j++) {
-                const p = poisson(i, lambdaLocal) * poisson(j, lambdaVisita);
-                if (i > j) probLocalWin += p;
-                else if (i === j) probEmpate += p;
-                else probVisitaWin += p;
+                // Over 2.5
+                if ((i + j) > 2.5) pOver25 += prob;
             }
         }
 
-        const cuotaJusta = 1 / probLocalWin;
-        const ev = (cuotaCasa / cuotaJusta) - 1;
-        const resultadoDiv = document.getElementById('resultado');
-        
-        resultadoDiv.style.display = 'block';
-        resultadoDiv.className = ev > 0 ? 'success' : 'danger';
+        const mercados = [
+            { nombre: "Victoria Local (1)", prob: pWinL, cuotaCasa: cuotaCasaL },
+            { nombre: "Over 2.5 Goles", prob: pOver25, cuotaCasa: cuotaCasaO }
+        ];
 
-        resultadoDiv.innerHTML = `
-            <h3>Análisis Final</h3>
-            <p><strong>Probabilidad Estimada:</strong> ${(probLocalWin * 100).toFixed(2)}%</p>
-            <p><strong>Cuota Justa:</strong> ${cuotaJusta.toFixed(2)}</p>
-            <p><strong>Valor Esperado (EV):</strong> ${(ev * 100).toFixed(2)}%</p>
-            <hr>
-            <p>${ev > 0 ? '<strong>¡VALOR ENCONTRADO!</strong> La cuota es más alta de lo que debería.' : '<strong>SIN VALOR.</strong> La casa tiene el control.'}</p>
-        `;
+        const tbody = document.getElementById('tabla-body');
+        tbody.innerHTML = "";
+
+        mercados.forEach(m => {
+            const cJusta = 1 / m.prob;
+            const ev = ((m.cuotaCasa / cJusta) - 1) * 100;
+            const valorClass = ev > 0 ? "valor-alto" : "";
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${m.nombre}</td>
+                    <td>${(m.prob * 100).toFixed(1)}%</td>
+                    <td>${cJusta.toFixed(2)}</td>
+                    <td class="${valorClass}">${ev.toFixed(2)}%</td>
+                </tr>
+            `;
+        });
+
+        document.getElementById('resultado').style.display = "block";
     }
 </script>
 
