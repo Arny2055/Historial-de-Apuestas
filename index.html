@@ -3,73 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Predictor - Entrenamiento de Patrones</title>
+    <title>AI Predictor Pro - Auto-Parsing</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #238636; --text: #c9d1d9; --gold: #d29922; --win: #2ea043; --loss: #f85149; --info: #58a6ff; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
         .grid { display: grid; grid-template-columns: 1fr 450px; gap: 20px; }
-        textarea { width: 100%; height: 150px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: monospace; }
+        textarea { width: 100%; height: 180px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: monospace; }
         .panel { background: var(--card); border: 1px solid #30363d; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
         button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
-        button.predict-btn { background: var(--info); margin-top: 10px; }
+        button.predict-btn { background: var(--info); margin-top: 10px; font-size: 1.2em; }
         .prediction-box { padding: 20px; border-radius: 8px; text-align: center; margin-top: 15px; font-weight: bold; display: none; }
         .bet-yes { background: rgba(46, 160, 67, 0.2); border: 2px solid var(--win); color: #7ee787; }
         .bet-no { background: rgba(248, 81, 73, 0.2); border: 2px solid var(--loss); color: #ffa198; }
-        input { background: #0d1117; border: 1px solid #30363d; color: white; padding: 8px; border-radius: 4px; width: 60px; text-align: center; }
-        .form-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.9em; }
+        .live-data-preview { background: #0d1117; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.85em; border: 1px dashed #58a6ff; }
         .log-search { font-size: 0.8em; color: #8b949e; height: 80px; overflow-y: auto; background: #010409; padding: 10px; border-radius: 5px; margin-top: 10px; }
+        .stat-val { color: var(--gold); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header" style="text-align:center;">
-        <h2>🧠 Predictor de Goles Entrenado</h2>
-        <p>Entrena el modelo con tu historial y predice entradas en vivo</p>
+        <h2>🧠 Predictor Entrenado con Auto-Acomodado</h2>
+        <p>Entrena con historial y pega datos live sin formato</p>
     </div>
 
     <div class="grid">
         <div class="left-col">
             <div class="panel">
                 <h3>1. Base de Conocimiento (Entrenamiento)</h3>
-                <textarea id="dataInput" placeholder="Pega aquí los datos de todas las ligas para entrenar la herramienta..."></textarea>
-                <button onclick="trainModel()">Entrenar Herramienta con Historial</button>
+                <textarea id="dataInput" placeholder="Pega aquí los datos históricos de todas las ligas..."></textarea>
+                <button onclick="trainModel()">Entrenar Herramienta</button>
                 <div id="trainLog" class="log-search">Modelo sin entrenar.</div>
             </div>
 
             <div class="panel">
-                <h3>2. Auditoría de Entrenamiento</h3>
-                <div id="auditResults" style="font-size: 0.85em;">Carga datos para ver la efectividad por rangos.</div>
+                <h3>2. Auditoría de Datos Detectados</h3>
+                <div id="auditResults" style="font-size: 0.85em;">Carga datos para ver la efectividad.</div>
             </div>
         </div>
 
         <div class="right-col">
             <div class="panel" style="border-color: var(--info);">
-                <h3>🎯 Datos del Partido en Vivo</h3>
+                <h3>🎯 Pegar Datos del Partido Live</h3>
+                <p style="font-size: 0.8em; color: #8b949e;">Pega el bloque de texto completo (Ranking, Goles, Corners, etc.):</p>
                 
-                <div class="form-row">
-                    <span>Posición Ranking:</span>
-                    <div><input type="number" id="rankH" value="10"> - <input type="number" id="rankA" value="18"></div>
-                </div>
-                <div class="form-row">
-                    <span>Ataques Peligrosos:</span>
-                    <div><input type="number" id="apH" value="3"> - <input type="number" id="apA" value="10"></div>
-                </div>
-                <div class="form-row">
-                    <span>Tiros a Puerta:</span>
-                    <div><input type="number" id="shOnH" value="0"> - <input type="number" id="shOnA" value="1"></div>
-                </div>
-                <div class="form-row">
-                    <span>Córners:</span>
-                    <div><input type="number" id="crnH" value="0"> - <input type="number" id="crnA" value="1"></div>
-                </div>
-                <div class="form-row">
-                    <span>% Ataques:</span>
-                    <div><input type="number" id="atH" value="53">% - <input type="number" id="atA" value="47">%</div>
+                <textarea id="liveRawInput" style="height: 120px;" placeholder="Ejemplo: Posición en el ranking: 10 - 18... Ataques peligrosos: 3 - 10" oninput="parseLiveData()"></textarea>
+
+                <div id="dataPreview" class="live-data-preview">
+                    Esperando datos legibles...
                 </div>
 
-                <button class="predict-btn" onclick="predictBet()">¿APOSTAR O NO?</button>
+                <button class="predict-btn" onclick="predictBet()">ANALIZAR PROBABILIDAD</button>
 
                 <div id="predictionResult" class="prediction-box"></div>
                 <div id="confidenceNote" style="text-align:center; font-size: 0.8em; margin-top: 10px;"></div>
@@ -81,6 +67,37 @@
 <script>
 let trainedData = [];
 let modelTrained = false;
+let currentLiveStats = null;
+
+// Función para extraer números de un texto basándose en etiquetas
+function extractStat(text, label) {
+    const regex = new RegExp(label + "[:\\s]*(\\d+)\\s*-\\s*(\\d+)", "i");
+    const match = text.match(regex);
+    return match ? { h: parseInt(match[1]), a: parseInt(match[2]) } : { h: 0, a: 0 };
+}
+
+function parseLiveData() {
+    const text = document.getElementById('liveRawInput').value;
+    if (!text) return;
+
+    // Extraemos los datos usando el formato que proporcionaste
+    const rank = extractStat(text, "ranking");
+    const goals = extractStat(text, "Goles");
+    const corners = extractStat(text, "Corners");
+    const shOn = extractStat(text, "Tiros a puerta");
+    const ap = extractStat(text, "Ataques peligrosos");
+
+    currentLiveStats = { rank, goals, corners, shOn, ap };
+
+    document.getElementById('dataPreview').innerHTML = `
+        <b>Datos Detectados:</b><br>
+        Ranking: <span class="stat-val">${rank.h}-${rank.a}</span> | 
+        Goles: <span class="stat-val">${goals.h}-${goals.a}</span><br>
+        AP: <span class="stat-val">${ap.h}-${ap.a}</span> | 
+        Tiros On: <span class="stat-val">${shOn.h}-${shOn.a}</span> | 
+        Corners: <span class="stat-val">${corners.h}-${corners.a}</span>
+    `;
+}
 
 function trainModel() {
     const input = document.getElementById('dataInput').value;
@@ -106,26 +123,28 @@ function trainModel() {
     });
 
     modelTrained = true;
-    log.innerHTML = `✅ Entrenamiento completado.<br>Muestra analizada: ${trainedData.length} partidos.<br>Acierto global HT: ${((trainedData.filter(d=>d.isWin).length/trainedData.length)*100).toFixed(1)}%`;
+    log.innerHTML = `✅ Modelo Entrenado.<br>Base de datos: ${trainedData.length} registros.<br>Rendimiento Histórico: ${((trainedData.filter(d=>d.isWin).length/trainedData.length)*100).toFixed(1)}%`;
 }
 
 function predictBet() {
     if (!modelTrained) {
-        alert("Primero debes pegar los datos históricos y hacer clic en 'Entrenar'.");
+        alert("Primero entrena el modelo con los datos históricos.");
+        return;
+    }
+    if (!currentLiveStats) {
+        alert("Pega los datos del partido en vivo.");
         return;
     }
 
-    // Captura de datos live ingresados por el usuario
-    const liveAP = parseInt(document.getElementById('apH').value) + parseInt(document.getElementById('apA').value);
-    const liveSh = parseInt(document.getElementById('shOnH').value) + parseInt(document.getElementById('shOnA').value);
+    const liveAP = currentLiveStats.ap.h + currentLiveStats.ap.a;
+    const liveSh = currentLiveStats.shOn.h + currentLiveStats.shOn.a;
     
     const resultDiv = document.getElementById('predictionResult');
     const noteDiv = document.getElementById('confidenceNote');
 
-    // Lógica de comparación con el modelo entrenado
-    // Buscamos partidos similares en la base de datos (+/- 20% de presión)
+    // Comparación: Buscamos en el historial partidos con presión similar (rango +/- 15%)
     const similarMatches = trainedData.filter(d => 
-        d.ap >= (liveAP * 0.8) && d.ap <= (liveAP * 1.2) &&
+        d.ap >= (liveAP * 0.85) && d.ap <= (liveAP * 1.15) &&
         d.shOn >= liveSh
     );
 
@@ -135,15 +154,15 @@ function predictBet() {
 
     resultDiv.style.display = "block";
 
-    // Umbral de rentabilidad para cuota 1.60 (62.5%)
+    // Umbral de éxito para cuota 1.60
     if (prob >= 0.63 && total >= 3) {
         resultDiv.className = "prediction-box bet-yes";
-        resultDiv.innerHTML = `Veredicto: ¡APUESTA! ✅`;
-        noteDiv.innerHTML = `Basado en ${total} partidos similares, la probabilidad de gol HT es del ${(prob*100).toFixed(1)}%.`;
+        resultDiv.innerHTML = `Veredicto: APUESTA ✅<br>Probabilidad: ${(prob*100).toFixed(1)}%`;
+        noteDiv.innerHTML = `Patrón encontrado en ${total} partidos previos similares.`;
     } else {
         resultDiv.className = "prediction-box bet-no";
-        resultDiv.innerHTML = `Veredicto: NO APOSTAR ❌`;
-        noteDiv.innerHTML = `Probabilidad detectada: ${(prob*100).toFixed(1)}%. Insuficiente para cuota 1.60 o muestra muy pequeña (${total}).`;
+        resultDiv.innerHTML = `Veredicto: NO APOSTAR ❌<br>Probabilidad: ${(prob*100).toFixed(1)}%`;
+        noteDiv.innerHTML = `Faltan evidencias (Solo ${total} partidos similares o probabilidad baja).`;
     }
 }
 </script>
