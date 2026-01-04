@@ -3,175 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Bot Optimizer - Máximo Rendimiento</title>
+    <title>Calculadora de Valor - Poisson Fútbol</title>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #238636; --text: #c9d1d9; --gold: #d29922; --win: #2ea043; --loss: #f85149; --info: #58a6ff; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
-        .container { max-width: 1200px; margin: auto; }
-        .grid { display: grid; grid-template-columns: 1fr 450px; gap: 20px; }
-        textarea { width: 100%; height: 200px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: monospace; }
-        .panel { background: var(--card); border: 1px solid #30363d; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
-        button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
-        .predict-btn { background: var(--info) !important; margin-top: 10px; height: 50px; font-size: 1.1em; }
-        .bot-config { background: #010409; border: 2px solid var(--gold); padding: 20px; border-radius: 8px; color: var(--gold); font-family: monospace; position: relative; }
-        .roi-badge { position: absolute; top: 10px; right: 10px; background: var(--win); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.9em; }
-        .prediction-box { padding: 20px; border-radius: 8px; text-align: center; margin-top: 15px; font-weight: bold; display: none; border: 2px solid transparent; }
-        .bet-yes { background: rgba(46, 160, 67, 0.2); border-color: var(--win); color: #7ee787; }
-        .bet-no { background: rgba(248, 81, 73, 0.2); border-color: var(--loss); color: #ffa198; }
-        .data-preview { background: #0d1117; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.85em; border: 1px dashed var(--info); }
-        .search-log { font-size: 0.75em; color: #8b949e; height: 100px; overflow-y: auto; background: #000; padding: 10px; margin-top: 10px; border-radius: 4px; }
+        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-weight: bold; margin-bottom: 5px; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #219150; }
+        #resultado { margin-top: 20px; padding: 15px; border-radius: 4px; display: none; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .danger { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        table { width: 100%; margin-top: 15px; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background: #f2f2f2; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div style="text-align:center; margin-bottom: 30px;">
-        <h2>🚀 AI High-Performance Bot Finder</h2>
-        <p>Buscando el algoritmo con mayor ROI basado en tu entrenamiento</p>
-    </div>
-
+    <h1>Análisis de Valor (Poisson)</h1>
+    <p>Calcula la probabilidad real vs la cuota de la casa.</p>
+    
     <div class="grid">
-        <div class="left-col">
-            <div class="panel">
-                <h3>1. Entrenamiento Masivo</h3>
-                <textarea id="dataInput" placeholder="Pega aquí todo tu historial de ligas..."></textarea>
-                <button onclick="findBestStrategy()" style="margin-top:10px;">Encontrar Estrategia de Mayor Rendimiento</button>
-                <div id="searchLog" class="search-log">Esperando datos para iniciar optimización...</div>
-            </div>
-
-            <div id="bestBotDisplay" style="display:none;">
-                <div class="panel">
-                    <h3>🏆 Estrategia Maestra Encontrada</h3>
-                    <div id="botConfig" class="bot-config"></div>
-                </div>
-            </div>
+        <div class="input-group">
+            <h3>Equipo Local</h3>
+            <label>Goles Marcados (Local):</label>
+            <input type="number" id="ataque_local" value="1.5" step="0.1">
+            <label>Goles Recibidos (Local):</label>
+            <input type="number" id="defensa_local" value="1.0" step="0.1">
         </div>
-
-        <div class="right-col">
-            <div class="panel" style="border-top: 4px solid var(--info);">
-                <h3>🎯 Analizador Live Inteligente</h3>
-                <p style="font-size: 0.85em;">Pega los datos del partido aquí:</p>
-                <textarea id="liveRawInput" style="height: 100px;" placeholder="Pega aquí: Ranking, Goles, Tiros, AP..." oninput="parseLiveData()"></textarea>
-                
-                <div id="dataPreview" class="data-preview">Sin datos de entrada...</div>
-
-                <button class="predict-btn" onclick="predictBet()">EJECUTAR PREDICCIÓN</button>
-
-                <div id="predictionResult" class="prediction-box"></div>
-                <div id="confidenceNote" style="text-align:center; font-size: 0.8em; margin-top: 10px; color: #8b949e;"></div>
-            </div>
+        <div class="input-group">
+            <h3>Equipo Visitante</h3>
+            <label>Goles Marcados (Visita):</label>
+            <input type="number" id="ataque_visita" value="1.2" step="0.1">
+            <label>Goles Recibidos (Visita):</label>
+            <input type="number" id="defensa_visita" value="1.4" step="0.1">
         </div>
     </div>
+
+    <div class="input-group" style="margin-bottom: 20px;">
+        <label>Cuota de la Casa (Victoria Local):</label>
+        <input type="number" id="cuota_casa" value="2.10" step="0.01">
+    </div>
+
+    <button onclick="calcularValor()">Calcular Probabilidades y Valor</button>
+
+    <div id="resultado"></div>
 </div>
 
 <script>
-let trainedData = [];
-let bestParams = null;
-let currentLiveStats = null;
-
-function findBestStrategy() {
-    const input = document.getElementById('dataInput').value;
-    const lines = input.split('\n').filter(l => l.trim() !== "" && !l.toLowerCase().includes('match'));
-    const log = document.getElementById('searchLog');
-    
-    if (lines.length < 10) {
-        alert("Necesito al menos 10 partidos para encontrar un patrón de alto rendimiento.");
-        return;
+    function factorial(n) {
+        if (n === 0 || n === 1) return 1;
+        let res = 1;
+        for (let i = 2; i <= n; i++) res *= i;
+        return res;
     }
 
-    trainedData = [];
-    lines.forEach(line => {
-        const cols = line.split('\t');
-        if (cols.length < 42) return;
-        trainedData.push({
-            ap: (parseInt(cols[11]) || 0) + (parseInt(cols[12]) || 0),
-            shOn: (parseInt(cols[15]) || 0) + (parseInt(cols[16]) || 0),
-            crn: (parseInt(cols[27]) || 0) + (parseInt(cols[28]) || 0),
-            min: parseInt(cols[7]) || 1,
-            isWin: (cols[41].trim() !== "0-0" && cols[41].trim() !== "")
-        });
-    });
+    function poisson(k, lambda) {
+        return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
+    }
 
-    log.innerHTML = "Iniciando Búsqueda de Alto Rendimiento (Iterando 1,000+ combinaciones)...<br>";
-    
-    let maxROI = -100;
-    
-    // Bucle inteligente: Probar combinaciones de AP/Min, Tiros y Córners
-    for (let apM = 0.8; apM <= 2.2; apM += 0.2) {
-        for (let sh = 0; sh <= 3; sh++) {
-            for (let cr = 0; cr <= 3; cr++) {
-                let sample = trainedData.filter(d => (d.ap/d.min) >= apM && d.shOn >= sh && d.crn >= cr);
-                if (sample.length >= 5) {
-                    let wins = sample.filter(s => s.isWin).length;
-                    let roi = ((wins * 1.60 - sample.length) / sample.length * 100);
-                    
-                    if (roi > maxROI) {
-                        maxROI = roi;
-                        bestParams = { apM, sh, cr, roi, strike: (wins/sample.length)*100, n: sample.length };
-                    }
-                }
+    function calcularValor() {
+        const al = parseFloat(document.getElementById('ataque_local').value);
+        const dl = parseFloat(document.getElementById('defensa_local').value);
+        const av = parseFloat(document.getElementById('ataque_visita').value);
+        const dv = parseFloat(document.getElementById('defensa_visita').value);
+        const cuotaCasa = parseFloat(document.getElementById('cuota_casa').value);
+
+        // Estimación de Lambda (Promedio proyectado)
+        // Simplificado: (Ataque A * Defensa B) / Promedio Liga (asumimos 1.35 como promedio base)
+        const promedioLiga = 1.35;
+        const lambdaLocal = (al * dv) / promedioLiga;
+        const lambdaVisita = (av * dl) / promedioLiga;
+
+        let probLocalWin = 0;
+        let probEmpate = 0;
+        let probVisitaWin = 0;
+
+        // Generar matriz 6x6 (resultados de 0 a 5 goles)
+        for (let i = 0; i <= 6; i++) {
+            for (let j = 0; j <= 6; j++) {
+                const p = poisson(i, lambdaLocal) * poisson(j, lambdaVisita);
+                if (i > j) probLocalWin += p;
+                else if (i === j) probEmpate += p;
+                else probVisitaWin += p;
             }
         }
+
+        const cuotaJusta = 1 / probLocalWin;
+        const ev = (cuotaCasa / cuotaJusta) - 1;
+        const resultadoDiv = document.getElementById('resultado');
+        
+        resultadoDiv.style.display = 'block';
+        resultadoDiv.className = ev > 0 ? 'success' : 'danger';
+
+        resultadoDiv.innerHTML = `
+            <h3>Análisis Final</h3>
+            <p><strong>Probabilidad Estimada:</strong> ${(probLocalWin * 100).toFixed(2)}%</p>
+            <p><strong>Cuota Justa:</strong> ${cuotaJusta.toFixed(2)}</p>
+            <p><strong>Valor Esperado (EV):</strong> ${(ev * 100).toFixed(2)}%</p>
+            <hr>
+            <p>${ev > 0 ? '<strong>¡VALOR ENCONTRADO!</strong> La cuota es más alta de lo que debería.' : '<strong>SIN VALOR.</strong> La casa tiene el control.'}</p>
+        `;
     }
-
-    if (bestParams && bestParams.roi > 0) {
-        displayBestBot();
-        log.innerHTML += `<span style="color:var(--win)">¡Éxito! ROI Encontrado: ${bestParams.roi.toFixed(1)}%</span>`;
-    } else {
-        log.innerHTML += `<span style="color:var(--loss)">No se halló patrón rentable. Sube el AP/Min o cambia datos.</span>`;
-    }
-}
-
-function displayBestBot() {
-    document.getElementById('bestBotDisplay').style.display = "block";
-    document.getElementById('botConfig').innerHTML = `
-        <div class="roi-badge">ROI: ${bestParams.roi.toFixed(1)}%</div>
-        <strong>CRITERIOS MAESTROS:</strong><br>
-        1. AP / Minuto: > ${bestParams.apM.toFixed(1)}<br>
-        2. Tiros a Puerta: >= ${bestParams.sh}<br>
-        3. Córners: >= ${bestParams.cr}<br>
-        ----------------------------<br>
-        Muestra: ${bestParams.n} partidos<br>
-        Strike Rate: ${bestParams.strike.toFixed(1)}%
-    `;
-}
-
-function parseLiveData() {
-    const text = document.getElementById('liveRawInput').value;
-    if (!text) return;
-
-    const extract = (label) => {
-        const reg = new RegExp(label + "[:\\s]*(\\d+)\\s*-\\s*(\\d+)", "i");
-        const m = text.match(reg);
-        return m ? { h: parseInt(m[1]), a: parseInt(m[2]), tot: parseInt(m[1]) + parseInt(m[2]) } : { h:0, a:0, tot:0 };
-    };
-
-    currentLiveStats = { ap: extract("peligrosos"), sh: extract("puerta"), cr: extract("corners") };
-    document.getElementById('dataPreview').innerHTML = `
-        AP: ${currentLiveStats.ap.tot} | Tiros: ${currentLiveStats.sh.tot} | Corners: ${currentLiveStats.cr.tot}
-    `;
-}
-
-function predictBet() {
-    if (!bestParams) { alert("Primero entrena y busca la mejor estrategia."); return; }
-    
-    const resDiv = document.getElementById('predictionResult');
-    resDiv.style.display = "block";
-
-    // Evaluar si los datos LIVE superan los filtros del MEJOR BOT encontrado
-    // Asumimos un minuto promedio de 25 para el cálculo del AP en vivo si no se detecta
-    const liveAPM = currentLiveStats.ap.tot / 25; 
-
-    if (liveAPM >= bestParams.apM && currentLiveStats.sh.tot >= bestParams.sh && currentLiveStats.cr.tot >= bestParams.cr) {
-        resDiv.className = "prediction-box bet-yes";
-        resDiv.innerHTML = "¡APUESTA DETECTADA! ✅";
-        document.getElementById('confidenceNote').innerHTML = "Este partido cumple con el patrón de máximo ROI histórico.";
-    } else {
-        resDiv.className = "prediction-box bet-no";
-        resDiv.innerHTML = "NO CUMPLE PATRÓN ❌";
-        document.getElementById('confidenceNote').innerHTML = "La presión actual es inferior a la estrategia de mayor rendimiento.";
-    }
-}
 </script>
+
 </body>
 </html>
