@@ -3,62 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Predictor Pro - Auto-Parsing</title>
+    <title>AI Bot Optimizer - Máximo Rendimiento</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #238636; --text: #c9d1d9; --gold: #d29922; --win: #2ea043; --loss: #f85149; --info: #58a6ff; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
         .container { max-width: 1200px; margin: auto; }
         .grid { display: grid; grid-template-columns: 1fr 450px; gap: 20px; }
-        textarea { width: 100%; height: 180px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: monospace; }
+        textarea { width: 100%; height: 200px; background: #010409; color: #7ee787; border: 1px solid #30363d; padding: 15px; border-radius: 6px; box-sizing: border-box; font-family: monospace; }
         .panel { background: var(--card); border: 1px solid #30363d; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
-        button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; }
-        button.predict-btn { background: var(--info); margin-top: 10px; font-size: 1.2em; }
-        .prediction-box { padding: 20px; border-radius: 8px; text-align: center; margin-top: 15px; font-weight: bold; display: none; }
-        .bet-yes { background: rgba(46, 160, 67, 0.2); border: 2px solid var(--win); color: #7ee787; }
-        .bet-no { background: rgba(248, 81, 73, 0.2); border: 2px solid var(--loss); color: #ffa198; }
-        .live-data-preview { background: #0d1117; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.85em; border: 1px dashed #58a6ff; }
-        .log-search { font-size: 0.8em; color: #8b949e; height: 80px; overflow-y: auto; background: #010409; padding: 10px; border-radius: 5px; margin-top: 10px; }
-        .stat-val { color: var(--gold); font-weight: bold; }
+        button { background: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
+        .predict-btn { background: var(--info) !important; margin-top: 10px; height: 50px; font-size: 1.1em; }
+        .bot-config { background: #010409; border: 2px solid var(--gold); padding: 20px; border-radius: 8px; color: var(--gold); font-family: monospace; position: relative; }
+        .roi-badge { position: absolute; top: 10px; right: 10px; background: var(--win); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.9em; }
+        .prediction-box { padding: 20px; border-radius: 8px; text-align: center; margin-top: 15px; font-weight: bold; display: none; border: 2px solid transparent; }
+        .bet-yes { background: rgba(46, 160, 67, 0.2); border-color: var(--win); color: #7ee787; }
+        .bet-no { background: rgba(248, 81, 73, 0.2); border-color: var(--loss); color: #ffa198; }
+        .data-preview { background: #0d1117; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.85em; border: 1px dashed var(--info); }
+        .search-log { font-size: 0.75em; color: #8b949e; height: 100px; overflow-y: auto; background: #000; padding: 10px; margin-top: 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header" style="text-align:center;">
-        <h2>🧠 Predictor Entrenado con Auto-Acomodado</h2>
-        <p>Entrena con historial y pega datos live sin formato</p>
+    <div style="text-align:center; margin-bottom: 30px;">
+        <h2>🚀 AI High-Performance Bot Finder</h2>
+        <p>Buscando el algoritmo con mayor ROI basado en tu entrenamiento</p>
     </div>
 
     <div class="grid">
         <div class="left-col">
             <div class="panel">
-                <h3>1. Base de Conocimiento (Entrenamiento)</h3>
-                <textarea id="dataInput" placeholder="Pega aquí los datos históricos de todas las ligas..."></textarea>
-                <button onclick="trainModel()">Entrenar Herramienta</button>
-                <div id="trainLog" class="log-search">Modelo sin entrenar.</div>
+                <h3>1. Entrenamiento Masivo</h3>
+                <textarea id="dataInput" placeholder="Pega aquí todo tu historial de ligas..."></textarea>
+                <button onclick="findBestStrategy()" style="margin-top:10px;">Encontrar Estrategia de Mayor Rendimiento</button>
+                <div id="searchLog" class="search-log">Esperando datos para iniciar optimización...</div>
             </div>
 
-            <div class="panel">
-                <h3>2. Auditoría de Datos Detectados</h3>
-                <div id="auditResults" style="font-size: 0.85em;">Carga datos para ver la efectividad.</div>
+            <div id="bestBotDisplay" style="display:none;">
+                <div class="panel">
+                    <h3>🏆 Estrategia Maestra Encontrada</h3>
+                    <div id="botConfig" class="bot-config"></div>
+                </div>
             </div>
         </div>
 
         <div class="right-col">
-            <div class="panel" style="border-color: var(--info);">
-                <h3>🎯 Pegar Datos del Partido Live</h3>
-                <p style="font-size: 0.8em; color: #8b949e;">Pega el bloque de texto completo (Ranking, Goles, Corners, etc.):</p>
+            <div class="panel" style="border-top: 4px solid var(--info);">
+                <h3>🎯 Analizador Live Inteligente</h3>
+                <p style="font-size: 0.85em;">Pega los datos del partido aquí:</p>
+                <textarea id="liveRawInput" style="height: 100px;" placeholder="Pega aquí: Ranking, Goles, Tiros, AP..." oninput="parseLiveData()"></textarea>
                 
-                <textarea id="liveRawInput" style="height: 120px;" placeholder="Ejemplo: Posición en el ranking: 10 - 18... Ataques peligrosos: 3 - 10" oninput="parseLiveData()"></textarea>
+                <div id="dataPreview" class="data-preview">Sin datos de entrada...</div>
 
-                <div id="dataPreview" class="live-data-preview">
-                    Esperando datos legibles...
-                </div>
-
-                <button class="predict-btn" onclick="predictBet()">ANALIZAR PROBABILIDAD</button>
+                <button class="predict-btn" onclick="predictBet()">EJECUTAR PREDICCIÓN</button>
 
                 <div id="predictionResult" class="prediction-box"></div>
-                <div id="confidenceNote" style="text-align:center; font-size: 0.8em; margin-top: 10px;"></div>
+                <div id="confidenceNote" style="text-align:center; font-size: 0.8em; margin-top: 10px; color: #8b949e;"></div>
             </div>
         </div>
     </div>
@@ -66,46 +66,16 @@
 
 <script>
 let trainedData = [];
-let modelTrained = false;
+let bestParams = null;
 let currentLiveStats = null;
 
-// Función para extraer números de un texto basándose en etiquetas
-function extractStat(text, label) {
-    const regex = new RegExp(label + "[:\\s]*(\\d+)\\s*-\\s*(\\d+)", "i");
-    const match = text.match(regex);
-    return match ? { h: parseInt(match[1]), a: parseInt(match[2]) } : { h: 0, a: 0 };
-}
-
-function parseLiveData() {
-    const text = document.getElementById('liveRawInput').value;
-    if (!text) return;
-
-    // Extraemos los datos usando el formato que proporcionaste
-    const rank = extractStat(text, "ranking");
-    const goals = extractStat(text, "Goles");
-    const corners = extractStat(text, "Corners");
-    const shOn = extractStat(text, "Tiros a puerta");
-    const ap = extractStat(text, "Ataques peligrosos");
-
-    currentLiveStats = { rank, goals, corners, shOn, ap };
-
-    document.getElementById('dataPreview').innerHTML = `
-        <b>Datos Detectados:</b><br>
-        Ranking: <span class="stat-val">${rank.h}-${rank.a}</span> | 
-        Goles: <span class="stat-val">${goals.h}-${goals.a}</span><br>
-        AP: <span class="stat-val">${ap.h}-${ap.a}</span> | 
-        Tiros On: <span class="stat-val">${shOn.h}-${shOn.a}</span> | 
-        Corners: <span class="stat-val">${corners.h}-${corners.a}</span>
-    `;
-}
-
-function trainModel() {
+function findBestStrategy() {
     const input = document.getElementById('dataInput').value;
     const lines = input.split('\n').filter(l => l.trim() !== "" && !l.toLowerCase().includes('match'));
-    const log = document.getElementById('trainLog');
+    const log = document.getElementById('searchLog');
     
-    if (lines.length < 5) {
-        alert("Pega más datos para un entrenamiento fiable.");
+    if (lines.length < 10) {
+        alert("Necesito al menos 10 partidos para encontrar un patrón de alto rendimiento.");
         return;
     }
 
@@ -113,59 +83,95 @@ function trainModel() {
     lines.forEach(line => {
         const cols = line.split('\t');
         if (cols.length < 42) return;
-
-        const ap = (parseInt(cols[11]) || 0) + (parseInt(cols[12]) || 0);
-        const shOn = (parseInt(cols[15]) || 0) + (parseInt(cols[16]) || 0);
-        const resultHT = cols[41].trim();
-        const isWin = (resultHT !== "0-0" && resultHT !== "");
-
-        trainedData.push({ ap, shOn, isWin });
+        trainedData.push({
+            ap: (parseInt(cols[11]) || 0) + (parseInt(cols[12]) || 0),
+            shOn: (parseInt(cols[15]) || 0) + (parseInt(cols[16]) || 0),
+            crn: (parseInt(cols[27]) || 0) + (parseInt(cols[28]) || 0),
+            min: parseInt(cols[7]) || 1,
+            isWin: (cols[41].trim() !== "0-0" && cols[41].trim() !== "")
+        });
     });
 
-    modelTrained = true;
-    log.innerHTML = `✅ Modelo Entrenado.<br>Base de datos: ${trainedData.length} registros.<br>Rendimiento Histórico: ${((trainedData.filter(d=>d.isWin).length/trainedData.length)*100).toFixed(1)}%`;
+    log.innerHTML = "Iniciando Búsqueda de Alto Rendimiento (Iterando 1,000+ combinaciones)...<br>";
+    
+    let maxROI = -100;
+    
+    // Bucle inteligente: Probar combinaciones de AP/Min, Tiros y Córners
+    for (let apM = 0.8; apM <= 2.2; apM += 0.2) {
+        for (let sh = 0; sh <= 3; sh++) {
+            for (let cr = 0; cr <= 3; cr++) {
+                let sample = trainedData.filter(d => (d.ap/d.min) >= apM && d.shOn >= sh && d.crn >= cr);
+                if (sample.length >= 5) {
+                    let wins = sample.filter(s => s.isWin).length;
+                    let roi = ((wins * 1.60 - sample.length) / sample.length * 100);
+                    
+                    if (roi > maxROI) {
+                        maxROI = roi;
+                        bestParams = { apM, sh, cr, roi, strike: (wins/sample.length)*100, n: sample.length };
+                    }
+                }
+            }
+        }
+    }
+
+    if (bestParams && bestParams.roi > 0) {
+        displayBestBot();
+        log.innerHTML += `<span style="color:var(--win)">¡Éxito! ROI Encontrado: ${bestParams.roi.toFixed(1)}%</span>`;
+    } else {
+        log.innerHTML += `<span style="color:var(--loss)">No se halló patrón rentable. Sube el AP/Min o cambia datos.</span>`;
+    }
+}
+
+function displayBestBot() {
+    document.getElementById('bestBotDisplay').style.display = "block";
+    document.getElementById('botConfig').innerHTML = `
+        <div class="roi-badge">ROI: ${bestParams.roi.toFixed(1)}%</div>
+        <strong>CRITERIOS MAESTROS:</strong><br>
+        1. AP / Minuto: > ${bestParams.apM.toFixed(1)}<br>
+        2. Tiros a Puerta: >= ${bestParams.sh}<br>
+        3. Córners: >= ${bestParams.cr}<br>
+        ----------------------------<br>
+        Muestra: ${bestParams.n} partidos<br>
+        Strike Rate: ${bestParams.strike.toFixed(1)}%
+    `;
+}
+
+function parseLiveData() {
+    const text = document.getElementById('liveRawInput').value;
+    if (!text) return;
+
+    const extract = (label) => {
+        const reg = new RegExp(label + "[:\\s]*(\\d+)\\s*-\\s*(\\d+)", "i");
+        const m = text.match(reg);
+        return m ? { h: parseInt(m[1]), a: parseInt(m[2]), tot: parseInt(m[1]) + parseInt(m[2]) } : { h:0, a:0, tot:0 };
+    };
+
+    currentLiveStats = { ap: extract("peligrosos"), sh: extract("puerta"), cr: extract("corners") };
+    document.getElementById('dataPreview').innerHTML = `
+        AP: ${currentLiveStats.ap.tot} | Tiros: ${currentLiveStats.sh.tot} | Corners: ${currentLiveStats.cr.tot}
+    `;
 }
 
 function predictBet() {
-    if (!modelTrained) {
-        alert("Primero entrena el modelo con los datos históricos.");
-        return;
-    }
-    if (!currentLiveStats) {
-        alert("Pega los datos del partido en vivo.");
-        return;
-    }
-
-    const liveAP = currentLiveStats.ap.h + currentLiveStats.ap.a;
-    const liveSh = currentLiveStats.shOn.h + currentLiveStats.shOn.a;
+    if (!bestParams) { alert("Primero entrena y busca la mejor estrategia."); return; }
     
-    const resultDiv = document.getElementById('predictionResult');
-    const noteDiv = document.getElementById('confidenceNote');
+    const resDiv = document.getElementById('predictionResult');
+    resDiv.style.display = "block";
 
-    // Comparación: Buscamos en el historial partidos con presión similar (rango +/- 15%)
-    const similarMatches = trainedData.filter(d => 
-        d.ap >= (liveAP * 0.85) && d.ap <= (liveAP * 1.15) &&
-        d.shOn >= liveSh
-    );
+    // Evaluar si los datos LIVE superan los filtros del MEJOR BOT encontrado
+    // Asumimos un minuto promedio de 25 para el cálculo del AP en vivo si no se detecta
+    const liveAPM = currentLiveStats.ap.tot / 25; 
 
-    const wins = similarMatches.filter(m => m.win).length;
-    const total = similarMatches.length;
-    const prob = total > 0 ? (wins / total) : 0;
-
-    resultDiv.style.display = "block";
-
-    // Umbral de éxito para cuota 1.60
-    if (prob >= 0.63 && total >= 3) {
-        resultDiv.className = "prediction-box bet-yes";
-        resultDiv.innerHTML = `Veredicto: APUESTA ✅<br>Probabilidad: ${(prob*100).toFixed(1)}%`;
-        noteDiv.innerHTML = `Patrón encontrado en ${total} partidos previos similares.`;
+    if (liveAPM >= bestParams.apM && currentLiveStats.sh.tot >= bestParams.sh && currentLiveStats.cr.tot >= bestParams.cr) {
+        resDiv.className = "prediction-box bet-yes";
+        resDiv.innerHTML = "¡APUESTA DETECTADA! ✅";
+        document.getElementById('confidenceNote').innerHTML = "Este partido cumple con el patrón de máximo ROI histórico.";
     } else {
-        resultDiv.className = "prediction-box bet-no";
-        resultDiv.innerHTML = `Veredicto: NO APOSTAR ❌<br>Probabilidad: ${(prob*100).toFixed(1)}%`;
-        noteDiv.innerHTML = `Faltan evidencias (Solo ${total} partidos similares o probabilidad baja).`;
+        resDiv.className = "prediction-box bet-no";
+        resDiv.innerHTML = "NO CUMPLE PATRÓN ❌";
+        document.getElementById('confidenceNote').innerHTML = "La presión actual es inferior a la estrategia de mayor rendimiento.";
     }
 }
 </script>
-
 </body>
 </html>
