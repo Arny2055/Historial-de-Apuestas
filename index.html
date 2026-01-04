@@ -3,80 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poisson Pro - Valor y Mercados</title>
+    <title>Poisson Pro - Calculadora de Valor y Muestra</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0e1621; color: #ffffff; padding: 20px; line-height: 1.6; }
-        .container { max-width: 900px; margin: auto; background: #17212b; padding: 30px; border-radius: 12px; border: 1px solid #2b3948; }
-        h1, h2 { color: #52a8ff; text-align: center; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 20px; }
-        .card { background: #242f3d; padding: 15px; border-radius: 8px; }
-        .input-group { margin-bottom: 15px; display: flex; flex-direction: column; }
-        label { font-size: 0.9em; color: #abaeb3; margin-bottom: 5px; }
-        input { padding: 10px; background: #0e1621; border: 1px solid #3d4b59; color: white; border-radius: 5px; }
-        button { width: 100%; padding: 12px; background: #52a8ff; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 1.1em; margin-top: 10px; }
+        :root {
+            --bg-color: #0e1621;
+            --card-bg: #17212b;
+            --input-bg: #242f3d;
+            --accent: #52a8ff;
+            --success: #27ae60;
+            --text: #ffffff;
+            --text-dim: #abaeb3;
+        }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text); 
+            padding: 10px; 
+            line-height: 1.4;
+            margin: 0;
+        }
+        .container { 
+            max-width: 900px; 
+            margin: auto; 
+            background: var(--card-bg); 
+            padding: 20px; 
+            border-radius: 12px; 
+            border: 1px solid #2b3948;
+            box-sizing: border-box; /* Evita desbordamiento */
+        }
+        h1, h2, h3 { color: var(--accent); text-align: center; margin-top: 5px; }
+        .info-box { 
+            background: #2b3948; 
+            padding: 12px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            font-size: 0.85em; 
+            border-left: 4px solid var(--accent);
+        }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 15px; 
+            margin-bottom: 20px; 
+        }
+        .card { 
+            background: var(--input-bg); 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-sizing: border-box;
+        }
+        .input-group { margin-bottom: 12px; display: flex; flex-direction: column; }
+        label { font-size: 0.85em; color: var(--text-dim); margin-bottom: 4px; }
+        input { 
+            padding: 10px; 
+            background: var(--bg-color); 
+            border: 1px solid #3d4b59; 
+            color: white; 
+            border-radius: 5px; 
+            font-size: 1em;
+        }
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 1.1em; 
+            transition: background 0.3s;
+        }
         button:hover { background: #3d86d4; }
-        #resultado { margin-top: 25px; padding: 20px; border-radius: 8px; display: none; }
-        .success { border-left: 5px solid #27ae60; background: #1c2e25; }
-        .info-box { background: #2b3948; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 0.85em; }
-        table { width: 100%; margin-top: 15px; border-collapse: collapse; background: #17212b; }
-        th, td { padding: 10px; border-bottom: 1px solid #2b3948; text-align: left; }
-        .valor-alto { color: #27ae60; font-weight: bold; }
+        .table-container { 
+            overflow-x: auto; /* Scroll horizontal en móviles para evitar desborde */
+            margin-top: 20px; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            background: var(--card-bg); 
+            min-width: 400px; 
+        }
+        th, td { padding: 12px; border-bottom: 1px solid #2b3948; text-align: center; }
+        .valor-alto { color: var(--success); font-weight: bold; }
+        .footer-note { font-size: 0.75em; color: var(--text-dim); margin-top: 20px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Estrategia de Valor Poisson</h1>
+    <h1>Poisson Pro Tracker</h1>
     
     <div class="info-box">
-        <strong>💡 Recomendación de Muestra:</strong> Para que Poisson sea fiable, usa los <strong>últimos 10 a 15 partidos</strong> de cada equipo. 
-        Muestras menores a 5 partidos son ruidosas; más de 25 no reflejan el estado de forma actual (fichajes, lesiones).
+        <strong>Muestra Recomendada:</strong> Introduce los goles de los últimos 10 partidos. El modelo calculará automáticamente la media ($\lambda$) para determinar la probabilidad real y el valor frente a la casa.
     </div>
 
     <div class="grid">
         <div class="card">
-            <h3>🏠 Equipo Local</h3>
+            <h3>🏠 Local (Últimos 10)</h3>
             <div class="input-group">
-                <label>Goles Proyectados (Ataque):</label>
-                <input type="number" id="al" value="1.6" step="0.1">
+                <label>Goles Marcados (ej: 2,1,0,3...):</label>
+                <input type="text" id="goles_loc_fav" placeholder="Separados por comas" value="2,1,3,0,1,2,1,1,2,0">
             </div>
             <div class="input-group">
-                <label>Cuota Local (Casa):</label>
-                <input type="number" id="cl" value="2.00" step="0.01">
+                <label>Goles Recibidos (ej: 1,0,2...):</label>
+                <input type="text" id="goles_loc_con" placeholder="Separados por comas" value="1,1,0,2,1,0,1,2,0,1">
+            </div>
+            <div class="input-group">
+                <label>Cuota Casa (Local):</label>
+                <input type="number" id="cuota_1" value="2.10" step="0.01">
             </div>
         </div>
+
         <div class="card">
-            <h3>🚀 Equipo Visitante</h3>
+            <h3>🚀 Visita (Últimos 10)</h3>
             <div class="input-group">
-                <label>Goles Proyectados (Ataque):</label>
-                <input type="number" id="av" value="1.1" step="0.1">
+                <label>Goles Marcados (ej: 1,0,1...):</label>
+                <input type="text" id="goles_vis_fav" placeholder="Separados por comas" value="1,0,2,1,1,0,1,2,0,1">
             </div>
             <div class="input-group">
-                <label>Cuota Over 2.5 (Casa):</label>
-                <input type="number" id="co" value="1.95" step="0.01">
+                <label>Goles Recibidos (ej: 2,3,1...):</label>
+                <input type="text" id="goles_vis_con" placeholder="Separados por comas" value="2,1,1,3,2,1,0,2,1,2">
+            </div>
+            <div class="input-group">
+                <label>Cuota Casa (Over 2.5):</label>
+                <input type="number" id="cuota_over" value="1.95" step="0.01">
             </div>
         </div>
     </div>
 
-    <button onclick="analizarTodo()">Calcular Mercados de Valor</button>
+    <button onclick="calcularTodo()">Analizar Muestra y Buscar Valor</button>
 
-    <div id="resultado" class="success">
-        <h2>Análisis de Probabilidades</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Mercado</th>
-                    <th>Prob. Real</th>
-                    <th>Cuota Justa</th>
-                    <th>EV (%)</th>
-                </tr>
-            </thead>
-            <tbody id="tabla-body"></tbody>
-        </table>
+    <div id="resultado" style="display:none;">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mercado</th>
+                        <th>Prob. Real</th>
+                        <th>Cuota Justa</th>
+                        <th>EV (%)</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-body"></tbody>
+            </table>
+        </div>
+        
+        <div class="info-box" style="margin-top:20px; border-left-color: var(--success);">
+            <strong>Análisis Técnico:</strong> El mercado <strong>Over/Under 2.5</strong> es el más eficiente aquí. Con una muestra de 10 partidos, el error estándar se reduce, permitiendo que la distribución de Poisson capture la tendencia de anotación sin el ruido de rachas cortas.
+        </div>
     </div>
 
-    <div class="info-box" style="border-top: 2px solid #52a8ff;">
-        <strong>🎯 ¿Por qué Over/Under 2.5?</strong> El fútbol es un deporte de baja anotación. Poisson es excepcionalmente bueno prediciendo la suma de goles (frecuencia) más que el ganador exacto, ya que elimina el sesgo psicológico del "quién gana" y se enfoca en la capacidad ofensiva pura.
+    <div class="footer-note">
+        Poisson no considera alineaciones ni clima. Úsalo como base estadística para encontrar cuotas desajustadas.
     </div>
 </div>
 
@@ -92,31 +172,46 @@
         return (Math.pow(Math.E, -lambda) * Math.pow(lambda, k)) / factorial(k);
     }
 
-    function analizarTodo() {
-        const lambdaL = parseFloat(document.getElementById('al').value);
-        const lambdaV = parseFloat(document.getElementById('av').value);
-        const cuotaCasaL = parseFloat(document.getElementById('cl').value);
-        const cuotaCasaO = parseFloat(document.getElementById('co').value);
+    function getMedia(id) {
+        const valores = document.getElementById(id).value.split(',').map(Number);
+        const suma = valores.reduce((a, b) => a + b, 0);
+        return suma / valores.length;
+    }
+
+    function calcularTodo() {
+        // Cálculo de Fuerzas basado en muestra
+        const promGolesLocalFav = getMedia('goles_loc_fav');
+        const promGolesLocalCon = getMedia('goles_loc_con');
+        const promGolesVisFav = getMedia('goles_vis_fav');
+        const promGolesVisCon = getMedia('goles_vis_con');
+        
+        // Constante de liga (promedio goles por partido, ajustable)
+        const promLiga = 1.35; 
+
+        // Lambdas Proyectados
+        const lambdaL = (promGolesLocalFav * promGolesVisCon) / promLiga;
+        const lambdaV = (promGolesVisFav * promGolesLocalCon) / promLiga;
+
+        const cuotaCasaL = parseFloat(document.getElementById('cuota_1').value);
+        const cuotaCasaO = parseFloat(document.getElementById('cuota_over').value);
 
         let pWinL = 0, pDraw = 0, pWinV = 0, pOver25 = 0;
 
+        // Matriz de Poisson 9x9
         for (let i = 0; i <= 8; i++) {
             for (let j = 0; j <= 8; j++) {
                 const prob = poisson(i, lambdaL) * poisson(j, lambdaV);
-                
-                // 1X2
                 if (i > j) pWinL += prob;
                 else if (i === j) pDraw += prob;
                 else pWinV += prob;
-
-                // Over 2.5
                 if ((i + j) > 2.5) pOver25 += prob;
             }
         }
 
         const mercados = [
             { nombre: "Victoria Local (1)", prob: pWinL, cuotaCasa: cuotaCasaL },
-            { nombre: "Over 2.5 Goles", prob: pOver25, cuotaCasa: cuotaCasaO }
+            { nombre: "Over 2.5 Goles", prob: pOver25, cuotaCasa: cuotaCasaO },
+            { nombre: "Empate (X)", prob: pDraw, cuotaCasa: 1 / pDraw } // Cuota justa como referencia si no hay input
         ];
 
         const tbody = document.getElementById('tabla-body');
@@ -129,7 +224,7 @@
 
             tbody.innerHTML += `
                 <tr>
-                    <td>${m.nombre}</td>
+                    <td><strong>${m.nombre}</strong></td>
                     <td>${(m.prob * 100).toFixed(1)}%</td>
                     <td>${cJusta.toFixed(2)}</td>
                     <td class="${valorClass}">${ev.toFixed(2)}%</td>
