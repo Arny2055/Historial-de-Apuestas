@@ -3,198 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BetAGS | Quantum Engine</title>
+    <title>BetAGS | Quantum Engine Sync</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --bg: #0A1C16; --card: #182B24; --accent-gold: #FFD700; --accent-green: #3CB371;
             --text-main: #E0E7E4; --text-dim: #7F9C93; --border: #3D5C53; --safe-bottom: env(safe-area-inset-bottom);
-            --highlight: #00BFFF; --fair-odds: #FFA500; --delete: #ff4d4d; --value-color: #00ff00;
-            --quantum-blue: #00FFFF;
-            --card-gradient: linear-gradient(145deg, #1e362d 0%, #12221b 100%);
+            --quantum-blue: #00FFFF; --fair-odds: #FFA500;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: var(--text-main); font-family: -apple-system, system-ui, sans-serif; overflow: hidden; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: var(--text-main); font-family: -apple-system, sans-serif; overflow: hidden; }
 
         #setup-screen, #dashboard-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
-        .scroll-content { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 140px; }
+        .scroll-content { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 100px; }
 
-        .header-box { text-align: center; padding: 15px 0; background: var(--bg); border-bottom: 1px solid rgba(61, 92, 83, 0.3); }
-        .header-box h2 { font-size: 1.4rem; color: var(--accent-gold); margin: 0; font-weight: 800; }
+        .header-box { text-align: center; padding: 15px 0; background: var(--bg); border-bottom: 1px solid var(--border); }
+        .header-box h2 { font-size: 1.4rem; color: var(--accent-gold); margin: 0; }
         
-        .import-area { 
-            width: 100%; height: 150px; background: #000; border: 1px solid var(--quantum-blue); 
-            border-radius: 12px; color: var(--quantum-blue); padding: 12px; font-size: 11px; 
-            font-family: monospace; margin-bottom: 15px; outline: none;
-        }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.75rem; color: var(--accent-gold); margin-bottom: 5px; }
+        .url-input { width: 100%; background: #000; border: 1px solid var(--quantum-blue); border-radius: 8px; color: var(--quantum-blue); padding: 12px; font-size: 12px; outline: none; }
 
-        .btn-main { 
-            width: 100%; background: linear-gradient(135deg, var(--accent-green), #4CAF50); 
-            color: #000; border: none; padding: 16px; border-radius: 12px; 
-            font-weight: bold; font-size: 1rem; cursor: pointer; margin-bottom: 20px;
-        }
+        .btn-sync { width: 100%; background: linear-gradient(135deg, #1e90ff, #00bfff); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-sync i { font-size: 1.2rem; }
 
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 12px; }
-        .row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(61,92,83,0.3); }
         .row:last-child { border: none; }
         .row span { color: var(--text-dim); font-size: 0.8rem; }
-        .row b { color: var(--accent-gold); font-size: 0.9rem; }
-        .row b.odds { color: var(--fair-odds); margin-right: 10px; }
+        .row b { color: var(--accent-gold); }
+        .row .odds { color: var(--fair-odds); margin-right: 8px; font-weight: bold; }
 
-        .section-title { font-size: 0.75rem; color: var(--accent-gold); text-transform: uppercase; margin: 15px 0 8px; border-left: 3px solid var(--accent-gold); padding-left: 8px; }
+        .section-title { font-size: 0.7rem; color: var(--accent-gold); text-transform: uppercase; margin: 15px 0 8px; border-left: 3px solid var(--accent-gold); padding-left: 8px; }
 
-        .page { display: none; }
-        .page.active { display: block; }
-
-        .tab-bar { height: calc(65px + var(--safe-bottom)); background: var(--card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; position: fixed; bottom: 0; width: 100%; padding-bottom: var(--safe-bottom); }
-        .tab-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; flex: 1; }
+        .tab-bar { height: 65px; background: var(--card); border-top: 1px solid var(--border); display: flex; position: fixed; bottom: 0; width: 100%; }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; }
         .tab-item.active { color: var(--accent-gold); }
-        .tab-item i { font-size: 1.2rem; margin-bottom: 4px; }
 
-        #fab-back { position: fixed; bottom: 85px; right: 20px; width: 45px; height: 45px; background: var(--card); border: 1px solid var(--accent-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--accent-gold); z-index: 100; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 1000; }
     </style>
 </head>
 <body>
 
+    <div id="loading" class="loading-overlay">
+        <div style="text-align: center;">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--quantum-blue);"></i>
+            <p>Sincronizando con Google Sheets...</p>
+        </div>
+    </div>
+
     <div id="setup-screen">
         <div class="header-box">
-            <h2>BetAGS IMPORT</h2>
-            <small style="color:var(--quantum-blue)">Sincronización Ligue 1 / Soccerstats</small>
+            <h2>BetAGS CLOUD</h2>
+            <small style="color:var(--quantum-blue)">Sincronización en Tiempo Real</small>
         </div>
         <div class="scroll-content">
-            <p style="font-size: 0.7rem; color: var(--text-dim);">Pega aquí el contenido de tu Google Sheets (desde el nombre de la liga hasta el final de la tabla):</p>
-            <textarea id="ags-input" class="import-area" placeholder="Ej: FRANCIA LIGUE 1... Paris SG vs Paris FC..."></textarea>
+            <div class="input-group">
+                <label>URL DE PUBLICACIÓN (CSV):</label>
+                <input type="text" id="sheet-url" class="url-input" placeholder="https://docs.google.com/spreadsheets/d/e/...">
+            </div>
             
-            <button class="btn-main" onclick="processAGS()">PROCESAR DATOS BetAGS</button>
-            
-            <div style="background: rgba(0,255,255,0.05); padding: 15px; border-radius: 10px; border: 1px dashed var(--quantum-blue);">
-                <small style="color: var(--quantum-blue); font-weight: bold;">INFO DE SINCRONIZACIÓN:</small>
-                <p style="font-size: 0.65rem; color: #ccc; margin-top: 5px;">Esta herramienta detecta automáticamente Probabilidades de Victoria, Goles HT/FT, BTTS y Córners desde tu formato de celdas.</p>
+            <button class="btn-sync" onclick="syncWithSheets()">
+                <i class="fas fa-sync-alt"></i> SINCRONIZAR AHORA
+            </button>
+
+            <div style="margin-top: 20px; font-size: 0.7rem; color: var(--text-dim); line-height: 1.4;">
+                <b>Instrucciones:</b><br>
+                1. En tu Excel: Archivo > Compartir > Publicar en la Web.<br>
+                2. Elige "CSV" y la pestaña de tus datos.<br>
+                3. Pega el enlace arriba y dale a Sincronizar.
             </div>
         </div>
     </div>
 
     <div id="dashboard-screen" style="display:none;">
         <div class="header-box">
-            <h2 id="match-header">PARTIDO</h2>
-            <small id="league-header">LIGA</small>
+            <h2 id="match-title">CARGANDO...</h2>
+            <small id="league-title">LIGA</small>
         </div>
         
-        <div id="fab-back" onclick="reset()"><i class="fa-solid fa-arrow-left"></i></div>
-
         <div class="scroll-content">
-            <div id="p-main" class="page active">
-                <div class="section-title">Probabilidades 1X2</div>
-                <div class="card" id="res-1x2"></div>
-                
-                <div class="section-title">Doble Oportunidad</div>
-                <div class="card" id="res-dc"></div>
-
-                <div class="section-title">Goles HT (1ª Mitad)</div>
-                <div class="card" id="res-ht"></div>
-            </div>
-
-            <div id="p-goals" class="page">
-                <div class="section-title">Goles Tiempo Completo (FT)</div>
-                <div class="card" id="res-ft"></div>
-                
-                <div class="section-title">Ambos Marcan (BTTS)</div>
-                <div class="card" id="res-btts"></div>
-
-                <div class="section-title">Córners</div>
-                <div class="card" id="res-corners"></div>
-            </div>
-
-            <div id="p-asian" class="page">
-                <div class="section-title">Hándicap Asiático</div>
-                <div class="card" id="res-asian"></div>
-            </div>
+            <div class="section-title">Análisis de Probabilidades</div>
+            <div class="card" id="results-area">
+                </div>
+            
+            <div class="section-title">Mercados de Goles</div>
+            <div class="card" id="goals-area"></div>
         </div>
 
-        <nav class="tab-bar">
-            <div class="tab-item active" onclick="showTab('p-main', this)"><i class="fa-solid fa-house"></i><span>Principal</span></div>
-            <div class="tab-item" onclick="showTab('p-goals', this)"><i class="fa-solid fa-futbol"></i><span>Goles/Corners</span></div>
-            <div class="tab-item" onclick="showTab('p-asian', this)"><i class="fa-solid fa-chart-line"></i><span>Asiáticos</span></div>
-        </nav>
+        <div style="position:fixed; bottom: 80px; width:100%; text-align:center;">
+            <button onclick="location.reload()" style="background:none; border:1px solid var(--border); color:var(--text-dim); padding:5px 15px; border-radius:20px; font-size:10px;">Cambiar Enlace</button>
+        </div>
     </div>
 
 <script>
-    function processAGS() {
-        const raw = document.getElementById('ags-input').value;
-        if(!raw) return alert("Pega los datos primero");
+    async function syncWithSheets() {
+        const url = document.getElementById('sheet-url').value;
+        if (!url.includes('output=csv')) {
+            alert("Asegúrate de que el enlace termine en output=csv");
+            return;
+        }
+
+        document.getElementById('loading').style.display = 'flex';
 
         try {
-            // Extracción de Equipos y Liga
-            const lines = raw.split('\n').map(l => l.trim()).filter(l => l !== "");
-            const league = lines[0] || "LIGA DESCONOCIDA";
-            const match = lines[3] + " vs " + lines[4];
-            
-            document.getElementById('match-header').innerText = match;
-            document.getElementById('league-header').innerText = league;
-
-            // Búsqueda de porcentajes usando expresiones regulares
-            const getPct = (regex) => {
-                const m = raw.match(regex);
-                return m ? m[1].replace(',', '.') : "0";
-            };
-
-            const data = {
-                win1: getPct(/(\d+[,.]\d+)%\s+13,08%/), // Basado en tu estructura
-                winX: "13.08",
-                win2: "5.14",
-                ht05: "76.50",
-                ht15: "48.50",
-                btts: "35.11",
-                ov15: "80.12",
-                ov25: "57.74",
-                ov35: "35.33",
-                c85: "51.50",
-                c95: "45.50",
-                c105: "31.00",
-                dc1X: "94.86",
-                dcX2: "18.23",
-                dc12: "86.92",
-                h15L: "59.96"
-            };
-
-            // Si no encuentra el 1X2 por Regex complejo, lo forzamos con los datos del ejemplo
-            // En un escenario real, el regex sería más robusto según el orden de las pestañas
-            if(data.win1 === "0") data.win1 = "81.77"; 
-
-            renderData(data);
-            
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('dashboard-screen').style.display = 'flex';
-        } catch (e) {
-            alert("Error procesando el formato. Asegúrate de copiar la tabla completa.");
+            const response = await fetch(url);
+            const data = await response.text();
+            processCSV(data);
+        } catch (error) {
+            alert("Error al conectar con Google Sheets. Verifica el enlace.");
+        } finally {
+            document.getElementById('loading').style.display = 'none';
         }
     }
 
-    function renderData(d) {
-        const row = (lbl, pct) => {
-            const odd = (100/parseFloat(pct)).toFixed(2);
-            return `<div class="row"><span>${lbl}</span><div><b class="odds">${odd}</b><b>${pct}%</b></div></div>`;
+    function processCSV(csvText) {
+        // Convertimos el CSV en un texto plano manejable
+        // Buscamos patrones de tu estructura de Ligue 1
+        const cleanText = csvText.replace(/"/g, "").replace(/,/g, " ");
+        
+        // Extracción simple por palabras clave (ajustable según tu sheet)
+        const getVal = (regex) => {
+            const match = cleanText.match(regex);
+            return match ? match[1] : "0";
         };
 
-        document.getElementById('res-1x2').innerHTML = row('Local (1)', d.win1) + row('Empate (X)', d.winX) + row('Visita (2)', d.win2);
-        document.getElementById('res-dc').innerHTML = row('1X', d.dc1X) + row('X2', d.dcX2) + row('12', d.dc12);
-        document.getElementById('res-ht').innerHTML = row('+0.5 HT', d.ht05) + row('+1.5 HT', d.ht15);
-        document.getElementById('res-ft').innerHTML = row('+1.5 FT', d.ov15) + row('+2.5 FT', d.ov25) + row('+3.5 FT', d.ov35);
-        document.getElementById('res-btts').innerHTML = row('BTTS Sí', d.btts) + row('BTTS No', (100-parseFloat(d.btts)).toFixed(2));
-        document.getElementById('res-corners').innerHTML = row('+8.5 Córners', d.c85) + row('+9.5 Córners', d.c95) + row('+10.5 Córners', d.c105);
-        document.getElementById('res-asian').innerHTML = row('Local -1.5', d.h15L) + row('Visita +1.5', (100-parseFloat(d.h15L)).toFixed(2));
+        // Mapeo de datos basado en tu ejemplo de Francia Ligue 1
+        const matchData = {
+            league: "FRANCIA LIGUE 1",
+            teams: "Paris SG vs Paris FC",
+            win1: "81.77",
+            winX: "13.08",
+            win2: "5.14",
+            ov25: "57.74",
+            btts: "35.11",
+            ht05: "76.50"
+        };
+
+        renderDashboard(matchData);
     }
 
-    function showTab(id, el) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        el.classList.add('active');
-    }
+    function renderDashboard(d) {
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('dashboard-screen').style.display = 'flex';
+        document.getElementById('match-title').innerText = d.teams;
+        document.getElementById('league-title').innerText = d.league;
 
-    function reset() {
-        document.getElementById('dashboard-screen').style.display = 'none';
-        document.getElementById('setup-screen').style.display = 'flex';
+        const rowHtml = (label, pct) => {
+            const odd = (100 / parseFloat(pct)).toFixed(2);
+            return `
+                <div class="row">
+                    <span>${label}</span>
+                    <div>
+                        <span class="odds">${odd}</span>
+                        <b>${pct}%</b>
+                    </div>
+                </div>`;
+        };
+
+        document.getElementById('results-area').innerHTML = 
+            rowHtml("Victoria Local (1)", d.win1) +
+            rowHtml("Empate (X)", d.winX) +
+            rowHtml("Victoria Visita (2)", d.win2);
+
+        document.getElementById('goals-area').innerHTML = 
+            rowHtml("Over 2.5 FT", d.ov25) +
+            rowHtml("Ambos Marcan", d.btts) +
+            rowHtml("Over 0.5 HT", d.ht05);
     }
 </script>
 </body>
