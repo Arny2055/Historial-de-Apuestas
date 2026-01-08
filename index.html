@@ -841,15 +841,25 @@
     
     function uH(){ dH=ext(document.getElementById('hIn').value); fill(); }
     function uV(){ dV=ext(document.getElementById('vIn').value); fill(); }
+    
     function uP(){ 
         const text = document.getElementById('playersIn').value;
         const lines = text.split('\n');
         dP = [];
         lines.forEach(l => {
-            const m = l.trim().split(/\t|\s{2,}/);
-            if(m.length >= 3) {
-                const goals = parseInt(m[2]);
-                if(!isNaN(goals)) dP.push({ name: m[1].trim(), team: m[2].trim(), goals: goals });
+            const cleanLine = l.trim();
+            if(!cleanLine) return;
+            // Intenta separar por tabs o múltiples espacios
+            const parts = cleanLine.split(/\t|\s{2,}/);
+            if(parts.length >= 3) {
+                const goals = parseInt(parts[2]);
+                if(!isNaN(goals)) {
+                    dP.push({ 
+                        name: parts[1].trim(), 
+                        team: parts[0].trim().replace(/^\d+\.\s*/, ""), // Quita el número del rank si existe
+                        goals: goals 
+                    });
+                }
             }
         });
     }
@@ -938,22 +948,32 @@
             }
         }
         
-        // Calculo de Goleadores
+        // Calculo de Goleadores (Optimizado para coincidencia parcial de nombres de equipo)
         let scorersHTML = "";
-        const leagueScorers = dP;
-        if(leagueScorers.length > 0) {
-            const matchPlayers = leagueScorers.filter(p => p.team.toLowerCase().includes(tH.toLowerCase()) || p.team.toLowerCase().includes(tV.toLowerCase()));
+        if(dP && dP.length > 0) {
+            const matchPlayers = dP.filter(player => {
+                const pTeam = player.team.toLowerCase();
+                const selH = tH.toLowerCase();
+                const selV = tV.toLowerCase();
+                return pTeam.includes(selH) || selH.includes(pTeam) || pTeam.includes(selV) || selV.includes(pTeam);
+            });
+
             matchPlayers.forEach(player => {
-                const isLocal = player.team.toLowerCase().includes(tH.toLowerCase());
+                const pTeam = player.team.toLowerCase();
+                const isLocal = tH.toLowerCase().includes(pTeam) || pTeam.includes(tH.toLowerCase());
                 const teamExpectedGoals = isLocal ? xH : xV;
-                const totalTeamGoals = isLocal ? (dH[tH].f * (dH[tH].f / aH)) : (dV[tV].f * (dV[tV].f / aV)); 
-                const playerContribution = player.goals / (totalTeamGoals || 1);
-                const playerLambda = teamExpectedGoals * playerContribution;
+                
+                // Promedio de goles del equipo en la liga actual para calcular peso relativo
+                const teamStats = isLocal ? dH[tH] : dV[tV];
+                const playerLambda = teamExpectedGoals * (player.goals / ( (teamStats.f * 15) || 30)); // Ajuste de contribución estimada
                 const probAnytime = 1 - poi(0, playerLambda);
-                scorersHTML += getRow(`${player.name} (${player.team})`, probAnytime, 'Goleador Anytime');
+                
+                if(probAnytime > 0.05) {
+                    scorersHTML += getRow(`${player.name} (${isLocal ? 'LOC' : 'VIS'})`, probAnytime, 'Goleador Anytime');
+                }
             });
         }
-        document.getElementById('card-scorers').innerHTML = scorersHTML || "<p style='text-align:center;font-size:0.7rem;color:var(--text-dim);'>No hay datos de goleadores para estos equipos.</p>";
+        document.getElementById('card-scorers').innerHTML = scorersHTML || "<p style='text-align:center;font-size:0.7rem;color:var(--text-dim);'>No hay datos de goleadores detectados para este partido.</p>";
 
         const calcAsian = (win, push) => (win / (1 - push));
         function getAO(line) { 
