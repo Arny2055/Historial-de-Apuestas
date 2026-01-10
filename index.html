@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quantum Engine | Pro Panic Control</title>
+    <title>Quantum Engine | Pro Weekly Report</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -78,9 +78,10 @@
         .stress-box { background: rgba(255, 77, 77, 0.05); border: 1px solid #331a1a; padding: 10px; border-radius: 8px; margin-top: 10px; }
         .stress-title { font-size: 0.65rem; color: var(--delete); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
 
-        /* Panic Button UI */
         .panic-active { background: #330000 !important; border-color: var(--delete) !important; animation: pulse-red 2s infinite; }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); } }
+
+        .report-summary { font-family: monospace; font-size: 0.75rem; background: #000; color: var(--accent-green); padding: 10px; border-radius: 5px; white-space: pre-wrap; margin: 10px 0; border: 1px solid var(--border); }
     </style>
 </head>
 <body>
@@ -165,9 +166,14 @@
             <canvas id="profitChart"></canvas>
         </div>
 
-        <button class="btn-main" style="background: var(--quantum-blue); color: #000;" onclick="openSessionModal()">
-            <i class="fa-solid fa-flag-checkered"></i> CIERRE DE SESIÓN HOY
-        </button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="btn-main" style="background: var(--quantum-blue); color: #000;" onclick="openSessionModal()">
+                <i class="fa-solid fa-flag-checkered"></i> SESIÓN HOY
+            </button>
+            <button class="btn-main" style="background: var(--accent-gold); color: #000;" onclick="generateWeeklyReport()">
+                <i class="fa-solid fa-file-invoice"></i> REPORTE
+            </button>
+        </div>
         
         <div id="history-list"></div>
         <button class="btn-main" style="background:var(--delete); color:#fff; margin-top:20px;" onclick="clearHistory()">BORRAR TODO EL CONTROL</button>
@@ -182,7 +188,7 @@
 <div id="pick-modal" class="modal">
     <div class="modal-content">
         <h3 id="m-name" style="color:var(--accent-gold); margin:0 0 10px 0;">Mercado</h3>
-        <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ RIESGO REDUCIDO AL 50% POR MODO PÁNICO</div>
+        <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO (STAKE / 2)</div>
         <div class="kelly-box">
             <div style="font-size: 0.6rem; color: var(--text-dim);">Sugerencia Kelly Sugerida:</div>
             <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
@@ -210,6 +216,15 @@
     </div>
 </div>
 
+<div id="report-modal" class="modal">
+    <div class="modal-content">
+        <h2 style="color: var(--accent-gold); margin-top: 0; text-align: center;">REPORTE DE RENDIMIENTO</h2>
+        <div id="report-text" class="report-summary"></div>
+        <button class="btn-main" onclick="copyReport()">COPIAR REPORTE</button>
+        <button class="btn-main" style="background:#444; color:#fff;" onclick="closeModal('report-modal')">CERRAR</button>
+    </div>
+</div>
+
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, isPanic = false;
 
@@ -223,22 +238,12 @@
     };
 
     function togglePanic(init = false) {
-        if(!init) isPanic = !isPanic;
-        else isPanic = true;
-        
+        if(!init) isPanic = !isPanic; else isPanic = true;
         const btn = document.getElementById('panic-btn');
         const status = document.getElementById('panic-status');
         const card = document.getElementById('bank-card');
-
-        if(isPanic) {
-            btn.classList.add('panic-active');
-            status.innerText = "ON (SEGURIDAD MÁXIMA)";
-            card.style.borderColor = "var(--delete)";
-        } else {
-            btn.classList.remove('panic-active');
-            status.innerText = "OFF";
-            card.style.borderColor = "var(--border)";
-        }
+        if(isPanic) { btn.classList.add('panic-active'); status.innerText = "ON"; card.style.borderColor = "var(--delete)"; }
+        else { btn.classList.remove('panic-active'); status.innerText = "OFF"; card.style.borderColor = "var(--border)"; }
         localStorage.setItem('q_pro_panic', isPanic);
         runStressTest();
     }
@@ -259,10 +264,7 @@
         const o={};
         t.split('\n').forEach(l => {
             const m = l.trim().match(/^(\d+)\s+(.+?)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)/);
-            if(m) {
-                const gp=parseInt(m[3]);
-                if(gp>0) o[m[2].trim()]={f:parseInt(m[4])/gp, a:parseInt(m[5])/gp};
-            }
+            if(m) { const gp=parseInt(m[3]); if(gp>0) o[m[2].trim()]={f:parseInt(m[4])/gp, a:parseInt(m[5])/gp}; }
         });
         return o;
     }
@@ -312,8 +314,7 @@
         document.getElementById('match-label').innerText = `${tH} vs ${tV}`;
         let h = `<div class="card">`;
         for(let m in data) {
-            const prob = data[m];
-            const fair = (100/prob).toFixed(2);
+            const prob = data[m]; const fair = (100/prob).toFixed(2);
             h += `<div class="row ${prob > 55 ? 'value-hit' : ''}" onclick="openModal('${m}', ${fair}, '${tH} vs ${tV}', ${prob})">
                     <div><span style="font-weight:bold;">${m}</span></div>
                     <div class="val-group"><span class="pct">${prob.toFixed(1)}%</span><span class="odds">Justa: ${fair}</span></div>
@@ -358,9 +359,7 @@
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         history.unshift({ ...selectedPick, odds, stake, status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
-        closeModal('pick-modal');
-        nav('history-screen');
-        loadHistory();
+        closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
 
     function loadHistory() {
@@ -408,6 +407,38 @@
         document.getElementById('session-yield').innerText = (sVol > 0 ? (sProf / sVol * 100).toFixed(1) : 0) + "%";
         document.getElementById('session-wr').innerText = (todayPicks.length > 0 ? (sWin / todayPicks.length * 100).toFixed(0) : 0) + "%";
         document.getElementById('session-modal').style.display = 'flex';
+    }
+
+    function generateWeeklyReport() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const resolved = history.filter(p => p.status !== 'pending');
+        if(resolved.length === 0) { alert("No hay datos suficientes."); return; }
+        
+        let totalProfit = 0, totalStaked = 0, wins = 0;
+        resolved.forEach(p => {
+            totalStaked += p.stake;
+            if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; }
+            else totalProfit -= p.stake;
+        });
+
+        const report = `📊 QUANTUM PRO REPORT
+-----------------------
+💰 Profit: ${totalProfit.toFixed(2)} $
+📈 Yield: ${(totalProfit/totalStaked*100).toFixed(1)}%
+🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%
+🎲 Operaciones: ${resolved.length}
+💵 Vol. Total: ${totalStaked.toFixed(2)} $
+📅 Generado: ${new Date().toLocaleDateString()}
+-----------------------
+Powered by Quantum Engine`;
+        
+        document.getElementById('report-text').innerText = report;
+        document.getElementById('report-modal').style.display = 'flex';
+    }
+
+    function copyReport() {
+        navigator.clipboard.writeText(document.getElementById('report-text').innerText);
+        alert("Reporte copiado!");
     }
 
     function updateChart(data) {
