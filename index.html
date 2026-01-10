@@ -38,8 +38,9 @@
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-bottom: 15px; }
         .row { 
             display: flex; justify-content: space-between; align-items: center; 
-            padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;
+            padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;
         }
+        .row:active { background: rgba(255,255,255,0.05); }
         .row.value-hit { background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--accent-green); }
         
         .val-group { text-align: right; }
@@ -47,17 +48,17 @@
 
         .tab-bar { 
             position: fixed; bottom: 0; width: 100%; height: 70px; 
-            background: var(--card); display: flex; border-top: 1px solid var(--border);
+            background: var(--card); display: flex; border-top: 1px solid var(--border); z-index: 100;
         }
-        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; text-decoration: none; }
         .tab-item.active { color: var(--accent-gold); }
 
         #setup-screen, #dashboard-screen, #history-screen { display: none; height: 100%; }
         .active-screen { display: block !important; }
 
         .history-item { background: var(--card); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--border); position: relative; }
-        .win { border-left-color: var(--accent-green); }
-        .loss { border-left-color: var(--delete); }
+        .win { border-left-color: var(--accent-green) !important; }
+        .loss { border-left-color: var(--delete) !important; }
         
         .status-badge { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; }
 
@@ -67,7 +68,7 @@
         }
         .modal-content { background: var(--card); border: 1px solid var(--accent-gold); padding: 20px; border-radius: 15px; width: 100%; max-width: 320px; overflow-y: auto; max-height: 90vh; }
         
-        input, select { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 8px; margin-bottom: 10px; }
+        input, select { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 8px; margin-bottom: 10px; font-size: 16px; }
 
         .overround-box { background: rgba(0, 255, 255, 0.05); border: 1px solid var(--quantum-blue); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.75rem; }
         .chart-container { background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); height: 180px; }
@@ -86,6 +87,9 @@
         .sniff-alert { padding: 10px; border-radius: 8px; font-weight: 900; text-align: center; margin-bottom: 10px; display: none; font-size: 0.8rem; letter-spacing: 1px; }
         .sniff-mega { background: var(--fire); color: #fff; animation: blinker 1s linear infinite; }
         @keyframes blinker { 50% { opacity: 0.5; } }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
     </style>
 </head>
 <body>
@@ -120,13 +124,13 @@
             <i class="fa-solid fa-briefcase"></i> IR A MI CONTROL (HISTORIAL)
         </button>
 
-        <textarea id="hIn" placeholder="DATOS LOCAL..."></textarea>
-        <textarea id="vIn" placeholder="DATOS VISITA..."></textarea>
-        <textarea id="sIn" placeholder="PROMEDIOS LIGA..."></textarea>
+        <textarea id="hIn" placeholder="PEGAR DATOS LOCAL (TABLA)..."></textarea>
+        <textarea id="vIn" placeholder="PEGAR DATOS VISITA (TABLA)..."></textarea>
+        <textarea id="sIn" placeholder="PEGAR PROMEDIOS LIGA..."></textarea>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-            <select id="sH"></select>
-            <select id="sV"></select>
+            <select id="sH"><option>Seleccione Local</option></select>
+            <select id="sV"><option>Seleccione Visita</option></select>
         </div>
         
         <button class="btn-main" onclick="calculate()">
@@ -139,7 +143,7 @@
     <div class="header-box"><h2 id="match-label">RESULTADOS</h2></div>
     <div class="scroll-content">
         <div id="league-over-audit" class="overround-box">
-            <i class="fa-solid fa-shield-halved"></i> Calidad de Datos: <span id="data-quality">OK</span>
+            <i class="fa-solid fa-shield-halved"></i> Calidad de Datos: <span id="data-quality">OK - Poisson Dist.</span>
         </div>
         <div id="results-area"></div>
     </div>
@@ -153,16 +157,14 @@
 <div id="history-screen">
     <div class="header-box"><h2>CONTROL PROFESIONAL</h2></div>
     <div class="scroll-content">
-        <div class="sticky-stats">
-            <div class="stat-grid">
-                <div class="stat-box">
-                    <div style="font-size: 0.6rem; color: var(--text-dim);">PROFIT TOTAL</div>
-                    <div id="total-profit" style="font-size: 1.2rem; font-weight: 900;">0.00</div>
-                </div>
-                <div class="stat-box">
-                    <div style="font-size: 0.6rem; color: var(--text-dim);">YIELD %</div>
-                    <div id="yield-total" style="font-size: 1.2rem; font-weight: 900; color: var(--accent-gold);">0.0%</div>
-                </div>
+        <div class="stat-grid">
+            <div class="stat-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">PROFIT TOTAL</div>
+                <div id="total-profit" style="font-size: 1.2rem; font-weight: 900;">0.00</div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">YIELD %</div>
+                <div id="yield-total" style="font-size: 1.2rem; font-weight: 900; color: var(--accent-gold);">0.0%</div>
             </div>
         </div>
 
@@ -195,18 +197,23 @@
         
         <div id="sniff-alert" class="sniff-alert"><i class="fa-solid fa-bolt"></i> INEFICIENCIA DETECTADA</div>
 
-        <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO (STAKE / 2)</div>
+        <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO (STAKE REDUCIDO)</div>
         <div class="kelly-box">
-            <div style="font-size: 0.6rem; color: var(--text-dim);">Sugerencia Kelly Sugerida:</div>
+            <div style="font-size: 0.6rem; color: var(--text-dim);">Sugerencia Gestión Kelly:</div>
             <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
             <div id="kelly-pct" style="font-size: 0.65rem; color: var(--accent-green);">0% banca</div>
         </div>
         <div id="edge-warning-box" class="alert-box"><i class="fa-solid fa-triangle-exclamation"></i> EDGE ANÓMALO (>25%)</div>
-        <input type="number" id="m-odds" step="0.01" placeholder="Cuota Casa" oninput="liveUpdateKelly()">
+        
+        <label style="font-size: 0.7rem;">CUOTA CASA DE APUESTAS:</label>
+        <input type="number" id="m-odds" step="0.01" placeholder="Ej: 2.10" oninput="liveUpdateKelly()">
         <div id="live-edge-display" style="font-size: 0.7rem; margin-bottom: 10px; font-weight: bold;"></div>
-        <input type="number" id="m-stake-money" placeholder="Importe ($)">
+        
+        <label style="font-size: 0.7rem;">IMPORTE APOSTADO ($):</label>
+        <input type="number" id="m-stake-money" placeholder="0.00">
+        
         <button class="btn-main" onclick="savePick()">CONFIRMAR APUESTA</button>
-        <button onclick="closeModal('pick-modal')" style="background:none; border:none; color:var(--text-dim); width:100%; margin-top:10px;">Cerrar</button>
+        <button onclick="closeModal('pick-modal')" style="background:none; border:none; color:var(--text-dim); width:100%; margin-top:10px; cursor:pointer;">Cancelar</button>
     </div>
 </div>
 
@@ -264,7 +271,7 @@
         for(let i=0; i<5; i++) { currentBank -= (currentBank * riskPerBetPct); }
         const drawdown = ((bank - currentBank) / bank * 100).toFixed(1);
         document.getElementById('stress-result-money').innerText = "$ " + currentBank.toFixed(2);
-        document.getElementById('stress-result-pct').innerText = "-" + drawdown + "%";
+        document.getElementById('stress-result-pct').innerText = "-" + (isNaN(drawdown) ? 0 : drawdown) + "%";
     }
 
     function ext(t) {
@@ -289,26 +296,32 @@
 
     function fill() {
         const sH=document.getElementById('sH'), sV=document.getElementById('sV');
-        sH.innerHTML=sV.innerHTML="";
+        sH.innerHTML=sV.innerHTML='<option value="">Seleccionar Equipo</option>';
         Object.keys(dH).sort().forEach(t=>sH.add(new Option(t,t)));
         Object.keys(dV).sort().forEach(t=>sV.add(new Option(t,t)));
     }
 
-    function poi(k,l){ let f=1; for(let i=2; i<=k; i++) f*=i; return (Math.pow(l,k)*Math.exp(-l))/f; }
+    function poi(k,l){ 
+        let f=1; for(let i=2; i<=k; i++) f*=i; 
+        return (Math.pow(l,k)*Math.exp(-l))/f; 
+    }
 
     function calculate() {
         const tH=document.getElementById('sH').value, tV=document.getElementById('sV').value;
-        if(!dH[tH] || !dV[tV]) return;
+        if(!dH[tH] || !dV[tV]) { alert("Seleccione ambos equipos con datos válidos"); return; }
+        
         const xH = (dH[tH].f/aH)*(dV[tV].a/aH)*aH, xV = (dV[tV].f/aV)*(dH[tH].a/aV)*aV;
         let pH=0, pD=0, pV=0, ov25=0, btts=0;
-        for(let i=0; i<=8; i++) {
-            for(let j=0; j<=8; j++) {
+        
+        for(let i=0; i<=9; i++) {
+            for(let j=0; j<=9; j++) {
                 let p = poi(i,xH)*poi(j,xV);
                 if(i>j) pH+=p; else if(i===j) pD+=p; else pV+=p;
                 if((i+j)>2.5) ov25+=p;
                 if(i>0 && j>0) btts+=p;
             }
         }
+        
         renderResults(tH, tV, {
             'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
             'Más de 2.5 Goles': ov25*100, 'Menos de 2.5 Goles': (1-ov25)*100,
@@ -324,7 +337,7 @@
             const prob = data[m]; const fair = (100/prob).toFixed(2);
             h += `<div class="row ${prob > 55 ? 'value-hit' : ''}" onclick="openModal('${m}', ${fair}, '${tH} vs ${tV}', ${prob})">
                     <div><span style="font-weight:bold;">${m}</span></div>
-                    <div class="val-group"><span class="pct">${prob.toFixed(1)}%</span><span class="odds">Justa: ${fair}</span></div>
+                    <div class="val-group"><span class="pct">${prob.toFixed(1)}%</span><span class="odds" style="font-size:0.7rem; color:var(--text-dim)">Justa: ${fair}</span></div>
                 </div>`;
         }
         h += `</div>`;
@@ -339,6 +352,7 @@
         document.getElementById('sniff-alert').style.display = 'none';
         document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
         document.getElementById('pick-modal').style.display = 'flex';
+        document.getElementById('live-edge-display').innerText = "";
     }
 
     function liveUpdateKelly() {
@@ -347,10 +361,15 @@
         const bank = parseFloat(document.getElementById('user-bank').value) || 0;
         const sniff = document.getElementById('sniff-alert');
         
-        if(!odds || odds <= 1) { sniff.style.display='none'; return; }
+        if(!odds || odds <= 1) { 
+            sniff.style.display='none'; 
+            document.getElementById('kelly-suggestion').innerText = "0.00 $";
+            return; 
+        }
         
         let kelly = (((odds - 1) * prob) - (1 - prob)) / (odds - 1);
-        let multiplier = isPanic ? 0.125 : 0.25; 
+        // Fraccional conservador: 0.25 normal, 0.10 en pánico
+        let multiplier = isPanic ? 0.10 : 0.25; 
         let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
         let money = bank * kFrac;
         
@@ -362,12 +381,11 @@
         document.getElementById('live-edge-display').innerText = `EDGE: ${edge.toFixed(1)}%`;
         document.getElementById('edge-warning-box').style.display = edge > 25 ? "block" : "none";
 
-        // Sniffer Logic
         if(edge > 15) {
             sniff.style.display = 'block';
             sniff.className = 'sniff-alert sniff-mega';
             sniff.innerHTML = '<i class="fa-solid fa-fire"></i> ERROR DE CUOTA DETECTADO';
-        } else if(edge > 5) {
+        } else if(edge > 3) {
             sniff.style.display = 'block';
             sniff.className = 'sniff-alert';
             sniff.style.background = 'var(--accent-gold)';
@@ -383,9 +401,17 @@
     function savePick() {
         const odds = parseFloat(document.getElementById('m-odds').value);
         const stake = parseFloat(document.getElementById('m-stake-money').value);
-        if(!odds || !stake) return;
+        if(!odds || !stake) { alert("Complete los datos"); return; }
+        
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift({ ...selectedPick, odds, stake, status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
+        history.unshift({ 
+            ...selectedPick, 
+            odds, 
+            stake, 
+            status: 'pending', 
+            id: Date.now(), 
+            date: new Date().toLocaleDateString() 
+        });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
@@ -395,13 +421,21 @@
         const container = document.getElementById('history-list');
         let totalProfit = 0, totalStaked = 0;
         let chartData = [0];
+        
         const sortedHistory = [...history].reverse();
         let runningProfit = 0;
+        
         sortedHistory.forEach(item => {
-            if(item.status === 'win') { runningProfit += (item.odds - 1) * item.stake; totalProfit += (item.odds - 1) * item.stake; totalStaked += item.stake; }
-            else if(item.status === 'loss') { runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; }
+            if(item.status === 'win') { 
+                let p = (item.odds - 1) * item.stake;
+                runningProfit += p; totalProfit += p; totalStaked += item.stake; 
+            }
+            else if(item.status === 'loss') { 
+                runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; 
+            }
             if(item.status !== 'pending') chartData.push(runningProfit);
         });
+
         container.innerHTML = history.length ? history.map(item => {
             let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
             let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
@@ -409,18 +443,82 @@
                     <span class="status-badge" style="color:${color}">${resText}</span>
                     <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
                     <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
-                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | ${item.stake}$</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake}$</div>
                     <div style="margin-top:10px; display:flex; gap:8px;">
-                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold;">W</button>
-                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold;">L</button>
+                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
+                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
                     </div>
-                    <i class="fa-solid fa-trash-can" style="position:absolute; bottom:10px; right:10px; color:var(--delete); font-size:0.8rem;" onclick="deletePick(${item.id})"></i>
+                    <i class="fa-solid fa-trash-can" style="position:absolute; bottom:15px; right:15px; color:var(--delete); font-size:1rem; cursor:pointer;" onclick="deletePick(${item.id})"></i>
                 </div>`;
-        }).join('') : `<p style="text-align:center; color:var(--text-dim);">Sin registros.</p>`;
+        }).join('') : `<p style="text-align:center; color:var(--text-dim); margin-top:20px;">No hay apuestas registradas.</p>`;
+
         document.getElementById('total-profit').innerText = totalProfit.toFixed(2) + " $";
         document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
         document.getElementById('yield-total').innerText = (totalStaked > 0 ? (totalProfit / totalStaked * 100).toFixed(1) : 0) + "%";
         updateChart(chartData);
+    }
+
+    function updateChart(data) {
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { 
+                labels: data.map((_, i) => i), 
+                datasets: [{ 
+                    data: data, 
+                    borderColor: '#00ff88', 
+                    backgroundColor: 'rgba(0, 255, 136, 0.1)', 
+                    borderWidth: 2, 
+                    fill: true, 
+                    tension: 0.3, 
+                    pointRadius: 2 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } }, 
+                scales: { 
+                    x: { display: false }, 
+                    y: { 
+                        grid: { color: 'rgba(255,255,255,0.05)' }, 
+                        ticks: { color: '#7f9c93', font: { size: 9 } } 
+                    } 
+                } 
+            }
+        });
+    }
+
+    function updateStatus(id, status) {
+        let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const i = history.findIndex(x => x.id === id);
+        if(i !== -1) { 
+            history[i].status = status; 
+            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
+            loadHistory(); 
+        }
+    }
+
+    function deletePick(id) { 
+        if(confirm("¿Eliminar este registro?")) { 
+            let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]'); 
+            history = history.filter(item => item.id !== id); 
+            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
+            loadHistory(); 
+        } 
+    }
+
+    function clearHistory() { 
+        if(confirm("¿Estás seguro de borrar TODO el historial? Esta acción no se puede deshacer.")) { 
+            localStorage.removeItem('q_pro_hist'); 
+            loadHistory(); 
+        } 
+    }
+
+    function nav(id) {
+        document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen'));
+        document.getElementById(id).classList.add('active-screen');
     }
 
     function openSessionModal() {
@@ -428,7 +526,13 @@
         const today = new Date().toLocaleDateString();
         const todayPicks = history.filter(p => p.date === today && p.status !== 'pending');
         let sProf = 0, sVol = 0, sWin = 0;
-        todayPicks.forEach(p => { sVol += p.stake; if(p.status === 'win') { sProf += (p.odds - 1) * p.stake; sWin++; } else sProf -= p.stake; });
+        
+        todayPicks.forEach(p => { 
+            sVol += p.stake; 
+            if(p.status === 'win') { sProf += (p.odds - 1) * p.stake; sWin++; } 
+            else sProf -= p.stake; 
+        });
+        
         document.getElementById('session-date').innerText = today;
         document.getElementById('session-profit').innerText = sProf.toFixed(2) + " $";
         document.getElementById('session-profit').style.color = sProf >= 0 ? "var(--accent-green)" : "var(--delete)";
@@ -440,37 +544,23 @@
     function generateWeeklyReport() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const resolved = history.filter(p => p.status !== 'pending');
-        if(resolved.length === 0) { alert("No hay datos."); return; }
+        if(resolved.length === 0) { alert("No hay datos resueltos para generar reporte."); return; }
+        
         let totalProfit = 0, totalStaked = 0, wins = 0;
-        resolved.forEach(p => { totalStaked += p.stake; if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } else totalProfit -= p.stake; });
-        const report = `📊 QUANTUM PRO REPORT\n-----------------------\n💰 Profit: ${totalProfit.toFixed(2)} $\n📈 Yield: ${(totalProfit/totalStaked*100).toFixed(1)}%\n🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%\n🎲 Operaciones: ${resolved.length}\n💵 Vol. Total: ${totalStaked.toFixed(2)} $\n📅 Fecha: ${new Date().toLocaleDateString()}\n-----------------------\nPowered by Quantum Engine`;
+        resolved.forEach(p => { 
+            totalStaked += p.stake; 
+            if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } 
+            else totalProfit -= p.stake; 
+        });
+        
+        const report = `📊 QUANTUM PRO REPORT\n-----------------------\n💰 Profit: ${totalProfit.toFixed(2)} $\n📈 Yield: ${(totalStaked > 0 ? (totalProfit/totalStaked*100).toFixed(1) : 0)}%\n🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%\n🎲 Operaciones: ${resolved.length}\n💵 Vol. Total: ${totalStaked.toFixed(2)} $\n📅 Fecha: ${new Date().toLocaleDateString()}\n-----------------------\nPowered by Quantum Engine`;
         document.getElementById('report-text').innerText = report;
         document.getElementById('report-modal').style.display = 'flex';
     }
 
-    function copyReport() { navigator.clipboard.writeText(document.getElementById('report-text').innerText); alert("Copiado!"); }
-
-    function updateChart(data) {
-        const ctx = document.getElementById('profitChart').getContext('2d');
-        if(chartInstance) chartInstance.destroy();
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } } } }
-        });
-    }
-
-    function updateStatus(id, status) {
-        let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        const i = history.findIndex(x => x.id === id);
-        if(i !== -1) { history[i].status = status; localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); }
-    }
-
-    function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]'); history = history.filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
-    function clearHistory() { if(confirm("¿Borrar todo?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
-    function nav(id) {
-        document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen'));
-        document.getElementById(id).classList.add('active-screen');
+    function copyReport() { 
+        const text = document.getElementById('report-text').innerText;
+        navigator.clipboard.writeText(text).then(() => alert("¡Reporte copiado al portapapeles!"));
     }
 </script>
 </body>
