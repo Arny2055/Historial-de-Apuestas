@@ -92,6 +92,7 @@
         .stat-box { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
 
         .ov-badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; background: rgba(255,215,0,0.2); color: var(--accent-gold); }
+        .multi-odds { display: grid; gap: 5px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -147,7 +148,7 @@
         <div id="league-over-audit" class="overround-box">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span><i class="fa-solid fa-shield-halved"></i> Audit Poisson: <b style="color:var(--accent-green)">OK</b></span>
-                <span id="market-quality-tag" class="ov-badge">CALCULANDO MARGEN...</span>
+                <span id="market-quality-tag" class="ov-badge">LISTO</span>
             </div>
         </div>
         <div id="results-area"></div>
@@ -200,13 +201,13 @@
     <div class="modal-content">
         <h3 id="m-name" style="color:var(--accent-gold); margin:0 0 10px 0;">Mercado</h3>
         
-        <div id="sniff-alert" class="sniff-alert"><i class="fa-solid fa-bolt"></i> INEFICIENCIA DETECTADA</div>
+        <div id="sniff-alert" class="sniff-alert">INEFICIENCIA</div>
 
-        <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO (STAKE REDUCIDO)</div>
+        <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO</div>
         
         <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border);">
             <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 5px;">
-                <span>OVERROUND (Margen Casa):</span>
+                <span>OVERROUND (Margen Real):</span>
                 <span id="live-overround" style="color: var(--accent-gold); font-weight: bold;">0.00%</span>
             </div>
             <div style="height: 4px; background: #222; border-radius: 2px;">
@@ -215,18 +216,14 @@
         </div>
 
         <div class="kelly-box">
-            <div style="font-size: 0.6rem; color: var(--text-dim);">Sugerencia Gestión Kelly:</div>
+            <div style="font-size: 0.6rem; color: var(--text-dim);">Gestión Sugerida:</div>
             <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
-            <div id="kelly-pct" style="font-size: 0.65rem; color: var(--accent-green);">0% banca</div>
         </div>
         
-        <div id="edge-warning-box" class="alert-box"><i class="fa-solid fa-triangle-exclamation"></i> EDGE ANÓMALO (>25%)</div>
-        
-        <label style="font-size: 0.7rem;">CUOTA CASA DE APUESTAS:</label>
-        <input type="number" id="m-odds" step="0.01" placeholder="Ej: 2.10" oninput="liveUpdateKelly()">
-        <div id="live-edge-display" style="font-size: 0.7rem; margin-bottom: 10px; font-weight: bold; text-align: center;"></div>
-        
-        <label style="font-size: 0.7rem;">IMPORTE APOSTADO ($):</label>
+        <div id="odds-container" class="multi-odds">
+            </div>
+
+        <label style="font-size: 0.7rem;">STAKE FINAL ($):</label>
         <input type="number" id="m-stake-money" placeholder="0.00">
         
         <button class="btn-main" onclick="savePick()">CONFIRMAR APUESTA</button>
@@ -359,84 +356,89 @@
         }
         h += `</div>`;
         document.getElementById('results-area').innerHTML = h;
-        // Reset tag audit
-        document.getElementById('market-quality-tag').innerText = "ESPERANDO CUOTAS...";
     }
 
     function openModal(name, fair, teams, prob) {
         selectedPick = { name, fair, teams, prob };
         document.getElementById('m-name').innerText = name;
-        document.getElementById('m-odds').value = "";
         document.getElementById('m-stake-money').value = "";
         document.getElementById('sniff-alert').style.display = 'none';
         document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
+        
+        const container = document.getElementById('odds-container');
+        container.innerHTML = "";
+
+        // DETERMINAR SI ES UN MERCADO DE 2 O 3 OPCIONES
+        const isThreeWay = name.includes('(1)') || name.includes('(X)') || name.includes('(2)');
+        
+        if(isThreeWay) {
+            container.innerHTML = `
+                <label style="font-size:0.6rem">CUOTA 1 (Local)</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA X (Empate)</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA 2 (Visita)</label><input type="number" id="o3" step="0.01" oninput="liveUpdateOverround()">
+            `;
+        } else {
+            const label1 = name.includes('Goles') ? 'OVER' : 'SI';
+            const label2 = name.includes('Goles') ? 'UNDER' : 'NO';
+            container.innerHTML = `
+                <label style="font-size:0.6rem">CUOTA ${label1}</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA ${label2}</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">
+            `;
+        }
+
         document.getElementById('pick-modal').style.display = 'flex';
-        document.getElementById('live-edge-display').innerText = "";
-        document.getElementById('live-overround').innerText = "0.00%";
-        document.getElementById('ov-bar').style.width = "0%";
     }
 
-    function liveUpdateKelly() {
-        const odds = parseFloat(document.getElementById('m-odds').value);
-        const prob = selectedPick.prob / 100;
-        const bank = parseFloat(document.getElementById('user-bank').value) || 0;
-        const sniff = document.getElementById('sniff-alert');
+    function liveUpdateOverround() {
+        const o1 = parseFloat(document.getElementById('o1')?.value) || 0;
+        const o2 = parseFloat(document.getElementById('o2')?.value) || 0;
+        const o3 = parseFloat(document.getElementById('o3')?.value) || 0;
         
-        if(!odds || odds <= 1) { 
-            sniff.style.display='none'; 
-            document.getElementById('kelly-suggestion').innerText = "0.00 $";
-            return; 
-        }
+        let sum = 0;
+        if(o1 > 1) sum += (1/o1);
+        if(o2 > 1) sum += (1/o2);
+        if(o3 > 1) sum += (1/o3);
 
-        // LÓGICA DE OVERROUND APLICADA
-        // El overround es la diferencia entre 100% y la probabilidad implícita combinada de un mercado.
-        // Aquí lo medimos como la "distancia" que la casa pone para cubrirse.
-        const implProb = (1 / odds) * 100;
-        const overround = Math.abs(implProb - selectedPick.prob).toFixed(2);
+        if(sum === 0) return;
+
+        const overround = ((sum - 1) * 100).toFixed(2);
         document.getElementById('live-overround').innerText = overround + "%";
-        document.getElementById('ov-bar').style.width = Math.min(overround * 5, 100) + "%";
         
-        // El color de la barra indica peligro
-        document.getElementById('ov-bar').style.background = overround > 7 ? "var(--delete)" : "var(--accent-gold)";
+        const bar = document.getElementById('ov-bar');
+        bar.style.width = Math.min(overround * 5, 100) + "%";
+        bar.style.background = overround > 8 ? "var(--delete)" : (overround > 5 ? "var(--warning)" : "var(--accent-green)");
 
-        let kelly = (((odds - 1) * prob) - (1 - prob)) / (odds - 1);
-        let multiplier = isPanic ? 0.10 : 0.25; 
-        let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
-        let money = bank * kFrac;
-        
-        document.getElementById('kelly-suggestion').innerText = money.toFixed(2) + " $";
-        document.getElementById('kelly-pct').innerText = (kFrac * 100).toFixed(1) + "% banca";
-        document.getElementById('m-stake-money').value = money.toFixed(2);
-        
-        const edge = ((prob * odds) - 1) * 100;
-        document.getElementById('live-edge-display').innerText = `EDGE: ${edge.toFixed(1)}%`;
-        document.getElementById('live-edge-display').style.color = edge > 0 ? "var(--accent-green)" : "var(--delete)";
-        document.getElementById('edge-warning-box').style.display = edge > 25 ? "block" : "none";
+        // KELLY CALCULATION (Usa siempre la primera cuota como la elegida para apostar)
+        const chosenOdds = o1;
+        if(chosenOdds > 1) {
+            const prob = selectedPick.prob / 100;
+            const bank = parseFloat(document.getElementById('user-bank').value) || 0;
+            let kelly = (((chosenOdds - 1) * prob) - (1 - prob)) / (chosenOdds - 1);
+            let multiplier = isPanic ? 0.10 : 0.25; 
+            let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
+            let money = bank * kFrac;
+            
+            document.getElementById('kelly-suggestion').innerText = money.toFixed(2) + " $";
+            document.getElementById('m-stake-money').value = money.toFixed(2);
 
-        if(edge > 15) {
-            sniff.style.display = 'block';
-            sniff.className = 'sniff-alert sniff-mega';
-            sniff.innerHTML = '<i class="fa-solid fa-fire"></i> ERROR DE CUOTA DETECTADO';
-        } else if(edge > 3) {
-            sniff.style.display = 'block';
-            sniff.className = 'sniff-alert';
-            sniff.style.background = 'var(--accent-gold)';
-            sniff.style.color = '#000';
-            sniff.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> VALOR IDENTIFICADO';
-        } else {
-            sniff.style.display = 'none';
+            const edge = ((prob * chosenOdds) - 1) * 100;
+            const sniff = document.getElementById('sniff-alert');
+            if(edge > 3) {
+                sniff.style.display = 'block';
+                sniff.innerText = `EDGE DETECTADO: ${edge.toFixed(1)}%`;
+                sniff.className = edge > 15 ? 'sniff-alert sniff-mega' : 'sniff-alert';
+            } else {
+                sniff.style.display = 'none';
+            }
         }
-
-        // Actualizar el audit de la pantalla principal
-        document.getElementById('market-quality-tag').innerText = `OV ACTUAL: ${overround}%`;
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     function savePick() {
-        const odds = parseFloat(document.getElementById('m-odds').value);
+        const odds = parseFloat(document.getElementById('o1').value);
         const stake = parseFloat(document.getElementById('m-stake-money').value);
-        if(!odds || !stake) { alert("Complete los datos"); return; }
+        if(!odds || !stake) { alert("Complete al menos la cuota de su elección y el stake"); return; }
         
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         history.unshift({ 
