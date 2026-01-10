@@ -10,7 +10,7 @@
         :root {
             --bg: #050d0a; --card: #101d18; --accent-gold: #FFD700; --accent-green: #00ff88;
             --text-main: #e0e7e4; --text-dim: #7f9c93; --border: #243a33; --delete: #ff4d4d;
-            --quantum-blue: #00ffff;
+            --quantum-blue: #00ffff; --warning: #ff8800;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text-main); overflow: hidden; height: 100vh; }
@@ -94,6 +94,8 @@
         .overround-box { background: rgba(0, 255, 255, 0.05); border: 1px solid var(--quantum-blue); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.75rem; }
         
         .chart-container { background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); height: 180px; }
+        
+        .alert-box { font-size: 0.65rem; background: rgba(255, 136, 0, 0.1); color: var(--warning); padding: 8px; border-radius: 6px; border: 1px solid var(--warning); margin-bottom: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -177,6 +179,10 @@
         <h3 id="m-name" style="color:var(--accent-gold); margin-top:0;">Mercado</h3>
         <p style="font-size:0.8rem; margin-bottom:5px;">Cuota Justa: <span id="m-fair" style="color:var(--quantum-blue)"></span></p>
         
+        <div id="edge-warning-box" class="alert-box">
+            <i class="fa-solid fa-triangle-exclamation"></i> <b>EDGE ANÓMALO (>25%):</b> Esto suele indicar bajas de última hora o datos erróneos. ¡Verifica noticias!
+        </div>
+
         <div id="overround-live-audit" style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 10px;">
             Ingrese cuotas para auditar overround...
         </div>
@@ -279,6 +285,7 @@
         document.getElementById('m-stake').value = stake;
         document.getElementById('m-odds').value = "";
         document.getElementById('live-edge-display').innerText = "";
+        document.getElementById('edge-warning-box').style.display = "none";
         document.getElementById('overround-live-audit').innerText = "Ingrese cuota para auditar Overround...";
         document.getElementById('pick-modal').style.display = 'flex';
     }
@@ -288,10 +295,16 @@
         const fair = parseFloat(selectedPick.fair);
         const display = document.getElementById('live-edge-display');
         const audit = document.getElementById('overround-live-audit');
+        const warning = document.getElementById('edge-warning-box');
         if(!odds || odds <= 1) return;
+        
         const edge = ((1/fair) * odds - 1) * 100;
         display.innerText = `VENTAJA (EDGE): ${edge.toFixed(1)}%`;
         display.style.color = edge > 5 ? "var(--accent-green)" : (edge > 0 ? "var(--accent-gold)" : "var(--delete)");
+        
+        // Alerta de Edge Máximo
+        warning.style.display = edge > 25 ? "block" : "none";
+
         const impliedProb = (1/odds) * 100;
         const otherProb = 100 - (100/fair);
         const totalMarket = impliedProb + otherProb;
