@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Quantum Engine | Pro Stake</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg: #050d0a; --card: #101d18; --accent-gold: #FFD700; --accent-green: #00ff88;
@@ -88,10 +89,10 @@
         .filter-check { font-size: 0.65rem; color: var(--text-dim); display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
         .filter-check i { color: var(--accent-green); font-size: 0.6rem; }
 
-        /* Overround Styles */
         .overround-box { background: rgba(0, 255, 255, 0.05); border: 1px solid var(--quantum-blue); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.75rem; }
-        .ov-high { color: var(--delete); border-color: var(--delete); }
-        .ov-good { color: var(--accent-green); border-color: var(--accent-green); }
+        
+        /* Contenedor del Gráfico */
+        .chart-container { background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); height: 180px; }
     </style>
 </head>
 <body>
@@ -155,8 +156,12 @@
                 </div>
             </div>
         </div>
+
+        <div class="chart-container">
+            <canvas id="profitChart"></canvas>
+        </div>
         
-        <div id="history-list" style="margin-top: 15px;"></div>
+        <div id="history-list"></div>
         <button class="btn-main" style="background:var(--delete); color:#fff; margin-top:20px;" onclick="clearHistory()">BORRAR TODO EL CONTROL</button>
     </div>
     <div class="tab-bar">
@@ -182,16 +187,8 @@
 
         <label style="font-size:0.7rem; color:var(--text-dim);">STAKE (NIVEL DE RIESGO):</label>
         <select id="m-stake">
-            <option value="1">Stake 1 (Mínimo)</option>
-            <option value="2">Stake 2</option>
-            <option value="3">Stake 3</option>
-            <option value="4">Stake 4</option>
-            <option value="5">Stake 5 (Medio)</option>
-            <option value="6">Stake 6</option>
-            <option value="7">Stake 7</option>
-            <option value="8">Stake 8</option>
-            <option value="9">Stake 9</option>
-            <option value="10">Stake 10 (Máximo)</option>
+            <option value="1">Stake 1</option><option value="2">Stake 2</option><option value="3">Stake 3</option><option value="4">Stake 4</option><option value="5">Stake 5</option>
+            <option value="6">Stake 6</option><option value="7">Stake 7</option><option value="8">Stake 8</option><option value="9">Stake 9</option><option value="10">Stake 10</option>
         </select>
         
         <button class="btn-main" onclick="savePick()">CONFIRMAR APUESTA</button>
@@ -200,7 +197,7 @@
 </div>
 
 <script>
-    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={};
+    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null;
 
     function ext(t) {
         const o={};
@@ -247,12 +244,8 @@
                 if(i>0 && j>0) btts+=p;
             }
         }
-        
-        // Calidad de datos (Audit)
         const totalProb = (pH + pD + pV) * 100;
-        const qualityText = totalProb > 99 ? "ALTA (Poisson Estable)" : "MEDIA (Revisar Datos)";
-        document.getElementById('data-quality').innerText = qualityText;
-
+        document.getElementById('data-quality').innerText = totalProb > 99 ? "ALTA (Poisson Estable)" : "MEDIA (Revisar Datos)";
         renderResults(tH, tV, {
             'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
             'Más de 2.5 Goles': ov25*100, 'Menos de 2.5 Goles': (1-ov25)*100,
@@ -269,17 +262,9 @@
             const fair = (100/prob).toFixed(2);
             const isValue = prob > 55;
             const suggestedStake = Math.max(1, Math.min(10, Math.floor((prob - 40) / 5)));
-            
-            h += `
-                <div class="row ${isValue ? 'value-hit' : ''}" onclick="openModal('${m}', ${fair}, '${tH} vs ${tV}', ${suggestedStake})">
-                    <div>
-                        <span style="font-weight:bold;">${m}</span><br>
-                        <span class="stake-badge">Stake Sugerido: ${suggestedStake}</span>
-                    </div>
-                    <div class="val-group">
-                        <span class="pct">${prob.toFixed(1)}%</span>
-                        <span class="odds">Justa: ${fair}</span>
-                    </div>
+            h += `<div class="row ${isValue ? 'value-hit' : ''}" onclick="openModal('${m}', ${fair}, '${tH} vs ${tV}', ${suggestedStake})">
+                    <div><span style="font-weight:bold;">${m}</span><br><span class="stake-badge">Stake Sugerido: ${suggestedStake}</span></div>
+                    <div class="val-group"><span class="pct">${prob.toFixed(1)}%</span><span class="odds">Justa: ${fair}</span></div>
                 </div>`;
         }
         h += `</div>`;
@@ -294,7 +279,6 @@
         document.getElementById('m-odds').value = "";
         document.getElementById('live-edge-display').innerText = "";
         document.getElementById('overround-live-audit').innerText = "Ingrese cuota para auditar Overround...";
-        document.getElementById('overround-live-audit').className = "";
         document.getElementById('pick-modal').style.display = 'flex';
     }
 
@@ -303,35 +287,15 @@
         const fair = parseFloat(selectedPick.fair);
         const display = document.getElementById('live-edge-display');
         const audit = document.getElementById('overround-live-audit');
-        
-        if(!odds || odds <= 1) { 
-            display.innerText = ""; 
-            audit.innerText = "Ingrese cuota para auditar Overround...";
-            return; 
-        }
-        
-        // Cálculo de Edge
+        if(!odds || odds <= 1) return;
         const edge = ((1/fair) * odds - 1) * 100;
         display.innerText = `VENTAJA (EDGE): ${edge.toFixed(1)}%`;
         display.style.color = edge > 5 ? "var(--accent-green)" : (edge > 0 ? "var(--accent-gold)" : "var(--delete)");
-        if(edge > 5) display.innerText += " - ¡VALOR DETECTADO!";
-
-        // Auditoría de Overround (Estimado basado en la cuota opuesta justa)
-        // Si la cuota justa es X, la probabilidad es 1/X. El overround estimado es la suma de probabilidades implícitas.
         const impliedProb = (1/odds) * 100;
         const otherProb = 100 - (100/fair);
-        const totalMarket = impliedProb + otherProb; // Estimación simple del mercado binario
-        
+        const totalMarket = impliedProb + otherProb;
         audit.innerText = `OVERROUND ESTIMADO: ${totalMarket.toFixed(1)}%`;
-        if(totalMarket > 110) {
-            audit.innerText += " (¡CUOTA MUY BAJA / COMISIÓN ALTA!)";
-            audit.style.color = "var(--delete)";
-        } else if(totalMarket < 105) {
-            audit.innerText += " (EXCELENTE PRECIO)";
-            audit.style.color = "var(--accent-green)";
-        } else {
-            audit.style.color = "var(--text-dim)";
-        }
+        audit.style.color = totalMarket > 110 ? "var(--delete)" : (totalMarket < 105 ? "var(--accent-green)" : "var(--text-dim)");
     }
 
     function closeModal() { document.getElementById('pick-modal').style.display = 'none'; }
@@ -339,7 +303,7 @@
     function savePick() {
         const odds = parseFloat(document.getElementById('m-odds').value);
         const stake = parseInt(document.getElementById('m-stake').value);
-        if(!odds) { alert("Ingresa la cuota"); return; }
+        if(!odds) return;
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         history.unshift({ ...selectedPick, odds, stake, status: 'pending', id: Date.now() });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
@@ -351,62 +315,77 @@
     function loadHistory() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const container = document.getElementById('history-list');
-        let totalProfit = 0;
-        let totalStaked = 0;
-        
+        let totalProfit = 0, totalStaked = 0;
+        let chartData = [0];
+
+        // Procesar para el gráfico (de más antiguo a más reciente)
+        const sortedHistory = [...history].reverse();
+        let runningProfit = 0;
+        sortedHistory.forEach(item => {
+            if(item.status === 'win') runningProfit += (item.odds - 1) * item.stake;
+            else if(item.status === 'loss') runningProfit -= item.stake;
+            if(item.status !== 'pending') chartData.push(runningProfit);
+        });
+
         container.innerHTML = history.length ? history.map(item => {
-            let resText = "PENDIENTE";
-            let color = "var(--text-dim)";
-            const edge = ((1/item.fair) * item.odds - 1) * 100;
-            const edgeClass = edge > 0 ? 'edge-positive' : 'edge-negative';
-
-            if(item.status === 'win') {
-                totalProfit += (item.odds - 1) * item.stake;
-                totalStaked += item.stake;
-                resText = "GANADA";
-                color = "var(--accent-green)";
-            } else if(item.status === 'loss') {
-                totalProfit -= item.stake;
-                totalStaked += item.stake;
-                resText = "PERDIDA";
-                color = "var(--delete)";
-            }
-            
-            return `
-                <div class="history-item ${item.status}">
-                    <span class="status-badge" style="color:${color}">${resText}</span>
-                    <div style="font-size:0.8rem; font-weight:bold; margin-bottom:3px;">${item.teams}</div>
-                    <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name} <span class="edge-badge ${edgeClass}">Edge: ${edge.toFixed(1)}%</span></div>
-                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake} | Justa: ${item.fair}</div>
+            let resText = "PENDIENTE", color = "var(--text-dim)";
+            if(item.status === 'win') { totalProfit += (item.odds - 1) * item.stake; totalStaked += item.stake; resText = "GANADA"; color = "var(--accent-green)"; }
+            else if(item.status === 'loss') { totalProfit -= item.stake; totalStaked += item.stake; resText = "PERDIDA"; color = "var(--delete)"; }
+            return `<div class="history-item ${item.status}"><span class="status-badge" style="color:${color}">${resText}</span>
+                    <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
+                    <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake}</div>
                     <div style="margin-top:10px; display:flex; gap:8px;">
-                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
-                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
-                    </div>
-                </div>`;
-        }).join('') : `<p style="text-align:center; color:var(--text-dim); margin-top:20px;">No hay apuestas registradas.</p>`;
-        
-        const profitEl = document.getElementById('total-profit');
-        profitEl.innerText = (totalProfit >= 0 ? "+" : "") + totalProfit.toFixed(2);
-        profitEl.style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
+                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold;">GANADA</button>
+                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold;">PERDIDA</button>
+                    </div></div>`;
+        }).join('') : `<p style="text-align:center; color:var(--text-dim);">Sin registros.</p>`;
 
-        const yieldEl = document.getElementById('yield-total');
+        document.getElementById('total-profit').innerText = (totalProfit >= 0 ? "+" : "") + totalProfit.toFixed(2);
+        document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
         const yieldVal = totalStaked > 0 ? (totalProfit / totalStaked) * 100 : 0;
-        yieldEl.innerText = yieldVal.toFixed(1) + "%";
-        yieldEl.style.color = yieldVal >= 0 ? "var(--accent-gold)" : "var(--delete)";
+        document.getElementById('yield-total').innerText = yieldVal.toFixed(1) + "%";
+
+        updateChart(chartData);
+    }
+
+    function updateChart(data) {
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.map((_, i) => i),
+                datasets: [{
+                    label: 'Profit Total',
+                    data: data,
+                    borderColor: '#00ff88',
+                    backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: false },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } }
+                }
+            }
+        });
     }
 
     function updateStatus(id, status) {
         let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const i = history.findIndex(x => x.id === id);
-        if(i !== -1) {
-            history[i].status = status;
-            localStorage.setItem('q_pro_hist', JSON.stringify(history));
-            loadHistory();
-        }
+        if(i !== -1) { history[i].status = status; localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); }
     }
 
-    function clearHistory() { if(confirm("¿Seguro que quieres borrar todo el historial?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
-
+    function clearHistory() { if(confirm("¿Borrar todo?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
     function nav(id) {
         document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById(id).classList.add('active-screen');
