@@ -143,7 +143,8 @@
     <div class="header-box"><h2 id="match-label">RESULTADOS</h2></div>
     <div class="scroll-content">
         <div id="league-over-audit" class="overround-box">
-            <i class="fa-solid fa-shield-halved"></i> Calidad de Datos: <span id="data-quality">OK - Poisson Dist.</span>
+            <i class="fa-solid fa-shield-halved"></i> Audit Poisson: <span id="data-quality">OK</span> | 
+            <span id="match-overround" style="color: var(--accent-gold); font-weight: bold;">Overround: --%</span>
         </div>
         <div id="results-area"></div>
     </div>
@@ -207,7 +208,11 @@
         
         <label style="font-size: 0.7rem;">CUOTA CASA DE APUESTAS:</label>
         <input type="number" id="m-odds" step="0.01" placeholder="Ej: 2.10" oninput="liveUpdateKelly()">
-        <div id="live-edge-display" style="font-size: 0.7rem; margin-bottom: 10px; font-weight: bold;"></div>
+        
+        <div style="display:flex; justify-content: space-between; margin-bottom: 10px;">
+             <div id="live-edge-display" style="font-size: 0.7rem; font-weight: bold;"></div>
+             <div id="live-ov-display" style="font-size: 0.7rem; color: var(--text-dim);"></div>
+        </div>
         
         <label style="font-size: 0.7rem;">IMPORTE APOSTADO ($):</label>
         <input type="number" id="m-stake-money" placeholder="0.00">
@@ -241,6 +246,7 @@
 
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, isPanic = false;
+    let currentMarketProbs = {}; // Para el cálculo del overround global
 
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
@@ -322,11 +328,13 @@
             }
         }
         
-        renderResults(tH, tV, {
+        currentMarketProbs = {
             'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
             'Más de 2.5 Goles': ov25*100, 'Menos de 2.5 Goles': (1-ov25)*100,
             'Ambos Marcan: SI': btts*100, 'Ambos Marcan: NO': (1-btts)*100
-        });
+        };
+
+        renderResults(tH, tV, currentMarketProbs);
         nav('dashboard-screen');
     }
 
@@ -353,6 +361,7 @@
         document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
         document.getElementById('pick-modal').style.display = 'flex';
         document.getElementById('live-edge-display').innerText = "";
+        document.getElementById('live-ov-display').innerText = "";
     }
 
     function liveUpdateKelly() {
@@ -366,9 +375,14 @@
             document.getElementById('kelly-suggestion').innerText = "0.00 $";
             return; 
         }
+
+        // CÁLCULO DE OVERROUND (Simplificado al mercado actual vs Poisson)
+        // El overround se calcula como (1/Cuota Casa) - (1/Cuota Justa)
+        const implProb = (1 / odds) * 100;
+        const ovr = (implProb - selectedPick.prob).toFixed(1);
+        document.getElementById('live-ov-display').innerText = `OVR: ${ovr}%`;
         
         let kelly = (((odds - 1) * prob) - (1 - prob)) / (odds - 1);
-        // Fraccional conservador: 0.25 normal, 0.10 en pánico
         let multiplier = isPanic ? 0.10 : 0.25; 
         let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
         let money = bank * kFrac;
