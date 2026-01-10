@@ -61,6 +61,16 @@
         
         .status-badge { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; }
 
+        /* Mejora para el Panel Fijo en Historial */
+        .sticky-stats {
+            position: sticky;
+            top: -15px; /* Compensa el padding del contenedor */
+            z-index: 100;
+            background: var(--bg);
+            padding-top: 15px;
+            padding-bottom: 10px;
+        }
+
         #pick-modal { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 9999;
@@ -107,11 +117,14 @@
 <div id="history-screen">
     <div class="header-box"><h2>ESTADÍSTICAS REALES</h2></div>
     <div class="scroll-content">
-        <div class="card" style="text-align: center; border-color: var(--accent-gold);">
-            <div style="font-size: 0.7rem; color: var(--text-dim);">PROFIT TOTAL (UNIDADES)</div>
-            <div id="total-profit" style="font-size: 2.2rem; font-weight: 900; color: var(--accent-green);">0.00</div>
+        <div class="sticky-stats">
+            <div class="card" style="text-align: center; border-color: var(--accent-gold); margin-bottom: 0;">
+                <div style="font-size: 0.7rem; color: var(--text-dim);">PROFIT TOTAL (UNIDADES)</div>
+                <div id="total-profit" style="font-size: 2.2rem; font-weight: 900; color: var(--accent-green);">0.00</div>
+            </div>
         </div>
-        <div id="history-list"></div>
+        
+        <div id="history-list" style="margin-top: 15px;"></div>
         <button class="btn-main" style="background:var(--delete); color:#fff; margin-top:20px;" onclick="clearHistory()">BORRAR TODO EL CONTROL</button>
     </div>
     <div class="tab-bar">
