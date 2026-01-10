@@ -86,6 +86,9 @@
         .edge-negative { background: rgba(255, 77, 77, 0.2); color: var(--delete); }
 
         .tip-box { font-size: 0.7rem; color: var(--accent-gold); background: rgba(255, 215, 0, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px dashed var(--accent-gold); }
+
+        .filter-check { font-size: 0.65rem; color: var(--text-dim); display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+        .filter-check i { color: var(--accent-green); font-size: 0.6rem; }
     </style>
 </head>
 <body>
@@ -93,7 +96,13 @@
 <div id="setup-screen" class="active-screen">
     <div class="header-box"><h2>QUANTUM ENGINE PRO</h2></div>
     <div class="scroll-content">
-        <div class="tip-box"><i class="fa-solid fa-lightbulb"></i> <b>REGLA DE ORO:</b> Solo apuesta si el Edge es > 5%. Si es negativo, la casa tiene la ventaja sobre ti.</div>
+        <div class="card" style="border-style: dashed; padding: 10px; margin-bottom: 15px;">
+            <div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 8px;">FILTRO DE RENTABILIDAD:</div>
+            <div class="filter-check"><i class="fa-solid fa-check-double"></i> Mínimo 8 jornadas jugadas en la liga.</div>
+            <div class="filter-check"><i class="fa-solid fa-check-double"></i> Sin bajas clave (Portero o Goleador).</div>
+            <div class="filter-check"><i class="fa-solid fa-check-double"></i> Cuota de la casa > Cuota Justa (Edge > 5%).</div>
+        </div>
+
         <button class="btn-direct" onclick="nav('history-screen'); loadHistory();">
             <i class="fa-solid fa-briefcase"></i> IR A MI CONTROL (HISTORIAL)
         </button>
