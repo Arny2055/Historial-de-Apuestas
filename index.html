@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quantum Engine | Pro Weekly Report</title>
+    <title>Quantum Engine | Pro Value Sniffer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg: #050d0a; --card: #101d18; --accent-gold: #FFD700; --accent-green: #00ff88;
             --text-main: #e0e7e4; --text-dim: #7f9c93; --border: #243a33; --delete: #ff4d4d;
-            --quantum-blue: #00ffff; --warning: #ff8800;
+            --quantum-blue: #00ffff; --warning: #ff8800; --fire: #ff3300;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text-main); overflow: hidden; height: 100vh; }
@@ -82,6 +82,10 @@
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); } }
 
         .report-summary { font-family: monospace; font-size: 0.75rem; background: #000; color: var(--accent-green); padding: 10px; border-radius: 5px; white-space: pre-wrap; margin: 10px 0; border: 1px solid var(--border); }
+
+        .sniff-alert { padding: 10px; border-radius: 8px; font-weight: 900; text-align: center; margin-bottom: 10px; display: none; font-size: 0.8rem; letter-spacing: 1px; }
+        .sniff-mega { background: var(--fire); color: #fff; animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
@@ -188,6 +192,9 @@
 <div id="pick-modal" class="modal">
     <div class="modal-content">
         <h3 id="m-name" style="color:var(--accent-gold); margin:0 0 10px 0;">Mercado</h3>
+        
+        <div id="sniff-alert" class="sniff-alert"><i class="fa-solid fa-bolt"></i> INEFICIENCIA DETECTADA</div>
+
         <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO (STAKE / 2)</div>
         <div class="kelly-box">
             <div style="font-size: 0.6rem; color: var(--text-dim);">Sugerencia Kelly Sugerida:</div>
@@ -329,6 +336,7 @@
         document.getElementById('m-name').innerText = name;
         document.getElementById('m-odds').value = "";
         document.getElementById('m-stake-money').value = "";
+        document.getElementById('sniff-alert').style.display = 'none';
         document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
         document.getElementById('pick-modal').style.display = 'flex';
     }
@@ -337,17 +345,37 @@
         const odds = parseFloat(document.getElementById('m-odds').value);
         const prob = selectedPick.prob / 100;
         const bank = parseFloat(document.getElementById('user-bank').value) || 0;
-        if(!odds || odds <= 1) return;
+        const sniff = document.getElementById('sniff-alert');
+        
+        if(!odds || odds <= 1) { sniff.style.display='none'; return; }
+        
         let kelly = (((odds - 1) * prob) - (1 - prob)) / (odds - 1);
         let multiplier = isPanic ? 0.125 : 0.25; 
         let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
         let money = bank * kFrac;
+        
         document.getElementById('kelly-suggestion').innerText = money.toFixed(2) + " $";
         document.getElementById('kelly-pct').innerText = (kFrac * 100).toFixed(1) + "% banca";
         document.getElementById('m-stake-money').value = money.toFixed(2);
+        
         const edge = ((prob * odds) - 1) * 100;
         document.getElementById('live-edge-display').innerText = `EDGE: ${edge.toFixed(1)}%`;
         document.getElementById('edge-warning-box').style.display = edge > 25 ? "block" : "none";
+
+        // Sniffer Logic
+        if(edge > 15) {
+            sniff.style.display = 'block';
+            sniff.className = 'sniff-alert sniff-mega';
+            sniff.innerHTML = '<i class="fa-solid fa-fire"></i> ERROR DE CUOTA DETECTADO';
+        } else if(edge > 5) {
+            sniff.style.display = 'block';
+            sniff.className = 'sniff-alert';
+            sniff.style.background = 'var(--accent-gold)';
+            sniff.style.color = '#000';
+            sniff.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> VALOR IDENTIFICADO';
+        } else {
+            sniff.style.display = 'none';
+        }
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
@@ -370,8 +398,8 @@
         const sortedHistory = [...history].reverse();
         let runningProfit = 0;
         sortedHistory.forEach(item => {
-            if(item.status === 'win') runningProfit += (item.odds - 1) * item.stake;
-            else if(item.status === 'loss') runningProfit -= item.stake;
+            if(item.status === 'win') { runningProfit += (item.odds - 1) * item.stake; totalProfit += (item.odds - 1) * item.stake; totalStaked += item.stake; }
+            else if(item.status === 'loss') { runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; }
             if(item.status !== 'pending') chartData.push(runningProfit);
         });
         container.innerHTML = history.length ? history.map(item => {
@@ -412,34 +440,15 @@
     function generateWeeklyReport() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const resolved = history.filter(p => p.status !== 'pending');
-        if(resolved.length === 0) { alert("No hay datos suficientes."); return; }
-        
+        if(resolved.length === 0) { alert("No hay datos."); return; }
         let totalProfit = 0, totalStaked = 0, wins = 0;
-        resolved.forEach(p => {
-            totalStaked += p.stake;
-            if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; }
-            else totalProfit -= p.stake;
-        });
-
-        const report = `📊 QUANTUM PRO REPORT
------------------------
-💰 Profit: ${totalProfit.toFixed(2)} $
-📈 Yield: ${(totalProfit/totalStaked*100).toFixed(1)}%
-🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%
-🎲 Operaciones: ${resolved.length}
-💵 Vol. Total: ${totalStaked.toFixed(2)} $
-📅 Generado: ${new Date().toLocaleDateString()}
------------------------
-Powered by Quantum Engine`;
-        
+        resolved.forEach(p => { totalStaked += p.stake; if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } else totalProfit -= p.stake; });
+        const report = `📊 QUANTUM PRO REPORT\n-----------------------\n💰 Profit: ${totalProfit.toFixed(2)} $\n📈 Yield: ${(totalProfit/totalStaked*100).toFixed(1)}%\n🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%\n🎲 Operaciones: ${resolved.length}\n💵 Vol. Total: ${totalStaked.toFixed(2)} $\n📅 Fecha: ${new Date().toLocaleDateString()}\n-----------------------\nPowered by Quantum Engine`;
         document.getElementById('report-text').innerText = report;
         document.getElementById('report-modal').style.display = 'flex';
     }
 
-    function copyReport() {
-        navigator.clipboard.writeText(document.getElementById('report-text').innerText);
-        alert("Reporte copiado!");
-    }
+    function copyReport() { navigator.clipboard.writeText(document.getElementById('report-text').innerText); alert("Copiado!"); }
 
     function updateChart(data) {
         const ctx = document.getElementById('profitChart').getContext('2d');
@@ -457,15 +466,7 @@ Powered by Quantum Engine`;
         if(i !== -1) { history[i].status = status; localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); }
     }
 
-    function deletePick(id) {
-        if(confirm("¿Eliminar?")) {
-            let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-            history = history.filter(item => item.id !== id);
-            localStorage.setItem('q_pro_hist', JSON.stringify(history));
-            loadHistory();
-        }
-    }
-
+    function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]'); history = history.filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
     function clearHistory() { if(confirm("¿Borrar todo?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
     function nav(id) {
         document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen'));
