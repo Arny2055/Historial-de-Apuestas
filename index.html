@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quantum Engine | Pro Stake & Kelly</title>
+    <title>Quantum Engine | Pro Session Control</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -62,7 +62,6 @@
         
         .status-badge { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; }
         .delete-pick { position: absolute; bottom: 10px; right: 10px; color: var(--delete); font-size: 0.9rem; cursor: pointer; padding: 5px; opacity: 0.7; }
-        .delete-pick:hover { opacity: 1; }
 
         .sticky-stats {
             position: sticky;
@@ -76,7 +75,7 @@
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-box { background: var(--card); padding: 10px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
 
-        #pick-modal { 
+        .modal { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 9999;
         }
@@ -84,17 +83,18 @@
         
         input, select { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 8px; margin-bottom: 10px; }
 
-        .filter-check { font-size: 0.65rem; color: var(--text-dim); display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
-        .filter-check i { color: var(--accent-green); font-size: 0.6rem; }
-
         .overround-box { background: rgba(0, 255, 255, 0.05); border: 1px solid var(--quantum-blue); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.75rem; }
-        
         .chart-container { background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); height: 180px; }
         
         .alert-box { font-size: 0.65rem; background: rgba(255, 136, 0, 0.1); color: var(--warning); padding: 8px; border-radius: 6px; border: 1px solid var(--warning); margin-bottom: 10px; display: none; }
-
         .kelly-box { background: rgba(0, 255, 136, 0.05); border: 1px dashed var(--accent-green); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
         .kelly-val { color: var(--accent-green); font-weight: 900; font-size: 1.1rem; }
+
+        /* Estilos Sesión */
+        .session-summary { text-align: center; }
+        .session-val { font-size: 1.8rem; font-weight: 900; margin: 10px 0; }
+        .session-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .session-mini-box { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -105,12 +105,6 @@
         <div class="card">
             <label style="font-size: 0.7rem; color: var(--accent-gold);">MI BANCA ACTUAL ($):</label>
             <input type="number" id="user-bank" value="1000" oninput="saveBank()">
-        </div>
-
-        <div class="card" style="border-style: dashed; padding: 10px; margin-bottom: 15px;">
-            <div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 8px;">FILTROS DE SEGURIDAD:</div>
-            <div class="filter-check"><i class="fa-solid fa-check-double"></i> Mínimo 8 jornadas jugadas.</div>
-            <div class="filter-check"><i class="fa-solid fa-shield-virus"></i> Criterio de Kelly (Fraccionado al 25%).</div>
         </div>
 
         <button class="btn-direct" onclick="nav('history-screen'); loadHistory();">
@@ -166,6 +160,10 @@
         <div class="chart-container">
             <canvas id="profitChart"></canvas>
         </div>
+
+        <button class="btn-main" style="background: var(--quantum-blue); color: #000;" onclick="openSessionModal()">
+            <i class="fa-solid fa-flag-checkered"></i> CIERRE DE SESIÓN HOY
+        </button>
         
         <div id="history-list"></div>
         <button class="btn-main" style="background:var(--delete); color:#fff; margin-top:20px;" onclick="clearHistory()">BORRAR TODO EL CONTROL</button>
@@ -177,41 +175,63 @@
     </div>
 </div>
 
-<div id="pick-modal">
+<div id="pick-modal" class="modal">
     <div class="modal-content">
         <h3 id="m-name" style="color:var(--accent-gold); margin:0 0 10px 0;">Mercado</h3>
-        
         <div class="kelly-box">
-            <div style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase;">Sugerencia Kelly (Fraccional):</div>
+            <div style="font-size: 0.6rem; color: var(--text-dim);">Sugerencia Kelly (25%):</div>
             <div id="kelly-suggestion" class="kelly-val">0.00 $</div>
             <div id="kelly-pct" style="font-size: 0.65rem; color: var(--accent-green);">0% de la banca</div>
         </div>
+        <div id="edge-warning-box" class="alert-box"><i class="fa-solid fa-triangle-exclamation"></i> EDGE ANÓMALO (>25%)</div>
+        <input type="number" id="m-odds" step="0.01" placeholder="Cuota Casa" oninput="liveUpdateKelly()">
+        <div id="live-edge-display" style="font-size: 0.7rem; margin-bottom: 10px; font-weight: bold;"></div>
+        <input type="number" id="m-stake-money" placeholder="Importe ($)">
+        <button class="btn-main" onclick="savePick()">CONFIRMAR APUESTA</button>
+        <button onclick="closeModal('pick-modal')" style="background:none; border:none; color:var(--text-dim); width:100%; margin-top:10px;">Cerrar</button>
+    </div>
+</div>
 
-        <div id="edge-warning-box" class="alert-box">
-            <i class="fa-solid fa-triangle-exclamation"></i> <b>EDGE ANÓMALO (>25%):</b> Revisa noticias.
+<div id="session-modal" class="modal">
+    <div class="modal-content session-summary">
+        <h2 style="color: var(--accent-gold); margin-top: 0;">SESIÓN DE HOY</h2>
+        <div id="session-date" style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 15px;"></div>
+        
+        <div style="font-size: 0.8rem;">PROFIT NETO</div>
+        <div id="session-profit" class="session-val">0.00 $</div>
+
+        <div class="session-grid">
+            <div class="session-mini-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">YIELD</div>
+                <div id="session-yield" style="font-weight: bold;">0%</div>
+            </div>
+            <div class="session-mini-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">WIN RATE</div>
+                <div id="session-wr" style="font-weight: bold;">0%</div>
+            </div>
+            <div class="session-mini-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">PICS HOY</div>
+                <div id="session-count" style="font-weight: bold;">0</div>
+            </div>
+            <div class="session-mini-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">VOLUMEN</div>
+                <div id="session-vol" style="font-weight: bold;">0 $</div>
+            </div>
         </div>
 
-        <label style="font-size:0.7rem; color:var(--text-dim);">CUOTA DE TU CASA:</label>
-        <input type="number" id="m-odds" step="0.01" placeholder="Ej: 1.95" oninput="liveUpdateKelly()">
-        
-        <div id="live-edge-display" style="font-size: 0.7rem; margin-bottom: 10px; font-weight: bold;"></div>
-
-        <label style="font-size:0.7rem; color:var(--text-dim);">IMPORTE A APOSTAR ($):</label>
-        <input type="number" id="m-stake-money" placeholder="Monto en dinero">
-        
-        <button class="btn-main" onclick="savePick()">CONFIRMAR APUESTA</button>
-        <button onclick="closeModal()" style="background:none; border:none; color:var(--text-dim); width:100%; margin-top:10px;">Cerrar</button>
+        <button class="btn-main" style="margin-top: 25px;" onclick="closeModal('session-modal')">CONTINUAR OPERANDO</button>
     </div>
 </div>
 
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null;
 
-    // Persistencia de Banca
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
         if(savedBank) document.getElementById('user-bank').value = savedBank;
+        loadHistory();
     };
+
     function saveBank() { localStorage.setItem('q_pro_bank', document.getElementById('user-bank').value); }
 
     function ext(t) {
@@ -287,9 +307,6 @@
         document.getElementById('m-name').innerText = name;
         document.getElementById('m-odds').value = "";
         document.getElementById('m-stake-money').value = "";
-        document.getElementById('kelly-suggestion').innerText = "0.00 $";
-        document.getElementById('kelly-pct').innerText = "Ingrese cuota...";
-        document.getElementById('edge-warning-box').style.display = "none";
         document.getElementById('pick-modal').style.display = 'flex';
     }
 
@@ -297,44 +314,29 @@
         const odds = parseFloat(document.getElementById('m-odds').value);
         const prob = selectedPick.prob / 100;
         const bank = parseFloat(document.getElementById('user-bank').value) || 0;
-        const warning = document.getElementById('edge-warning-box');
-        
         if(!odds || odds <= 1) return;
-
-        // Fórmula de Kelly: (p*b - q) / b  donde b = odds - 1
-        const b = odds - 1;
-        const p = prob;
-        const q = 1 - p;
-        let kellyFull = (p * b - q) / b;
-        
-        // Fraccional (25% de Kelly) para seguridad
-        let kellyFrac = kellyFull * 0.25;
-        
-        // Limitar a 0 si es negativo (no hay valor) y máximo 10% de la banca
-        kellyFrac = Math.max(0, Math.min(0.10, kellyFrac));
-        
-        const moneyStake = bank * kellyFrac;
-        document.getElementById('kelly-suggestion').innerText = moneyStake.toFixed(2) + " $";
-        document.getElementById('kelly-pct').innerText = (kellyFrac * 100).toFixed(1) + "% de la banca";
-        document.getElementById('m-stake-money').value = moneyStake.toFixed(2);
-
+        let kelly = (((odds - 1) * prob) - (1 - prob)) / (odds - 1);
+        let kFrac = Math.max(0, Math.min(0.10, kelly * 0.25));
+        let money = bank * kFrac;
+        document.getElementById('kelly-suggestion').innerText = money.toFixed(2) + " $";
+        document.getElementById('kelly-pct').innerText = (kFrac * 100).toFixed(1) + "% banca";
+        document.getElementById('m-stake-money').value = money.toFixed(2);
         const edge = ((prob * odds) - 1) * 100;
-        const display = document.getElementById('live-edge-display');
-        display.innerText = `VENTAJA (EDGE): ${edge.toFixed(1)}%`;
-        display.style.color = edge > 5 ? "var(--accent-green)" : (edge > 0 ? "var(--accent-gold)" : "var(--delete)");
-        warning.style.display = edge > 25 ? "block" : "none";
+        document.getElementById('live-edge-display').innerText = `EDGE: ${edge.toFixed(1)}%`;
+        document.getElementById('edge-warning-box').style.display = edge > 25 ? "block" : "none";
     }
 
-    function closeModal() { document.getElementById('pick-modal').style.display = 'none'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     function savePick() {
         const odds = parseFloat(document.getElementById('m-odds').value);
         const stake = parseFloat(document.getElementById('m-stake-money').value);
         if(!odds || !stake) return;
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift({ ...selectedPick, odds, stake, status: 'pending', id: Date.now() });
+        // Guardamos con fecha para el cierre de sesión
+        history.unshift({ ...selectedPick, odds, stake, status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
-        closeModal();
+        closeModal('pick-modal');
         nav('history-screen');
         loadHistory();
     }
@@ -363,18 +365,40 @@
                     <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
                     <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Importe: ${item.stake}$</div>
                     <div style="margin-top:10px; display:flex; gap:8px;">
-                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
-                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
+                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">W</button>
+                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">L</button>
                     </div>
-                    <i class="fa-solid fa-trash-can delete-pick" onclick="deletePick(${item.id})"></i>
+                    <i class="fa-solid fa-trash-can delete-pick" style="position:absolute; bottom:10px; right:10px; color:var(--delete); font-size:0.8rem;" onclick="deletePick(${item.id})"></i>
                 </div>`;
         }).join('') : `<p style="text-align:center; color:var(--text-dim);">Sin registros.</p>`;
 
-        document.getElementById('total-profit').innerText = (totalProfit >= 0 ? "+" : "") + totalProfit.toFixed(2) + " $";
+        document.getElementById('total-profit').innerText = totalProfit.toFixed(2) + " $";
         document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
-        const yieldVal = totalStaked > 0 ? (totalProfit / totalStaked) * 100 : 0;
-        document.getElementById('yield-total').innerText = yieldVal.toFixed(1) + "%";
+        document.getElementById('yield-total').innerText = (totalStaked > 0 ? (totalProfit / totalStaked * 100).toFixed(1) : 0) + "%";
         updateChart(chartData);
+    }
+
+    function openSessionModal() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const today = new Date().toLocaleDateString();
+        const todayPicks = history.filter(p => p.date === today && p.status !== 'pending');
+        
+        let sProf = 0, sVol = 0, sWin = 0;
+        todayPicks.forEach(p => {
+            sVol += p.stake;
+            if(p.status === 'win') { sProf += (p.odds - 1) * p.stake; sWin++; }
+            else sProf -= p.stake;
+        });
+
+        document.getElementById('session-date').innerText = today;
+        document.getElementById('session-profit').innerText = (sProf >= 0 ? "+" : "") + sProf.toFixed(2) + " $";
+        document.getElementById('session-profit').style.color = sProf >= 0 ? "var(--accent-green)" : "var(--delete)";
+        document.getElementById('session-yield').innerText = (sVol > 0 ? (sProf / sVol * 100).toFixed(1) : 0) + "%";
+        document.getElementById('session-wr').innerText = (todayPicks.length > 0 ? (sWin / todayPicks.length * 100).toFixed(0) : 0) + "%";
+        document.getElementById('session-count').innerText = todayPicks.length;
+        document.getElementById('session-vol').innerText = sVol.toFixed(2) + " $";
+        
+        document.getElementById('session-modal').style.display = 'flex';
     }
 
     function updateChart(data) {
@@ -385,10 +409,7 @@
             data: {
                 labels: data.map((_, i) => i),
                 datasets: [{
-                    label: 'Profit',
-                    data: data,
-                    borderColor: '#00ff88',
-                    backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                    data: data, borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.1)',
                     borderWidth: 2, fill: true, tension: 0.3, pointRadius: 0
                 }]
             },
