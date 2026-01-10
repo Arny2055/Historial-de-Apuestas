@@ -133,10 +133,10 @@
 
         <label style="font-size: 0.7rem; color: var(--accent-gold);">SELECCIONAR LIGA:</label>
         <select id="cloud-league-selector">
-            <option value="Italia-Serie A">Italia - Serie A</option>
-            <option value="Inglaterra-Premier">Inglaterra - Premier League</option>
-            <option value="España-LaLiga">España - LaLiga</option>
-            <option value="Alemania-Bundesliga">Alemania - Bundesliga</option>
+            <option value="italy">Italia - Serie A</option>
+            <option value="england">Inglaterra - Premier</option>
+            <option value="spain">España - LaLiga</option>
+            <option value="germany">Alemania - Bundesliga</option>
         </select>
 
         <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
@@ -256,17 +256,9 @@
     </div>
 </div>
 
-<div id="report-modal" class="modal">
-    <div class="modal-content">
-        <h2 style="color: var(--accent-gold); margin-top: 0; text-align: center;">REPORTE DE RENDIMIENTO</h2>
-        <div id="report-text" class="report-summary"></div>
-        <button class="btn-main" onclick="copyReport()">COPIAR REPORTE</button>
-        <button class="btn-main" style="background:#444; color:#fff;" onclick="closeModal('report-modal')">CERRAR</button>
-    </div>
-</div>
-
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, isPanic = false;
+    // URL DE TU SHEETS (Asegúrate que esté publicado como CSV)
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
     window.onload = () => {
@@ -278,58 +270,55 @@
         runStressTest();
     };
 
-    // --- SINCRONIZACIÓN DINÁMICA POR LIGA ---
+    // --- SINCRONIZACIÓN BASADA EN URL Y NÚMEROS (9 Local, 10 Visita) ---
     async function syncCloudData() {
         const btn = document.getElementById('btn-sync');
         const info = document.getElementById('sync-info');
-        const targetLeague = document.getElementById('cloud-league-selector').value;
+        const leagueKey = document.getElementById('cloud-league-selector').value;
         
-        btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> BUSCANDO ' + targetLeague.toUpperCase();
+        btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> BUSCANDO LIGA...';
         
         try {
             const response = await fetch(CLOUD_URL);
             const rawData = await response.text();
-            const lines = rawData.split('\n');
+            const rows = rawData.split('\n');
             
             let hLines = [], vLines = [], sLines = [];
-            let currentMode = "";
-            let leagueFound = false;
+            let state = ""; // LOCAL, VISITA o DATA
 
-            for (let i = 0; i < lines.length; i++) {
-                let line = lines[i].trim();
+            for (let i = 0; i < rows.length; i++) {
+                let line = rows[i].trim();
                 
-                // Detectar Sección y Liga
-                if (line.includes("Local")) {
-                    if (lines[i+1]?.includes(targetLeague) || line.includes(targetLeague)) {
-                        currentMode = "H"; leagueFound = true; i++; continue;
-                    }
-                } else if (line.includes("Visita")) {
-                    if (lines[i+1]?.includes(targetLeague) || line.includes(targetLeague)) {
-                        currentMode = "V"; i++; continue;
-                    }
-                } else if (line.includes("Datos de la liga")) {
-                    // El bloque de promedios suele estar un poco más abajo
-                    currentMode = "S"; continue;
+                // DETECTAR BLOQUE LOCAL (Busca URL + "9")
+                if (line.includes(leagueKey) && line.includes(",9")) {
+                    state = "LOCAL"; i++; continue;
+                } 
+                // DETECTAR BLOQUE VISITA (Busca URL + "10")
+                else if (line.includes(leagueKey) && line.includes(",10")) {
+                    state = "VISITA"; i++; continue;
+                }
+                // DETECTAR DATOS LIGA (Busca URL + "38" o "39")
+                else if (line.includes(leagueKey) && (line.includes(",38") || line.includes(",39"))) {
+                    state = "DATA"; i++; continue;
                 }
 
-                // Extraer datos si estamos en el modo correcto
-                if (!line || line.startsWith(",,,,")) {
-                   if(currentMode !== "S") currentMode = ""; // Terminar sección si hay celdas vacías
-                   continue;
+                // SI ESTÁ DENTRO DE UN BLOQUE, RECOLECTAR HASTA ENCONTRAR LÍNEA VACÍA
+                if (state !== "" && (line === "" || line.startsWith(",,,,"))) {
+                    state = ""; continue;
                 }
 
-                if (currentMode === "H") hLines.push(line);
-                else if (currentMode === "V") vLines.push(line);
-                else if (currentMode === "S") {
+                if (state === "LOCAL") hLines.push(line);
+                if (state === "VISITA") vLines.push(line);
+                if (state === "DATA") {
                     if (line.includes("Home goals per match") || line.includes("Away goals per match")) {
                         sLines.push(line);
                     }
                 }
             }
 
-            if (!leagueFound) {
-                alert("No se encontró la liga: " + targetLeague + " en el Sheets");
+            if (hLines.length === 0) {
                 btn.innerHTML = 'ERROR: NO ENCONTRADO';
+                info.innerText = "Revisa que la URL y el número (9/10) coincidan.";
                 return;
             }
 
@@ -338,19 +327,46 @@
             document.getElementById('vIn').value = vLines.join('\n');
             document.getElementById('sIn').value = sLines.join('\n');
 
-            // Procesar
+            // Procesar datos
             dH = ext(document.getElementById('hIn').value);
             dV = ext(document.getElementById('vIn').value);
             uS();
             fill();
 
-            info.innerText = `Éxito: ${targetLeague} cargado.`;
+            info.innerText = `Éxito: Liga ${leagueKey} sincronizada.`;
             btn.innerHTML = '<i class="fa-solid fa-check"></i> SINCRONIZADO';
             btn.style.borderColor = "var(--accent-green)";
         } catch (e) {
             console.error(e);
             btn.innerHTML = 'ERROR DE CONEXIÓN';
         }
+    }
+
+    // EXTRACTOR ADAPTADO (Captura nombres con espacios y busca GF/GA en columnas correctas)
+    function ext(t) {
+        const o={};
+        const lines = t.split('\n');
+        lines.forEach(l => {
+            const clean = l.replace(/,/g, ' ').trim();
+            // Regex: Busca [Rank] [Separador *] [Nombre] [GP] [W] [D] [L] [GF] [GA]
+            const m = clean.match(/^\d+\s+\*\s+\d+\s+\*\s+([A-Za-z\s]+?)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)/);
+            if(m) {
+                const team = m[1].trim();
+                const gp = parseInt(m[2]);
+                const gf = parseInt(m[3]);
+                const ga = parseInt(m[4]);
+                if(gp > 0) o[team] = { f: gf/gp, a: ga/gp };
+            }
+        });
+        return o;
+    }
+
+    function uS() {
+        const t = document.getElementById('sIn').value.replace(/,/g, ' ');
+        const hm = t.match(/Home goals per match:\s*([\d.]+)/);
+        const am = t.match(/Away goals per match:\s*([\d.]+)/);
+        if(hm) aH = parseFloat(hm[1]);
+        if(am) aV = parseFloat(am[1]);
     }
 
     function togglePanic(init = false) {
@@ -376,36 +392,6 @@
         document.getElementById('stress-result-pct').innerText = "-" + (isNaN(drawdown) ? 0 : drawdown) + "%";
     }
 
-    // EXTRACTOR ADAPTADO A SOCCERSTATS (GF en columna 7, GA en columna 8)
-    function ext(t) {
-        const o={};
-        const rows = t.split('\n');
-        rows.forEach(l => {
-            // Limpieza de comas de CSV a espacios para regex
-            const cleanLine = l.replace(/,/g, ' ').trim();
-            // Regex para capturar: [Rank] [Separadores] [Nombre Equipo] [GP] [W] [D] [L] [GF] [GA]
-            const m = cleanLine.match(/^\d+\s+\*\s+\d+\s+\*\s+([A-Za-z\s]+?)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)/);
-            
-            if(m) {
-                const team = m[1].trim();
-                const gp = parseInt(m[2]);
-                const gf = parseInt(m[3]);
-                const ga = parseInt(m[4]);
-                if(gp > 0) o[team] = { f: gf/gp, a: ga/gp };
-            }
-        });
-        return o;
-    }
-
-    function uS() {
-        const t = document.getElementById('sIn').value.replace(/,/g, ' ');
-        // Captura el decimal después del texto "per match:"
-        const hm = t.match(/Home goals per match:\s*([\d.]+)/);
-        const am = t.match(/Away goals per match:\s*([\d.]+)/);
-        if(hm) aH = parseFloat(hm[1]);
-        if(am) aV = parseFloat(am[1]);
-    }
-
     document.getElementById('hIn').oninput = () => { dH=ext(document.getElementById('hIn').value); fill(); };
     document.getElementById('vIn').oninput = () => { dV=ext(document.getElementById('vIn').value); fill(); };
     document.getElementById('sIn').oninput = uS;
@@ -426,10 +412,8 @@
     function calculate() {
         const tH=document.getElementById('sH').value, tV=document.getElementById('sV').value;
         if(!dH[tH] || !dV[tV]) { alert("Seleccione ambos equipos con datos válidos"); return; }
-        
         const xH = (dH[tH].f/aH)*(dV[tV].a/aH)*aH, xV = (dV[tV].f/aV)*(dH[tH].a/aV)*aV;
         let pH=0, pD=0, pV=0, ov25=0, btts=0;
-        
         for(let i=0; i<=9; i++) {
             for(let j=0; j<=9; j++) {
                 let p = poi(i,xH)*poi(j,xV);
@@ -438,7 +422,6 @@
                 if(i>0 && j>0) btts+=p;
             }
         }
-        
         renderResults(tH, tV, {
             'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
             'Más de 2.5 Goles': ov25*100, 'Menos de 2.5 Goles': (1-ov25)*100,
@@ -487,21 +470,18 @@
         const overround = ((sum - 1) * 100).toFixed(2);
         document.getElementById('live-overround').innerText = overround + "%";
         document.getElementById('ov-bar').style.width = Math.min(overround * 5, 100) + "%";
-        const chosenOdds = o1;
-        if(chosenOdds > 1) {
+        if(o1 > 1) {
             const prob = selectedPick.prob / 100;
             const bank = parseFloat(document.getElementById('user-bank').value) || 0;
-            let kelly = (((chosenOdds - 1) * prob) - (1 - prob)) / (chosenOdds - 1);
+            let kelly = (((o1 - 1) * prob) - (1 - prob)) / (o1 - 1);
             let kFrac = Math.max(0, Math.min(0.10, kelly * (isPanic ? 0.10 : 0.25)));
             document.getElementById('kelly-suggestion').innerText = (bank * kFrac).toFixed(2) + " $";
             document.getElementById('m-stake-money').value = (bank * kFrac).toFixed(2);
-            const edge = ((prob * chosenOdds) - 1) * 100;
-            const sniff = document.getElementById('sniff-alert');
-            if(edge > 3) { sniff.style.display = 'block'; sniff.innerText = `EDGE: ${edge.toFixed(1)}%`; } else sniff.style.display = 'none';
         }
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
     function savePick() {
         const odds = parseFloat(document.getElementById('o1').value);
         const stake = parseFloat(document.getElementById('m-stake-money').value);
@@ -517,9 +497,8 @@
         const container = document.getElementById('history-list');
         let totalProfit = 0, totalStaked = 0;
         let chartData = [0];
-        const sortedHistory = [...history].reverse();
         let runningProfit = 0;
-        sortedHistory.forEach(item => {
+        [...history].reverse().forEach(item => {
             if(item.status === 'win') { runningProfit += (item.odds - 1) * item.stake; totalProfit += (item.odds - 1) * item.stake; totalStaked += item.stake; }
             else if(item.status === 'loss') { runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; }
             if(item.status !== 'pending') chartData.push(runningProfit);
@@ -549,6 +528,8 @@
         localStorage.setItem('q_pro_hist', JSON.stringify(h));
         loadHistory();
     }
+
+    function clearHistory() { if(confirm("¿Borrar todo?")) { localStorage.setItem('q_pro_hist', '[]'); loadHistory(); } }
 
     function nav(id) {
         document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen'));
