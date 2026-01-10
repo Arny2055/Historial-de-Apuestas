@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quantum Engine | Pro Stress Test</title>
+    <title>Quantum Engine | Pro Panic Control</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -44,7 +44,6 @@
         
         .val-group { text-align: right; }
         .pct { display: block; font-weight: 900; color: var(--accent-gold); font-size: 1rem; }
-        .stake-badge { font-size: 0.6rem; background: var(--quantum-blue); color: #000; padding: 2px 5px; border-radius: 4px; font-weight: 900; }
 
         .tab-bar { 
             position: fixed; bottom: 0; width: 100%; height: 70px; 
@@ -76,9 +75,12 @@
         .alert-box { font-size: 0.65rem; background: rgba(255, 136, 0, 0.1); color: var(--warning); padding: 8px; border-radius: 6px; border: 1px solid var(--warning); margin-bottom: 10px; display: none; }
         .kelly-box { background: rgba(0, 255, 136, 0.05); border: 1px dashed var(--accent-green); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
         
-        /* Stress Test UI */
         .stress-box { background: rgba(255, 77, 77, 0.05); border: 1px solid #331a1a; padding: 10px; border-radius: 8px; margin-top: 10px; }
         .stress-title { font-size: 0.65rem; color: var(--delete); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+
+        /* Panic Button UI */
+        .panic-active { background: #330000 !important; border-color: var(--delete) !important; animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); } }
     </style>
 </head>
 <body>
@@ -86,15 +88,16 @@
 <div id="setup-screen" class="active-screen">
     <div class="header-box"><h2>QUANTUM ENGINE PRO</h2></div>
     <div class="scroll-content">
-        <div class="card">
+        <div class="card" id="bank-card">
             <label style="font-size: 0.7rem; color: var(--accent-gold);">MI BANCA ACTUAL ($):</label>
             <input type="number" id="user-bank" value="1000" oninput="saveBank(); runStressTest();">
             
+            <button id="panic-btn" class="btn-main" style="background: #222; color: var(--delete); border: 1px solid #444; font-size: 0.7rem; margin: 10px 0;" onclick="togglePanic()">
+                <i class="fa-solid fa-triangle-exclamation"></i> MODO PÁNICO: <span id="panic-status">OFF</span>
+            </button>
+
             <div class="stress-box">
-                <div class="stress-title"><i class="fa-solid fa-biohazard"></i> SIMULADOR DE ESCENARIO CRÍTICO</div>
-                <div style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 10px;">
-                    Si pierdes 5 apuestas seguidas con el riesgo actual:
-                </div>
+                <div class="stress-title"><i class="fa-solid fa-biohazard"></i> ESCENARIO CRÍTICO (5 Ls)</div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-size: 0.55rem; color: var(--text-dim);">BANCA RESTANTE</div>
@@ -131,7 +134,7 @@
     <div class="header-box"><h2 id="match-label">RESULTADOS</h2></div>
     <div class="scroll-content">
         <div id="league-over-audit" class="overround-box">
-            <i class="fa-solid fa-shield-halved"></i> Calidad de Datos: <span id="data-quality">Cargando...</span>
+            <i class="fa-solid fa-shield-halved"></i> Calidad de Datos: <span id="data-quality">OK</span>
         </div>
         <div id="results-area"></div>
     </div>
@@ -179,8 +182,9 @@
 <div id="pick-modal" class="modal">
     <div class="modal-content">
         <h3 id="m-name" style="color:var(--accent-gold); margin:0 0 10px 0;">Mercado</h3>
+        <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ RIESGO REDUCIDO AL 50% POR MODO PÁNICO</div>
         <div class="kelly-box">
-            <div style="font-size: 0.6rem; color: var(--text-dim);">Sugerencia Kelly (25%):</div>
+            <div style="font-size: 0.6rem; color: var(--text-dim);">Sugerencia Kelly Sugerida:</div>
             <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
             <div id="kelly-pct" style="font-size: 0.65rem; color: var(--accent-green);">0% banca</div>
         </div>
@@ -207,25 +211,45 @@
 </div>
 
 <script>
-    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null;
+    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, isPanic = false;
 
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
         if(savedBank) document.getElementById('user-bank').value = savedBank;
+        const savedPanic = localStorage.getItem('q_pro_panic');
+        if(savedPanic === 'true') togglePanic(true);
         loadHistory();
         runStressTest();
     };
+
+    function togglePanic(init = false) {
+        if(!init) isPanic = !isPanic;
+        else isPanic = true;
+        
+        const btn = document.getElementById('panic-btn');
+        const status = document.getElementById('panic-status');
+        const card = document.getElementById('bank-card');
+
+        if(isPanic) {
+            btn.classList.add('panic-active');
+            status.innerText = "ON (SEGURIDAD MÁXIMA)";
+            card.style.borderColor = "var(--delete)";
+        } else {
+            btn.classList.remove('panic-active');
+            status.innerText = "OFF";
+            card.style.borderColor = "var(--border)";
+        }
+        localStorage.setItem('q_pro_panic', isPanic);
+        runStressTest();
+    }
 
     function saveBank() { localStorage.setItem('q_pro_bank', document.getElementById('user-bank').value); }
 
     function runStressTest() {
         const bank = parseFloat(document.getElementById('user-bank').value) || 0;
-        // Asumimos un riesgo conservador por apuesta de Kelly fraccionado (~2%) para el test
-        const riskPerBetPct = 0.025; 
+        let riskPerBetPct = isPanic ? 0.0125 : 0.025; 
         let currentBank = bank;
-        for(let i=0; i<5; i++) {
-            currentBank -= (currentBank * riskPerBetPct);
-        }
+        for(let i=0; i<5; i++) { currentBank -= (currentBank * riskPerBetPct); }
         const drawdown = ((bank - currentBank) / bank * 100).toFixed(1);
         document.getElementById('stress-result-money').innerText = "$ " + currentBank.toFixed(2);
         document.getElementById('stress-result-pct').innerText = "-" + drawdown + "%";
@@ -304,6 +328,7 @@
         document.getElementById('m-name').innerText = name;
         document.getElementById('m-odds').value = "";
         document.getElementById('m-stake-money').value = "";
+        document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
         document.getElementById('pick-modal').style.display = 'flex';
     }
 
@@ -313,7 +338,8 @@
         const bank = parseFloat(document.getElementById('user-bank').value) || 0;
         if(!odds || odds <= 1) return;
         let kelly = (((odds - 1) * prob) - (1 - prob)) / (odds - 1);
-        let kFrac = Math.max(0, Math.min(0.10, kelly * 0.25));
+        let multiplier = isPanic ? 0.125 : 0.25; 
+        let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
         let money = bank * kFrac;
         document.getElementById('kelly-suggestion').innerText = money.toFixed(2) + " $";
         document.getElementById('kelly-pct').innerText = (kFrac * 100).toFixed(1) + "% banca";
@@ -342,7 +368,6 @@
         const container = document.getElementById('history-list');
         let totalProfit = 0, totalStaked = 0;
         let chartData = [0];
-
         const sortedHistory = [...history].reverse();
         let runningProfit = 0;
         sortedHistory.forEach(item => {
@@ -350,7 +375,6 @@
             else if(item.status === 'loss') runningProfit -= item.stake;
             if(item.status !== 'pending') chartData.push(runningProfit);
         });
-
         container.innerHTML = history.length ? history.map(item => {
             let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
             let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
@@ -366,7 +390,6 @@
                     <i class="fa-solid fa-trash-can" style="position:absolute; bottom:10px; right:10px; color:var(--delete); font-size:0.8rem;" onclick="deletePick(${item.id})"></i>
                 </div>`;
         }).join('') : `<p style="text-align:center; color:var(--text-dim);">Sin registros.</p>`;
-
         document.getElementById('total-profit').innerText = totalProfit.toFixed(2) + " $";
         document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
         document.getElementById('yield-total').innerText = (totalStaked > 0 ? (totalProfit / totalStaked * 100).toFixed(1) : 0) + "%";
