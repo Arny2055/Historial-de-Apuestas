@@ -30,6 +30,11 @@
             padding: 15px; border-radius: 8px; font-weight: 900; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
         }
 
+        .btn-cloud {
+            width: 100%; background: #222; color: var(--accent-gold); border: 1px solid var(--accent-gold);
+            padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
         .btn-direct {
             width: 100%; background: rgba(0, 255, 255, 0.1); color: var(--quantum-blue); border: 1px solid var(--quantum-blue);
             padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -73,9 +78,6 @@
         .overround-box { background: rgba(0, 255, 255, 0.05); border: 1px solid var(--quantum-blue); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.75rem; }
         .chart-container { background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); height: 180px; }
         
-        .alert-box { font-size: 0.65rem; background: rgba(255, 136, 0, 0.1); color: var(--warning); padding: 8px; border-radius: 6px; border: 1px solid var(--warning); margin-bottom: 10px; display: none; }
-        .kelly-box { background: rgba(0, 255, 136, 0.05); border: 1px dashed var(--accent-green); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
-        
         .stress-box { background: rgba(255, 77, 77, 0.05); border: 1px solid #331a1a; padding: 10px; border-radius: 8px; margin-top: 10px; }
         .stress-title { font-size: 0.65rem; color: var(--delete); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
 
@@ -93,6 +95,8 @@
 
         .ov-badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; background: rgba(255,215,0,0.2); color: var(--accent-gold); }
         .multi-odds { display: grid; gap: 5px; margin-bottom: 10px; }
+        
+        .sync-status { font-size: 0.6rem; text-align: center; margin-bottom: 10px; color: var(--text-dim); }
     </style>
 </head>
 <body>
@@ -127,9 +131,22 @@
             <i class="fa-solid fa-briefcase"></i> IR A MI CONTROL (HISTORIAL)
         </button>
 
-        <textarea id="hIn" placeholder="PEGAR DATOS LOCAL (TABLA)..."></textarea>
-        <textarea id="vIn" placeholder="PEGAR DATOS VISITA (TABLA)..."></textarea>
-        <textarea id="sIn" placeholder="PEGAR PROMEDIOS LIGA..."></textarea>
+        <label style="font-size: 0.7rem; color: var(--accent-gold);">SELECCIONAR LIGA:</label>
+        <select id="cloud-league-selector">
+            <option value="Italia-Serie A">Italia - Serie A</option>
+            <option value="Inglaterra-Premier">Inglaterra - Premier League</option>
+            <option value="España-LaLiga">España - LaLiga</option>
+            <option value="Alemania-Bundesliga">Alemania - Bundesliga</option>
+        </select>
+
+        <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
+            <i class="fa-solid fa-cloud-arrow-down"></i> SINCRONIZAR CLOUD
+        </button>
+        <div id="sync-info" class="sync-status">Carga datos de tu Google Sheets</div>
+
+        <textarea id="hIn" placeholder="DATOS LOCAL (TABLA)..."></textarea>
+        <textarea id="vIn" placeholder="DATOS VISITA (TABLA)..."></textarea>
+        <textarea id="sIn" placeholder="DATOS LIGA (PROMEDIOS)..."></textarea>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
             <select id="sH"><option>Seleccione Local</option></select>
@@ -200,9 +217,7 @@
 <div id="pick-modal" class="modal">
     <div class="modal-content">
         <h3 id="m-name" style="color:var(--accent-gold); margin:0 0 10px 0;">Mercado</h3>
-        
         <div id="sniff-alert" class="sniff-alert">INEFICIENCIA</div>
-
         <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO</div>
         
         <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border);">
@@ -210,9 +225,7 @@
                 <span>OVERROUND (Margen Real):</span>
                 <span id="live-overround" style="color: var(--accent-gold); font-weight: bold;">0.00%</span>
             </div>
-            <div style="height: 4px; background: #222; border-radius: 2px;">
-                <div id="ov-bar" style="height: 100%; width: 0%; background: var(--accent-gold); border-radius: 2px; transition: 0.3s;"></div>
-            </div>
+            <div id="ov-bar" style="height: 4px; background: #222; border-radius: 2px; width:0%;"></div>
         </div>
 
         <div class="kelly-box">
@@ -220,8 +233,7 @@
             <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
         </div>
         
-        <div id="odds-container" class="multi-odds">
-            </div>
+        <div id="odds-container" class="multi-odds"></div>
 
         <label style="font-size: 0.7rem;">STAKE FINAL ($):</label>
         <input type="number" id="m-stake-money" placeholder="0.00">
@@ -255,6 +267,7 @@
 
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, isPanic = false;
+    const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
@@ -264,6 +277,81 @@
         loadHistory();
         runStressTest();
     };
+
+    // --- SINCRONIZACIÓN DINÁMICA POR LIGA ---
+    async function syncCloudData() {
+        const btn = document.getElementById('btn-sync');
+        const info = document.getElementById('sync-info');
+        const targetLeague = document.getElementById('cloud-league-selector').value;
+        
+        btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> BUSCANDO ' + targetLeague.toUpperCase();
+        
+        try {
+            const response = await fetch(CLOUD_URL);
+            const rawData = await response.text();
+            const lines = rawData.split('\n');
+            
+            let hLines = [], vLines = [], sLines = [];
+            let currentMode = "";
+            let leagueFound = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                
+                // Detectar Sección y Liga
+                if (line.includes("Local")) {
+                    if (lines[i+1]?.includes(targetLeague) || line.includes(targetLeague)) {
+                        currentMode = "H"; leagueFound = true; i++; continue;
+                    }
+                } else if (line.includes("Visita")) {
+                    if (lines[i+1]?.includes(targetLeague) || line.includes(targetLeague)) {
+                        currentMode = "V"; i++; continue;
+                    }
+                } else if (line.includes("Datos de la liga")) {
+                    // El bloque de promedios suele estar un poco más abajo
+                    currentMode = "S"; continue;
+                }
+
+                // Extraer datos si estamos en el modo correcto
+                if (!line || line.startsWith(",,,,")) {
+                   if(currentMode !== "S") currentMode = ""; // Terminar sección si hay celdas vacías
+                   continue;
+                }
+
+                if (currentMode === "H") hLines.push(line);
+                else if (currentMode === "V") vLines.push(line);
+                else if (currentMode === "S") {
+                    if (line.includes("Home goals per match") || line.includes("Away goals per match")) {
+                        sLines.push(line);
+                    }
+                }
+            }
+
+            if (!leagueFound) {
+                alert("No se encontró la liga: " + targetLeague + " en el Sheets");
+                btn.innerHTML = 'ERROR: NO ENCONTRADO';
+                return;
+            }
+
+            // Inyectar en textareas
+            document.getElementById('hIn').value = hLines.join('\n');
+            document.getElementById('vIn').value = vLines.join('\n');
+            document.getElementById('sIn').value = sLines.join('\n');
+
+            // Procesar
+            dH = ext(document.getElementById('hIn').value);
+            dV = ext(document.getElementById('vIn').value);
+            uS();
+            fill();
+
+            info.innerText = `Éxito: ${targetLeague} cargado.`;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> SINCRONIZADO';
+            btn.style.borderColor = "var(--accent-green)";
+        } catch (e) {
+            console.error(e);
+            btn.innerHTML = 'ERROR DE CONEXIÓN';
+        }
+    }
 
     function togglePanic(init = false) {
         if(!init) isPanic = !isPanic; else isPanic = true;
@@ -288,20 +376,34 @@
         document.getElementById('stress-result-pct').innerText = "-" + (isNaN(drawdown) ? 0 : drawdown) + "%";
     }
 
+    // EXTRACTOR ADAPTADO A SOCCERSTATS (GF en columna 7, GA en columna 8)
     function ext(t) {
         const o={};
-        t.split('\n').forEach(l => {
-            const m = l.trim().match(/^(\d+)\s+(.+?)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)/);
-            if(m) { const gp=parseInt(m[3]); if(gp>0) o[m[2].trim()]={f:parseInt(m[4])/gp, a:parseInt(m[5])/gp}; }
+        const rows = t.split('\n');
+        rows.forEach(l => {
+            // Limpieza de comas de CSV a espacios para regex
+            const cleanLine = l.replace(/,/g, ' ').trim();
+            // Regex para capturar: [Rank] [Separadores] [Nombre Equipo] [GP] [W] [D] [L] [GF] [GA]
+            const m = cleanLine.match(/^\d+\s+\*\s+\d+\s+\*\s+([A-Za-z\s]+?)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)/);
+            
+            if(m) {
+                const team = m[1].trim();
+                const gp = parseInt(m[2]);
+                const gf = parseInt(m[3]);
+                const ga = parseInt(m[4]);
+                if(gp > 0) o[team] = { f: gf/gp, a: ga/gp };
+            }
         });
         return o;
     }
 
     function uS() {
-        const t = document.getElementById('sIn').value;
+        const t = document.getElementById('sIn').value.replace(/,/g, ' ');
+        // Captura el decimal después del texto "per match:"
         const hm = t.match(/Home goals per match:\s*([\d.]+)/);
         const am = t.match(/Away goals per match:\s*([\d.]+)/);
-        if(hm && am) { aH = parseFloat(hm[1]); aV = parseFloat(am[1]); }
+        if(hm) aH = parseFloat(hm[1]);
+        if(am) aV = parseFloat(am[1]);
     }
 
     document.getElementById('hIn').oninput = () => { dH=ext(document.getElementById('hIn').value); fill(); };
@@ -316,6 +418,7 @@
     }
 
     function poi(k,l){ 
+        if(l <= 0) return k === 0 ? 1 : 0;
         let f=1; for(let i=2; i<=k; i++) f*=i; 
         return (Math.pow(l,k)*Math.exp(-l))/f; 
     }
@@ -364,28 +467,14 @@
         document.getElementById('m-stake-money').value = "";
         document.getElementById('sniff-alert').style.display = 'none';
         document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
-        
         const container = document.getElementById('odds-container');
         container.innerHTML = "";
-
-        // DETERMINAR SI ES UN MERCADO DE 2 O 3 OPCIONES
         const isThreeWay = name.includes('(1)') || name.includes('(X)') || name.includes('(2)');
-        
         if(isThreeWay) {
-            container.innerHTML = `
-                <label style="font-size:0.6rem">CUOTA 1 (Local)</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()">
-                <label style="font-size:0.6rem">CUOTA X (Empate)</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">
-                <label style="font-size:0.6rem">CUOTA 2 (Visita)</label><input type="number" id="o3" step="0.01" oninput="liveUpdateOverround()">
-            `;
+            container.innerHTML = `<input type="number" id="o1" placeholder="Cuota 1" step="0.01" oninput="liveUpdateOverround()"><input type="number" id="o2" placeholder="Cuota X" step="0.01" oninput="liveUpdateOverround()"><input type="number" id="o3" placeholder="Cuota 2" step="0.01" oninput="liveUpdateOverround()">`;
         } else {
-            const label1 = name.includes('Goles') ? 'OVER' : 'SI';
-            const label2 = name.includes('Goles') ? 'UNDER' : 'NO';
-            container.innerHTML = `
-                <label style="font-size:0.6rem">CUOTA ${label1}</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()">
-                <label style="font-size:0.6rem">CUOTA ${label2}</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">
-            `;
+            container.innerHTML = `<input type="number" id="o1" placeholder="Cuota Favor" step="0.01" oninput="liveUpdateOverround()"><input type="number" id="o2" placeholder="Cuota Contra" step="0.01" oninput="liveUpdateOverround()">`;
         }
-
         document.getElementById('pick-modal').style.display = 'flex';
     }
 
@@ -393,62 +482,32 @@
         const o1 = parseFloat(document.getElementById('o1')?.value) || 0;
         const o2 = parseFloat(document.getElementById('o2')?.value) || 0;
         const o3 = parseFloat(document.getElementById('o3')?.value) || 0;
-        
-        let sum = 0;
-        if(o1 > 1) sum += (1/o1);
-        if(o2 > 1) sum += (1/o2);
-        if(o3 > 1) sum += (1/o3);
-
+        let sum = (o1 > 1 ? 1/o1 : 0) + (o2 > 1 ? 1/o2 : 0) + (o3 > 1 ? 1/o3 : 0);
         if(sum === 0) return;
-
         const overround = ((sum - 1) * 100).toFixed(2);
         document.getElementById('live-overround').innerText = overround + "%";
-        
-        const bar = document.getElementById('ov-bar');
-        bar.style.width = Math.min(overround * 5, 100) + "%";
-        bar.style.background = overround > 8 ? "var(--delete)" : (overround > 5 ? "var(--warning)" : "var(--accent-green)");
-
-        // KELLY CALCULATION (Usa siempre la primera cuota como la elegida para apostar)
+        document.getElementById('ov-bar').style.width = Math.min(overround * 5, 100) + "%";
         const chosenOdds = o1;
         if(chosenOdds > 1) {
             const prob = selectedPick.prob / 100;
             const bank = parseFloat(document.getElementById('user-bank').value) || 0;
             let kelly = (((chosenOdds - 1) * prob) - (1 - prob)) / (chosenOdds - 1);
-            let multiplier = isPanic ? 0.10 : 0.25; 
-            let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
-            let money = bank * kFrac;
-            
-            document.getElementById('kelly-suggestion').innerText = money.toFixed(2) + " $";
-            document.getElementById('m-stake-money').value = money.toFixed(2);
-
+            let kFrac = Math.max(0, Math.min(0.10, kelly * (isPanic ? 0.10 : 0.25)));
+            document.getElementById('kelly-suggestion').innerText = (bank * kFrac).toFixed(2) + " $";
+            document.getElementById('m-stake-money').value = (bank * kFrac).toFixed(2);
             const edge = ((prob * chosenOdds) - 1) * 100;
             const sniff = document.getElementById('sniff-alert');
-            if(edge > 3) {
-                sniff.style.display = 'block';
-                sniff.innerText = `EDGE DETECTADO: ${edge.toFixed(1)}%`;
-                sniff.className = edge > 15 ? 'sniff-alert sniff-mega' : 'sniff-alert';
-            } else {
-                sniff.style.display = 'none';
-            }
+            if(edge > 3) { sniff.style.display = 'block'; sniff.innerText = `EDGE: ${edge.toFixed(1)}%`; } else sniff.style.display = 'none';
         }
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
     function savePick() {
         const odds = parseFloat(document.getElementById('o1').value);
         const stake = parseFloat(document.getElementById('m-stake-money').value);
-        if(!odds || !stake) { alert("Complete al menos la cuota de su elección y el stake"); return; }
-        
+        if(!odds || !stake) return;
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift({ 
-            ...selectedPick, 
-            odds, 
-            stake, 
-            status: 'pending', 
-            id: Date.now(), 
-            date: new Date().toLocaleDateString() 
-        });
+        history.unshift({ ...selectedPick, odds, stake, status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
@@ -458,39 +517,15 @@
         const container = document.getElementById('history-list');
         let totalProfit = 0, totalStaked = 0;
         let chartData = [0];
-        
         const sortedHistory = [...history].reverse();
         let runningProfit = 0;
-        
         sortedHistory.forEach(item => {
-            if(item.status === 'win') { 
-                let p = (item.odds - 1) * item.stake;
-                runningProfit += p; totalProfit += p; totalStaked += item.stake; 
-            }
-            else if(item.status === 'loss') { 
-                runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; 
-            }
+            if(item.status === 'win') { runningProfit += (item.odds - 1) * item.stake; totalProfit += (item.odds - 1) * item.stake; totalStaked += item.stake; }
+            else if(item.status === 'loss') { runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; }
             if(item.status !== 'pending') chartData.push(runningProfit);
         });
-
-        container.innerHTML = history.length ? history.map(item => {
-            let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
-            let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
-            return `<div class="history-item ${item.status}">
-                    <span class="status-badge" style="color:${color}">${resText}</span>
-                    <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
-                    <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
-                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake}$</div>
-                    <div style="margin-top:10px; display:flex; gap:8px;">
-                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
-                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
-                    </div>
-                    <i class="fa-solid fa-trash-can" style="position:absolute; bottom:15px; right:15px; color:var(--delete); font-size:1rem; cursor:pointer;" onclick="deletePick(${item.id})"></i>
-                </div>`;
-        }).join('') : `<p style="text-align:center; color:var(--text-dim); margin-top:20px;">No hay apuestas registradas.</p>`;
-
-        document.getElementById('total-profit').innerText = totalProfit.toFixed(2) + " $";
-        document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
+        container.innerHTML = history.map(item => `<div class="history-item ${item.status}"><span class="status-badge">${item.status}</span><div style="font-weight:bold;">${item.teams}</div><div style="font-size:0.7rem;">${item.name} | Cuota: ${item.odds}</div><div style="margin-top:10px;"><button onclick="updateStatus(${item.id}, 'win')">WIN</button><button onclick="updateStatus(${item.id}, 'loss')">LOSS</button><i class="fa-solid fa-trash" onclick="deletePick(${item.id})"></i></div></div>`).join('');
+        document.getElementById('total-profit').innerText = totalProfit.toFixed(2);
         document.getElementById('yield-total').innerText = (totalStaked > 0 ? (totalProfit / totalStaked * 100).toFixed(1) : 0) + "%";
         updateChart(chartData);
     }
@@ -498,106 +533,26 @@
     function updateChart(data) {
         const ctx = document.getElementById('profitChart').getContext('2d');
         if(chartInstance) chartInstance.destroy();
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: { 
-                labels: data.map((_, i) => i), 
-                datasets: [{ 
-                    data: data, 
-                    borderColor: '#00ff88', 
-                    backgroundColor: 'rgba(0, 255, 136, 0.1)', 
-                    borderWidth: 2, 
-                    fill: true, 
-                    tension: 0.3, 
-                    pointRadius: 2 
-                }] 
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false } }, 
-                scales: { 
-                    x: { display: false }, 
-                    y: { 
-                        grid: { color: 'rgba(255,255,255,0.05)' }, 
-                        ticks: { color: '#7f9c93', font: { size: 9 } } 
-                    } 
-                } 
-            }
-        });
+        chartInstance = new Chart(ctx, { type: 'line', data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#00ff88', fill: true }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     }
 
     function updateStatus(id, status) {
-        let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        const i = history.findIndex(x => x.id === id);
-        if(i !== -1) { 
-            history[i].status = status; 
-            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
-            loadHistory(); 
-        }
+        let h = JSON.parse(localStorage.getItem('q_pro_hist'));
+        let i = h.findIndex(x => x.id === id);
+        h[i].status = status;
+        localStorage.setItem('q_pro_hist', JSON.stringify(h));
+        loadHistory();
     }
 
-    function deletePick(id) { 
-        if(confirm("¿Eliminar este registro?")) { 
-            let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]'); 
-            history = history.filter(item => item.id !== id); 
-            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
-            loadHistory(); 
-        } 
-    }
-
-    function clearHistory() { 
-        if(confirm("¿Estás seguro de borrar TODO el historial? Esta acción no se puede deshacer.")) { 
-            localStorage.removeItem('q_pro_hist'); 
-            loadHistory(); 
-        } 
+    function deletePick(id) {
+        let h = JSON.parse(localStorage.getItem('q_pro_hist')).filter(x => x.id !== id);
+        localStorage.setItem('q_pro_hist', JSON.stringify(h));
+        loadHistory();
     }
 
     function nav(id) {
         document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen'));
         document.getElementById(id).classList.add('active-screen');
-    }
-
-    function openSessionModal() {
-        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        const today = new Date().toLocaleDateString();
-        const todayPicks = history.filter(p => p.date === today && p.status !== 'pending');
-        let sProf = 0, sVol = 0, sWin = 0;
-        
-        todayPicks.forEach(p => { 
-            sVol += p.stake; 
-            if(p.status === 'win') { sProf += (p.odds - 1) * p.stake; sWin++; } 
-            else sProf -= p.stake; 
-        });
-        
-        document.getElementById('session-date').innerText = today;
-        document.getElementById('session-profit').innerText = sProf.toFixed(2) + " $";
-        document.getElementById('session-profit').style.color = sProf >= 0 ? "var(--accent-green)" : "var(--delete)";
-        document.getElementById('session-yield').innerText = (sVol > 0 ? (sProf / sVol * 100).toFixed(1) : 0) + "%";
-        document.getElementById('session-wr').innerText = (todayPicks.length > 0 ? (sWin / todayPicks.length * 100).toFixed(0) : 0) + "%";
-        document.getElementById('session-modal').style.display = 'flex';
-    }
-
-    function generateWeeklyReport() {
-        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        const resolved = history.filter(p => p.status !== 'pending');
-        if(resolved.length === 0) { alert("No hay datos resueltos para generar reporte."); return; }
-        
-        let totalProfit = 0, totalStaked = 0, wins = 0;
-        resolved.forEach(p => { 
-            totalStaked += p.stake; 
-            if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } 
-            else totalProfit -= p.stake; 
-        });
-        
-        const report = `📊 QUANTUM PRO REPORT\n-----------------------\n💰 Profit: ${totalProfit.toFixed(2)} $\n📈 Yield: ${(totalStaked > 0 ? (totalProfit/totalStaked*100).toFixed(1) : 0)}%\n🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%\n🎲 Operaciones: ${resolved.length}\n💵 Vol. Total: ${totalStaked.toFixed(2)} $\n📅 Fecha: ${new Date().toLocaleDateString()}\n-----------------------\nPowered by Quantum Engine`;
-        document.getElementById('report-text').innerText = report;
-        document.getElementById('report-modal').style.display = 'flex';
-    }
-
-    function copyReport() { 
-        const text = document.getElementById('report-text').innerText;
-        navigator.clipboard.writeText(text).then(() => alert("¡Reporte copiado al portapapeles!"));
     }
 </script>
 </body>
