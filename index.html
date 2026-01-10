@@ -61,6 +61,8 @@
         .loss { border-left-color: var(--delete); }
         
         .status-badge { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; }
+        .delete-pick { position: absolute; bottom: 10px; right: 10px; color: var(--delete); font-size: 0.9rem; cursor: pointer; padding: 5px; opacity: 0.7; }
+        .delete-pick:hover { opacity: 1; }
 
         .sticky-stats {
             position: sticky;
@@ -91,7 +93,6 @@
 
         .overround-box { background: rgba(0, 255, 255, 0.05); border: 1px solid var(--quantum-blue); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.75rem; }
         
-        /* Contenedor del Gráfico */
         .chart-container { background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); height: 180px; }
     </style>
 </head>
@@ -318,7 +319,6 @@
         let totalProfit = 0, totalStaked = 0;
         let chartData = [0];
 
-        // Procesar para el gráfico (de más antiguo a más reciente)
         const sortedHistory = [...history].reverse();
         let runningProfit = 0;
         sortedHistory.forEach(item => {
@@ -331,21 +331,23 @@
             let resText = "PENDIENTE", color = "var(--text-dim)";
             if(item.status === 'win') { totalProfit += (item.odds - 1) * item.stake; totalStaked += item.stake; resText = "GANADA"; color = "var(--accent-green)"; }
             else if(item.status === 'loss') { totalProfit -= item.stake; totalStaked += item.stake; resText = "PERDIDA"; color = "var(--delete)"; }
-            return `<div class="history-item ${item.status}"><span class="status-badge" style="color:${color}">${resText}</span>
-                    <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
+            return `<div class="history-item ${item.status}">
+                    <span class="status-badge" style="color:${color}">${resText}</span>
+                    <div style="font-size:0.8rem; font-weight:bold; margin-bottom:3px;">${item.teams}</div>
                     <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
                     <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake}</div>
                     <div style="margin-top:10px; display:flex; gap:8px;">
-                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold;">GANADA</button>
-                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold;">PERDIDA</button>
-                    </div></div>`;
+                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
+                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
+                    </div>
+                    <i class="fa-solid fa-trash-can delete-pick" onclick="deletePick(${item.id})"></i>
+                </div>`;
         }).join('') : `<p style="text-align:center; color:var(--text-dim);">Sin registros.</p>`;
 
         document.getElementById('total-profit').innerText = (totalProfit >= 0 ? "+" : "") + totalProfit.toFixed(2);
         document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
         const yieldVal = totalStaked > 0 ? (totalProfit / totalStaked) * 100 : 0;
         document.getElementById('yield-total').innerText = yieldVal.toFixed(1) + "%";
-
         updateChart(chartData);
     }
 
@@ -383,6 +385,15 @@
         let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const i = history.findIndex(x => x.id === id);
         if(i !== -1) { history[i].status = status; localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); }
+    }
+
+    function deletePick(id) {
+        if(confirm("¿Eliminar esta apuesta del historial?")) {
+            let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+            history = history.filter(item => item.id !== id);
+            localStorage.setItem('q_pro_hist', JSON.stringify(history));
+            loadHistory();
+        }
     }
 
     function clearHistory() { if(confirm("¿Borrar todo?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
