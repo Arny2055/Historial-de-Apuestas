@@ -61,15 +61,18 @@
         
         .status-badge { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; }
 
-        /* Mejora para el Panel Fijo en Historial */
+        /* Panel Sticky Austero */
         .sticky-stats {
             position: sticky;
-            top: -15px; /* Compensa el padding del contenedor */
+            top: -15px;
             z-index: 100;
             background: var(--bg);
-            padding-top: 15px;
-            padding-bottom: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
         }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-box { background: var(--card); padding: 10px; border-radius: 8px; text-align: center; border: 1px solid var(--border); }
 
         #pick-modal { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -115,12 +118,18 @@
 </div>
 
 <div id="history-screen">
-    <div class="header-box"><h2>ESTADÍSTICAS REALES</h2></div>
+    <div class="header-box"><h2>CONTROL PROFESIONAL</h2></div>
     <div class="scroll-content">
         <div class="sticky-stats">
-            <div class="card" style="text-align: center; border-color: var(--accent-gold); margin-bottom: 0;">
-                <div style="font-size: 0.7rem; color: var(--text-dim);">PROFIT TOTAL (UNIDADES)</div>
-                <div id="total-profit" style="font-size: 2.2rem; font-weight: 900; color: var(--accent-green);">0.00</div>
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div style="font-size: 0.6rem; color: var(--text-dim);">PROFIT (U)</div>
+                    <div id="total-profit" style="font-size: 1.4rem; font-weight: 900;">0.00</div>
+                </div>
+                <div class="stat-box">
+                    <div style="font-size: 0.6rem; color: var(--text-dim);">YIELD %</div>
+                    <div id="yield-total" style="font-size: 1.4rem; font-weight: 900; color: var(--accent-gold);">0.0%</div>
+                </div>
             </div>
         </div>
         
@@ -268,26 +277,32 @@
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const container = document.getElementById('history-list');
         let totalProfit = 0;
+        let totalStaked = 0;
         
         container.innerHTML = history.length ? history.map(item => {
             let resText = "PENDIENTE";
+            let color = "var(--text-dim)";
             if(item.status === 'win') {
                 totalProfit += (item.odds - 1) * item.stake;
+                totalStaked += item.stake;
                 resText = "GANADA";
+                color = "var(--accent-green)";
             } else if(item.status === 'loss') {
                 totalProfit -= item.stake;
+                totalStaked += item.stake;
                 resText = "PERDIDA";
+                color = "var(--delete)";
             }
             
             return `
                 <div class="history-item ${item.status}">
-                    <span class="status-badge">${resText}</span>
+                    <span class="status-badge" style="color:${color}">${resText}</span>
                     <div style="font-size:0.8rem; font-weight:bold; margin-bottom:3px;">${item.teams}</div>
                     <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
                     <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake}</div>
                     <div style="margin-top:10px; display:flex; gap:8px;">
-                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold;">GANADA</button>
-                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold;">PERDIDA</button>
+                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
+                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
                     </div>
                 </div>`;
         }).join('') : `<p style="text-align:center; color:var(--text-dim); margin-top:20px;">No hay apuestas registradas.</p>`;
@@ -295,14 +310,21 @@
         const profitEl = document.getElementById('total-profit');
         profitEl.innerText = (totalProfit >= 0 ? "+" : "") + totalProfit.toFixed(2);
         profitEl.style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
+
+        const yieldEl = document.getElementById('yield-total');
+        const yieldVal = totalStaked > 0 ? (totalProfit / totalStaked) * 100 : 0;
+        yieldEl.innerText = yieldVal.toFixed(1) + "%";
+        yieldEl.style.color = yieldVal >= 0 ? "var(--accent-gold)" : "var(--delete)";
     }
 
     function updateStatus(id, status) {
         let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const i = history.findIndex(x => x.id === id);
-        history[i].status = status;
-        localStorage.setItem('q_pro_hist', JSON.stringify(history));
-        loadHistory();
+        if(i !== -1) {
+            history[i].status = status;
+            localStorage.setItem('q_pro_hist', JSON.stringify(history));
+            loadHistory();
+        }
     }
 
     function clearHistory() { if(confirm("¿Seguro que quieres borrar todo el historial?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
