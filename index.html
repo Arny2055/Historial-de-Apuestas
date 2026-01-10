@@ -61,7 +61,6 @@
         
         .status-badge { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; }
 
-        /* Panel Sticky Austero */
         .sticky-stats {
             position: sticky;
             top: -15px;
@@ -81,6 +80,12 @@
         .modal-content { background: var(--card); border: 1px solid var(--accent-gold); padding: 20px; border-radius: 15px; width: 100%; max-width: 320px; }
         
         input, select { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 8px; margin-bottom: 10px; }
+
+        .edge-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 5px; }
+        .edge-positive { background: rgba(0, 255, 136, 0.2); color: var(--accent-green); }
+        .edge-negative { background: rgba(255, 77, 77, 0.2); color: var(--delete); }
+
+        .tip-box { font-size: 0.7rem; color: var(--accent-gold); background: rgba(255, 215, 0, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px dashed var(--accent-gold); }
     </style>
 </head>
 <body>
@@ -88,6 +93,7 @@
 <div id="setup-screen" class="active-screen">
     <div class="header-box"><h2>QUANTUM ENGINE PRO</h2></div>
     <div class="scroll-content">
+        <div class="tip-box"><i class="fa-solid fa-lightbulb"></i> <b>REGLA DE ORO:</b> Solo apuesta si el Edge es > 5%. Si es negativo, la casa tiene la ventaja sobre ti.</div>
         <button class="btn-direct" onclick="nav('history-screen'); loadHistory();">
             <i class="fa-solid fa-briefcase"></i> IR A MI CONTROL (HISTORIAL)
         </button>
@@ -146,11 +152,13 @@
 <div id="pick-modal">
     <div class="modal-content">
         <h3 id="m-name" style="color:var(--accent-gold); margin-top:0;">Mercado</h3>
-        <p style="font-size:0.8rem; margin-bottom:15px;">Cuota Justa: <span id="m-fair" style="color:var(--quantum-blue)"></span></p>
+        <p style="font-size:0.8rem; margin-bottom:5px;">Cuota Justa: <span id="m-fair" style="color:var(--quantum-blue)"></span></p>
         
         <label style="font-size:0.7rem; color:var(--text-dim);">CUOTA DE TU CASA:</label>
-        <input type="number" id="m-odds" step="0.01" placeholder="Ej: 1.95">
+        <input type="number" id="m-odds" step="0.01" placeholder="Ej: 1.95" oninput="liveEdge()">
         
+        <div id="live-edge-display" style="font-size: 0.7rem; margin-bottom: 10px; font-weight: bold;"></div>
+
         <label style="font-size:0.7rem; color:var(--text-dim);">STAKE (NIVEL DE RIESGO):</label>
         <select id="m-stake">
             <option value="1">Stake 1 (Mínimo)</option>
@@ -256,7 +264,21 @@
         document.getElementById('m-name').innerText = name;
         document.getElementById('m-fair').innerText = fair;
         document.getElementById('m-stake').value = stake;
+        document.getElementById('m-odds').value = "";
+        document.getElementById('live-edge-display').innerText = "";
         document.getElementById('pick-modal').style.display = 'flex';
+    }
+
+    function liveEdge() {
+        const odds = parseFloat(document.getElementById('m-odds').value);
+        const fair = parseFloat(selectedPick.fair);
+        const display = document.getElementById('live-edge-display');
+        if(!odds || odds <= 1) { display.innerText = ""; return; }
+        
+        const edge = ((1/fair) * odds - 1) * 100;
+        display.innerText = `VENTAJA (EDGE): ${edge.toFixed(1)}%`;
+        display.style.color = edge > 5 ? "var(--accent-green)" : (edge > 0 ? "var(--accent-gold)" : "var(--delete)");
+        if(edge > 5) display.innerText += " - ¡VALOR DETECTADO!";
     }
 
     function closeModal() { document.getElementById('pick-modal').style.display = 'none'; }
@@ -282,6 +304,9 @@
         container.innerHTML = history.length ? history.map(item => {
             let resText = "PENDIENTE";
             let color = "var(--text-dim)";
+            const edge = ((1/item.fair) * item.odds - 1) * 100;
+            const edgeClass = edge > 0 ? 'edge-positive' : 'edge-negative';
+
             if(item.status === 'win') {
                 totalProfit += (item.odds - 1) * item.stake;
                 totalStaked += item.stake;
@@ -298,8 +323,8 @@
                 <div class="history-item ${item.status}">
                     <span class="status-badge" style="color:${color}">${resText}</span>
                     <div style="font-size:0.8rem; font-weight:bold; margin-bottom:3px;">${item.teams}</div>
-                    <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
-                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake}</div>
+                    <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name} <span class="edge-badge ${edgeClass}">Edge: ${edge.toFixed(1)}%</span></div>
+                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake} | Justa: ${item.fair}</div>
                     <div style="margin-top:10px; display:flex; gap:8px;">
                         <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
                         <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
