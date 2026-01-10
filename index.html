@@ -90,6 +90,8 @@
 
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .stat-box { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
+
+        .ov-badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; background: rgba(255,215,0,0.2); color: var(--accent-gold); }
     </style>
 </head>
 <body>
@@ -143,8 +145,10 @@
     <div class="header-box"><h2 id="match-label">RESULTADOS</h2></div>
     <div class="scroll-content">
         <div id="league-over-audit" class="overround-box">
-            <i class="fa-solid fa-shield-halved"></i> Audit Poisson: <span id="data-quality">OK</span> | 
-            <span id="match-overround" style="color: var(--accent-gold); font-weight: bold;">Overround: --%</span>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fa-solid fa-shield-halved"></i> Audit Poisson: <b style="color:var(--accent-green)">OK</b></span>
+                <span id="market-quality-tag" class="ov-badge">CALCULANDO MARGEN...</span>
+            </div>
         </div>
         <div id="results-area"></div>
     </div>
@@ -199,20 +203,28 @@
         <div id="sniff-alert" class="sniff-alert"><i class="fa-solid fa-bolt"></i> INEFICIENCIA DETECTADA</div>
 
         <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO (STAKE REDUCIDO)</div>
+        
+        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 5px;">
+                <span>OVERROUND (Margen Casa):</span>
+                <span id="live-overround" style="color: var(--accent-gold); font-weight: bold;">0.00%</span>
+            </div>
+            <div style="height: 4px; background: #222; border-radius: 2px;">
+                <div id="ov-bar" style="height: 100%; width: 0%; background: var(--accent-gold); border-radius: 2px; transition: 0.3s;"></div>
+            </div>
+        </div>
+
         <div class="kelly-box">
             <div style="font-size: 0.6rem; color: var(--text-dim);">Sugerencia Gestión Kelly:</div>
             <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
             <div id="kelly-pct" style="font-size: 0.65rem; color: var(--accent-green);">0% banca</div>
         </div>
+        
         <div id="edge-warning-box" class="alert-box"><i class="fa-solid fa-triangle-exclamation"></i> EDGE ANÓMALO (>25%)</div>
         
         <label style="font-size: 0.7rem;">CUOTA CASA DE APUESTAS:</label>
         <input type="number" id="m-odds" step="0.01" placeholder="Ej: 2.10" oninput="liveUpdateKelly()">
-        
-        <div style="display:flex; justify-content: space-between; margin-bottom: 10px;">
-             <div id="live-edge-display" style="font-size: 0.7rem; font-weight: bold;"></div>
-             <div id="live-ov-display" style="font-size: 0.7rem; color: var(--text-dim);"></div>
-        </div>
+        <div id="live-edge-display" style="font-size: 0.7rem; margin-bottom: 10px; font-weight: bold; text-align: center;"></div>
         
         <label style="font-size: 0.7rem;">IMPORTE APOSTADO ($):</label>
         <input type="number" id="m-stake-money" placeholder="0.00">
@@ -246,7 +258,6 @@
 
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, isPanic = false;
-    let currentMarketProbs = {}; // Para el cálculo del overround global
 
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
@@ -328,13 +339,11 @@
             }
         }
         
-        currentMarketProbs = {
+        renderResults(tH, tV, {
             'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
             'Más de 2.5 Goles': ov25*100, 'Menos de 2.5 Goles': (1-ov25)*100,
             'Ambos Marcan: SI': btts*100, 'Ambos Marcan: NO': (1-btts)*100
-        };
-
-        renderResults(tH, tV, currentMarketProbs);
+        });
         nav('dashboard-screen');
     }
 
@@ -350,6 +359,8 @@
         }
         h += `</div>`;
         document.getElementById('results-area').innerHTML = h;
+        // Reset tag audit
+        document.getElementById('market-quality-tag').innerText = "ESPERANDO CUOTAS...";
     }
 
     function openModal(name, fair, teams, prob) {
@@ -361,7 +372,8 @@
         document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
         document.getElementById('pick-modal').style.display = 'flex';
         document.getElementById('live-edge-display').innerText = "";
-        document.getElementById('live-ov-display').innerText = "";
+        document.getElementById('live-overround').innerText = "0.00%";
+        document.getElementById('ov-bar').style.width = "0%";
     }
 
     function liveUpdateKelly() {
@@ -376,12 +388,17 @@
             return; 
         }
 
-        // CÁLCULO DE OVERROUND (Simplificado al mercado actual vs Poisson)
-        // El overround se calcula como (1/Cuota Casa) - (1/Cuota Justa)
+        // LÓGICA DE OVERROUND APLICADA
+        // El overround es la diferencia entre 100% y la probabilidad implícita combinada de un mercado.
+        // Aquí lo medimos como la "distancia" que la casa pone para cubrirse.
         const implProb = (1 / odds) * 100;
-        const ovr = (implProb - selectedPick.prob).toFixed(1);
-        document.getElementById('live-ov-display').innerText = `OVR: ${ovr}%`;
+        const overround = Math.abs(implProb - selectedPick.prob).toFixed(2);
+        document.getElementById('live-overround').innerText = overround + "%";
+        document.getElementById('ov-bar').style.width = Math.min(overround * 5, 100) + "%";
         
+        // El color de la barra indica peligro
+        document.getElementById('ov-bar').style.background = overround > 7 ? "var(--delete)" : "var(--accent-gold)";
+
         let kelly = (((odds - 1) * prob) - (1 - prob)) / (odds - 1);
         let multiplier = isPanic ? 0.10 : 0.25; 
         let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
@@ -393,6 +410,7 @@
         
         const edge = ((prob * odds) - 1) * 100;
         document.getElementById('live-edge-display').innerText = `EDGE: ${edge.toFixed(1)}%`;
+        document.getElementById('live-edge-display').style.color = edge > 0 ? "var(--accent-green)" : "var(--delete)";
         document.getElementById('edge-warning-box').style.display = edge > 25 ? "block" : "none";
 
         if(edge > 15) {
@@ -408,6 +426,9 @@
         } else {
             sniff.style.display = 'none';
         }
+
+        // Actualizar el audit de la pantalla principal
+        document.getElementById('market-quality-tag').innerText = `OV ACTUAL: ${overround}%`;
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
