@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quantum Engine | Pro Value Sniffer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #050d0a; --card: #101d18; --accent-gold: #FFD700; --accent-green: #00ff88;
+            --text-main: #e0e7e4; --text-dim: #7f9c93; --border: #243a33; --delete: #ff4d4d;
+            --quantum-blue: #00ffff; --warning: #ff8800; --fire: #ff3300;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
+        body { margin: 0; background: var(--bg); color: var(--text-main); overflow: hidden; height: 100vh; }
+        
+        .header-box { text-align: center; padding: 15px; background: var(--card); border-bottom: 2px solid var(--accent-gold); }
+        .header-box h2 { margin: 0; font-size: 1.2rem; letter-spacing: 1px; color: var(--accent-gold); }
+        
+        .scroll-content { height: calc(100vh - 140px); overflow-y: auto; padding: 15px; padding-bottom: 100px; }
+        
+        textarea { 
+            width: 100%; height: 50px; background: #000; border: 1px solid var(--border); 
+            border-radius: 8px; color: var(--accent-green); padding: 8px; font-size: 11px; margin-bottom: 10px;
+        }
+
+        .btn-main { 
+            width: 100%; background: var(--accent-green); color: #000; border: none; 
+            padding: 15px; border-radius: 8px; font-weight: 900; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        .btn-direct {
+            width: 100%; background: rgba(0, 255, 255, 0.1); color: var(--quantum-blue); border: 1px solid var(--quantum-blue);
+            padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-bottom: 15px; }
+        .row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;
+        }
+        .row:active { background: rgba(255,255,255,0.05); }
+        .row.value-hit { background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--accent-green); }
+        
+        .val-group { text-align: right; }
+        .pct { display: block; font-weight: 900; color: var(--accent-gold); font-size: 1rem; }
+
+        .tab-bar { 
+            position: fixed; bottom: 0; width: 100%; height: 70px; 
+            background: var(--card); display: flex; border-top: 1px solid var(--border); z-index: 100;
+        }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; text-decoration: none; }
+        .tab-item.active { color: var(--accent-gold); }
+
+        #setup-screen, #dashboard-screen, #history-screen { display: none; height: 100%; }
+        .active-screen { display: block !important; }
+
+        .history-item { background: var(--card); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--border); position: relative; }
+        .win { border-left-color: var(--accent-green) !important; }
+        .loss { border-left-color: var(--delete) !important; }
+        
+        .status-badge { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; }
+
+        .modal { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 9999;
+        }
+        .modal-content { background: var(--card); border: 1px solid var(--accent-gold); padding: 20px; border-radius: 15px; width: 100%; max-width: 320px; overflow-y: auto; max-height: 90vh; }
+        
+        input, select { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 8px; margin-bottom: 10px; font-size: 16px; }
+
+        .overround-box { background: rgba(0, 255, 255, 0.05); border: 1px solid var(--quantum-blue); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.75rem; }
+        .chart-container { background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); height: 180px; }
+        
+        .alert-box { font-size: 0.65rem; background: rgba(255, 136, 0, 0.1); color: var(--warning); padding: 8px; border-radius: 6px; border: 1px solid var(--warning); margin-bottom: 10px; display: none; }
+        .kelly-box { background: rgba(0, 255, 136, 0.05); border: 1px dashed var(--accent-green); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        
+        .stress-box { background: rgba(255, 77, 77, 0.05); border: 1px solid #331a1a; padding: 10px; border-radius: 8px; margin-top: 10px; }
+        .stress-title { font-size: 0.65rem; color: var(--delete); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+
+        .panic-active { background: #330000 !important; border-color: var(--delete) !important; animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); } }
+
+        .report-summary { font-family: monospace; font-size: 0.75rem; background: #000; color: var(--accent-green); padding: 10px; border-radius: 5px; white-space: pre-wrap; margin: 10px 0; border: 1px solid var(--border); }
+
+        .sniff-alert { padding: 10px; border-radius: 8px; font-weight: 900; text-align: center; margin-bottom: 10px; display: none; font-size: 0.8rem; letter-spacing: 1px; }
+        .sniff-mega { background: var(--fire); color: #fff; animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0.5; } }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
+
+        .ov-badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; background: rgba(255,215,0,0.2); color: var(--accent-gold); }
+        .multi-odds { display: grid; gap: 5px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="setup-screen" class="active-screen">
+    <div class="header-box"><h2>QUANTUM ENGINE PRO</h2></div>
+    <div class="scroll-content">
+        <div class="card" id="bank-card">
+            <label style="font-size: 0.7rem; color: var(--accent-gold);">MI BANCA ACTUAL ($):</label>
+            <input type="number" id="user-bank" value="1000" oninput="saveBank(); runStressTest();">
+            
+            <button id="panic-btn" class="btn-main" style="background: #222; color: var(--delete); border: 1px solid #444; font-size: 0.7rem; margin: 10px 0;" onclick="togglePanic()">
+                <i class="fa-solid fa-triangle-exclamation"></i> MODO PÁNICO: <span id="panic-status">OFF</span>
+            </button>
+
+            <div class="stress-box">
+                <div class="stress-title"><i class="fa-solid fa-biohazard"></i> ESCENARIO CRÍTICO (5 Ls)</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 0.55rem; color: var(--text-dim);">BANCA RESTANTE</div>
+                        <div id="stress-result-money" style="font-size: 1.1rem; font-weight: 900; color: var(--delete);">$ 0.00</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.55rem; color: var(--text-dim);">DRAWDOWN</div>
+                        <div id="stress-result-pct" style="font-size: 1.1rem; font-weight: 900; color: var(--warning);">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-direct" onclick="nav('history-screen'); loadHistory();">
+            <i class="fa-solid fa-briefcase"></i> IR A MI CONTROL (HISTORIAL)
+        </button>
+
+        <textarea id="hIn" placeholder="PEGAR DATOS LOCAL (TABLA)..."></textarea>
+        <textarea id="vIn" placeholder="PEGAR DATOS VISITA (TABLA)..."></textarea>
+        <textarea id="sIn" placeholder="PEGAR PROMEDIOS LIGA..."></textarea>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+            <select id="sH"><option>Seleccione Local</option></select>
+            <select id="sV"><option>Seleccione Visita</option></select>
+        </div>
+        
+        <button class="btn-main" onclick="calculate()">
+            <i class="fa-solid fa-magnifying-glass-chart"></i> ANALIZAR PARTIDO
+        </button>
+    </div>
+</div>
+
+<div id="dashboard-screen">
+    <div class="header-box"><h2 id="match-label">RESULTADOS</h2></div>
+    <div class="scroll-content">
+        <div id="league-over-audit" class="overround-box">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fa-solid fa-shield-halved"></i> Audit Poisson: <b style="color:var(--accent-green)">OK</b></span>
+                <span id="market-quality-tag" class="ov-badge">LISTO</span>
+            </div>
+        </div>
+        <div id="results-area"></div>
+    </div>
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
+        <div class="tab-item" onclick="nav('history-screen'); loadHistory();"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
+    </div>
+</div>
+
+<div id="history-screen">
+    <div class="header-box"><h2>CONTROL PROFESIONAL</h2></div>
+    <div class="scroll-content">
+        <div class="stat-grid">
+            <div class="stat-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">PROFIT TOTAL</div>
+                <div id="total-profit" style="font-size: 1.2rem; font-weight: 900;">0.00</div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">YIELD %</div>
+                <div id="yield-total" style="font-size: 1.2rem; font-weight: 900; color: var(--accent-gold);">0.0%</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="profitChart"></canvas>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="btn-main" style="background: var(--quantum-blue); color: #000;" onclick="openSessionModal()">
+                <i class="fa-solid fa-flag-checkered"></i> SESIÓN HOY
+            </button>
+            <button class="btn-main" style="background: var(--accent-gold); color: #000;" onclick="generateWeeklyReport()">
+                <i class="fa-solid fa-file-invoice"></i> REPORTE
+            </button>
+        </div>
+        
+        <div id="history-list"></div>
+        <button class="btn-main" style="background:var(--delete); color:#fff; margin-top:20px;" onclick="clearHistory()">BORRAR TODO EL CONTROL</button>
+    </div>
+    <div class="tab-bar">
+        <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
+        <div class="tab-item active" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
+    </div>
+</div>
+
+<div id="pick-modal" class="modal">
+    <div class="modal-content">
+        <h3 id="m-name" style="color:var(--accent-gold); margin:0 0 10px 0;">Mercado</h3>
+        
+        <div id="sniff-alert" class="sniff-alert">INEFICIENCIA</div>
+
+        <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO</div>
+        
+        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 5px;">
+                <span>OVERROUND (Margen Real):</span>
+                <span id="live-overround" style="color: var(--accent-gold); font-weight: bold;">0.00%</span>
+            </div>
+            <div style="height: 4px; background: #222; border-radius: 2px;">
+                <div id="ov-bar" style="height: 100%; width: 0%; background: var(--accent-gold); border-radius: 2px; transition: 0.3s;"></div>
+            </div>
+        </div>
+
+        <div class="kelly-box">
+            <div style="font-size: 0.6rem; color: var(--text-dim);">Gestión Sugerida:</div>
+            <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
+        </div>
+        
+        <div id="odds-container" class="multi-odds">
+            </div>
+
+        <label style="font-size: 0.7rem;">STAKE FINAL ($):</label>
+        <input type="number" id="m-stake-money" placeholder="0.00">
+        
+        <button class="btn-main" onclick="savePick()">CONFIRMAR APUESTA</button>
+        <button onclick="closeModal('pick-modal')" style="background:none; border:none; color:var(--text-dim); width:100%; margin-top:10px; cursor:pointer;">Cancelar</button>
+    </div>
+</div>
+
+<div id="session-modal" class="modal">
+    <div class="modal-content" style="text-align: center;">
+        <h2 style="color: var(--accent-gold); margin-top: 0;">SESIÓN DE HOY</h2>
+        <div id="session-date" style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 15px;"></div>
+        <div id="session-profit" style="font-size: 1.8rem; font-weight: 900;">0.00 $</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; font-size: 0.7rem;">
+            <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:8px;">Yield: <span id="session-yield">0%</span></div>
+            <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:8px;">W.R: <span id="session-wr">0%</span></div>
+        </div>
+        <button class="btn-main" style="margin-top: 25px;" onclick="closeModal('session-modal')">CONTINUAR</button>
+    </div>
+</div>
+
+<div id="report-modal" class="modal">
+    <div class="modal-content">
+        <h2 style="color: var(--accent-gold); margin-top: 0; text-align: center;">REPORTE DE RENDIMIENTO</h2>
+        <div id="report-text" class="report-summary"></div>
+        <button class="btn-main" onclick="copyReport()">COPIAR REPORTE</button>
+        <button class="btn-main" style="background:#444; color:#fff;" onclick="closeModal('report-modal')">CERRAR</button>
+    </div>
+</div>
+
+<script>
+    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, isPanic = false;
+
+    window.onload = () => {
+        const savedBank = localStorage.getItem('q_pro_bank');
+        if(savedBank) document.getElementById('user-bank').value = savedBank;
+        const savedPanic = localStorage.getItem('q_pro_panic');
+        if(savedPanic === 'true') togglePanic(true);
+        loadHistory();
+        runStressTest();
+    };
+
+    function togglePanic(init = false) {
+        if(!init) isPanic = !isPanic; else isPanic = true;
+        const btn = document.getElementById('panic-btn');
+        const status = document.getElementById('panic-status');
+        const card = document.getElementById('bank-card');
+        if(isPanic) { btn.classList.add('panic-active'); status.innerText = "ON"; card.style.borderColor = "var(--delete)"; }
+        else { btn.classList.remove('panic-active'); status.innerText = "OFF"; card.style.borderColor = "var(--border)"; }
+        localStorage.setItem('q_pro_panic', isPanic);
+        runStressTest();
+    }
+
+    function saveBank() { localStorage.setItem('q_pro_bank', document.getElementById('user-bank').value); }
+
+    function runStressTest() {
+        const bank = parseFloat(document.getElementById('user-bank').value) || 0;
+        let riskPerBetPct = isPanic ? 0.0125 : 0.025; 
+        let currentBank = bank;
+        for(let i=0; i<5; i++) { currentBank -= (currentBank * riskPerBetPct); }
+        const drawdown = ((bank - currentBank) / bank * 100).toFixed(1);
+        document.getElementById('stress-result-money').innerText = "$ " + currentBank.toFixed(2);
+        document.getElementById('stress-result-pct').innerText = "-" + (isNaN(drawdown) ? 0 : drawdown) + "%";
+    }
+
+    function ext(t) {
+        const o={};
+        t.split('\n').forEach(l => {
+            const m = l.trim().match(/^(\d+)\s+(.+?)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)/);
+            if(m) { const gp=parseInt(m[3]); if(gp>0) o[m[2].trim()]={f:parseInt(m[4])/gp, a:parseInt(m[5])/gp}; }
+        });
+        return o;
+    }
+
+    function uS() {
+        const t = document.getElementById('sIn').value;
+        const hm = t.match(/Home goals per match:\s*([\d.]+)/);
+        const am = t.match(/Away goals per match:\s*([\d.]+)/);
+        if(hm && am) { aH = parseFloat(hm[1]); aV = parseFloat(am[1]); }
+    }
+
+    document.getElementById('hIn').oninput = () => { dH=ext(document.getElementById('hIn').value); fill(); };
+    document.getElementById('vIn').oninput = () => { dV=ext(document.getElementById('vIn').value); fill(); };
+    document.getElementById('sIn').oninput = uS;
+
+    function fill() {
+        const sH=document.getElementById('sH'), sV=document.getElementById('sV');
+        sH.innerHTML=sV.innerHTML='<option value="">Seleccionar Equipo</option>';
+        Object.keys(dH).sort().forEach(t=>sH.add(new Option(t,t)));
+        Object.keys(dV).sort().forEach(t=>sV.add(new Option(t,t)));
+    }
+
+    function poi(k,l){ 
+        let f=1; for(let i=2; i<=k; i++) f*=i; 
+        return (Math.pow(l,k)*Math.exp(-l))/f; 
+    }
+
+    function calculate() {
+        const tH=document.getElementById('sH').value, tV=document.getElementById('sV').value;
+        if(!dH[tH] || !dV[tV]) { alert("Seleccione ambos equipos con datos válidos"); return; }
+        
+        const xH = (dH[tH].f/aH)*(dV[tV].a/aH)*aH, xV = (dV[tV].f/aV)*(dH[tH].a/aV)*aV;
+        let pH=0, pD=0, pV=0, ov25=0, btts=0;
+        
+        for(let i=0; i<=9; i++) {
+            for(let j=0; j<=9; j++) {
+                let p = poi(i,xH)*poi(j,xV);
+                if(i>j) pH+=p; else if(i===j) pD+=p; else pV+=p;
+                if((i+j)>2.5) ov25+=p;
+                if(i>0 && j>0) btts+=p;
+            }
+        }
+        
+        renderResults(tH, tV, {
+            'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
+            'Más de 2.5 Goles': ov25*100, 'Menos de 2.5 Goles': (1-ov25)*100,
+            'Ambos Marcan: SI': btts*100, 'Ambos Marcan: NO': (1-btts)*100
+        });
+        nav('dashboard-screen');
+    }
+
+    function renderResults(tH, tV, data) {
+        document.getElementById('match-label').innerText = `${tH} vs ${tV}`;
+        let h = `<div class="card">`;
+        for(let m in data) {
+            const prob = data[m]; const fair = (100/prob).toFixed(2);
+            h += `<div class="row ${prob > 55 ? 'value-hit' : ''}" onclick="openModal('${m}', ${fair}, '${tH} vs ${tV}', ${prob})">
+                    <div><span style="font-weight:bold;">${m}</span></div>
+                    <div class="val-group"><span class="pct">${prob.toFixed(1)}%</span><span class="odds" style="font-size:0.7rem; color:var(--text-dim)">Justa: ${fair}</span></div>
+                </div>`;
+        }
+        h += `</div>`;
+        document.getElementById('results-area').innerHTML = h;
+    }
+
+    function openModal(name, fair, teams, prob) {
+        selectedPick = { name, fair, teams, prob };
+        document.getElementById('m-name').innerText = name;
+        document.getElementById('m-stake-money').value = "";
+        document.getElementById('sniff-alert').style.display = 'none';
+        document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
+        
+        const container = document.getElementById('odds-container');
+        container.innerHTML = "";
+
+        // DETERMINAR SI ES UN MERCADO DE 2 O 3 OPCIONES
+        const isThreeWay = name.includes('(1)') || name.includes('(X)') || name.includes('(2)');
+        
+        if(isThreeWay) {
+            container.innerHTML = `
+                <label style="font-size:0.6rem">CUOTA 1 (Local)</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA X (Empate)</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA 2 (Visita)</label><input type="number" id="o3" step="0.01" oninput="liveUpdateOverround()">
+            `;
+        } else {
+            const label1 = name.includes('Goles') ? 'OVER' : 'SI';
+            const label2 = name.includes('Goles') ? 'UNDER' : 'NO';
+            container.innerHTML = `
+                <label style="font-size:0.6rem">CUOTA ${label1}</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA ${label2}</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">
+            `;
+        }
+
+        document.getElementById('pick-modal').style.display = 'flex';
+    }
+
+    function liveUpdateOverround() {
+        const o1 = parseFloat(document.getElementById('o1')?.value) || 0;
+        const o2 = parseFloat(document.getElementById('o2')?.value) || 0;
+        const o3 = parseFloat(document.getElementById('o3')?.value) || 0;
+        
+        let sum = 0;
+        if(o1 > 1) sum += (1/o1);
+        if(o2 > 1) sum += (1/o2);
+        if(o3 > 1) sum += (1/o3);
+
+        if(sum === 0) return;
+
+        const overround = ((sum - 1) * 100).toFixed(2);
+        document.getElementById('live-overround').innerText = overround + "%";
+        
+        const bar = document.getElementById('ov-bar');
+        bar.style.width = Math.min(overround * 5, 100) + "%";
+        bar.style.background = overround > 8 ? "var(--delete)" : (overround > 5 ? "var(--warning)" : "var(--accent-green)");
+
+        // KELLY CALCULATION (Usa siempre la primera cuota como la elegida para apostar)
+        const chosenOdds = o1;
+        if(chosenOdds > 1) {
+            const prob = selectedPick.prob / 100;
+            const bank = parseFloat(document.getElementById('user-bank').value) || 0;
+            let kelly = (((chosenOdds - 1) * prob) - (1 - prob)) / (chosenOdds - 1);
+            let multiplier = isPanic ? 0.10 : 0.25; 
+            let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
+            let money = bank * kFrac;
+            
+            document.getElementById('kelly-suggestion').innerText = money.toFixed(2) + " $";
+            document.getElementById('m-stake-money').value = money.toFixed(2);
+
+            const edge = ((prob * chosenOdds) - 1) * 100;
+            const sniff = document.getElementById('sniff-alert');
+            if(edge > 3) {
+                sniff.style.display = 'block';
+                sniff.innerText = `EDGE DETECTADO: ${edge.toFixed(1)}%`;
+                sniff.className = edge > 15 ? 'sniff-alert sniff-mega' : 'sniff-alert';
+            } else {
+                sniff.style.display = 'none';
+            }
+        }
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function savePick() {
+        const odds = parseFloat(document.getElementById('o1').value);
+        const stake = parseFloat(document.getElementById('m-stake-money').value);
+        if(!odds || !stake) { alert("Complete al menos la cuota de su elección y el stake"); return; }
+        
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        history.unshift({ 
+            ...selectedPick, 
+            odds, 
+            stake, 
+            status: 'pending', 
+            id: Date.now(), 
+            date: new Date().toLocaleDateString() 
+        });
+        localStorage.setItem('q_pro_hist', JSON.stringify(history));
+        closeModal('pick-modal'); loadHistory(); nav('history-screen');
+    }
+
+    function loadHistory() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const container = document.getElementById('history-list');
+        let totalProfit = 0, totalStaked = 0;
+        let chartData = [0];
+        
+        const sortedHistory = [...history].reverse();
+        let runningProfit = 0;
+        
+        sortedHistory.forEach(item => {
+            if(item.status === 'win') { 
+                let p = (item.odds - 1) * item.stake;
+                runningProfit += p; totalProfit += p; totalStaked += item.stake; 
+            }
+            else if(item.status === 'loss') { 
+                runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; 
+            }
+            if(item.status !== 'pending') chartData.push(runningProfit);
+        });
+
+        container.innerHTML = history.length ? history.map(item => {
+            let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
+            let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
+            return `<div class="history-item ${item.status}">
+                    <span class="status-badge" style="color:${color}">${resText}</span>
+                    <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
+                    <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake}$</div>
+                    <div style="margin-top:10px; display:flex; gap:8px;">
+                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
+                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
+                    </div>
+                    <i class="fa-solid fa-trash-can" style="position:absolute; bottom:15px; right:15px; color:var(--delete); font-size:1rem; cursor:pointer;" onclick="deletePick(${item.id})"></i>
+                </div>`;
+        }).join('') : `<p style="text-align:center; color:var(--text-dim); margin-top:20px;">No hay apuestas registradas.</p>`;
+
+        document.getElementById('total-profit').innerText = totalProfit.toFixed(2) + " $";
+        document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
+        document.getElementById('yield-total').innerText = (totalStaked > 0 ? (totalProfit / totalStaked * 100).toFixed(1) : 0) + "%";
+        updateChart(chartData);
+    }
+
+    function updateChart(data) {
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { 
+                labels: data.map((_, i) => i), 
+                datasets: [{ 
+                    data: data, 
+                    borderColor: '#00ff88', 
+                    backgroundColor: 'rgba(0, 255, 136, 0.1)', 
+                    borderWidth: 2, 
+                    fill: true, 
+                    tension: 0.3, 
+                    pointRadius: 2 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } }, 
+                scales: { 
+                    x: { display: false }, 
+                    y: { 
+                        grid: { color: 'rgba(255,255,255,0.05)' }, 
+                        ticks: { color: '#7f9c93', font: { size: 9 } } 
+                    } 
+                } 
+            }
+        });
+    }
+
+    function updateStatus(id, status) {
+        let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const i = history.findIndex(x => x.id === id);
+        if(i !== -1) { 
+            history[i].status = status; 
+            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
+            loadHistory(); 
+        }
+    }
+
+    function deletePick(id) { 
+        if(confirm("¿Eliminar este registro?")) { 
+            let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]'); 
+            history = history.filter(item => item.id !== id); 
+            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
+            loadHistory(); 
+        } 
+    }
+
+    function clearHistory() { 
+        if(confirm("¿Estás seguro de borrar TODO el historial? Esta acción no se puede deshacer.")) { 
+            localStorage.removeItem('q_pro_hist'); 
+            loadHistory(); 
+        } 
+    }
+
+    function nav(id) {
+        document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen'));
+        document.getElementById(id).classList.add('active-screen');
+    }
+
+    function openSessionModal() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const today = new Date().toLocaleDateString();
+        const todayPicks = history.filter(p => p.date === today && p.status !== 'pending');
+        let sProf = 0, sVol = 0, sWin = 0;
+        
+        todayPicks.forEach(p => { 
+            sVol += p.stake; 
+            if(p.status === 'win') { sProf += (p.odds - 1) * p.stake; sWin++; } 
+            else sProf -= p.stake; 
+        });
+        
+        document.getElementById('session-date').innerText = today;
+        document.getElementById('session-profit').innerText = sProf.toFixed(2) + " $";
+        document.getElementById('session-profit').style.color = sProf >= 0 ? "var(--accent-green)" : "var(--delete)";
+        document.getElementById('session-yield').innerText = (sVol > 0 ? (sProf / sVol * 100).toFixed(1) : 0) + "%";
+        document.getElementById('session-wr').innerText = (todayPicks.length > 0 ? (sWin / todayPicks.length * 100).toFixed(0) : 0) + "%";
+        document.getElementById('session-modal').style.display = 'flex';
+    }
+
+    function generateWeeklyReport() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const resolved = history.filter(p => p.status !== 'pending');
+        if(resolved.length === 0) { alert("No hay datos resueltos para generar reporte."); return; }
+        
+        let totalProfit = 0, totalStaked = 0, wins = 0;
+        resolved.forEach(p => { 
+            totalStaked += p.stake; 
+            if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } 
+            else totalProfit -= p.stake; 
+        });
+        
+        const report = `📊 QUANTUM PRO REPORT\n-----------------------\n💰 Profit: ${totalProfit.toFixed(2)} $\n📈 Yield: ${(totalStaked > 0 ? (totalProfit/totalStaked*100).toFixed(1) : 0)}%\n🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%\n🎲 Operaciones: ${resolved.length}\n💵 Vol. Total: ${totalStaked.toFixed(2)} $\n📅 Fecha: ${new Date().toLocaleDateString()}\n-----------------------\nPowered by Quantum Engine`;
+        document.getElementById('report-text').innerText = report;
+        document.getElementById('report-modal').style.display = 'flex';
+    }
+
+    function copyReport() { 
+        const text = document.getElementById('report-text').innerText;
+        navigator.clipboard.writeText(text).then(() => alert("¡Reporte copiado al portapapeles!"));
+    }
+</script>
+</body>
+</html>
