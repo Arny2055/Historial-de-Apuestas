@@ -297,21 +297,24 @@
 
             if (leagueKey === 'italy') {
                 // Italia - Serie A
-                // Local B4:L33 (índices CSV 3 a 32 aprox)
                 for(let i=3; i<=32; i++) if(allRows[i]) hLines.push(allRows[i]);
-                // Visita B37:L66 (índices 36 a 65)
                 for(let i=36; i<=65; i++) if(allRows[i]) vLines.push(allRows[i]);
-                // Datos B69:F75 (índices 68 a 74)
                 for(let i=68; i<=74; i++) if(allRows[i]) sLines.push(allRows[i]);
             } 
             else if (leagueKey === 'england') {
                 // Inglaterra - Premier
-                // Local B81:L110 (índices CSV 80 a 109)
                 for(let i=80; i<=109; i++) if(allRows[i]) hLines.push(allRows[i]);
-                // Visita B114:L143 (índices 113 a 142)
                 for(let i=113; i<=142; i++) if(allRows[i]) vLines.push(allRows[i]);
-                // Datos B146:F152 (índices 145 a 151)
                 for(let i=145; i<=151; i++) if(allRows[i]) sLines.push(allRows[i]);
+            }
+            else if (leagueKey === 'spain') {
+                // España - LaLiga
+                // Local B158:L187 (índices CSV 157 a 186)
+                for(let i=157; i<=186; i++) if(allRows[i]) hLines.push(allRows[i]);
+                // Visita B191:L220 (índices 190 a 219)
+                for(let i=190; i<=219; i++) if(allRows[i]) vLines.push(allRows[i]);
+                // Datos B223:F229 (índices 222 a 228)
+                for(let i=222; i<=228; i++) if(allRows[i]) sLines.push(allRows[i]);
             }
             else {
                 // Fallback búsqueda por texto para otras ligas
