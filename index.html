@@ -263,6 +263,9 @@
         </div>
 
         <div id="bt-results" style="display: none;">
+            <div id="ruin-alert" style="display:none; background:var(--delete); color:#fff; padding:10px; border-radius:8px; margin-bottom:10px; text-align:center; font-weight:bold; font-size:0.7rem;">
+                ⚠️ QUIEBRA DETECTADA EN EL PARTIDO <span id="ruin-index">0</span>
+            </div>
             <div class="bt-result-grid">
                 <div class="bt-stat"><span class="bt-label">EDGE REAL</span><span id="bt-res-edge" class="bt-val">0%</span></div>
                 <div class="bt-stat"><span class="bt-label">WINS</span><span id="bt-res-wins" class="bt-val">0</span></div>
@@ -684,67 +687,80 @@
 
     function copyReport() { const text = document.getElementById('report-text').innerText; navigator.clipboard.writeText(text).then(() => alert("Copiado!")); }
 
-    // BACKTESTING CON KELLY AUTOMÁTICO
+    // BACKTESTING CON MODO QUIEBRA
     function runBacktest() {
         if(!window.currentProbs) { alert("Primero Analice un Partido en la pestaña DATA"); return; }
         const market = document.getElementById('bt-market').value;
-        const odds = parseFloat(document.getElementById('bt-odds').value);
+        const odds1 = parseFloat(document.getElementById('bt-odds').value);
+        const oddsRef = (odds1 * 0.95).toFixed(2);
         const iter = parseInt(document.getElementById('bt-iterations').value);
         const kellyFrac = parseFloat(document.getElementById('bt-kelly-frac').value);
         const initialBank = parseFloat(document.getElementById('user-bank').value) || 1000;
         
         const prob = window.currentProbs[market];
-        const edge = ((prob * odds) - 1);
+        const edge1 = ((prob * odds1) - 1);
+        const edgeRef = ((prob * oddsRef) - 1);
         
-        let currentBank = initialBank;
-        let wins = 0, chartData = [initialBank], log = "";
+        let bank1 = initialBank, bankRef = initialBank;
+        let wins = 0, data1 = [initialBank], dataRef = [initialBank], log = "";
+        let ruinPoint = -1;
+
+        document.getElementById('ruin-alert').style.display = 'none';
 
         for(let i=1; i<=iter; i++) {
-            let f = edge / (odds - 1);
-            let fractionalKelly = Math.max(0, f * kellyFrac);
-            fractionalKelly = Math.min(fractionalKelly, 0.25);
-            
-            const stake = currentBank * fractionalKelly;
-            const roll = Math.random();
+            let f1 = Math.max(0, (edge1 / (odds1 - 1)) * kellyFrac);
+            f1 = Math.min(f1, 0.25);
+            const stake1 = bank1 * f1;
 
+            let fRef = Math.max(0, (edgeRef / (oddsRef - 1)) * kellyFrac);
+            fRef = Math.min(fRef, 0.25);
+            const stakeRef = bankRef * fRef;
+
+            const roll = Math.random();
             if(roll < prob) {
                 wins++;
-                currentBank += stake * (odds - 1);
+                bank1 += stake1 * (odds1 - 1);
+                bankRef += stakeRef * (oddsRef - 1);
                 log += `G `;
             } else {
-                currentBank -= stake;
+                bank1 -= stake1;
+                bankRef -= stakeRef;
                 log += `P `;
             }
-            chartData.push(currentBank);
-            if(currentBank <= 1) break;
+
+            data1.push(bank1);
+            dataRef.push(bankRef);
+
+            // DETECTOR DE QUIEBRA (BANCA < 1.00)
+            if(bank1 < 1.00 && ruinPoint === -1) {
+                ruinPoint = i;
+                document.getElementById('ruin-alert').style.display = 'block';
+                document.getElementById('ruin-index').innerText = i;
+                break; 
+            }
         }
 
         document.getElementById('bt-results').style.display = 'block';
-        document.getElementById('bt-res-edge').innerText = (edge * 100).toFixed(1) + "%";
+        document.getElementById('bt-res-edge').innerText = (edge1 * 100).toFixed(1) + "%";
         document.getElementById('bt-res-wins').innerText = wins;
-        document.getElementById('bt-res-profit').innerText = currentBank.toFixed(2) + "$";
-        document.getElementById('bt-log').innerText = `Simulación Kelly (${kellyFrac}):\n` + log;
+        document.getElementById('bt-res-profit').innerText = bank1.toFixed(2) + "$";
+        document.getElementById('bt-log').innerText = (ruinPoint !== -1 ? `⚠️ QUIEBRA EN PARTIDO ${ruinPoint}\n` : `Simulación Exitosa\n`) + log;
 
         const ctx = document.getElementById('btChart').getContext('2d');
         if(btChartInstance) btChartInstance.destroy();
         btChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: chartData.map((_, i) => i),
-                datasets: [{
-                    data: chartData,
-                    borderColor: currentBank >= initialBank ? '#00ff88' : '#ff4d4d',
-                    borderWidth: 2,
-                    fill: false,
-                    tension: 0.1,
-                    pointRadius: 0
-                }]
+                labels: data1.map((_, i) => i),
+                datasets: [
+                    { label: 'Elegida', data: data1, borderColor: bank1 < initialBank ? '#ff4d4d' : '#00ff88', borderWidth: 2, fill: false, pointRadius: ruinPoint !== -1 ? 4 : 0, pointBackgroundColor: '#fff' },
+                    { label: 'Referencia', data: dataRef, borderColor: '#555', borderWidth: 1, borderDash: [5,5], fill: false, pointRadius: 0 }
+                ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
-                scales: { x: { display: false }, y: { ticks: { color: '#7f9c93' } } }
+                scales: { x: { display: false }, y: { ticks: { color: '#7f9c93', font: { size: 9 } } } }
             }
         });
     }
