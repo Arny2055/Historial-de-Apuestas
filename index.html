@@ -309,12 +309,18 @@
             }
             else if (leagueKey === 'spain') {
                 // España - LaLiga
-                // Local B158:L187 (índices CSV 157 a 186)
                 for(let i=157; i<=186; i++) if(allRows[i]) hLines.push(allRows[i]);
-                // Visita B191:L220 (índices 190 a 219)
                 for(let i=190; i<=219; i++) if(allRows[i]) vLines.push(allRows[i]);
-                // Datos B223:F229 (índices 222 a 228)
                 for(let i=222; i<=228; i++) if(allRows[i]) sLines.push(allRows[i]);
+            }
+            else if (leagueKey === 'germany') {
+                // Alemania - Bundesliga
+                // Tabla de local b235 a l264 (índices CSV 234 a 263)
+                for(let i=234; i<=263; i++) if(allRows[i]) hLines.push(allRows[i]);
+                // Tabla de visita b268 a l297 (índices 267 a 296)
+                for(let i=267; i<=296; i++) if(allRows[i]) vLines.push(allRows[i]);
+                // Datos de liga b300 a f306 (índices 299 a 305)
+                for(let i=299; i<=305; i++) if(allRows[i]) sLines.push(allRows[i]);
             }
             else {
                 // Fallback búsqueda por texto para otras ligas
