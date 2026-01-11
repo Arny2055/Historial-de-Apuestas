@@ -141,7 +141,7 @@
         <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
             <i class="fa-solid fa-cloud-arrow-down"></i> SINCRONIZAR DESDE GOOGLE SHEETS
         </button>
-        <div id="sync-info" class="sync-status">Mapeando rangos B4:L33 / B37:L66 / B69:F75</div>
+        <div id="sync-info" class="sync-status">Sincronización Inteligente de Rangos</div>
 
         <textarea id="hIn" placeholder="PEGAR DATOS LOCAL (TABLA)..."></textarea>
         <textarea id="vIn" placeholder="PEGAR DATOS VISITA (TABLA)..."></textarea>
@@ -281,7 +281,6 @@
         runStressTest();
     };
 
-    // --- LÓGICA DE SINCRONIZACIÓN BASADA EN EL SEGUNDO CÓDIGO ---
     async function syncCloudData() {
         const btn = document.getElementById('btn-sync');
         const info = document.getElementById('sync-info');
@@ -294,44 +293,42 @@
             const rawData = await response.text();
             const allRows = rawData.split('\n');
             
-            let startIdx = -1;
-            for(let i=0; i<allRows.length; i++) {
-                if(allRows[i].includes(leagueKey)) {
-                    startIdx = i;
-                    break;
-                }
-            }
-
-            if(startIdx === -1) {
-                alert("No se encontró la liga en el documento.");
-                btn.innerHTML = 'ERROR: LIGA NO ENCONTRADA';
-                return;
-            }
-
             let hLines = [], vLines = [], sLines = [];
 
-            // Local (aprox 30 filas)
-            for(let i=startIdx+1; i < startIdx+31; i++) { if(allRows[i]) hLines.push(allRows[i]); }
-
-            // Visita
-            let visitIdx = -1;
-            for(let i=startIdx+10; i<allRows.length; i++) {
-                if(allRows[i].includes(leagueKey) && allRows[i].includes(",10")) {
-                    visitIdx = i;
-                    break;
+            if (leagueKey === 'italy') {
+                // Italia - Serie A
+                // Local B4:L33 (índices CSV 3 a 32 aprox)
+                for(let i=3; i<=32; i++) if(allRows[i]) hLines.push(allRows[i]);
+                // Visita B37:L66 (índices 36 a 65)
+                for(let i=36; i<=65; i++) if(allRows[i]) vLines.push(allRows[i]);
+                // Datos B69:F75 (índices 68 a 74)
+                for(let i=68; i<=74; i++) if(allRows[i]) sLines.push(allRows[i]);
+            } 
+            else if (leagueKey === 'england') {
+                // Inglaterra - Premier
+                // Local B81:L110 (índices CSV 80 a 109)
+                for(let i=80; i<=109; i++) if(allRows[i]) hLines.push(allRows[i]);
+                // Visita B114:L143 (índices 113 a 142)
+                for(let i=113; i<=142; i++) if(allRows[i]) vLines.push(allRows[i]);
+                // Datos B146:F152 (índices 145 a 151)
+                for(let i=145; i<=151; i++) if(allRows[i]) sLines.push(allRows[i]);
+            }
+            else {
+                // Fallback búsqueda por texto para otras ligas
+                let startIdx = -1;
+                for(let i=0; i<allRows.length; i++) {
+                    if(allRows[i].toLowerCase().includes(leagueKey)) { startIdx = i; break; }
+                }
+                if(startIdx !== -1) {
+                    for(let i=startIdx+1; i<startIdx+31; i++) if(allRows[i]) hLines.push(allRows[i]);
                 }
             }
-            if(visitIdx !== -1) { for(let i=visitIdx+1; i < visitIdx+31; i++) { if(allRows[i]) vLines.push(allRows[i]); } }
 
-            // Datos Liga
-            let dataIdx = -1;
-            for(let i=visitIdx+10; i<allRows.length; i++) {
-                if(allRows[i].includes(leagueKey) && (allRows[i].includes(",38") || allRows[i].includes(",39"))) {
-                    dataIdx = i;
-                    break;
-                }
+            if(hLines.length === 0) {
+                alert("No se pudieron extraer datos para esta liga.");
+                btn.innerHTML = 'ERROR DE RANGO';
+                return;
             }
-            if(dataIdx !== -1) { for(let i=dataIdx+1; i < dataIdx+10; i++) { if(allRows[i]) sLines.push(allRows[i]); } }
 
             document.getElementById('hIn').value = hLines.join('\n');
             document.getElementById('vIn').value = vLines.join('\n');
@@ -344,7 +341,7 @@
 
             btn.innerHTML = '<i class="fa-solid fa-check"></i> DATOS CARGADOS';
             btn.style.borderColor = "var(--accent-green)";
-            info.innerText = "Sincronización de rangos completada.";
+            info.innerText = `Sincronizado: ${leagueKey.toUpperCase()} OK`;
 
         } catch (e) {
             console.error(e);
@@ -352,7 +349,6 @@
         }
     }
 
-    // Parser CSV que soporta el formato de Sheets
     function ext(t) {
         const o={};
         t.split('\n').forEach(l => {
@@ -366,7 +362,6 @@
                     o[team] = { f: gf/gp, a: ga/gp };
                 }
             } else {
-                // Fallback para pegado manual del primer código
                 const m = l.trim().match(/^(\d+)\s+(.+?)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)/);
                 if(m) { const gp=parseInt(m[3]); if(gp>0) o[m[2].trim()]={f:parseInt(m[4])/gp, a:parseInt(m[5])/gp}; }
             }
@@ -380,7 +375,6 @@
         const am = t.match(/Away goals per match:[^,]*,\*?([\d.]+)\*?/i);
         if(hm) aH = parseFloat(hm[1]);
         if(am) aV = parseFloat(am[1]);
-        // Fallback para pegado manual
         if(!hm) {
             const hm2 = t.match(/Home goals per match:\s*([\d.]+)/);
             const am2 = t.match(/Away goals per match:\s*([\d.]+)/);
