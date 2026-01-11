@@ -58,7 +58,7 @@
         .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; text-decoration: none; }
         .tab-item.active { color: var(--accent-gold); }
 
-        #setup-screen, #dashboard-screen, #history-screen { display: none; height: 100%; }
+        #setup-screen, #dashboard-screen, #history-screen, #backtest-screen { display: none; height: 100%; }
         .active-screen { display: block !important; }
 
         .history-item { background: var(--card); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--border); position: relative; }
@@ -97,9 +97,13 @@
         .ov-badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; background: rgba(255,215,0,0.2); color: var(--accent-gold); }
         .multi-odds { display: grid; gap: 5px; margin-bottom: 10px; }
 
-        /* Estilos Reglas Edge */
         .edge-rules { font-size: 0.6rem; color: var(--text-dim); margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
         .rule-item { display: flex; justify-content: space-between; margin-bottom: 2px; }
+
+        .bt-result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 15px; }
+        .bt-stat { background: #000; padding: 8px; border-radius: 5px; text-align: center; border: 1px solid var(--border); }
+        .bt-label { font-size: 0.5rem; color: var(--text-dim); display: block; }
+        .bt-val { font-size: 0.8rem; font-weight: bold; color: var(--accent-gold); }
     </style>
 </head>
 <body>
@@ -183,6 +187,7 @@
     <div class="tab-bar">
         <div class="tab-item active" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen'); loadHistory();"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BACKTEST</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
     </div>
 </div>
@@ -220,6 +225,59 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item active" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BACKTEST</span></div>
+        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
+    </div>
+</div>
+
+<div id="backtest-screen">
+    <div class="header-box"><h2>BACKTESTING SIMULATOR</h2></div>
+    <div class="scroll-content">
+        <div class="card">
+            <label style="font-size: 0.7rem; color: var(--accent-gold);">MERCADO A SIMULAR:</label>
+            <select id="bt-market">
+                <option value="pH">Victoria Local (1)</option>
+                <option value="pD">Empate (X)</option>
+                <option value="pV">Victoria Visita (2)</option>
+                <option value="ov25">Más 2.5 Goles</option>
+                <option value="btts">Ambos Marcan: SI</option>
+            </select>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="font-size: 0.6rem;">CUOTA CASA ($):</label>
+                    <input type="number" id="bt-odds" value="2.00" step="0.05">
+                </div>
+                <div>
+                    <label style="font-size: 0.6rem;">Nº PARTIDOS:</label>
+                    <input type="number" id="bt-iterations" value="100">
+                </div>
+            </div>
+
+            <label style="font-size: 0.7rem; color: var(--accent-gold);">FRACCIÓN KELLY (0.01 a 1.0):</label>
+            <input type="number" id="bt-kelly-frac" value="0.25" step="0.05" min="0.01" max="1.0">
+
+            <button class="btn-main" style="background: var(--accent-gold); color: #000;" onclick="runBacktest()">
+                <i class="fa-solid fa-flask-vial"></i> EJECUTAR SIMULACIÓN KELLY
+            </button>
+        </div>
+
+        <div id="bt-results" style="display: none;">
+            <div class="bt-result-grid">
+                <div class="bt-stat"><span class="bt-label">EDGE REAL</span><span id="bt-res-edge" class="bt-val">0%</span></div>
+                <div class="bt-stat"><span class="bt-label">WINS</span><span id="bt-res-wins" class="bt-val">0</span></div>
+                <div class="bt-stat"><span class="bt-label">BANCA FINAL</span><span id="bt-res-profit" class="bt-val">0</span></div>
+            </div>
+            <div class="chart-container">
+                <canvas id="btChart"></canvas>
+            </div>
+            <div id="bt-log" class="report-summary" style="max-height: 150px; overflow-y: auto;"></div>
+        </div>
+    </div>
+    <div class="tab-bar">
+        <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
+        <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item active" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BACKTEST</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
     </div>
 </div>
@@ -287,7 +345,7 @@
 </div>
 
 <script>
-    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, isPanic = false;
+    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, isPanic = false;
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
     window.onload = () => {
@@ -459,6 +517,8 @@
                 if(i>0 && j>0) btts+=p;
             }
         }
+        window.currentProbs = { pH, pD, pV, ov25, btts };
+        
         renderResults(tH, tV, {
             'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
             'Más de 2.5 Goles': ov25*100, 'Menos de 2.5 Goles': (1-ov25)*100,
@@ -509,7 +569,6 @@
         const bar = document.getElementById('ov-bar');
         bar.style.width = Math.min(overround * 5, 100) + "%";
         
-        // Reglas Overround
         if(overround > 8) { bar.style.background = "var(--delete)"; liveOv.style.color = "var(--delete)"; }
         else if(overround > 5) { bar.style.background = "var(--warning)"; liveOv.style.color = "var(--warning)"; }
         else { bar.style.background = "var(--accent-green)"; liveOv.style.color = "var(--accent-green)"; }
@@ -523,7 +582,6 @@
             document.getElementById('kelly-suggestion').innerText = (bank * kFrac).toFixed(2) + " $";
             document.getElementById('m-stake-money').value = (bank * kFrac).toFixed(2);
             
-            // Reglas Edge
             const edge = ((prob * o1) - 1) * 100;
             const sniff = document.getElementById('sniff-alert');
             if(edge >= 3) {
@@ -597,7 +655,7 @@
     function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist')).filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
     function clearHistory() { if(confirm("¿Borrar TODO?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-    function nav(id) { document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
+    function nav(id) { document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen, #backtest-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
 
     function openSessionModal() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
@@ -625,6 +683,74 @@
     }
 
     function copyReport() { const text = document.getElementById('report-text').innerText; navigator.clipboard.writeText(text).then(() => alert("Copiado!")); }
+
+    // BACKTESTING CON KELLY AUTOMÁTICO
+    function runBacktest() {
+        if(!window.currentProbs) { alert("Primero Analice un Partido en la pestaña DATA"); return; }
+        const market = document.getElementById('bt-market').value;
+        const odds = parseFloat(document.getElementById('bt-odds').value);
+        const iter = parseInt(document.getElementById('bt-iterations').value);
+        const kellyFrac = parseFloat(document.getElementById('bt-kelly-frac').value);
+        const initialBank = parseFloat(document.getElementById('user-bank').value) || 1000;
+        
+        const prob = window.currentProbs[market];
+        const edge = ((prob * odds) - 1);
+        
+        let currentBank = initialBank;
+        let wins = 0, chartData = [initialBank], log = "";
+
+        for(let i=1; i<=iter; i++) {
+            // Calcular Kelly Criterion: % = (Odds * Prob - 1) / (Odds - 1)
+            let f = edge / (odds - 1);
+            let fractionalKelly = Math.max(0, f * kellyFrac);
+            
+            // Límite de seguridad: no arriesgar más del 25% de la banca por iteración incluso en Kelly
+            fractionalKelly = Math.min(fractionalKelly, 0.25);
+            
+            const stake = currentBank * fractionalKelly;
+            const roll = Math.random();
+
+            if(roll < prob) {
+                wins++;
+                currentBank += stake * (odds - 1);
+                log += `G `;
+            } else {
+                currentBank -= stake;
+                log += `P `;
+            }
+            chartData.push(currentBank);
+            if(currentBank <= 1) break; // Quiebra
+        }
+
+        document.getElementById('bt-results').style.display = 'block';
+        document.getElementById('bt-res-edge').innerText = (edge * 100).toFixed(1) + "%";
+        document.getElementById('bt-res-wins').innerText = wins;
+        document.getElementById('bt-res-profit').innerText = currentBank.toFixed(2) + "$";
+        document.getElementById('bt-log').innerText = `Simulación Kelly (${kellyFrac}):\n` + log;
+
+        const ctx = document.getElementById('btChart').getContext('2d');
+        if(btChartInstance) btChartInstance.destroy();
+        btChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.map((_, i) => i),
+                datasets: [{
+                    data: chartData,
+                    borderColor: currentBank >= initialBank ? '#00ff88' : '#ff4d4d',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { display: false }, y: { ticks: { color: '#7f9c93' } } }
+            }
+        });
+    }
 </script>
 </body>
 </html>
