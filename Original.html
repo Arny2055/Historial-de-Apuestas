@@ -30,6 +30,11 @@
             padding: 15px; border-radius: 8px; font-weight: 900; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
         }
 
+        .btn-cloud {
+            width: 100%; background: #222; color: var(--accent-gold); border: 1px solid var(--accent-gold);
+            padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
         .btn-direct {
             width: 100%; background: rgba(0, 255, 255, 0.1); color: var(--quantum-blue); border: 1px solid var(--quantum-blue);
             padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -73,9 +78,6 @@
         .overround-box { background: rgba(0, 255, 255, 0.05); border: 1px solid var(--quantum-blue); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.75rem; }
         .chart-container { background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); height: 180px; }
         
-        .alert-box { font-size: 0.65rem; background: rgba(255, 136, 0, 0.1); color: var(--warning); padding: 8px; border-radius: 6px; border: 1px solid var(--warning); margin-bottom: 10px; display: none; }
-        .kelly-box { background: rgba(0, 255, 136, 0.05); border: 1px dashed var(--accent-green); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
-        
         .stress-box { background: rgba(255, 77, 77, 0.05); border: 1px solid #331a1a; padding: 10px; border-radius: 8px; margin-top: 10px; }
         .stress-title { font-size: 0.65rem; color: var(--delete); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
 
@@ -91,6 +93,7 @@
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .stat-box { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
 
+        .sync-status { font-size: 0.6rem; text-align: center; margin-bottom: 10px; color: var(--text-dim); }
         .ov-badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; background: rgba(255,215,0,0.2); color: var(--accent-gold); }
         .multi-odds { display: grid; gap: 5px; margin-bottom: 10px; }
     </style>
@@ -126,6 +129,19 @@
         <button class="btn-direct" onclick="nav('history-screen'); loadHistory();">
             <i class="fa-solid fa-briefcase"></i> IR A MI CONTROL (HISTORIAL)
         </button>
+
+        <label style="font-size: 0.7rem; color: var(--accent-gold);">SELECCIONAR LIGA (CLOUD):</label>
+        <select id="cloud-league-selector">
+            <option value="italy">Italia - Serie A</option>
+            <option value="england">Inglaterra - Premier</option>
+            <option value="spain">España - LaLiga</option>
+            <option value="germany">Alemania - Bundesliga</option>
+        </select>
+
+        <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
+            <i class="fa-solid fa-cloud-arrow-down"></i> SINCRONIZAR DESDE GOOGLE SHEETS
+        </button>
+        <div id="sync-info" class="sync-status">Mapeando rangos B4:L33 / B37:L66 / B69:F75</div>
 
         <textarea id="hIn" placeholder="PEGAR DATOS LOCAL (TABLA)..."></textarea>
         <textarea id="vIn" placeholder="PEGAR DATOS VISITA (TABLA)..."></textarea>
@@ -220,8 +236,7 @@
             <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
         </div>
         
-        <div id="odds-container" class="multi-odds">
-            </div>
+        <div id="odds-container" class="multi-odds"></div>
 
         <label style="font-size: 0.7rem;">STAKE FINAL ($):</label>
         <input type="number" id="m-stake-money" placeholder="0.00">
@@ -255,6 +270,7 @@
 
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, isPanic = false;
+    const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
@@ -264,6 +280,113 @@
         loadHistory();
         runStressTest();
     };
+
+    // --- LÓGICA DE SINCRONIZACIÓN BASADA EN EL SEGUNDO CÓDIGO ---
+    async function syncCloudData() {
+        const btn = document.getElementById('btn-sync');
+        const info = document.getElementById('sync-info');
+        const leagueKey = document.getElementById('cloud-league-selector').value;
+        
+        btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> SINCRONIZANDO RANGOS...';
+        
+        try {
+            const response = await fetch(CLOUD_URL);
+            const rawData = await response.text();
+            const allRows = rawData.split('\n');
+            
+            let startIdx = -1;
+            for(let i=0; i<allRows.length; i++) {
+                if(allRows[i].includes(leagueKey)) {
+                    startIdx = i;
+                    break;
+                }
+            }
+
+            if(startIdx === -1) {
+                alert("No se encontró la liga en el documento.");
+                btn.innerHTML = 'ERROR: LIGA NO ENCONTRADA';
+                return;
+            }
+
+            let hLines = [], vLines = [], sLines = [];
+
+            // Local (aprox 30 filas)
+            for(let i=startIdx+1; i < startIdx+31; i++) { if(allRows[i]) hLines.push(allRows[i]); }
+
+            // Visita
+            let visitIdx = -1;
+            for(let i=startIdx+10; i<allRows.length; i++) {
+                if(allRows[i].includes(leagueKey) && allRows[i].includes(",10")) {
+                    visitIdx = i;
+                    break;
+                }
+            }
+            if(visitIdx !== -1) { for(let i=visitIdx+1; i < visitIdx+31; i++) { if(allRows[i]) vLines.push(allRows[i]); } }
+
+            // Datos Liga
+            let dataIdx = -1;
+            for(let i=visitIdx+10; i<allRows.length; i++) {
+                if(allRows[i].includes(leagueKey) && (allRows[i].includes(",38") || allRows[i].includes(",39"))) {
+                    dataIdx = i;
+                    break;
+                }
+            }
+            if(dataIdx !== -1) { for(let i=dataIdx+1; i < dataIdx+10; i++) { if(allRows[i]) sLines.push(allRows[i]); } }
+
+            document.getElementById('hIn').value = hLines.join('\n');
+            document.getElementById('vIn').value = vLines.join('\n');
+            document.getElementById('sIn').value = sLines.join('\n');
+
+            dH = ext(document.getElementById('hIn').value);
+            dV = ext(document.getElementById('vIn').value);
+            uS();
+            fill();
+
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> DATOS CARGADOS';
+            btn.style.borderColor = "var(--accent-green)";
+            info.innerText = "Sincronización de rangos completada.";
+
+        } catch (e) {
+            console.error(e);
+            btn.innerHTML = 'ERROR DE CONEXIÓN';
+        }
+    }
+
+    // Parser CSV que soporta el formato de Sheets
+    function ext(t) {
+        const o={};
+        t.split('\n').forEach(l => {
+            const cols = l.split(',');
+            if(cols.length > 8) {
+                const team = cols[2]?.replace(/\*/g, '').trim();
+                const gp = parseInt(cols[3]);
+                const gf = parseInt(cols[7]);
+                const ga = parseInt(cols[8]);
+                if(team && !isNaN(gp) && gp > 0) {
+                    o[team] = { f: gf/gp, a: ga/gp };
+                }
+            } else {
+                // Fallback para pegado manual del primer código
+                const m = l.trim().match(/^(\d+)\s+(.+?)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)/);
+                if(m) { const gp=parseInt(m[3]); if(gp>0) o[m[2].trim()]={f:parseInt(m[4])/gp, a:parseInt(m[5])/gp}; }
+            }
+        });
+        return o;
+    }
+
+    function uS() {
+        const t = document.getElementById('sIn').value;
+        const hm = t.match(/Home goals per match:[^,]*,\*?([\d.]+)\*?/i);
+        const am = t.match(/Away goals per match:[^,]*,\*?([\d.]+)\*?/i);
+        if(hm) aH = parseFloat(hm[1]);
+        if(am) aV = parseFloat(am[1]);
+        // Fallback para pegado manual
+        if(!hm) {
+            const hm2 = t.match(/Home goals per match:\s*([\d.]+)/);
+            const am2 = t.match(/Away goals per match:\s*([\d.]+)/);
+            if(hm2 && am2) { aH = parseFloat(hm2[1]); aV = parseFloat(am2[1]); }
+        }
+    }
 
     function togglePanic(init = false) {
         if(!init) isPanic = !isPanic; else isPanic = true;
@@ -288,26 +411,6 @@
         document.getElementById('stress-result-pct').innerText = "-" + (isNaN(drawdown) ? 0 : drawdown) + "%";
     }
 
-    function ext(t) {
-        const o={};
-        t.split('\n').forEach(l => {
-            const m = l.trim().match(/^(\d+)\s+(.+?)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)/);
-            if(m) { const gp=parseInt(m[3]); if(gp>0) o[m[2].trim()]={f:parseInt(m[4])/gp, a:parseInt(m[5])/gp}; }
-        });
-        return o;
-    }
-
-    function uS() {
-        const t = document.getElementById('sIn').value;
-        const hm = t.match(/Home goals per match:\s*([\d.]+)/);
-        const am = t.match(/Away goals per match:\s*([\d.]+)/);
-        if(hm && am) { aH = parseFloat(hm[1]); aV = parseFloat(am[1]); }
-    }
-
-    document.getElementById('hIn').oninput = () => { dH=ext(document.getElementById('hIn').value); fill(); };
-    document.getElementById('vIn').oninput = () => { dV=ext(document.getElementById('vIn').value); fill(); };
-    document.getElementById('sIn').oninput = uS;
-
     function fill() {
         const sH=document.getElementById('sH'), sV=document.getElementById('sV');
         sH.innerHTML=sV.innerHTML='<option value="">Seleccionar Equipo</option>';
@@ -316,6 +419,7 @@
     }
 
     function poi(k,l){ 
+        if(l <= 0) return k === 0 ? 1 : 0;
         let f=1; for(let i=2; i<=k; i++) f*=i; 
         return (Math.pow(l,k)*Math.exp(-l))/f; 
     }
@@ -323,10 +427,8 @@
     function calculate() {
         const tH=document.getElementById('sH').value, tV=document.getElementById('sV').value;
         if(!dH[tH] || !dV[tV]) { alert("Seleccione ambos equipos con datos válidos"); return; }
-        
         const xH = (dH[tH].f/aH)*(dV[tV].a/aH)*aH, xV = (dV[tV].f/aV)*(dH[tH].a/aV)*aV;
         let pH=0, pD=0, pV=0, ov25=0, btts=0;
-        
         for(let i=0; i<=9; i++) {
             for(let j=0; j<=9; j++) {
                 let p = poi(i,xH)*poi(j,xV);
@@ -335,7 +437,6 @@
                 if(i>0 && j>0) btts+=p;
             }
         }
-        
         renderResults(tH, tV, {
             'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
             'Más de 2.5 Goles': ov25*100, 'Menos de 2.5 Goles': (1-ov25)*100,
@@ -354,8 +455,7 @@
                     <div class="val-group"><span class="pct">${prob.toFixed(1)}%</span><span class="odds" style="font-size:0.7rem; color:var(--text-dim)">Justa: ${fair}</span></div>
                 </div>`;
         }
-        h += `</div>`;
-        document.getElementById('results-area').innerHTML = h;
+        document.getElementById('results-area').innerHTML = h + `</div>`;
     }
 
     function openModal(name, fair, teams, prob) {
@@ -364,28 +464,16 @@
         document.getElementById('m-stake-money').value = "";
         document.getElementById('sniff-alert').style.display = 'none';
         document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
-        
         const container = document.getElementById('odds-container');
         container.innerHTML = "";
-
-        // DETERMINAR SI ES UN MERCADO DE 2 O 3 OPCIONES
         const isThreeWay = name.includes('(1)') || name.includes('(X)') || name.includes('(2)');
-        
         if(isThreeWay) {
-            container.innerHTML = `
-                <label style="font-size:0.6rem">CUOTA 1 (Local)</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()">
-                <label style="font-size:0.6rem">CUOTA X (Empate)</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">
-                <label style="font-size:0.6rem">CUOTA 2 (Visita)</label><input type="number" id="o3" step="0.01" oninput="liveUpdateOverround()">
-            `;
+            container.innerHTML = `<label style="font-size:0.6rem">CUOTA 1 (Local)</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()"><label style="font-size:0.6rem">CUOTA X (Empate)</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()"><label style="font-size:0.6rem">CUOTA 2 (Visita)</label><input type="number" id="o3" step="0.01" oninput="liveUpdateOverround()">`;
         } else {
             const label1 = name.includes('Goles') ? 'OVER' : 'SI';
             const label2 = name.includes('Goles') ? 'UNDER' : 'NO';
-            container.innerHTML = `
-                <label style="font-size:0.6rem">CUOTA ${label1}</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()">
-                <label style="font-size:0.6rem">CUOTA ${label2}</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">
-            `;
+            container.innerHTML = `<label style="font-size:0.6rem">CUOTA ${label1}</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()"><label style="font-size:0.6rem">CUOTA ${label2}</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">`;
         }
-
         document.getElementById('pick-modal').style.display = 'flex';
     }
 
@@ -393,62 +481,40 @@
         const o1 = parseFloat(document.getElementById('o1')?.value) || 0;
         const o2 = parseFloat(document.getElementById('o2')?.value) || 0;
         const o3 = parseFloat(document.getElementById('o3')?.value) || 0;
-        
         let sum = 0;
         if(o1 > 1) sum += (1/o1);
         if(o2 > 1) sum += (1/o2);
         if(o3 > 1) sum += (1/o3);
-
         if(sum === 0) return;
-
         const overround = ((sum - 1) * 100).toFixed(2);
         document.getElementById('live-overround').innerText = overround + "%";
-        
         const bar = document.getElementById('ov-bar');
         bar.style.width = Math.min(overround * 5, 100) + "%";
         bar.style.background = overround > 8 ? "var(--delete)" : (overround > 5 ? "var(--warning)" : "var(--accent-green)");
-
-        // KELLY CALCULATION (Usa siempre la primera cuota como la elegida para apostar)
-        const chosenOdds = o1;
-        if(chosenOdds > 1) {
+        if(o1 > 1) {
             const prob = selectedPick.prob / 100;
             const bank = parseFloat(document.getElementById('user-bank').value) || 0;
-            let kelly = (((chosenOdds - 1) * prob) - (1 - prob)) / (chosenOdds - 1);
+            let kelly = (((o1 - 1) * prob) - (1 - prob)) / (o1 - 1);
             let multiplier = isPanic ? 0.10 : 0.25; 
             let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
-            let money = bank * kFrac;
-            
-            document.getElementById('kelly-suggestion').innerText = money.toFixed(2) + " $";
-            document.getElementById('m-stake-money').value = money.toFixed(2);
-
-            const edge = ((prob * chosenOdds) - 1) * 100;
+            document.getElementById('kelly-suggestion').innerText = (bank * kFrac).toFixed(2) + " $";
+            document.getElementById('m-stake-money').value = (bank * kFrac).toFixed(2);
+            const edge = ((prob * o1) - 1) * 100;
             const sniff = document.getElementById('sniff-alert');
             if(edge > 3) {
                 sniff.style.display = 'block';
                 sniff.innerText = `EDGE DETECTADO: ${edge.toFixed(1)}%`;
                 sniff.className = edge > 15 ? 'sniff-alert sniff-mega' : 'sniff-alert';
-            } else {
-                sniff.style.display = 'none';
-            }
+            } else sniff.style.display = 'none';
         }
     }
-
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     function savePick() {
         const odds = parseFloat(document.getElementById('o1').value);
         const stake = parseFloat(document.getElementById('m-stake-money').value);
-        if(!odds || !stake) { alert("Complete al menos la cuota de su elección y el stake"); return; }
-        
+        if(!odds || !stake) return;
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift({ 
-            ...selectedPick, 
-            odds, 
-            stake, 
-            status: 'pending', 
-            id: Date.now(), 
-            date: new Date().toLocaleDateString() 
-        });
+        history.unshift({ ...selectedPick, odds, stake, status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
@@ -456,23 +522,12 @@
     function loadHistory() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const container = document.getElementById('history-list');
-        let totalProfit = 0, totalStaked = 0;
-        let chartData = [0];
-        
-        const sortedHistory = [...history].reverse();
-        let runningProfit = 0;
-        
-        sortedHistory.forEach(item => {
-            if(item.status === 'win') { 
-                let p = (item.odds - 1) * item.stake;
-                runningProfit += p; totalProfit += p; totalStaked += item.stake; 
-            }
-            else if(item.status === 'loss') { 
-                runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; 
-            }
+        let totalProfit = 0, totalStaked = 0, chartData = [0], runningProfit = 0;
+        [...history].reverse().forEach(item => {
+            if(item.status === 'win') { let p = (item.odds - 1) * item.stake; runningProfit += p; totalProfit += p; totalStaked += item.stake; }
+            else if(item.status === 'loss') { runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; }
             if(item.status !== 'pending') chartData.push(runningProfit);
         });
-
         container.innerHTML = history.length ? history.map(item => {
             let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
             let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
@@ -488,7 +543,6 @@
                     <i class="fa-solid fa-trash-can" style="position:absolute; bottom:15px; right:15px; color:var(--delete); font-size:1rem; cursor:pointer;" onclick="deletePick(${item.id})"></i>
                 </div>`;
         }).join('') : `<p style="text-align:center; color:var(--text-dim); margin-top:20px;">No hay apuestas registradas.</p>`;
-
         document.getElementById('total-profit').innerText = totalProfit.toFixed(2) + " $";
         document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
         document.getElementById('yield-total').innerText = (totalStaked > 0 ? (totalProfit / totalStaked * 100).toFixed(1) : 0) + "%";
@@ -498,78 +552,26 @@
     function updateChart(data) {
         const ctx = document.getElementById('profitChart').getContext('2d');
         if(chartInstance) chartInstance.destroy();
-        chartInstance = new Chart(ctx, {
-            type: 'line',
-            data: { 
-                labels: data.map((_, i) => i), 
-                datasets: [{ 
-                    data: data, 
-                    borderColor: '#00ff88', 
-                    backgroundColor: 'rgba(0, 255, 136, 0.1)', 
-                    borderWidth: 2, 
-                    fill: true, 
-                    tension: 0.3, 
-                    pointRadius: 2 
-                }] 
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                plugins: { legend: { display: false } }, 
-                scales: { 
-                    x: { display: false }, 
-                    y: { 
-                        grid: { color: 'rgba(255,255,255,0.05)' }, 
-                        ticks: { color: '#7f9c93', font: { size: 9 } } 
-                    } 
-                } 
-            }
-        });
+        chartInstance = new Chart(ctx, { type: 'line', data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } } } } });
     }
 
     function updateStatus(id, status) {
         let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const i = history.findIndex(x => x.id === id);
-        if(i !== -1) { 
-            history[i].status = status; 
-            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
-            loadHistory(); 
-        }
+        if(i !== -1) { history[i].status = status; localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); }
     }
 
-    function deletePick(id) { 
-        if(confirm("¿Eliminar este registro?")) { 
-            let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]'); 
-            history = history.filter(item => item.id !== id); 
-            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
-            loadHistory(); 
-        } 
-    }
-
-    function clearHistory() { 
-        if(confirm("¿Estás seguro de borrar TODO el historial? Esta acción no se puede deshacer.")) { 
-            localStorage.removeItem('q_pro_hist'); 
-            loadHistory(); 
-        } 
-    }
-
-    function nav(id) {
-        document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen'));
-        document.getElementById(id).classList.add('active-screen');
-    }
+    function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist')).filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
+    function clearHistory() { if(confirm("¿Borrar TODO?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function nav(id) { document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
 
     function openSessionModal() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const today = new Date().toLocaleDateString();
         const todayPicks = history.filter(p => p.date === today && p.status !== 'pending');
         let sProf = 0, sVol = 0, sWin = 0;
-        
-        todayPicks.forEach(p => { 
-            sVol += p.stake; 
-            if(p.status === 'win') { sProf += (p.odds - 1) * p.stake; sWin++; } 
-            else sProf -= p.stake; 
-        });
-        
+        todayPicks.forEach(p => { sVol += p.stake; if(p.status === 'win') { sProf += (p.odds - 1) * p.stake; sWin++; } else sProf -= p.stake; });
         document.getElementById('session-date').innerText = today;
         document.getElementById('session-profit').innerText = sProf.toFixed(2) + " $";
         document.getElementById('session-profit').style.color = sProf >= 0 ? "var(--accent-green)" : "var(--delete)";
@@ -581,24 +583,15 @@
     function generateWeeklyReport() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const resolved = history.filter(p => p.status !== 'pending');
-        if(resolved.length === 0) { alert("No hay datos resueltos para generar reporte."); return; }
-        
+        if(resolved.length === 0) return;
         let totalProfit = 0, totalStaked = 0, wins = 0;
-        resolved.forEach(p => { 
-            totalStaked += p.stake; 
-            if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } 
-            else totalProfit -= p.stake; 
-        });
-        
-        const report = `📊 QUANTUM PRO REPORT\n-----------------------\n💰 Profit: ${totalProfit.toFixed(2)} $\n📈 Yield: ${(totalStaked > 0 ? (totalProfit/totalStaked*100).toFixed(1) : 0)}%\n🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%\n🎲 Operaciones: ${resolved.length}\n💵 Vol. Total: ${totalStaked.toFixed(2)} $\n📅 Fecha: ${new Date().toLocaleDateString()}\n-----------------------\nPowered by Quantum Engine`;
+        resolved.forEach(p => { totalStaked += p.stake; if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } else totalProfit -= p.stake; });
+        const report = `📊 QUANTUM PRO REPORT\n-----------------------\n💰 Profit: ${totalProfit.toFixed(2)} $\n📈 Yield: ${(totalStaked > 0 ? (totalProfit/totalStaked*100).toFixed(1) : 0)}%\n🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%\n-----------------------\nPowered by Quantum Engine`;
         document.getElementById('report-text').innerText = report;
         document.getElementById('report-modal').style.display = 'flex';
     }
 
-    function copyReport() { 
-        const text = document.getElementById('report-text').innerText;
-        navigator.clipboard.writeText(text).then(() => alert("¡Reporte copiado al portapapeles!"));
-    }
+    function copyReport() { const text = document.getElementById('report-text').innerText; navigator.clipboard.writeText(text).then(() => alert("Copiado!")); }
 </script>
 </body>
 </html>
