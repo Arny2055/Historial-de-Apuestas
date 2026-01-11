@@ -141,6 +141,7 @@
             <option value="spain">España - LaLiga</option>
             <option value="germany">Alemania - Bundesliga</option>
             <option value="portugal">Portugal - Liga Portugal</option>
+            <option value="france">Francia - Ligue 1</option>
         </select>
 
         <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
@@ -331,6 +332,11 @@
                 for(let i=311; i<=340; i++) if(allRows[i]) hLines.push(allRows[i]);
                 for(let i=344; i<=373; i++) if(allRows[i]) vLines.push(allRows[i]);
                 for(let i=376; i<=382; i++) if(allRows[i]) sLines.push(allRows[i]);
+            }
+            else if (leagueKey === 'france') {
+                for(let i=388; i<=417; i++) if(allRows[i]) hLines.push(allRows[i]);
+                for(let i=421; i<=450; i++) if(allRows[i]) vLines.push(allRows[i]);
+                for(let i=453; i<=459; i++) if(allRows[i]) sLines.push(allRows[i]);
             }
 
             document.getElementById('hIn').value = hLines.join('\n');
