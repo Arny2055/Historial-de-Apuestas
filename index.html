@@ -700,11 +700,8 @@
         let wins = 0, chartData = [initialBank], log = "";
 
         for(let i=1; i<=iter; i++) {
-            // Calcular Kelly Criterion: % = (Odds * Prob - 1) / (Odds - 1)
             let f = edge / (odds - 1);
             let fractionalKelly = Math.max(0, f * kellyFrac);
-            
-            // Límite de seguridad: no arriesgar más del 25% de la banca por iteración incluso en Kelly
             fractionalKelly = Math.min(fractionalKelly, 0.25);
             
             const stake = currentBank * fractionalKelly;
@@ -719,7 +716,7 @@
                 log += `P `;
             }
             chartData.push(currentBank);
-            if(currentBank <= 1) break; // Quiebra
+            if(currentBank <= 1) break;
         }
 
         document.getElementById('bt-results').style.display = 'block';
