@@ -240,7 +240,9 @@
                 <option value="pD">Empate (X)</option>
                 <option value="pV">Victoria Visita (2)</option>
                 <option value="ov25">Más 2.5 Goles</option>
+                <option value="un25">Menos 2.5 Goles</option>
                 <option value="btts">Ambos Marcan: SI</option>
+                <option value="btts_no">Ambos Marcan: NO</option>
             </select>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -520,7 +522,7 @@
                 if(i>0 && j>0) btts+=p;
             }
         }
-        window.currentProbs = { pH, pD, pV, ov25, btts };
+        window.currentProbs = { pH, pD, pV, ov25, un25: (1 - ov25), btts, btts_no: (1 - btts) };
         
         renderResults(tH, tV, {
             'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
@@ -687,7 +689,7 @@
 
     function copyReport() { const text = document.getElementById('report-text').innerText; navigator.clipboard.writeText(text).then(() => alert("Copiado!")); }
 
-    // BACKTESTING CON MODO QUIEBRA
+    // BACKTESTING CON TODOS LOS MERCADOS
     function runBacktest() {
         if(!window.currentProbs) { alert("Primero Analice un Partido en la pestaña DATA"); return; }
         const market = document.getElementById('bt-market').value;
@@ -731,7 +733,6 @@
             data1.push(bank1);
             dataRef.push(bankRef);
 
-            // DETECTOR DE QUIEBRA (BANCA < 1.00)
             if(bank1 < 1.00 && ruinPoint === -1) {
                 ruinPoint = i;
                 document.getElementById('ruin-alert').style.display = 'block';
