@@ -145,6 +145,7 @@
             <option value="netherlands">Países Bajos - Eredivisie</option>
             <option value="greece">Grecia - Super League</option>
             <option value="scotland">Escocia - Premiership</option>
+            <option value="belgium">Bélgica - Pro League</option>
         </select>
 
         <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
@@ -355,6 +356,11 @@
                 for(let i=619; i<=648; i++) if(allRows[i]) hLines.push(allRows[i]);
                 for(let i=652; i<=681; i++) if(allRows[i]) vLines.push(allRows[i]);
                 for(let i=684; i<=690; i++) if(allRows[i]) sLines.push(allRows[i]);
+            }
+            else if (leagueKey === 'belgium') {
+                for(let i=696; i<=725; i++) if(allRows[i]) hLines.push(allRows[i]);
+                for(let i=729; i<=758; i++) if(allRows[i]) vLines.push(allRows[i]);
+                for(let i=761; i<=767; i++) if(allRows[i]) sLines.push(allRows[i]);
             }
 
             document.getElementById('hIn').value = hLines.join('\n');
