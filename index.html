@@ -84,7 +84,7 @@
         .panic-active { background: #330000 !important; border-color: var(--delete) !important; animation: pulse-red 2s infinite; }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); } }
 
-        .report-summary { font-family: monospace; font-size: 0.75rem; background: #000; color: var(--accent-green); padding: 10px; border-radius: 5px; white-space: pre-wrap; margin: 10px 0; border: 1px solid var(--border); }
+        .report-summary { font-family: monospace; font-size: 0.7rem; background: #000; color: var(--accent-green); padding: 10px; border-radius: 5px; white-space: pre-wrap; margin: 10px 0; border: 1px solid var(--border); line-height: 1.4; }
 
         .sniff-alert { padding: 10px; border-radius: 8px; font-weight: 900; text-align: center; margin-bottom: 10px; display: none; font-size: 0.8rem; letter-spacing: 1px; }
         .sniff-mega { background: var(--fire); color: #fff; animation: blinker 1s linear infinite; }
@@ -229,7 +229,7 @@
                 <i class="fa-solid fa-flag-checkered"></i> SESIÓN HOY
             </button>
             <button class="btn-main" style="background: var(--accent-gold); color: #000;" onclick="generateWeeklyReport()">
-                <i class="fa-solid fa-file-invoice"></i> REPORTE
+                <i class="fa-solid fa-file-invoice"></i> AUDITORÍA
             </button>
         </div>
         
@@ -363,10 +363,10 @@
 </div>
 
 <div id="report-modal" class="modal">
-    <div class="modal-content">
-        <h2 style="color: var(--accent-gold); margin-top: 0; text-align: center;">REPORTE DE RENDIMIENTO</h2>
+    <div class="modal-content" style="max-width: 400px;">
+        <h2 style="color: var(--accent-gold); margin-top: 0; text-align: center; font-size: 1rem;">AUDITORÍA DE RENDIMIENTO</h2>
         <div id="report-text" class="report-summary"></div>
-        <button class="btn-main" onclick="copyReport()">COPIAR REPORTE</button>
+        <button class="btn-main" onclick="copyReport()">COPIAR AUDITORÍA</button>
         <button class="btn-main" style="background:#444; color:#fff;" onclick="closeModal('report-modal')">CERRAR</button>
     </div>
 </div>
@@ -557,7 +557,6 @@
         const bar = document.getElementById('ov-bar');
         bar.style.width = Math.min(Math.abs(overround) * 5, 100) + "%";
         
-        // Calculadora de Arbitraje
         const arbPanel = document.getElementById('arb-panel');
         if(overround < 0) {
             arbPanel.style.display = 'block';
@@ -607,7 +606,6 @@
             let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
             kellyLabel.innerText = tagText;
             
-            // Si hay surebet, sugerimos usar el stake total de la surebet en lugar de Kelly
             if(overround >= 0) {
                 document.getElementById('kelly-suggestion').innerText = (bank * kFrac).toFixed(2) + " $";
                 if(totalStake === 0) document.getElementById('m-stake-money').value = (bank * kFrac).toFixed(2);
@@ -731,16 +729,83 @@
 
     function generateWeeklyReport() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const initialBank = parseFloat(localStorage.getItem('q_pro_bank')) || 1000;
         const resolved = history.filter(p => p.status !== 'pending');
-        if(resolved.length === 0) return;
-        let totalProfit = 0, totalStaked = 0, wins = 0;
-        resolved.forEach(p => { totalStaked += p.stake; if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } else totalProfit -= p.stake; });
-        const report = `📊 QUANTUM PRO REPORT\n-----------------------\n💰 Profit: ${totalProfit.toFixed(2)} $\n📈 Yield: ${(totalStaked > 0 ? (totalProfit/totalStaked*100).toFixed(1) : 0)}%\n🎯 Win Rate: ${(wins/resolved.length*100).toFixed(0)}%\n-----------------------\nPowered by Quantum Engine`;
+        
+        if(resolved.length === 0) {
+            alert("Necesitas al menos una apuesta resuelta.");
+            return;
+        }
+
+        let totalStaked = 0, totalProfit = 0, wins = 0, maxStake = 0, avgOdds = 0;
+        let marketStats = {};
+        let currentStreak = 0, bestStreak = 0, worstStreak = 0, streakCounter = 0;
+        
+        resolved.reverse().forEach(p => {
+            totalStaked += p.stake;
+            avgOdds += p.odds;
+            if(p.stake > maxStake) maxStake = p.stake;
+            
+            // Stats por mercado
+            if(!marketStats[p.name]) marketStats[p.name] = { w:0, l:0, p:0 };
+            
+            if(p.status === 'win') {
+                totalProfit += (p.odds - 1) * p.stake;
+                wins++;
+                marketStats[p.name].w++;
+                if(streakCounter >= 0) streakCounter++; else streakCounter = 1;
+            } else {
+                totalProfit -= p.stake;
+                marketStats[p.name].l++;
+                if(streakCounter <= 0) streakCounter--; else streakCounter = -1;
+            }
+            if(streakCounter > bestStreak) bestStreak = streakCounter;
+            if(streakCounter < worstStreak) worstStreak = streakCounter;
+        });
+
+        const yieldVal = (totalProfit / totalStaked * 100).toFixed(2);
+        const winRate = (wins / resolved.length * 100).toFixed(1);
+        
+        let marketText = "";
+        for(let m in marketStats) {
+            let totalM = marketStats[m].w + marketStats[m].l;
+            let wrM = (marketStats[m].w / totalM * 100).toFixed(0);
+            marketText += `> ${m}: ${wrM}% WR (${totalM} ups)\n`;
+        }
+
+        const report = `
+╔════ QUANTUM PRO AUDIT ════╗
+  Fecha: ${new Date().toLocaleDateString()}
+╚═══════════════════════════╝
+
+💰 BALANCE GENERAL
+  Net Profit: ${totalProfit.toFixed(2)} $
+  Total Apostado: ${totalStaked.toFixed(2)} $
+  Yield Real: ${yieldVal}%
+  Banca Final: ${(initialBank + totalProfit).toFixed(2)} $
+
+📊 MÉTRICAS DE EFICIENCIA
+  Win Rate: ${winRate}%
+  Cuota Media: ${(avgOdds / resolved.length).toFixed(2)}
+  Apu. Totales: ${resolved.length}
+  Stake Máximo: ${maxStake.toFixed(2)} $
+
+🔥 RACHAS Y PSICOLOGÍA
+  Mejor Racha: +${bestStreak} Wins
+  Peor Racha: ${worstStreak} Loss
+  Factor de Riesgo: ${isPanic ? 'MODO PÁNICO' : 'ESTÁNDAR'}
+
+🎯 RENDIMIENTO POR MERCADO
+${marketText}
+-----------------------------
+Powered by Quantum Engine PRO
+        `.trim();
+
         document.getElementById('report-text').innerText = report;
         document.getElementById('report-modal').style.display = 'flex';
     }
 
-    function copyReport() { const text = document.getElementById('report-text').innerText; navigator.clipboard.writeText(text).then(() => alert("Copiado!")); }
+    function copyReport() { const text = document.getElementById('report-text').innerText; navigator.clipboard.writeText(text).then(() => alert("Auditoría copiada al portapapeles.")); }
 
     function runBacktest() {
         if(!window.currentProbs) { alert("Primero Analice un Partido en la pestaña DATA"); return; }
