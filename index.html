@@ -84,7 +84,7 @@
         .panic-active { background: #330000 !important; border-color: var(--delete) !important; animation: pulse-red 2s infinite; }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); } }
 
-        .report-summary { font-family: monospace; font-size: 0.7rem; background: #000; color: var(--accent-green); padding: 10px; border-radius: 5px; white-space: pre-wrap; margin: 10px 0; border: 1px solid var(--border); line-height: 1.4; }
+        .report-summary { font-family: monospace; font-size: 0.65rem; background: #000; color: var(--accent-green); padding: 12px; border-radius: 8px; white-space: pre-wrap; margin: 10px 0; border: 1px solid var(--border); line-height: 1.5; box-shadow: inset 0 0 10px rgba(0,255,136,0.1); }
 
         .sniff-alert { padding: 10px; border-radius: 8px; font-weight: 900; text-align: center; margin-bottom: 10px; display: none; font-size: 0.8rem; letter-spacing: 1px; }
         .sniff-mega { background: var(--fire); color: #fff; animation: blinker 1s linear infinite; }
@@ -234,7 +234,7 @@
                 <i class="fa-solid fa-flag-checkered"></i> SESIÓN HOY
             </button>
             <button class="btn-main" style="background: var(--accent-gold); color: #000;" onclick="generateWeeklyReport()">
-                <i class="fa-solid fa-file-invoice"></i> AUDITORÍA
+                <i class="fa-solid fa-crown"></i> AUDITORÍA LEGEND
             </button>
         </div>
         
@@ -372,11 +372,15 @@
 </div>
 
 <div id="report-modal" class="modal">
-    <div class="modal-content" style="max-width: 400px;">
-        <h2 style="color: var(--accent-gold); margin-top: 0; text-align: center; font-size: 1rem;">AUDITORÍA DE RENDIMIENTO</h2>
+    <div class="modal-content" style="max-width: 420px; border: 2px solid var(--accent-gold); background: #08110d;">
+        <div style="text-align: center; margin-bottom: 15px;">
+            <i class="fa-solid fa-crown" style="color:var(--accent-gold); font-size: 2rem;"></i>
+            <h2 style="color: var(--accent-gold); margin: 5px 0; font-size: 1.2rem; letter-spacing: 2px;">LEGENDARY AUDIT</h2>
+        </div>
         <div id="report-text" class="report-summary"></div>
-        <button class="btn-main" onclick="copyReport()">COPIAR AUDITORÍA</button>
-        <button class="btn-main" style="background:#444; color:#fff;" onclick="closeModal('report-modal')">CERRAR</button>
+        <div style="font-size: 0.55rem; color: var(--text-dim); text-align: center; margin-bottom: 10px;">Quantum AI Engine v4.0 - Sharp Betting Protocol</div>
+        <button class="btn-main" onclick="copyReport()"><i class="fa-solid fa-copy"></i> COPIAR DATA ESTRATÉGICA</button>
+        <button class="btn-main" style="background:#222; color:#fff; border: 1px solid #444;" onclick="closeModal('report-modal')">CERRAR</button>
     </div>
 </div>
 
@@ -662,7 +666,6 @@
                 if(currentDD > maxDD) maxDD = currentDD;
                 if(item.date === today) sessionLoss += pChange;
 
-                // Extraer equipos del string "Team A vs Team B"
                 const teams = item.teams.split(' vs ');
                 teams.forEach(t => {
                     let teamName = t.trim();
@@ -704,24 +707,6 @@
         updateTeamChart(profitsByTeam);
     }
 
-    function exportToCSV() {
-        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        if(history.length === 0) { alert("No hay datos para exportar"); return; }
-        let csv = "FECHA,LIGA,PARTIDO,MERCADO,CUOTA,STAKE,ESTADO,NET_PROFIT,YIELD_PCT\n";
-        history.forEach(p => {
-            let profit = 0, yieldPct = 0;
-            if(p.status === 'win') { profit = (p.odds - 1) * p.stake; yieldPct = (p.odds - 1) * 100; }
-            else if(p.status === 'loss') { profit = -p.stake; yieldPct = -100; }
-            const row = [p.date, p.league || "N/A", p.teams.replace(/,/g, ' vs '), p.name.replace(/,/g, ' '), p.odds, p.stake, p.status.toUpperCase(), profit.toFixed(2), yieldPct.toFixed(1) + "%"];
-            csv += row.join(",") + "\n";
-        });
-        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.setAttribute('hidden', ''); a.setAttribute('href', url); a.setAttribute('download', `QUANTUM_PRO_AUDIT_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    }
-
     function updateChart(data) {
         const ctx = document.getElementById('profitChart').getContext('2d');
         if(chartInstance) chartInstance.destroy();
@@ -731,36 +716,10 @@
     function updateTeamChart(profits) {
         const ctx = document.getElementById('teamChart').getContext('2d');
         if(teamChartInstance) teamChartInstance.destroy();
-        
-        // Ordenar equipos por profit absoluto para mostrar los más relevantes (Top 10)
-        const sortedEntries = Object.entries(profits)
-            .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-            .slice(0, 10);
-
+        const sortedEntries = Object.entries(profits).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 10);
         const labels = sortedEntries.map(e => e[0]);
         const values = sortedEntries.map(e => e[1]);
-        
-        teamChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: values.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.5)' : 'rgba(255, 77, 77, 0.5)'),
-                    borderColor: values.map(v => v >= 0 ? '#00ff88' : '#ff4d4d'),
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                indexAxis: 'y', // Gráfico horizontal para mejor lectura de nombres de equipos
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { ticks: { color: '#7f9c93', font: { size: 8 } } },
-                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } }
-                }
-            }
-        });
+        teamChartInstance = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ data: values, backgroundColor: values.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.5)' : 'rgba(255, 77, 77, 0.5)'), borderColor: values.map(v => v >= 0 ? '#00ff88' : '#ff4d4d'), borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#7f9c93', font: { size: 8 } } }, x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } } } } });
     }
 
     function updateStatus(id, status) {
@@ -792,16 +751,68 @@
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const resolved = history.filter(p => p.status !== 'pending');
         if(resolved.length === 0) { alert("Sin apuestas resueltas."); return; }
-        let totalStaked = 0, totalProfit = 0, wins = 0, marketStats = {}, streakCounter = 0, bestStreak = 0, worstStreak = 0;
+        
+        let totalStaked = 0, totalProfit = 0, wins = 0, expectedValue = 0;
+        let pArray = [], streak = 0, maxW = 0, maxL = 0;
+        let marketStats = {};
+
         resolved.reverse().forEach(p => {
             totalStaked += p.stake;
-            if(!marketStats[p.name]) marketStats[p.name] = { w:0, l:0 };
-            if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; marketStats[p.name].w++; if(streakCounter >= 0) streakCounter++; else streakCounter = 1; }
-            else { totalProfit -= p.stake; marketStats[p.name].l++; if(streakCounter <= 0) streakCounter--; else streakCounter = -1; }
-            if(streakCounter > bestStreak) bestStreak = streakCounter; if(streakCounter < worstStreak) worstStreak = streakCounter;
+            const evP = (p.prob / 100) * (p.odds - 1) * p.stake - (1 - (p.prob/100)) * p.stake;
+            expectedValue += evP;
+
+            if(p.status === 'win') {
+                totalProfit += (p.odds - 1) * p.stake;
+                wins++; streak = (streak < 0) ? 1 : streak + 1;
+                if(streak > maxW) maxW = streak;
+            } else {
+                totalProfit -= p.stake;
+                streak = (streak > 0) ? -1 : streak - 1;
+                if(Math.abs(streak) > maxL) maxL = Math.abs(streak);
+            }
+            pArray.push(totalProfit);
+            if(!marketStats[p.name]) marketStats[p.name] = { w:0, t:0, p:0 };
+            marketStats[p.name].t++;
+            if(p.status === 'win') { marketStats[p.name].w++; marketStats[p.name].p += (p.odds - 1) * p.stake; }
+            else marketStats[p.name].p -= p.stake;
         });
-        let marketText = ""; for(let m in marketStats) { let tM = marketStats[m].w + marketStats[m].l; marketText += `> ${m}: ${(marketStats[m].w/tM*100).toFixed(0)}% WR\n`; }
-        const report = `╔══ QUANTUM AUDIT ══╗\nNet Profit: ${totalProfit.toFixed(2)}$\nYield: ${(totalProfit/totalStaked*100).toFixed(2)}%\nWR: ${(wins/resolved.length*100).toFixed(1)}%\nBest Streak: +${bestStreak}\n\nMARKETS:\n${marketText}╚══════════════════╝`;
+
+        // Cálculo de Sharp Metrics
+        const yieldPct = (totalProfit / totalStaked) * 100;
+        const winRate = (wins / resolved.length) * 100;
+        const avgOdds = resolved.reduce((a, b) => a + b.odds, 0) / resolved.length;
+        const eYield = (expectedValue / totalStaked) * 100;
+        
+        // Z-Score (Aproximación para suerte vs sistema)
+        const n = resolved.length;
+        const p = wins / n;
+        const e = 1 / avgOdds;
+        const zScore = (n * (p - e)) / Math.sqrt(n * e * (1 - e));
+
+        let marketText = ""; 
+        for(let m in marketStats) { 
+            const mData = marketStats[m];
+            marketText += `► ${m.padEnd(15)} | WR: ${(mData.w/mData.t*100).toFixed(0)}% | P: ${mData.p.toFixed(1)}$\n`; 
+        }
+
+        const report = `[ AUDITORÍA QUANTUM LEGENDARY ]
+---------------------------------
+💰 PROFIT NETO:   ${totalProfit.toFixed(2)}$
+📈 YIELD REAL:    ${yieldPct.toFixed(2)}%
+🎯 WIN RATE:      ${winRate.toFixed(1)}% (N=${n})
+---------------------------------
+[ MÉTRICAS SHARP BETTING ]
+💎 VALUE EXPECTED: ${expectedValue.toFixed(2)}$
+📊 YIELD ESP (EV): ${eYield.toFixed(2)}%
+⚡ Z-SCORE:        ${zScore.toFixed(2)} ${zScore > 2 ? '(!) SISTEMA' : '(?) SUERTE'}
+📉 MAX DD (EST):   ${maxL} Ls Seguidas
+🔥 RACHA MAX:     +${maxW} Ws Seguidas
+---------------------------------
+[ RENDIMIENTO POR MERCADO ]
+${marketText}
+---------------------------------
+SCORE GLOBAL: ${((yieldPct * 0.4) + (winRate * 0.4) + (zScore * 20)).toFixed(0)} / 100`;
+
         document.getElementById('report-text').innerText = report;
         document.getElementById('report-modal').style.display = 'flex';
     }
