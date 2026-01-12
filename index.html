@@ -117,7 +117,8 @@
     <div class="scroll-content">
         <div id="guardian-banner" class="guardian-alert">
             <i class="fa-solid fa-hand"></i> <b>STOP LOSS DIARIO ACTIVO</b><br>
-            <small>Has perdido el 15% de tu banca hoy. Sesión bloqueada.</small>
+            <small>Has perdido el 15% de tu banca hoy.</small>
+            <button onclick="resetGuardian()" style="background:var(--delete); color:#fff; border:none; padding:5px 10px; border-radius:5px; margin-top:10px; font-weight:bold; cursor:pointer; font-size:0.6rem;">RESET SESIÓN (FORCE)</button>
         </div>
 
         <div class="card" id="bank-card">
@@ -363,6 +364,7 @@
 
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, isPanic = false;
+    let guardianForcedReset = false;
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
     window.onload = () => {
@@ -384,51 +386,28 @@
             const rawData = await response.text();
             const allRows = rawData.split('\n');
             let hLines = [], vLines = [], sLines = [];
-            if (leagueKey === 'italy') {
-                for(let i=3; i<=32; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=36; i<=65; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=68; i<=74; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'england') {
-                for(let i=80; i<=109; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=113; i<=142; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=145; i<=151; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'spain') {
-                for(let i=157; i<=186; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=190; i<=219; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=222; i<=228; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'germany') {
-                for(let i=234; i<=263; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=267; i<=296; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=299; i<=305; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'portugal') {
-                for(let i=311; i<=340; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=344; i<=373; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=376; i<=382; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'france') {
-                for(let i=388; i<=417; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=421; i<=450; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=453; i<=459; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'netherlands') {
-                for(let i=465; i<=494; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=498; i<=527; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=530; i<=536; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'greece') {
-                for(let i=542; i<=571; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=575; i<=604; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=607; i<=613; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'scotland') {
-                for(let i=619; i<=648; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=652; i<=681; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=684; i<=690; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'belgium') {
-                for(let i=696; i<=725; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=729; i<=758; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=761; i<=767; i++) if(allRows[i]) sLines.push(allRows[i]);
-            } else if (leagueKey === 'turkey') {
-                for(let i=774; i<=803; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=807; i<=836; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=839; i<=845; i++) if(allRows[i]) sLines.push(allRows[i]);
+            
+            const ranges = {
+                'italy': [3, 32, 36, 65, 68, 74],
+                'england': [80, 109, 113, 142, 145, 151],
+                'spain': [157, 186, 190, 219, 222, 228],
+                'germany': [234, 263, 267, 296, 299, 305],
+                'portugal': [311, 340, 344, 373, 376, 382],
+                'france': [388, 417, 421, 450, 453, 459],
+                'netherlands': [465, 494, 498, 527, 530, 536],
+                'greece': [542, 571, 575, 604, 607, 613],
+                'scotland': [619, 648, 652, 681, 684, 690],
+                'belgium': [696, 725, 729, 758, 761, 767],
+                'turkey': [774, 803, 807, 836, 839, 845]
+            };
+
+            const r = ranges[leagueKey];
+            if(r) {
+                for(let i=r[0]; i<=r[1]; i++) if(allRows[i]) hLines.push(allRows[i]);
+                for(let i=r[2]; i<=r[3]; i++) if(allRows[i]) vLines.push(allRows[i]);
+                for(let i=r[4]; i<=r[5]; i++) if(allRows[i]) sLines.push(allRows[i]);
             }
+
             document.getElementById('hIn').value = hLines.join('\n');
             document.getElementById('vIn').value = vLines.join('\n');
             document.getElementById('sIn').value = sLines.join('\n');
@@ -606,6 +585,13 @@
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
 
+    function resetGuardian() {
+        if(confirm("¿Estás seguro de reiniciar la sesión? Ignorar el Stop Loss aumenta el riesgo de quiebra.")) {
+            guardianForcedReset = true;
+            loadHistory();
+        }
+    }
+
     function loadHistory() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const initialBank = parseFloat(localStorage.getItem('q_pro_bank')) || 1000;
@@ -634,15 +620,13 @@
                 let currentDD = ((maxBank - runningBank) / maxBank) * 100;
                 if(currentDD > maxDD) maxDD = currentDD;
                 
-                // Track session for Guardian
                 if(item.date === today) sessionLoss += pChange;
             }
         });
 
-        // Check Quantum Guardian
         const guardianBanner = document.getElementById('guardian-banner');
         const btnAnalyze = document.getElementById('btn-analyze');
-        if(sessionLoss < -(initialBank * 0.15)) {
+        if(!guardianForcedReset && sessionLoss < -(initialBank * 0.15)) {
             guardianBanner.classList.add('guardian-active');
             btnAnalyze.disabled = true;
             btnAnalyze.style.opacity = "0.3";
