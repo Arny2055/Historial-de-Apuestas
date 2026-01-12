@@ -225,8 +225,8 @@
         </div>
 
         <div class="chart-container" style="height: 220px; margin-bottom: 20px;">
-            <div style="font-size: 0.6rem; color: var(--accent-gold); margin-bottom: 5px; text-align: center;">PROFIT POR LIGA ($)</div>
-            <canvas id="leagueChart"></canvas>
+            <div style="font-size: 0.6rem; color: var(--accent-gold); margin-bottom: 5px; text-align: center;">PROFIT POR EQUIPO ($)</div>
+            <canvas id="teamChart"></canvas>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
@@ -381,7 +381,7 @@
 </div>
 
 <script>
-    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, leagueChartInstance=null, isPanic = false;
+    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, teamChartInstance=null, isPanic = false;
     let guardianForcedReset = false;
     let lastSuggestedKelly = 0;
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
@@ -644,7 +644,7 @@
         
         let totalProfit = 0, runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0, sessionLoss = 0;
         let chartData = [0];
-        let profitsByLeague = {};
+        let profitsByTeam = {};
 
         [...history].reverse().forEach(item => {
             let pChange = 0;
@@ -662,8 +662,12 @@
                 if(currentDD > maxDD) maxDD = currentDD;
                 if(item.date === today) sessionLoss += pChange;
 
-                let lKey = item.league || 'UNKNOWN';
-                profitsByLeague[lKey] = (profitsByLeague[lKey] || 0) + pChange;
+                // Extraer equipos del string "Team A vs Team B"
+                const teams = item.teams.split(' vs ');
+                teams.forEach(t => {
+                    let teamName = t.trim();
+                    profitsByTeam[teamName] = (profitsByTeam[teamName] || 0) + pChange;
+                });
             }
         });
 
@@ -697,7 +701,7 @@
         document.getElementById('total-profit').style.color = runningProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
         document.getElementById('max-drawdown-hist').innerText = maxDD.toFixed(1) + "%";
         updateChart(chartData);
-        updateLeagueChart(profitsByLeague);
+        updateTeamChart(profitsByTeam);
     }
 
     function exportToCSV() {
@@ -724,12 +728,19 @@
         chartInstance = new Chart(ctx, { type: 'line', data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } } } } });
     }
 
-    function updateLeagueChart(profits) {
-        const ctx = document.getElementById('leagueChart').getContext('2d');
-        if(leagueChartInstance) leagueChartInstance.destroy();
-        const labels = Object.keys(profits);
-        const values = Object.values(profits);
-        leagueChartInstance = new Chart(ctx, {
+    function updateTeamChart(profits) {
+        const ctx = document.getElementById('teamChart').getContext('2d');
+        if(teamChartInstance) teamChartInstance.destroy();
+        
+        // Ordenar equipos por profit absoluto para mostrar los más relevantes (Top 10)
+        const sortedEntries = Object.entries(profits)
+            .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+            .slice(0, 10);
+
+        const labels = sortedEntries.map(e => e[0]);
+        const values = sortedEntries.map(e => e[1]);
+        
+        teamChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
@@ -742,10 +753,11 @@
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
+                indexAxis: 'y', // Gráfico horizontal para mejor lectura de nombres de equipos
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } },
-                    x: { ticks: { color: '#7f9c93', font: { size: 8 } } }
+                    y: { ticks: { color: '#7f9c93', font: { size: 8 } } },
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } }
                 }
             }
         });
