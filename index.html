@@ -388,56 +388,16 @@
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, teamChartInstance=null, isPanic = false;
     let guardianForcedReset = false;
     let lastSuggestedKelly = 0;
-
-    // --- CONFIGURACIÓN CLOUD DATABASE ---
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwFe5cRs9cHMRDY6wHDc6dRBFHIEx4rTGx45gHHdcLYf__X4100qOreNTLj6GQnp586Pw/exec"; 
 
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
         if(savedBank) document.getElementById('user-bank').value = savedBank;
         const savedPanic = localStorage.getItem('q_pro_panic');
         if(savedPanic === 'true') togglePanic(true);
-        
-        // CARGA AUTOMÁTICA DESDE GOOGLE SHEETS AL INICIAR
-        importFromSheets();
-        
         loadHistory();
         runStressTest();
     };
-
-    async function importFromSheets() {
-        console.log("Sincronizando con Google Sheets...");
-        try {
-            // Usamos la URL pública de la hoja pero apuntando a la pestaña "base de datos"
-            const response = await fetch(CLOUD_URL + "&gid=0"); // Asegúrate de que el gid sea el de tu pestaña
-            const rawData = await response.text();
-            const rows = rawData.split('\n');
-            
-            if(rows.length > 1) {
-                let history = [];
-                for(let i = 1; i < rows.length; i++) {
-                    const cols = rows[i].split(',');
-                    if(cols.length >= 8) {
-                        history.push({
-                            id: parseInt(cols[0]),
-                            date: cols[1],
-                            teams: cols[2],
-                            name: cols[3],
-                            odds: parseFloat(cols[4]),
-                            stake: parseFloat(cols[5]),
-                            status: cols[6].trim().toLowerCase(),
-                            league: cols[7]
-                        });
-                    }
-                }
-                if(history.length > 0) {
-                    localStorage.setItem('q_pro_hist', JSON.stringify(history.reverse()));
-                    loadHistory();
-                }
-            }
-        } catch (e) { console.log("No se pudo sincronizar historial externo."); }
-    }
 
     async function syncCloudData() {
         const btn = document.getElementById('btn-sync');
@@ -670,28 +630,9 @@
         let stake = parseFloat(document.getElementById('m-stake-money').value);
         if(isNaN(stake) || stake <= 0) stake = lastSuggestedKelly;
         if(!odds || stake <= 0) { alert("Error: Cuota inválida o Stake 0"); return; }
-        
-        const newPick = { 
-            ...selectedPick, 
-            odds, 
-            stake: parseFloat(stake.toFixed(2)), 
-            status: 'pending', 
-            id: Date.now(), 
-            date: new Date().toLocaleDateString() 
-        };
-
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift(newPick);
+        history.unshift({ ...selectedPick, odds, stake: parseFloat(stake.toFixed(2)), status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
-
-        // ENVÍO A GOOGLE SHEETS (BASE DE DATOS)
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newPick)
-        }).then(() => console.log("Sincronizado con Sheets")).catch(e => console.log("Error Sheets", e));
-
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
 
@@ -784,18 +725,7 @@
     function updateStatus(id, status) {
         let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const i = history.findIndex(x => x.id === id);
-        if(i !== -1) { 
-            history[i].status = status; 
-            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
-            
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify({ action: 'UPDATE', id: id, status: status })
-            });
-            
-            loadHistory(); 
-        }
+        if(i !== -1) { history[i].status = status; localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); }
     }
 
     function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist')).filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
@@ -847,14 +777,17 @@
             else marketStats[p.name].p -= p.stake;
         });
 
+        // Cálculo de Sharp Metrics
         const yieldPct = (totalProfit / totalStaked) * 100;
         const winRate = (wins / resolved.length) * 100;
         const avgOdds = resolved.reduce((a, b) => a + b.odds, 0) / resolved.length;
         const eYield = (expectedValue / totalStaked) * 100;
+        
+        // Z-Score (Aproximación para suerte vs sistema)
         const n = resolved.length;
-        const p_z = wins / n;
-        const e_z = 1 / avgOdds;
-        const zScore = (n * (p_z - e_z)) / Math.sqrt(n * e_z * (1 - e_z));
+        const p = wins / n;
+        const e = 1 / avgOdds;
+        const zScore = (n * (p - e)) / Math.sqrt(n * e * (1 - e));
 
         let marketText = ""; 
         for(let m in marketStats) { 
