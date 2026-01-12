@@ -201,8 +201,8 @@
                 <div id="total-profit" style="font-size: 1.2rem; font-weight: 900;">0.00</div>
             </div>
             <div class="stat-box">
-                <div style="font-size: 0.6rem; color: var(--text-dim);">YIELD %</div>
-                <div id="yield-total" style="font-size: 1.2rem; font-weight: 900; color: var(--accent-gold);">0.0%</div>
+                <div style="font-size: 0.6rem; color: var(--text-dim);">MAX DRAWDOWN</div>
+                <div id="max-drawdown-hist" style="font-size: 1.2rem; font-weight: 900; color: var(--delete);">0.0%</div>
             </div>
         </div>
 
@@ -563,17 +563,14 @@
             const edge = ((prob * o1) - 1) * 100;
             const sniff = document.getElementById('sniff-alert');
             const kellyLabel = document.getElementById('kelly-label-tag');
-            
-            // Lógica de Fracción Dinámica
-            let multiplier = 0.25; // Base 25% Kelly
+            let multiplier = 0.25; 
             let tagText = "Quarter Kelly (25%)";
-            
             if(edge >= 3) {
                 sniff.style.display = 'block';
                 if(edge > 15) {
                     sniff.innerText = `⚠️ SOSPECHOSO (EDGE ${edge.toFixed(1)}%)`;
                     sniff.className = 'sniff-alert sniff-mega';
-                    multiplier = 0.05; // Solo 5% de Kelly si es sospechoso
+                    multiplier = 0.05; 
                     tagText = "Risk Mitigator (5%)";
                 } else {
                     sniff.innerText = `EDGE DETECTADO: ${edge.toFixed(1)}%`;
@@ -581,12 +578,9 @@
                     sniff.style.background = 'var(--accent-green)'; sniff.style.color = '#000';
                 }
             } else { sniff.style.display = 'none'; }
-            
             if(isPanic) { multiplier *= 0.5; tagText += " + Panic Mode"; }
-
             let kelly = (((o1 - 1) * prob) - (1 - prob)) / (o1 - 1);
             let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
-            
             kellyLabel.innerText = tagText;
             document.getElementById('kelly-suggestion').innerText = (bank * kFrac).toFixed(2) + " $";
             document.getElementById('m-stake-money').value = (bank * kFrac).toFixed(2);
@@ -605,13 +599,29 @@
 
     function loadHistory() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const initialBank = parseFloat(localStorage.getItem('q_pro_bank')) || 1000;
         const container = document.getElementById('history-list');
-        let totalProfit = 0, totalStaked = 0, chartData = [0], runningProfit = 0;
+        
+        let totalProfit = 0, totalStaked = 0, runningProfit = 0;
+        let chartData = [0], runningBank = initialBank, maxBank = initialBank, maxDD = 0;
+
         [...history].reverse().forEach(item => {
-            if(item.status === 'win') { let p = (item.odds - 1) * item.stake; runningProfit += p; totalProfit += p; totalStaked += item.stake; }
-            else if(item.status === 'loss') { runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake; }
-            if(item.status !== 'pending') chartData.push(runningProfit);
+            if(item.status === 'win') { 
+                let p = (item.odds - 1) * item.stake; 
+                runningProfit += p; totalProfit += p; totalStaked += item.stake;
+                runningBank += p;
+            } else if(item.status === 'loss') { 
+                runningProfit -= item.stake; totalProfit -= item.stake; totalStaked += item.stake;
+                runningBank -= item.stake;
+            }
+            if(item.status !== 'pending') {
+                chartData.push(runningProfit);
+                if(runningBank > maxBank) maxBank = runningBank;
+                let currentDD = ((maxBank - runningBank) / maxBank) * 100;
+                if(currentDD > maxDD) maxDD = currentDD;
+            }
         });
+
         container.innerHTML = history.length ? history.map(item => {
             let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
             let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
@@ -627,9 +637,10 @@
                     <i class="fa-solid fa-trash-can" style="position:absolute; bottom:15px; right:15px; color:var(--delete); font-size:1rem; cursor:pointer;" onclick="deletePick(${item.id})"></i>
                 </div>`;
         }).join('') : `<p style="text-align:center; color:var(--text-dim); margin-top:20px;">No hay apuestas registradas.</p>`;
+        
         document.getElementById('total-profit').innerText = totalProfit.toFixed(2) + " $";
         document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
-        document.getElementById('yield-total').innerText = (totalStaked > 0 ? (totalProfit / totalStaked * 100).toFixed(1) : 0) + "%";
+        document.getElementById('max-drawdown-hist').innerText = maxDD.toFixed(1) + "%";
         updateChart(chartData);
     }
 
