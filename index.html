@@ -390,9 +390,7 @@
     let lastSuggestedKelly = 0;
 
     // --- CONFIGURACIÓN CLOUD DATABASE ---
-    // 1. URL de la planilla para leer datos
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
-    // 2. URL de tu Web App de Google Script para guardar (BASE DE DATOS)
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwFe5cRs9cHMRDY6wHDc6dRBFHIEx4rTGx45gHHdcLYf__X4100qOreNTLj6GQnp586Pw/exec"; 
 
     window.onload = () => {
@@ -650,14 +648,12 @@
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
 
         // ENVÍO A GOOGLE SHEETS (BASE DE DATOS)
-        if(SCRIPT_URL !== "PEGAR_AQUI_URL_DE_GOOGLE_SCRIPT") {
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newPick)
-            }).then(() => console.log("Sincronizado con Sheets")).catch(e => console.log("Error Sheets", e));
-        }
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newPick)
+        }).then(() => console.log("Sincronizado con Sheets")).catch(e => console.log("Error Sheets", e));
 
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
@@ -755,14 +751,12 @@
             history[i].status = status; 
             localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
             
-            // ACTUALIZAR EN SHEETS TAMBIÉN (Opcional, enviando el ID para que el Script lo busque)
-            if(SCRIPT_URL !== "PEGAR_AQUI_URL_DE_GOOGLE_SCRIPT") {
-                fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({ action: 'UPDATE', id: id, status: status })
-                });
-            }
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ action: 'UPDATE', id: id, status: status })
+            });
+            
             loadHistory(); 
         }
     }
