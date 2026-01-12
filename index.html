@@ -431,6 +431,7 @@
             btn.innerHTML = '<i class="fa-solid fa-check"></i> DATOS CARGADOS';
             btn.style.borderColor = "var(--accent-green)";
             info.innerText = `Sincronizado: ${leagueKey.toUpperCase()} OK`;
+            window.lastSyncedLeague = leagueKey.toUpperCase();
         } catch (e) { btn.innerHTML = 'ERROR DE CONEXIÓN'; }
     }
 
@@ -529,7 +530,7 @@
     }
 
     function openModal(name, fair, teams, prob) {
-        selectedPick = { name, fair, teams, prob };
+        selectedPick = { name, fair, teams, prob, league: window.lastSyncedLeague || 'UNKNOWN' };
         document.getElementById('m-name').innerText = name;
         document.getElementById('m-stake-money').value = "";
         document.getElementById('sniff-alert').style.display = 'none';
@@ -692,19 +693,41 @@
     function exportToCSV() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         if(history.length === 0) { alert("No hay datos para exportar"); return; }
-        let csv = "Fecha,Equipos,Mercado,Cuota,Stake,Estado,Profit\n";
+        
+        // Personalización de columnas: Date, League, Match, Market, Odds, Stake, Status, Net Profit, Yield%
+        let csv = "FECHA,LIGA,PARTIDO,MERCADO,CUOTA,STAKE,ESTADO,NET_PROFIT,YIELD_PCT\n";
+        
         history.forEach(p => {
             let profit = 0;
-            if(p.status === 'win') profit = (p.odds - 1) * p.stake;
-            else if(p.status === 'loss') profit = -p.stake;
-            csv += `${p.date},${p.teams.replace(',',' ')},${p.name.replace(',',' ')},${p.odds},${p.stake},${p.status},${profit.toFixed(2)}\n`;
+            let yieldPct = 0;
+            if(p.status === 'win') {
+                profit = (p.odds - 1) * p.stake;
+                yieldPct = (p.odds - 1) * 100;
+            } else if(p.status === 'loss') {
+                profit = -p.stake;
+                yieldPct = -100;
+            }
+            
+            const row = [
+                p.date,
+                p.league || "N/A",
+                p.teams.replace(/,/g, ' vs '),
+                p.name.replace(/,/g, ' '),
+                p.odds,
+                p.stake,
+                p.status.toUpperCase(),
+                profit.toFixed(2),
+                yieldPct.toFixed(1) + "%"
+            ];
+            csv += row.join(",") + "\n";
         });
-        const blob = new Blob([csv], { type: 'text/csv' });
+
+        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.setAttribute('hidden', '');
         a.setAttribute('href', url);
-        a.setAttribute('download', `Quantum_Audit_${new Date().toISOString().split('T')[0]}.csv`);
+        a.setAttribute('download', `QUANTUM_PRO_AUDIT_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
