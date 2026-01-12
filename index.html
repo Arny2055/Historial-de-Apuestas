@@ -398,9 +398,46 @@
         if(savedBank) document.getElementById('user-bank').value = savedBank;
         const savedPanic = localStorage.getItem('q_pro_panic');
         if(savedPanic === 'true') togglePanic(true);
+        
+        // CARGA AUTOMÁTICA DESDE GOOGLE SHEETS AL INICIAR
+        importFromSheets();
+        
         loadHistory();
         runStressTest();
     };
+
+    async function importFromSheets() {
+        console.log("Sincronizando con Google Sheets...");
+        try {
+            // Usamos la URL pública de la hoja pero apuntando a la pestaña "base de datos"
+            const response = await fetch(CLOUD_URL + "&gid=0"); // Asegúrate de que el gid sea el de tu pestaña
+            const rawData = await response.text();
+            const rows = rawData.split('\n');
+            
+            if(rows.length > 1) {
+                let history = [];
+                for(let i = 1; i < rows.length; i++) {
+                    const cols = rows[i].split(',');
+                    if(cols.length >= 8) {
+                        history.push({
+                            id: parseInt(cols[0]),
+                            date: cols[1],
+                            teams: cols[2],
+                            name: cols[3],
+                            odds: parseFloat(cols[4]),
+                            stake: parseFloat(cols[5]),
+                            status: cols[6].trim().toLowerCase(),
+                            league: cols[7]
+                        });
+                    }
+                }
+                if(history.length > 0) {
+                    localStorage.setItem('q_pro_hist', JSON.stringify(history.reverse()));
+                    loadHistory();
+                }
+            }
+        } catch (e) { console.log("No se pudo sincronizar historial externo."); }
+    }
 
     async function syncCloudData() {
         const btn = document.getElementById('btn-sync');
