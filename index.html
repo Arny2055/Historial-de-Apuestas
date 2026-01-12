@@ -224,7 +224,7 @@
             <canvas id="profitChart"></canvas>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
             <button class="btn-main" style="background: var(--quantum-blue); color: #000;" onclick="openSessionModal()">
                 <i class="fa-solid fa-flag-checkered"></i> SESIÓN HOY
             </button>
@@ -232,6 +232,10 @@
                 <i class="fa-solid fa-file-invoice"></i> AUDITORÍA
             </button>
         </div>
+        
+        <button class="btn-main" style="background: #222; color: #fff; border: 1px solid #444;" onclick="exportToCSV()">
+            <i class="fa-solid fa-file-csv"></i> EXPORTAR CONTROL (CSV)
+        </button>
         
         <div id="history-list"></div>
         <button class="btn-main" style="background:var(--delete); color:#fff; margin-top:20px;" onclick="clearHistory()">BORRAR TODO EL CONTROL</button>
@@ -374,7 +378,7 @@
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, isPanic = false;
     let guardianForcedReset = false;
-    let lastSuggestedKelly = 0; // Nueva variable para capturar la sugerencia actual
+    let lastSuggestedKelly = 0;
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
     window.onload = () => {
@@ -571,8 +575,6 @@
                 arbHTML += `<div class="arb-row"><span>Stake en O2:</span><span>${((1/o2)/sum * totalStake).toFixed(2)}$</span></div>`;
                 if(o3 > 1) arbHTML += `<div class="arb-row"><span>Stake en O3:</span><span>${((1/o3)/sum * totalStake).toFixed(2)}$</span></div>`;
                 document.getElementById('arb-details').innerHTML = arbHTML;
-            } else {
-                document.getElementById('arb-details').innerHTML = `<div style="font-size:0.6rem; color:var(--text-dim)">Ingresa un Stake Total para ver la distribución.</div>`;
             }
         } else {
             arbPanel.style.display = 'none';
@@ -583,7 +585,7 @@
 
         if(o1 > 1) {
             const prob = selectedPick.prob / 100;
-            const bank = parseFloat(document.getElementById('user-bank').value) || 0;
+            const bank = parseFloat(document.getElementById('user-bank').value) || 1000;
             const edge = ((prob * o1) - 1) * 100;
             const sniff = document.getElementById('sniff-alert');
             const kellyLabel = document.getElementById('kelly-label-tag');
@@ -606,9 +608,7 @@
             let kelly = (((o1 - 1) * prob) - (1 - prob)) / (o1 - 1);
             let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
             kellyLabel.innerText = tagText;
-            
-            lastSuggestedKelly = (bank * kFrac); // Guardamos la sugerencia calculada
-            
+            lastSuggestedKelly = (bank * kFrac);
             if(overround >= 0) {
                 document.getElementById('kelly-suggestion').innerText = lastSuggestedKelly.toFixed(2) + " $";
             }
@@ -618,17 +618,8 @@
     function savePick() {
         const odds = parseFloat(document.getElementById('o1').value);
         let stake = parseFloat(document.getElementById('m-stake-money').value);
-        
-        // GESTIÓN AUTOMÁTICA: Si el usuario no escribe un stake, usa la sugerencia calculada
-        if(isNaN(stake) || stake <= 0) {
-            stake = lastSuggestedKelly;
-        }
-
-        if(!odds || stake <= 0) {
-            alert("Error: Debes ingresar una cuota válida y el stake no puede ser 0.");
-            return;
-        }
-
+        if(isNaN(stake) || stake <= 0) stake = lastSuggestedKelly;
+        if(!odds || stake <= 0) { alert("Error: Cuota inválida o Stake 0"); return; }
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         history.unshift({ ...selectedPick, odds, stake: parseFloat(stake.toFixed(2)), status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
@@ -636,10 +627,7 @@
     }
 
     function resetGuardian() {
-        if(confirm("¿Estás seguro de reiniciar la sesión? Ignorar el Stop Loss aumenta el riesgo de quiebra.")) {
-            guardianForcedReset = true;
-            loadHistory();
-        }
+        if(confirm("¿Reiniciar sesión?")) { guardianForcedReset = true; loadHistory(); }
     }
 
     function loadHistory() {
@@ -648,28 +636,23 @@
         const container = document.getElementById('history-list');
         const today = new Date().toLocaleDateString();
         
-        let totalProfit = 0, totalStaked = 0, runningProfit = 0;
-        let chartData = [0], runningBank = initialBank, maxBank = initialBank, maxDD = 0;
-        let sessionLoss = 0;
+        let totalProfit = 0, runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0, sessionLoss = 0;
+        let chartData = [0];
 
         [...history].reverse().forEach(item => {
             let pChange = 0;
             if(item.status === 'win') { 
                 pChange = (item.odds - 1) * item.stake; 
-                runningProfit += pChange; totalProfit += pChange; totalStaked += item.stake;
-                runningBank += pChange;
+                runningProfit += pChange; runningBank += pChange;
             } else if(item.status === 'loss') { 
                 pChange = -item.stake;
-                runningProfit += pChange; totalProfit += pChange; totalStaked += item.stake;
-                runningBank += pChange;
+                runningProfit += pChange; runningBank += pChange;
             }
-            
             if(item.status !== 'pending') {
                 chartData.push(runningProfit);
                 if(runningBank > maxBank) maxBank = runningBank;
                 let currentDD = ((maxBank - runningBank) / maxBank) * 100;
                 if(currentDD > maxDD) maxDD = currentDD;
-                
                 if(item.date === today) sessionLoss += pChange;
             }
         });
@@ -678,12 +661,10 @@
         const btnAnalyze = document.getElementById('btn-analyze');
         if(!guardianForcedReset && sessionLoss < -(initialBank * 0.15)) {
             guardianBanner.classList.add('guardian-active');
-            btnAnalyze.disabled = true;
-            btnAnalyze.style.opacity = "0.3";
+            btnAnalyze.disabled = true; btnAnalyze.style.opacity = "0.3";
         } else {
             guardianBanner.classList.remove('guardian-active');
-            btnAnalyze.disabled = false;
-            btnAnalyze.style.opacity = "1";
+            btnAnalyze.disabled = false; btnAnalyze.style.opacity = "1";
         }
 
         container.innerHTML = history.length ? history.map(item => {
@@ -702,10 +683,31 @@
                 </div>`;
         }).join('') : `<p style="text-align:center; color:var(--text-dim); margin-top:20px;">No hay apuestas registradas.</p>`;
         
-        document.getElementById('total-profit').innerText = totalProfit.toFixed(2) + " $";
-        document.getElementById('total-profit').style.color = totalProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
+        document.getElementById('total-profit').innerText = runningProfit.toFixed(2) + " $";
+        document.getElementById('total-profit').style.color = runningProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
         document.getElementById('max-drawdown-hist').innerText = maxDD.toFixed(1) + "%";
         updateChart(chartData);
+    }
+
+    function exportToCSV() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        if(history.length === 0) { alert("No hay datos para exportar"); return; }
+        let csv = "Fecha,Equipos,Mercado,Cuota,Stake,Estado,Profit\n";
+        history.forEach(p => {
+            let profit = 0;
+            if(p.status === 'win') profit = (p.odds - 1) * p.stake;
+            else if(p.status === 'loss') profit = -p.stake;
+            csv += `${p.date},${p.teams.replace(',',' ')},${p.name.replace(',',' ')},${p.odds},${p.stake},${p.status},${profit.toFixed(2)}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', `Quantum_Audit_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     }
 
     function updateChart(data) {
@@ -743,117 +745,46 @@
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const initialBank = parseFloat(localStorage.getItem('q_pro_bank')) || 1000;
         const resolved = history.filter(p => p.status !== 'pending');
-        
-        if(resolved.length === 0) {
-            alert("Necesitas al menos una apuesta resuelta.");
-            return;
-        }
-
-        let totalStaked = 0, totalProfit = 0, wins = 0, maxStake = 0, avgOdds = 0;
-        let marketStats = {};
-        let currentStreak = 0, bestStreak = 0, worstStreak = 0, streakCounter = 0;
-        
+        if(resolved.length === 0) { alert("Sin apuestas resueltas."); return; }
+        let totalStaked = 0, totalProfit = 0, wins = 0, maxStake = 0, avgOdds = 0, marketStats = {}, streakCounter = 0, bestStreak = 0, worstStreak = 0;
         resolved.reverse().forEach(p => {
-            totalStaked += p.stake;
-            avgOdds += p.odds;
-            if(p.stake > maxStake) maxStake = p.stake;
-            
-            if(!marketStats[p.name]) marketStats[p.name] = { w:0, l:0, p:0 };
-            
-            if(p.status === 'win') {
-                totalProfit += (p.odds - 1) * p.stake;
-                wins++;
-                marketStats[p.name].w++;
-                if(streakCounter >= 0) streakCounter++; else streakCounter = 1;
-            } else {
-                totalProfit -= p.stake;
-                marketStats[p.name].l++;
-                if(streakCounter <= 0) streakCounter--; else streakCounter = -1;
-            }
-            if(streakCounter > bestStreak) bestStreak = streakCounter;
-            if(streakCounter < worstStreak) worstStreak = streakCounter;
+            totalStaked += p.stake; avgOdds += p.odds; if(p.stake > maxStake) maxStake = p.stake;
+            if(!marketStats[p.name]) marketStats[p.name] = { w:0, l:0 };
+            if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; marketStats[p.name].w++; if(streakCounter >= 0) streakCounter++; else streakCounter = 1; }
+            else { totalProfit -= p.stake; marketStats[p.name].l++; if(streakCounter <= 0) streakCounter--; else streakCounter = -1; }
+            if(streakCounter > bestStreak) bestStreak = streakCounter; if(streakCounter < worstStreak) worstStreak = streakCounter;
         });
-
-        const yieldVal = (totalProfit / totalStaked * 100).toFixed(2);
-        const winRate = (wins / resolved.length * 100).toFixed(1);
-        
-        let marketText = "";
-        for(let m in marketStats) {
-            let totalM = marketStats[m].w + marketStats[m].l;
-            let wrM = (marketStats[m].w / totalM * 100).toFixed(0);
-            marketText += `> ${m}: ${wrM}% WR (${totalM} ups)\n`;
-        }
-
-        const report = `
-╔════ QUANTUM PRO AUDIT ════╗
-  Fecha: ${new Date().toLocaleDateString()}
-╚═══════════════════════════╝
-
-💰 BALANCE GENERAL
-  Net Profit: ${totalProfit.toFixed(2)} $
-  Total Apostado: ${totalStaked.toFixed(2)} $
-  Yield Real: ${yieldVal}%
-  Banca Final: ${(initialBank + totalProfit).toFixed(2)} $
-
-📊 MÉTRICAS DE EFICIENCIA
-  Win Rate: ${winRate}%
-  Cuota Media: ${(avgOdds / resolved.length).toFixed(2)}
-  Apu. Totales: ${resolved.length}
-  Stake Máximo: ${maxStake.toFixed(2)} $
-
-🔥 RACHAS Y PSICOLOGÍA
-  Mejor Racha: +${bestStreak} Wins
-  Peor Racha: ${worstStreak} Loss
-  Factor de Riesgo: ${isPanic ? 'MODO PÁNICO' : 'ESTÁNDAR'}
-
-🎯 RENDIMIENTO POR MERCADO
-${marketText}
------------------------------
-Powered by Quantum Engine PRO
-        `.trim();
-
+        let marketText = ""; for(let m in marketStats) { let tM = marketStats[m].w + marketStats[m].l; marketText += `> ${m}: ${(marketStats[m].w/tM*100).toFixed(0)}% WR\n`; }
+        const report = `╔══ QUANTUM AUDIT ══╗\nNet Profit: ${totalProfit.toFixed(2)}$\nYield: ${(totalProfit/totalStaked*100).toFixed(2)}%\nWR: ${(wins/resolved.length*100).toFixed(1)}%\nBest Streak: +${bestStreak}\n\nMARKETS:\n${marketText}╚══════════════════╝`;
         document.getElementById('report-text').innerText = report;
         document.getElementById('report-modal').style.display = 'flex';
     }
 
-    function copyReport() { const text = document.getElementById('report-text').innerText; navigator.clipboard.writeText(text).then(() => alert("Auditoría copiada al portapapeles.")); }
+    function copyReport() { navigator.clipboard.writeText(document.getElementById('report-text').innerText).then(() => alert("Copiado")); }
 
     function runBacktest() {
-        if(!window.currentProbs) { alert("Primero Analice un Partido en la pestaña DATA"); return; }
-        const market = document.getElementById('bt-market').value;
-        const odds1 = parseFloat(document.getElementById('bt-odds').value);
-        const oddsRef = (odds1 * 0.95).toFixed(2);
-        const iter = parseInt(document.getElementById('bt-iterations').value);
-        const kellyFrac = parseFloat(document.getElementById('bt-kelly-frac').value);
+        if(!window.currentProbs) { alert("Analice un partido primero"); return; }
+        const market = document.getElementById('bt-market').value, odds1 = parseFloat(document.getElementById('bt-odds').value);
+        const iter = parseInt(document.getElementById('bt-iterations').value), kellyFrac = parseFloat(document.getElementById('bt-kelly-frac').value);
         const initialBank = parseFloat(document.getElementById('user-bank').value) || 1000;
-        const prob = window.currentProbs[market];
-        const edge1 = ((prob * odds1) - 1);
-        const edgeRef = ((prob * oddsRef) - 1);
-        let bank1 = initialBank, bankRef = initialBank;
-        let wins = 0, data1 = [initialBank], dataRef = [initialBank], log = "";
-        let ruinPoint = -1;
-        document.getElementById('ruin-alert').style.display = 'none';
+        const prob = window.currentProbs[market], edge1 = ((prob * odds1) - 1);
+        let bank1 = initialBank, wins = 0, data1 = [initialBank], log = "", ruinPoint = -1;
         for(let i=1; i<=iter; i++) {
-            let f1 = Math.max(0, (edge1 / (odds1 - 1)) * kellyFrac);
-            f1 = Math.min(f1, 0.25);
+            let f1 = Math.max(0, Math.min(0.25, (edge1 / (odds1 - 1)) * kellyFrac));
             const stake1 = bank1 * f1;
-            let fRef = Math.max(0, (edgeRef / (oddsRef - 1)) * kellyFrac);
-            fRef = Math.min(fRef, 0.25);
-            const stakeRef = bankRef * fRef;
-            const roll = Math.random();
-            if(roll < prob) { wins++; bank1 += stake1 * (odds1 - 1); bankRef += stakeRef * (oddsRef - 1); log += `G `; }
-            else { bank1 -= stake1; bankRef -= stakeRef; log += `P `; }
-            data1.push(bank1); dataRef.push(bankRef);
-            if(bank1 < 1.00 && ruinPoint === -1) { ruinPoint = i; document.getElementById('ruin-alert').style.display = 'block'; document.getElementById('ruin-index').innerText = i; break; }
+            if(Math.random() < prob) { wins++; bank1 += stake1 * (odds1 - 1); log += "G "; }
+            else { bank1 -= stake1; log += "P "; }
+            data1.push(bank1);
+            if(bank1 < 1 && ruinPoint === -1) { ruinPoint = i; break; }
         }
         document.getElementById('bt-results').style.display = 'block';
-        document.getElementById('bt-res-edge').innerText = (edge1 * 100).toFixed(1) + "%";
+        document.getElementById('bt-res-edge').innerText = (edge1*100).toFixed(1) + "%";
         document.getElementById('bt-res-wins').innerText = wins;
         document.getElementById('bt-res-profit').innerText = bank1.toFixed(2) + "$";
-        document.getElementById('bt-log').innerText = (ruinPoint !== -1 ? `⚠️ QUIEBRA EN PARTIDO ${ruinPoint}\n` : `Simulación Exitosa\n`) + log;
+        if(ruinPoint !== -1) document.getElementById('ruin-alert').style.display = 'block';
         const ctx = document.getElementById('btChart').getContext('2d');
         if(btChartInstance) btChartInstance.destroy();
-        btChartInstance = new Chart(ctx, { type: 'line', data: { labels: data1.map((_, i) => i), datasets: [{ label: 'Elegida', data: data1, borderColor: bank1 < initialBank ? '#ff4d4d' : '#00ff88', borderWidth: 2, fill: false, pointRadius: ruinPoint !== -1 ? 4 : 0, pointBackgroundColor: '#fff' }, { label: 'Referencia', data: dataRef, borderColor: '#555', borderWidth: 1, borderDash: [5,5], fill: false, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { ticks: { color: '#7f9c93', font: { size: 9 } } } } } });
+        btChartInstance = new Chart(ctx, { type: 'line', data: { labels: data1.map((_,i)=>i), datasets: [{ data: data1, borderColor: '#00ff88', borderWidth: 2, pointRadius: 0 }] }, options: { responsive:true, maintainAspectRatio:false, plugins: { legend: { display:false } } } });
     }
 </script>
 </body>
