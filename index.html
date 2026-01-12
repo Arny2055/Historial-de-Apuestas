@@ -15,21 +15,6 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text-main); overflow: hidden; height: 100vh; }
         
-        /* PANTALLA DE BLOQUEO SEGURA */
-        #lock-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #0a1a14 0%, #050d0a 100%);
-            z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(10px);
-        }
-        .lock-box { width: 80%; max-width: 300px; text-align: center; }
-        .lock-icon { font-size: 3rem; color: var(--accent-gold); margin-bottom: 20px; text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
-        .pin-input { 
-            letter-spacing: 15px; text-align: center; font-size: 24px; 
-            background: rgba(255,255,255,0.05) !important; border: 1px solid var(--border) !important;
-            margin-bottom: 20px !important;
-        }
-
         .header-box { text-align: center; padding: 15px; background: var(--card); border-bottom: 2px solid var(--accent-gold); }
         .header-box h2 { margin: 0; font-size: 1.2rem; letter-spacing: 1px; color: var(--accent-gold); }
         
@@ -130,22 +115,6 @@
     </style>
 </head>
 <body>
-
-<div id="lock-screen">
-    <div class="lock-box">
-        <i class="fa-solid fa-user-shield lock-icon"></i>
-        <h3 style="color: var(--text-main); margin-bottom: 5px;">QUANTUM VAULT</h3>
-        <p style="color: var(--text-dim); font-size: 0.7rem; margin-bottom: 20px;">Acceso restringido a operadores nivel S</p>
-        
-        <input type="password" id="pin-field" class="pin-input" maxlength="4" placeholder="••••" oninput="checkPin(this.value)">
-        
-        <button class="btn-main" onclick="tryBiometric()">
-            <i class="fa-solid fa-face-id"></i> ACCESO BIOMÉTRICO
-        </button>
-        
-        <div id="lock-msg" style="font-size: 0.6rem; color: var(--delete); margin-top: 10px; height: 10px;"></div>
-    </div>
-</div>
 
 <div id="setup-screen" class="active-screen">
     <div class="header-box"><h2>QUANTUM ENGINE PRO</h2></div>
@@ -419,10 +388,12 @@
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, teamChartInstance=null, isPanic = false;
     let guardianForcedReset = false;
     let lastSuggestedKelly = 0;
-    const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
-    // MASTER PIN (Por defecto 2026)
-    const MASTER_PIN = "2026";
+    // --- CONFIGURACIÓN CLOUD DATABASE ---
+    // 1. URL de la planilla para leer datos
+    const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
+    // 2. URL de tu Web App de Google Script para guardar (BASE DE DATOS)
+    const SCRIPT_URL = "PEGAR_AQUI_URL_DE_GOOGLE_SCRIPT"; 
 
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
@@ -432,49 +403,6 @@
         loadHistory();
         runStressTest();
     };
-
-    // --- FUNCIONES DE SEGURIDAD ---
-    function checkPin(val) {
-        if(val === MASTER_PIN) {
-            unlock();
-        } else if(val.length === 4) {
-            document.getElementById('lock-msg').innerText = "ACCESO DENEGADO";
-            setTimeout(() => { 
-                document.getElementById('pin-field').value = ""; 
-                document.getElementById('lock-msg').innerText = "";
-            }, 500);
-        }
-    }
-
-    async function tryBiometric() {
-        if (window.PublicKeyCredential) {
-            // Simulación de WebAuthn para dispositivos móviles/FaceID
-            // En un entorno local, esto dispara el prompt nativo de biometría del sistema
-            try {
-                // Pequeño retardo para simular el escaneo
-                document.getElementById('lock-msg').style.color = "var(--accent-gold)";
-                document.getElementById('lock-msg').innerText = "ESCANEANDO IDENTIDAD...";
-                
-                // Nota: WebAuthn real requiere HTTPS y un desafío del servidor. 
-                // Usamos una promesa de confirmación visual para el prototipo "Legendary".
-                const auth = await new Promise((resolve) => setTimeout(() => resolve(true), 1500));
-                if(auth) unlock();
-            } catch (e) {
-                document.getElementById('lock-msg').innerText = "BIOMETRÍA NO DISPONIBLE";
-            }
-        } else {
-            alert("Tu dispositivo no soporta FaceID/Biometría Web.");
-        }
-    }
-
-    function unlock() {
-        const lock = document.getElementById('lock-screen');
-        lock.style.transition = "0.5s";
-        lock.style.opacity = "0";
-        setTimeout(() => lock.style.display = 'none', 500);
-    }
-
-    // --- FIN SEGURIDAD ---
 
     async function syncCloudData() {
         const btn = document.getElementById('btn-sync');
@@ -707,9 +635,30 @@
         let stake = parseFloat(document.getElementById('m-stake-money').value);
         if(isNaN(stake) || stake <= 0) stake = lastSuggestedKelly;
         if(!odds || stake <= 0) { alert("Error: Cuota inválida o Stake 0"); return; }
+        
+        const newPick = { 
+            ...selectedPick, 
+            odds, 
+            stake: parseFloat(stake.toFixed(2)), 
+            status: 'pending', 
+            id: Date.now(), 
+            date: new Date().toLocaleDateString() 
+        };
+
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift({ ...selectedPick, odds, stake: parseFloat(stake.toFixed(2)), status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
+        history.unshift(newPick);
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
+
+        // ENVÍO A GOOGLE SHEETS (BASE DE DATOS)
+        if(SCRIPT_URL !== "PEGAR_AQUI_URL_DE_GOOGLE_SCRIPT") {
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newPick)
+            }).then(() => console.log("Sincronizado con Sheets")).catch(e => console.log("Error Sheets", e));
+        }
+
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
 
@@ -802,7 +751,20 @@
     function updateStatus(id, status) {
         let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const i = history.findIndex(x => x.id === id);
-        if(i !== -1) { history[i].status = status; localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); }
+        if(i !== -1) { 
+            history[i].status = status; 
+            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
+            
+            // ACTUALIZAR EN SHEETS TAMBIÉN (Opcional, enviando el ID para que el Script lo busque)
+            if(SCRIPT_URL !== "PEGAR_AQUI_URL_DE_GOOGLE_SCRIPT") {
+                fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ action: 'UPDATE', id: id, status: status })
+                });
+            }
+            loadHistory(); 
+        }
     }
 
     function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist')).filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
