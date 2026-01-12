@@ -224,6 +224,11 @@
             <canvas id="profitChart"></canvas>
         </div>
 
+        <div class="chart-container" style="height: 220px; margin-bottom: 20px;">
+            <div style="font-size: 0.6rem; color: var(--accent-gold); margin-bottom: 5px; text-align: center;">PROFIT POR LIGA ($)</div>
+            <canvas id="leagueChart"></canvas>
+        </div>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
             <button class="btn-main" style="background: var(--quantum-blue); color: #000;" onclick="openSessionModal()">
                 <i class="fa-solid fa-flag-checkered"></i> SESIÓN HOY
@@ -376,7 +381,7 @@
 </div>
 
 <script>
-    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, isPanic = false;
+    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, leagueChartInstance=null, isPanic = false;
     let guardianForcedReset = false;
     let lastSuggestedKelly = 0;
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
@@ -639,6 +644,7 @@
         
         let totalProfit = 0, runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0, sessionLoss = 0;
         let chartData = [0];
+        let profitsByLeague = {};
 
         [...history].reverse().forEach(item => {
             let pChange = 0;
@@ -655,6 +661,9 @@
                 let currentDD = ((maxBank - runningBank) / maxBank) * 100;
                 if(currentDD > maxDD) maxDD = currentDD;
                 if(item.date === today) sessionLoss += pChange;
+
+                let lKey = item.league || 'UNKNOWN';
+                profitsByLeague[lKey] = (profitsByLeague[lKey] || 0) + pChange;
             }
         });
 
@@ -675,7 +684,7 @@
                     <span class="status-badge" style="color:${color}">${resText}</span>
                     <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
                     <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
-                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake}$</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim);">L: ${item.league || '-'} | Cuota: ${item.odds} | Stake: ${item.stake}$</div>
                     <div style="margin-top:10px; display:flex; gap:8px;">
                         <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
                         <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
@@ -688,55 +697,58 @@
         document.getElementById('total-profit').style.color = runningProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
         document.getElementById('max-drawdown-hist').innerText = maxDD.toFixed(1) + "%";
         updateChart(chartData);
+        updateLeagueChart(profitsByLeague);
     }
 
     function exportToCSV() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         if(history.length === 0) { alert("No hay datos para exportar"); return; }
-        
-        // Personalización de columnas: Date, League, Match, Market, Odds, Stake, Status, Net Profit, Yield%
         let csv = "FECHA,LIGA,PARTIDO,MERCADO,CUOTA,STAKE,ESTADO,NET_PROFIT,YIELD_PCT\n";
-        
         history.forEach(p => {
-            let profit = 0;
-            let yieldPct = 0;
-            if(p.status === 'win') {
-                profit = (p.odds - 1) * p.stake;
-                yieldPct = (p.odds - 1) * 100;
-            } else if(p.status === 'loss') {
-                profit = -p.stake;
-                yieldPct = -100;
-            }
-            
-            const row = [
-                p.date,
-                p.league || "N/A",
-                p.teams.replace(/,/g, ' vs '),
-                p.name.replace(/,/g, ' '),
-                p.odds,
-                p.stake,
-                p.status.toUpperCase(),
-                profit.toFixed(2),
-                yieldPct.toFixed(1) + "%"
-            ];
+            let profit = 0, yieldPct = 0;
+            if(p.status === 'win') { profit = (p.odds - 1) * p.stake; yieldPct = (p.odds - 1) * 100; }
+            else if(p.status === 'loss') { profit = -p.stake; yieldPct = -100; }
+            const row = [p.date, p.league || "N/A", p.teams.replace(/,/g, ' vs '), p.name.replace(/,/g, ' '), p.odds, p.stake, p.status.toUpperCase(), profit.toFixed(2), yieldPct.toFixed(1) + "%"];
             csv += row.join(",") + "\n";
         });
-
         const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.setAttribute('hidden', '');
-        a.setAttribute('href', url);
-        a.setAttribute('download', `QUANTUM_PRO_AUDIT_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        a.setAttribute('hidden', ''); a.setAttribute('href', url); a.setAttribute('download', `QUANTUM_PRO_AUDIT_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
     function updateChart(data) {
         const ctx = document.getElementById('profitChart').getContext('2d');
         if(chartInstance) chartInstance.destroy();
         chartInstance = new Chart(ctx, { type: 'line', data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } } } } });
+    }
+
+    function updateLeagueChart(profits) {
+        const ctx = document.getElementById('leagueChart').getContext('2d');
+        if(leagueChartInstance) leagueChartInstance.destroy();
+        const labels = Object.keys(profits);
+        const values = Object.values(profits);
+        leagueChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: values.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.5)' : 'rgba(255, 77, 77, 0.5)'),
+                    borderColor: values.map(v => v >= 0 ? '#00ff88' : '#ff4d4d'),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } },
+                    x: { ticks: { color: '#7f9c93', font: { size: 8 } } }
+                }
+            }
+        });
     }
 
     function updateStatus(id, status) {
@@ -766,12 +778,11 @@
 
     function generateWeeklyReport() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        const initialBank = parseFloat(localStorage.getItem('q_pro_bank')) || 1000;
         const resolved = history.filter(p => p.status !== 'pending');
         if(resolved.length === 0) { alert("Sin apuestas resueltas."); return; }
-        let totalStaked = 0, totalProfit = 0, wins = 0, maxStake = 0, avgOdds = 0, marketStats = {}, streakCounter = 0, bestStreak = 0, worstStreak = 0;
+        let totalStaked = 0, totalProfit = 0, wins = 0, marketStats = {}, streakCounter = 0, bestStreak = 0, worstStreak = 0;
         resolved.reverse().forEach(p => {
-            totalStaked += p.stake; avgOdds += p.odds; if(p.stake > maxStake) maxStake = p.stake;
+            totalStaked += p.stake;
             if(!marketStats[p.name]) marketStats[p.name] = { w:0, l:0 };
             if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; marketStats[p.name].w++; if(streakCounter >= 0) streakCounter++; else streakCounter = 1; }
             else { totalProfit -= p.stake; marketStats[p.name].l++; if(streakCounter <= 0) streakCounter--; else streakCounter = -1; }
