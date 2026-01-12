@@ -10,7 +10,7 @@
         :root {
             --bg: #050d0a; --card: #101d18; --accent-gold: #FFD700; --accent-green: #00ff88;
             --text-main: #e0e7e4; --text-dim: #7f9c93; --border: #243a33; --delete: #ff4d4d;
-            --quantum-blue: #00ffff; --warning: #ff8800; --fire: #ff3300;
+            --quantum-blue: #00ffff; --warning: #ff8800; --fire: #ff3300; --surebet: #b300ff;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text-main); overflow: hidden; height: 100vh; }
@@ -108,6 +108,10 @@
         .guardian-alert { background: rgba(255, 77, 77, 0.15); border: 2px solid var(--delete); color: var(--delete); padding: 15px; border-radius: 12px; margin-bottom: 15px; display: none; text-align: center; }
         .guardian-active { display: block !important; animation: shake 0.5s; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        .arb-box { background: rgba(179, 0, 255, 0.1); border: 1px solid var(--surebet); border-radius: 8px; padding: 10px; margin-top: 10px; display: none; }
+        .arb-title { font-size: 0.7rem; color: var(--surebet); font-weight: bold; display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+        .arb-row { display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px; }
     </style>
 </head>
 <body>
@@ -322,11 +326,16 @@
             </div>
             <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
         </div>
+
+        <div id="arb-panel" class="arb-box">
+            <div class="arb-title"><i class="fa-solid fa-scale-balanced"></i> ARBITRAJE DETECTADO</div>
+            <div id="arb-details"></div>
+        </div>
         
         <div id="odds-container" class="multi-odds"></div>
 
-        <label style="font-size: 0.7rem;">STAKE FINAL ($):</label>
-        <input type="number" id="m-stake-money" placeholder="0.00">
+        <label style="font-size: 0.7rem;">STAKE TOTAL ($):</label>
+        <input type="number" id="m-stake-money" placeholder="0.00" oninput="liveUpdateOverround()">
         
         <button class="btn-main" onclick="savePick()">CONFIRMAR APUESTA</button>
         
@@ -519,6 +528,7 @@
         document.getElementById('m-name').innerText = name;
         document.getElementById('m-stake-money').value = "";
         document.getElementById('sniff-alert').style.display = 'none';
+        document.getElementById('arb-panel').style.display = 'none';
         document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
         const container = document.getElementById('odds-container');
         container.innerHTML = "";
@@ -535,16 +545,42 @@
         const o1 = parseFloat(document.getElementById('o1')?.value) || 0;
         const o2 = parseFloat(document.getElementById('o2')?.value) || 0;
         const o3 = parseFloat(document.getElementById('o3')?.value) || 0;
+        const totalStake = parseFloat(document.getElementById('m-stake-money')?.value) || 0;
+        
         let sum = 0; if(o1 > 1) sum += (1/o1); if(o2 > 1) sum += (1/o2); if(o3 > 1) sum += (1/o3);
         if(sum === 0) return;
+        
         const overround = ((sum - 1) * 100).toFixed(2);
         const liveOv = document.getElementById('live-overround');
         liveOv.innerText = overround + "%";
+        
         const bar = document.getElementById('ov-bar');
-        bar.style.width = Math.min(overround * 5, 100) + "%";
-        if(overround > 8) { bar.style.background = "var(--delete)"; liveOv.style.color = "var(--delete)"; }
-        else if(overround > 5) { bar.style.background = "var(--warning)"; liveOv.style.color = "var(--warning)"; }
-        else { bar.style.background = "var(--accent-green)"; liveOv.style.color = "var(--accent-green)"; }
+        bar.style.width = Math.min(Math.abs(overround) * 5, 100) + "%";
+        
+        // Calculadora de Arbitraje
+        const arbPanel = document.getElementById('arb-panel');
+        if(overround < 0) {
+            arbPanel.style.display = 'block';
+            bar.style.background = "var(--surebet)";
+            liveOv.style.color = "var(--surebet)";
+            
+            if(totalStake > 0) {
+                const profit = ((totalStake / sum) - totalStake).toFixed(2);
+                let arbHTML = `<div class="arb-row" style="color:var(--accent-green); font-weight:bold;"><span>Beneficio Seguro:</span><span>${profit}$</span></div>`;
+                arbHTML += `<div class="arb-row"><span>Stake en O1:</span><span>${((1/o1)/sum * totalStake).toFixed(2)}$</span></div>`;
+                arbHTML += `<div class="arb-row"><span>Stake en O2:</span><span>${((1/o2)/sum * totalStake).toFixed(2)}$</span></div>`;
+                if(o3 > 1) arbHTML += `<div class="arb-row"><span>Stake en O3:</span><span>${((1/o3)/sum * totalStake).toFixed(2)}$</span></div>`;
+                document.getElementById('arb-details').innerHTML = arbHTML;
+            } else {
+                document.getElementById('arb-details').innerHTML = `<div style="font-size:0.6rem; color:var(--text-dim)">Ingresa un Stake Total para ver la distribución.</div>`;
+            }
+        } else {
+            arbPanel.style.display = 'none';
+            if(overround > 8) { bar.style.background = "var(--delete)"; liveOv.style.color = "var(--delete)"; }
+            else if(overround > 5) { bar.style.background = "var(--warning)"; liveOv.style.color = "var(--warning)"; }
+            else { bar.style.background = "var(--accent-green)"; liveOv.style.color = "var(--accent-green)"; }
+        }
+
         if(o1 > 1) {
             const prob = selectedPick.prob / 100;
             const bank = parseFloat(document.getElementById('user-bank').value) || 0;
@@ -570,8 +606,12 @@
             let kelly = (((o1 - 1) * prob) - (1 - prob)) / (o1 - 1);
             let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
             kellyLabel.innerText = tagText;
-            document.getElementById('kelly-suggestion').innerText = (bank * kFrac).toFixed(2) + " $";
-            document.getElementById('m-stake-money').value = (bank * kFrac).toFixed(2);
+            
+            // Si hay surebet, sugerimos usar el stake total de la surebet en lugar de Kelly
+            if(overround >= 0) {
+                document.getElementById('kelly-suggestion').innerText = (bank * kFrac).toFixed(2) + " $";
+                if(totalStake === 0) document.getElementById('m-stake-money').value = (bank * kFrac).toFixed(2);
+            }
         }
     }
 
