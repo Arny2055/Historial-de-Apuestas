@@ -334,8 +334,8 @@
         
         <div id="odds-container" class="multi-odds"></div>
 
-        <label style="font-size: 0.7rem;">STAKE TOTAL ($):</label>
-        <input type="number" id="m-stake-money" placeholder="0.00" oninput="liveUpdateOverround()">
+        <label style="font-size: 0.7rem;">STAKE PERSONALIZADO ($):</label>
+        <input type="number" id="m-stake-money" placeholder="Dejar vacío para usar sugerencia" oninput="liveUpdateOverround()">
         
         <button class="btn-main" onclick="savePick()">CONFIRMAR APUESTA</button>
         
@@ -374,6 +374,7 @@
 <script>
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, isPanic = false;
     let guardianForcedReset = false;
+    let lastSuggestedKelly = 0; // Nueva variable para capturar la sugerencia actual
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
     window.onload = () => {
@@ -606,19 +607,30 @@
             let kFrac = Math.max(0, Math.min(0.10, kelly * multiplier));
             kellyLabel.innerText = tagText;
             
+            lastSuggestedKelly = (bank * kFrac); // Guardamos la sugerencia calculada
+            
             if(overround >= 0) {
-                document.getElementById('kelly-suggestion').innerText = (bank * kFrac).toFixed(2) + " $";
-                if(totalStake === 0) document.getElementById('m-stake-money').value = (bank * kFrac).toFixed(2);
+                document.getElementById('kelly-suggestion').innerText = lastSuggestedKelly.toFixed(2) + " $";
             }
         }
     }
 
     function savePick() {
         const odds = parseFloat(document.getElementById('o1').value);
-        const stake = parseFloat(document.getElementById('m-stake-money').value);
-        if(!odds || !stake) return;
+        let stake = parseFloat(document.getElementById('m-stake-money').value);
+        
+        // GESTIÓN AUTOMÁTICA: Si el usuario no escribe un stake, usa la sugerencia calculada
+        if(isNaN(stake) || stake <= 0) {
+            stake = lastSuggestedKelly;
+        }
+
+        if(!odds || stake <= 0) {
+            alert("Error: Debes ingresar una cuota válida y el stake no puede ser 0.");
+            return;
+        }
+
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift({ ...selectedPick, odds, stake, status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
+        history.unshift({ ...selectedPick, odds, stake: parseFloat(stake.toFixed(2)), status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
@@ -746,7 +758,6 @@
             avgOdds += p.odds;
             if(p.stake > maxStake) maxStake = p.stake;
             
-            // Stats por mercado
             if(!marketStats[p.name]) marketStats[p.name] = { w:0, l:0, p:0 };
             
             if(p.status === 'win') {
