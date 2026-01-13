@@ -11,6 +11,7 @@
             --bg: #050d0a; --card: #101d18; --accent-gold: #FFD700; --accent-green: #00ff88;
             --text-main: #e0e7e4; --text-dim: #7f9c93; --border: #243a33; --delete: #ff4d4d;
             --quantum-blue: #00ffff; --warning: #ff8800; --fire: #ff3300; --surebet: #b300ff;
+            --sharp-purple: #9d00ff;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text-main); overflow: hidden; height: 100vh; }
@@ -58,7 +59,7 @@
         .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; text-decoration: none; }
         .tab-item.active { color: var(--accent-gold); }
 
-        #setup-screen, #dashboard-screen, #history-screen, #backtest-screen { display: none; height: 100%; }
+        #setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen { display: none; height: 100%; }
         .active-screen { display: block !important; }
 
         .history-item { background: var(--card); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--border); position: relative; }
@@ -112,6 +113,20 @@
         .arb-box { background: rgba(179, 0, 255, 0.1); border: 1px solid var(--surebet); border-radius: 8px; padding: 10px; margin-top: 10px; display: none; }
         .arb-title { font-size: 0.7rem; color: var(--surebet); font-weight: bold; display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
         .arb-row { display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px; }
+
+        .card-metrics { display: flex; gap: 5px; margin-top: 5px; }
+        .metric-badge { font-size: 0.55rem; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
+        .badge-edge { background: rgba(0, 255, 136, 0.1); color: var(--accent-green); border: 1px solid rgba(0, 255, 136, 0.2); }
+        .badge-ov { background: rgba(0, 255, 255, 0.1); color: var(--quantum-blue); border: 1px solid rgba(0, 255, 255, 0.2); }
+
+        /* Estilos Guía */
+        .guide-section { margin-bottom: 20px; border-left: 2px solid var(--accent-gold); padding-left: 10px; }
+        .guide-h3 { color: var(--accent-gold); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 5px; }
+        .guide-p { font-size: 0.75rem; color: var(--text-dim); line-height: 1.4; margin: 5px 0; }
+        .guide-tag { display: inline-block; padding: 2px 5px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 5px; }
+        
+        .strategy-card { background: linear-gradient(145, #1a2a24, #101d18); border: 1px solid var(--sharp-purple); padding: 15px; border-radius: 12px; margin-top: 15px; }
+        .sharp-title { color: var(--sharp-purple); font-weight: 900; font-size: 0.8rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -201,7 +216,8 @@
     <div class="tab-bar">
         <div class="tab-item active" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen'); loadHistory();"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BACKTEST</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
     </div>
 </div>
@@ -248,7 +264,8 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item active" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BACKTEST</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
     </div>
 </div>
@@ -305,7 +322,55 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item active" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BACKTEST</span></div>
+        <div class="tab-item active" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
+        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
+    </div>
+</div>
+
+<div id="guide-screen">
+    <div class="header-box"><h2>GUÍA DE OPERACIÓN PRO</h2></div>
+    <div class="scroll-content">
+        <div class="guide-section">
+            <h3 class="guide-h3"><i class="fa-solid fa-play"></i> Cómo empezar</h3>
+            <p class="guide-p">1. Ajusta tu <b>Banca Actual</b> en la pestaña Nuevo. Esto es vital para el cálculo del Stake.</p>
+            <p class="guide-p">2. Selecciona una liga y pulsa <b>Sincronizar Cloud</b>. El motor traerá las estadísticas más recientes.</p>
+            <p class="guide-p">3. Elige los equipos y pulsa <b>Analizar Partido</b> para ver las probabilidades de Poisson.</p>
+        </div>
+
+        <div class="strategy-card">
+            <div class="sharp-title"><i class="fa-solid fa-bolt"></i> PROTOCOLO DE ÉLITE: "THE SYNDICATE"</div>
+            <p class="guide-p" style="color: #fff; font-size: 0.8rem; border-bottom: 1px solid var(--sharp-purple); padding-bottom: 8px;">Esta es la estrategia utilizada por los sindicatos de apuestas en Londres para mantener un Yield del 8-12% constante:</p>
+            <p class="guide-p"><b>1. La Regla de los 15 Minutos:</b> Compara la cuota de Quantum Engine con la cuota de cierre (Closing Line) de Pinnacle. Si tu cuota es mayor que la de cierre y Quantum tiene Edge > 4%, apuesta <b>Stake Doble</b>.</p>
+            <p class="guide-p"><b>2. Filtro de Liquidez:</b> Solo opera en ligas donde el Overround sea <b>menor al 3.5%</b>. Los mercados con altos márgenes son trampas estadísticas.</p>
+            <p class="guide-p"><b>3. El Sesgo del Empate:</b> En Poisson, si el Empate (X) tiene una probabilidad > 28% y la cuota de mercado es > 3.60, históricamente es el mercado con mayor retorno de inversión (ROI) a largo plazo.</p>
+            <p class="guide-p"><b>4. Anti-Tilt:</b> Nunca realices más de 3 apuestas simultáneas. El riesgo de correlación puede destruir tu banca en un solo set de partidos.</p>
+        </div>
+
+        <div class="guide-section">
+            <h3 class="guide-h3"><i class="fa-solid fa-brain"></i> Conceptos Clave</h3>
+            <p class="guide-p"><span class="guide-tag" style="background:var(--accent-green); color:#000;">EDGE</span> La ventaja matemática sobre la casa. Si el Edge es > 3%, hay valor. Si es > 15%, ten cuidado (cuota mal puesta o error de data).</p>
+            <p class="guide-p"><span class="guide-tag" style="background:var(--quantum-blue); color:#000;">OVERROUND</span> El margen de beneficio de la casa. Un Overround < 5% indica un mercado eficiente. Si es negativo (< 0%), es una <b>Arbitraje/Surebet</b>.</p>
+            <p class="guide-p"><span class="guide-tag" style="background:var(--accent-gold); color:#000;">CRITERIO KELLY</span> Fórmula que calcula cuánto dinero arriesgar basándose en tu ventaja. Usamos "Fractional Kelly" (25%) para proteger tu banca.</p>
+        </div>
+
+        <div class="guide-section">
+            <h3 class="guide-h3"><i class="fa-solid fa-shield-virus"></i> Gestión de Riesgo</h3>
+            <p class="guide-p"><b>Modo Pánico:</b> Reduce a la mitad todos los riesgos. Actívalo si estás en una mala racha.</p>
+            <p class="guide-p"><b>Guardian Alert:</b> Si pierdes el 15% de tu banca en un solo día, el sistema bloqueará nuevos análisis para protegerte del "Tilt".</p>
+        </div>
+
+        <div class="guide-section">
+            <h3 class="guide-h3"><i class="fa-solid fa-microchip"></i> Auditoría Legend</h3>
+            <p class="guide-p"><b>Z-Score:</b> Mide si tus resultados son suerte o habilidad. Un Z-Score > 2.0 indica que tu sistema es estadísticamente ganador.</p>
+            <p class="guide-p"><b>Sharpe Ratio:</b> Indica si tu beneficio compensa el riesgo que tomas.</p>
+        </div>
+    </div>
+    <div class="tab-bar">
+        <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
+        <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item active" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
     </div>
 </div>
@@ -388,6 +453,9 @@
     let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, teamChartInstance=null, isPanic = false;
     let guardianForcedReset = false;
     let lastSuggestedKelly = 0;
+    let currentLiveOverround = 0; 
+    let currentLiveEdge = 0; 
+
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
     window.onload = () => {
@@ -545,6 +613,10 @@
         document.getElementById('sniff-alert').style.display = 'none';
         document.getElementById('arb-panel').style.display = 'none';
         document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
+        
+        currentLiveOverround = 0;
+        currentLiveEdge = 0;
+
         const container = document.getElementById('odds-container');
         container.innerHTML = "";
         const isThreeWay = name.includes('(1)') || name.includes('(X)') || name.includes('(2)');
@@ -566,6 +638,7 @@
         if(sum === 0) return;
         
         const overround = ((sum - 1) * 100).toFixed(2);
+        currentLiveOverround = overround;
         const liveOv = document.getElementById('live-overround');
         liveOv.innerText = overround + "%";
         
@@ -597,6 +670,7 @@
             const prob = selectedPick.prob / 100;
             const bank = parseFloat(document.getElementById('user-bank').value) || 1000;
             const edge = ((prob * o1) - 1) * 100;
+            currentLiveEdge = edge.toFixed(1);
             const sniff = document.getElementById('sniff-alert');
             const kellyLabel = document.getElementById('kelly-label-tag');
             let multiplier = 0.25; 
@@ -631,7 +705,18 @@
         if(isNaN(stake) || stake <= 0) stake = lastSuggestedKelly;
         if(!odds || stake <= 0) { alert("Error: Cuota inválida o Stake 0"); return; }
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift({ ...selectedPick, odds, stake: parseFloat(stake.toFixed(2)), status: 'pending', id: Date.now(), date: new Date().toLocaleDateString() });
+        
+        history.unshift({ 
+            ...selectedPick, 
+            odds, 
+            stake: parseFloat(stake.toFixed(2)), 
+            status: 'pending', 
+            id: Date.now(), 
+            date: new Date().toLocaleDateString(),
+            savedEdge: currentLiveEdge,
+            savedOv: currentLiveOverround
+        });
+        
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
@@ -687,11 +772,24 @@
         container.innerHTML = history.length ? history.map(item => {
             let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
             let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
+            
+            let metricsHTML = '';
+            if(item.savedEdge !== undefined) {
+                metricsHTML = `
+                <div class="card-metrics">
+                    <span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span>
+                    <span class="metric-badge badge-ov">OV: ${item.savedOv}%</span>
+                </div>`;
+            }
+
             return `<div class="history-item ${item.status}">
                     <span class="status-badge" style="color:${color}">${resText}</span>
                     <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
                     <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
                     <div style="font-size:0.7rem; color:var(--text-dim);">L: ${item.league || '-'} | Cuota: ${item.odds} | Stake: ${item.stake}$</div>
+                    
+                    ${metricsHTML}
+
                     <div style="margin-top:10px; display:flex; gap:8px;">
                         <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
                         <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
@@ -731,7 +829,7 @@
     function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist')).filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
     function clearHistory() { if(confirm("¿Borrar TODO?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-    function nav(id) { document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen, #backtest-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
+    function nav(id) { document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
 
     function openSessionModal() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
@@ -755,21 +853,28 @@
         let totalStaked = 0, totalProfit = 0, wins = 0, expectedValue = 0;
         let pArray = [], streak = 0, maxW = 0, maxL = 0;
         let marketStats = {};
+        let lowOddsProf = 0, highOddsProf = 0;
 
         resolved.reverse().forEach(p => {
             totalStaked += p.stake;
             const evP = (p.prob / 100) * (p.odds - 1) * p.stake - (1 - (p.prob/100)) * p.stake;
             expectedValue += evP;
 
+            let currentChange = 0;
             if(p.status === 'win') {
-                totalProfit += (p.odds - 1) * p.stake;
+                currentChange = (p.odds - 1) * p.stake;
+                totalProfit += currentChange;
                 wins++; streak = (streak < 0) ? 1 : streak + 1;
                 if(streak > maxW) maxW = streak;
             } else {
+                currentChange = -p.stake;
                 totalProfit -= p.stake;
                 streak = (streak > 0) ? -1 : streak - 1;
                 if(Math.abs(streak) > maxL) maxL = Math.abs(streak);
             }
+            
+            if(p.odds < 2.0) lowOddsProf += currentChange; else highOddsProf += currentChange;
+
             pArray.push(totalProfit);
             if(!marketStats[p.name]) marketStats[p.name] = { w:0, t:0, p:0 };
             marketStats[p.name].t++;
@@ -777,17 +882,40 @@
             else marketStats[p.name].p -= p.stake;
         });
 
-        // Cálculo de Sharp Metrics
+        const n = resolved.length;
         const yieldPct = (totalProfit / totalStaked) * 100;
-        const winRate = (wins / resolved.length) * 100;
-        const avgOdds = resolved.reduce((a, b) => a + b.odds, 0) / resolved.length;
+        const winRate = (wins / n) * 100;
+        const avgOdds = resolved.reduce((a, b) => a + b.odds, 0) / n;
         const eYield = (expectedValue / totalStaked) * 100;
         
-        // Z-Score (Aproximación para suerte vs sistema)
-        const n = resolved.length;
-        const p = wins / n;
+        const p_hit = wins / n;
         const e = 1 / avgOdds;
-        const zScore = (n * (p - e)) / Math.sqrt(n * e * (1 - e));
+        const zScore = (n * (p_hit - e)) / Math.sqrt(n * e * (1 - e));
+        
+        const pValue = 1 - (0.5 * (1 + Math.tanh(0.798 * (zScore + 0.035 * Math.pow(zScore, 3)))));
+        
+        const stdDev = Math.sqrt(resolved.reduce((a, b) => {
+            let res = (b.status === 'win' ? (b.odds-1)*b.stake : -b.stake);
+            return a + Math.pow(res - (totalProfit/n), 2);
+        }, 0) / n);
+        const sharpe = stdDev > 0 ? (totalProfit / n) / stdDev : 0;
+
+        const ruinProb = Math.pow((1 - Math.abs(yieldPct/100)) / (1 + Math.abs(yieldPct/100)), 10) * 100;
+        const monteCarlo = totalProfit + (expectedValue * 2);
+        const sqi = eYield !== 0 ? (yieldPct / eYield).toFixed(2) : "0.00";
+        const coefVar = totalProfit !== 0 ? (stdDev / Math.abs(totalProfit / n)).toFixed(2) : "0.00";
+        const compound100 = (totalStaked / n > 0) ? (Math.pow(1 + (yieldPct/100), 100) * (totalStaked/n)).toFixed(0) : "0";
+
+        let nextLevelText = "";
+        if (zScore < 2.0 && n > 0) {
+            const numerator = (Math.pow(2.0, 2) * e * (1 - e));
+            const denominator = Math.pow((p_hit - e), 2);
+            const nNeeded = Math.ceil(numerator / denominator);
+            const remaining = nNeeded - n;
+            nextLevelText = p_hit > e ? `🚀 OBJETIVO PRO: Faltan ~${remaining > 0 ? remaining : 1} picks para Z=2.0` : `⚠️ MEJORA EL EDGE: WR insuficiente para Z=2.0`;
+        } else if (zScore >= 2.0) {
+            nextLevelText = `✅ ESTATUS PRO: Sistema estadísticamente sólido.`;
+        }
 
         let marketText = ""; 
         for(let m in marketStats) { 
@@ -801,12 +929,28 @@
 📈 YIELD REAL:    ${yieldPct.toFixed(2)}%
 🎯 WIN RATE:      ${winRate.toFixed(1)}% (N=${n})
 ---------------------------------
-[ MÉTRICAS SHARP BETTING ]
-💎 VALUE EXPECTED: ${expectedValue.toFixed(2)}$
-📊 YIELD ESP (EV): ${eYield.toFixed(2)}%
+[ ROBUSTEZ ESTADÍSTICA ]
 ⚡ Z-SCORE:        ${zScore.toFixed(2)} ${zScore > 2 ? '(!) SISTEMA' : '(?) SUERTE'}
-📉 MAX DD (EST):   ${maxL} Ls Seguidas
-🔥 RACHA MAX:     +${maxW} Ws Seguidas
+🧬 P-VALUE:        ${pValue.toFixed(4)} (${pValue < 0.05 ? 'SIGNIFICATIVO' : 'ALEATORIO'})
+📊 RATIO SHARPE:   ${sharpe.toFixed(2)} (Eficiencia de riesgo)
+💎 SQI (Quality):  ${sqi} (>1.0: Outperforming Poisson)
+${nextLevelText}
+---------------------------------
+[ GESTIÓN DE RIESGO ]
+💀 FACTOR RUINA:   ${ruinProb.toFixed(2)}% (Prob. Quiebra)
+📉 DD TEMPORAL:    ${maxL} Picks seguidos en negativo
+💎 VALUE ESP (EV): ${expectedValue.toFixed(2)}$
+📊 YIELD ESP (EV): ${eYield.toFixed(2)}%
+🌀 COEF. VAR:      ${coefVar} (Estabilidad de curva)
+---------------------------------
+[ PSICOLOGÍA Y SESGOS ]
+⚖️ SESGO FAVORITOS (<2.00): ${lowOddsProf.toFixed(1)}$
+⚖️ SESGO SORPRESAS (>2.00): ${highOddsProf.toFixed(1)}$
+---------------------------------
+[ PROYECCIONES FUTURAS ]
+🎲 MONTE CARLO (EST): ${monteCarlo.toFixed(2)}$ a 30 días
+📈 POTENCIAL COMP.:   x${(compound100/ (totalStaked/n || 1)).toFixed(1)} a 100 picks
+🏆 TIER ACTUAL: ${zScore > 3 ? 'ELITE SHARP' : (zScore > 2 ? 'PRO' : 'AMATEUR')}
 ---------------------------------
 [ RENDIMIENTO POR MERCADO ]
 ${marketText}
@@ -818,6 +962,24 @@ SCORE GLOBAL: ${((yieldPct * 0.4) + (winRate * 0.4) + (zScore * 20)).toFixed(0)}
     }
 
     function copyReport() { navigator.clipboard.writeText(document.getElementById('report-text').innerText).then(() => alert("Copiado")); }
+
+    function exportToCSV() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        if(!history.length) return alert("Historial vacío");
+        let csv = "Fecha,Equipos,Mercado,Cuota,Stake,Estado,Edge,Overround\n";
+        history.forEach(p => {
+            csv += `${p.date},"${p.teams}","${p.name}",${p.odds},${p.stake},${p.status},${p.savedEdge || 0},${p.savedOv || 0}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'quantum_control.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
 
     function runBacktest() {
         if(!window.currentProbs) { alert("Analice un partido primero"); return; }
