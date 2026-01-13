@@ -761,11 +761,19 @@
             } else { sniff.style.display = 'none'; }
 
             let bank = parseFloat(document.getElementById('user-bank').value) || 1000;
-            let mult = isPanic ? 0.125 : 0.25;
+            
+            // Lógica de Reducción de Stake si el Edge es sospechoso (>15%)
+            let mult = isPanic ? 0.125 : 0.25; 
+            if (edge > 15) {
+                mult = 0.05; // Baja al 5% si el edge es sospechoso
+                kellyLabel.innerText = "Edge Sospechoso (Kelly 5%)";
+            } else {
+                kellyLabel.innerText = isPanic ? "Fractional Kelly (Pánic 12%)" : "Fractional Kelly (25%)";
+            }
+
             let kelly = (((inputOdds - 1) * targetProb) - (1 - targetProb)) / (inputOdds - 1);
             lastSuggestedKelly = Math.max(0, bank * kelly * mult);
             document.getElementById('kelly-suggestion').innerText = lastSuggestedKelly.toFixed(2) + " $";
-            kellyLabel.innerText = isPanic ? "Fractional Kelly (Pánic 12%)" : "Fractional Kelly (25%)";
         }
     }
 
