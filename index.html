@@ -858,6 +858,14 @@
         // Proyección Monte Carlo (Simple)
         const monteCarlo = totalProfit + (expectedValue * 2); // Proyección a +200% volumen
 
+        // --- NUEVAS MÉTRICAS TOP ---
+        // 1. SQI: Selection Quality Index (Relación Yield Real vs Yield Esperado)
+        const sqi = eYield !== 0 ? (yieldPct / eYield).toFixed(2) : "0.00";
+        // 2. Coeficiente de Variación (Estabilidad de la banca)
+        const coefVar = totalProfit !== 0 ? (stdDev / Math.abs(totalProfit / n)).toFixed(2) : "0.00";
+        // 3. Proyección Compuesta a 100 Picks (Potencial de escalabilidad)
+        const compound100 = (totalStaked / n > 0) ? (Math.pow(1 + (yieldPct/100), 100) * (totalStaked/n)).toFixed(0) : "0";
+
         let nextLevelText = "";
         if (zScore < 2.0 && n > 0) {
             const numerator = (Math.pow(2.0, 2) * e * (1 - e));
@@ -885,6 +893,7 @@
 ⚡ Z-SCORE:        ${zScore.toFixed(2)} ${zScore > 2 ? '(!) SISTEMA' : '(?) SUERTE'}
 🧬 P-VALUE:        ${pValue.toFixed(4)} (${pValue < 0.05 ? 'SIGNIFICATIVO' : 'ALEATORIO'})
 📊 RATIO SHARPE:   ${sharpe.toFixed(2)} (Eficiencia de riesgo)
+💎 SQI (Quality):  ${sqi} (>1.0: Outperforming Poisson)
 ${nextLevelText}
 ---------------------------------
 [ GESTIÓN DE RIESGO ]
@@ -892,6 +901,7 @@ ${nextLevelText}
 📉 DD TEMPORAL:    ${maxL} Picks seguidos en negativo
 💎 VALUE ESP (EV): ${expectedValue.toFixed(2)}$
 📊 YIELD ESP (EV): ${eYield.toFixed(2)}%
+🌀 COEF. VAR:      ${coefVar} (Estabilidad de curva)
 ---------------------------------
 [ PSICOLOGÍA Y SESGOS ]
 ⚖️ SESGO FAVORITOS (<2.00): ${lowOddsProf.toFixed(1)}$
@@ -899,6 +909,7 @@ ${nextLevelText}
 ---------------------------------
 [ PROYECCIONES FUTURAS ]
 🎲 MONTE CARLO (EST): ${monteCarlo.toFixed(2)}$ a 30 días
+📈 POTENCIAL COMP.:   x${(compound100/ (totalStaked/n || 1)).toFixed(1)} a 100 picks
 🏆 TIER ACTUAL: ${zScore > 3 ? 'ELITE SHARP' : (zScore > 2 ? 'PRO' : 'AMATEUR')}
 ---------------------------------
 [ RENDIMIENTO POR MERCADO ]
