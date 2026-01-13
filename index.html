@@ -256,6 +256,17 @@
                     </select>
                 </div>
                 <div class="filter-item">
+                    <label>Mercado</label>
+                    <select id="filter-market" onchange="loadHistory()">
+                        <option value="all">Todos</option>
+                        <option value="Local (1)">Victoria Local</option>
+                        <option value="Empate (X)">Empate</option>
+                        <option value="Visita (2)">Victoria Visita</option>
+                        <option value="2.5 Goles">Over/Under 2.5</option>
+                        <option value="Ambos Marcan">Ambos Marcan</option>
+                    </select>
+                </div>
+                <div class="filter-item">
                     <label>Edge Mín (%)</label>
                     <input type="number" id="filter-edge" value="0" step="1" oninput="loadHistory()">
                 </div>
@@ -804,6 +815,7 @@
         
         // Obtener valores de los filtros
         const fLeague = document.getElementById('filter-league').value;
+        const fMarket = document.getElementById('filter-market').value;
         const fEdge = parseFloat(document.getElementById('filter-edge').value) || 0;
         const fOddsMin = parseFloat(document.getElementById('filter-odds-min').value) || 0;
         const fOddsMax = parseFloat(document.getElementById('filter-odds-max').value) || 999;
@@ -818,12 +830,13 @@
         [...history].reverse().forEach(item => {
             // Aplicar filtros dinámicos
             const passLeague = fLeague === 'all' || item.league === fLeague;
+            const passMarket = fMarket === 'all' || item.name.includes(fMarket);
             const passEdge = (item.savedEdge || 0) >= fEdge;
             const passOdds = item.odds >= fOddsMin && item.odds <= fOddsMax;
             const passOv = (item.savedOv || 0) <= fOvMax;
             const passFair = (item.fair || 0) <= fFairMax;
 
-            if (passLeague && passEdge && passOdds && passOv && passFair) {
+            if (passLeague && passMarket && passEdge && passOdds && passOv && passFair) {
                 let pChange = 0;
                 if(item.status === 'win') { 
                     pChange = (item.odds - 1) * item.stake; 
@@ -865,6 +878,16 @@
         }
 
         container.innerHTML = history.length ? history.map(item => {
+            // Aplicar filtros visuales a la lista
+            const passLeague = fLeague === 'all' || item.league === fLeague;
+            const passMarket = fMarket === 'all' || item.name.includes(fMarket);
+            const passEdge = (item.savedEdge || 0) >= fEdge;
+            const passOdds = item.odds >= fOddsMin && item.odds <= fOddsMax;
+            const passOv = (item.savedOv || 0) <= fOvMax;
+            const passFair = (item.fair || 0) <= fFairMax;
+
+            if (!(passLeague && passMarket && passEdge && passOdds && passOv && passFair)) return '';
+
             let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
             let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
             let metricsHTML = item.savedEdge !== undefined ? `<div class="card-metrics"><span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span><span class="metric-badge badge-ov">OV: ${item.savedOv}%</span></div>` : '';
