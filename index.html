@@ -826,9 +826,29 @@
         const eYield = (expectedValue / totalStaked) * 100;
         
         const n = resolved.length;
-        const p = wins / n;
+        const p_hit = wins / n;
         const e = 1 / avgOdds;
-        const zScore = (n * (p - e)) / Math.sqrt(n * e * (1 - e));
+        const zScore = (n * (p_hit - e)) / Math.sqrt(n * e * (1 - e));
+
+        // --- NUEVA LÓGICA: CÁLCULO DE N PARA Z=2.0 ---
+        let nextLevelText = "";
+        if (zScore < 2.0 && n > 0) {
+            // Re-arreglamos la fórmula del Z-score para despejar N necesario
+            // N = (Z^2 * e * (1-e)) / (p-e)^2
+            const numerator = (Math.pow(2.0, 2) * e * (1 - e));
+            const denominator = Math.pow((p_hit - e), 2);
+            const nNeeded = Math.ceil(numerator / denominator);
+            const remaining = nNeeded - n;
+            
+            if (p_hit > e) {
+                nextLevelText = `🚀 OBJETIVO PRO: Faltan ~${remaining > 0 ? remaining : 1} picks con este ritmo para Z=2.0`;
+            } else {
+                nextLevelText = `⚠️ MEJORA EL EDGE: Tu Win Rate actual no proyecta un Z=2.0`;
+            }
+        } else if (zScore >= 2.0) {
+            nextLevelText = `✅ ESTATUS PRO: Tu sistema es estadísticamente sólido.`;
+        }
+        // ---------------------------------------------
 
         let marketText = ""; 
         for(let m in marketStats) { 
@@ -846,6 +866,7 @@
 💎 VALUE EXPECTED: ${expectedValue.toFixed(2)}$
 📊 YIELD ESP (EV): ${eYield.toFixed(2)}%
 ⚡ Z-SCORE:        ${zScore.toFixed(2)} ${zScore > 2 ? '(!) SISTEMA' : '(?) SUERTE'}
+${nextLevelText}
 📉 MAX DD (EST):   ${maxL} Ls Seguidas
 🔥 RACHA MAX:     +${maxW} Ws Seguidas
 ---------------------------------
