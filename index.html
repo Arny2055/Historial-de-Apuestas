@@ -127,6 +127,11 @@
         
         .strategy-card { background: linear-gradient(145, #1a2a24, #101d18); border: 1px solid var(--sharp-purple); padding: 15px; border-radius: 12px; margin-top: 15px; }
         .sharp-title { color: var(--sharp-purple); font-weight: 900; font-size: 0.8rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
+        /* Nuevos estilos para la auditoría de reglas */
+        .rule-status { font-size: 0.55rem; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-top: 4px; display: inline-block; }
+        .rule-pass { background: var(--accent-green); color: #000; }
+        .rule-fail { background: rgba(255,255,255,0.05); color: var(--text-dim); border: 1px solid var(--border); }
     </style>
 </head>
 <body>
@@ -187,6 +192,28 @@
             <i class="fa-solid fa-cloud-arrow-down"></i> SINCRONIZAR DESDE GOOGLE SHEETS
         </button>
         <div id="sync-info" class="sync-status">Sincronización Inteligente de Rangos</div>
+
+        <div class="card" style="border: 1px solid var(--quantum-blue); background: rgba(0, 255, 255, 0.02);">
+            <div style="font-size: 0.65rem; color: var(--quantum-blue); margin-bottom: 10px; font-weight: bold; text-transform: uppercase;">Cuotas de Mercado (Auditoría Real)</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>
+                    <label style="font-size: 0.55rem; color: var(--text-dim);">Over 2.5</label>
+                    <input type="number" id="in-o25" placeholder="Cuota" step="0.01">
+                </div>
+                <div>
+                    <label style="font-size: 0.55rem; color: var(--text-dim);">Under 2.5</label>
+                    <input type="number" id="in-u25" placeholder="Cuota" step="0.01">
+                </div>
+                <div>
+                    <label style="font-size: 0.55rem; color: var(--text-dim);">BTTS: SI</label>
+                    <input type="number" id="in-bsi" placeholder="Cuota" step="0.01">
+                </div>
+                <div>
+                    <label style="font-size: 0.55rem; color: var(--text-dim);">BTTS: NO</label>
+                    <input type="number" id="in-bno" placeholder="Cuota" step="0.01">
+                </div>
+            </div>
+        </div>
 
         <textarea id="hIn" placeholder="PEGAR DATOS LOCAL (TABLA)..."></textarea>
         <textarea id="vIn" placeholder="PEGAR DATOS VISITA (TABLA)..."></textarea>
@@ -597,11 +624,50 @@
 
     function renderResults(tH, tV, data) {
         document.getElementById('match-label').innerText = `${tH} vs ${tV}`;
+        
+        // Obtenemos cuotas de auditoría
+        const cO25 = parseFloat(document.getElementById('in-o25').value) || 0;
+        const cU25 = parseFloat(document.getElementById('in-u25').value) || 0;
+        const cBSi = parseFloat(document.getElementById('in-bsi').value) || 0;
+        const cBNo = parseFloat(document.getElementById('in-bno').value) || 0;
+
         let h = `<div class="card">`;
         for(let m in data) {
             const prob = data[m]; const fair = (100/prob).toFixed(2);
+            
+            // Lógica de auditoría de reglas
+            let ruleText = "";
+            let marketOdds = 0;
+            let marketOverround = 100;
+
+            if(m === 'Más de 2.5 Goles' && cO25 > 1 && cU25 > 1) {
+                marketOdds = cO25;
+                marketOverround = ((1/cO25 + 1/cU25) - 1) * 100;
+            } else if(m === 'Menos de 2.5 Goles' && cO25 > 1 && cU25 > 1) {
+                marketOdds = cU25;
+                marketOverround = ((1/cO25 + 1/cU25) - 1) * 100;
+            } else if(m === 'Ambos Marcan: SI' && cBSi > 1 && cBNo > 1) {
+                marketOdds = cBSi;
+                marketOverround = ((1/cBSi + 1/cBNo) - 1) * 100;
+            } else if(m === 'Ambos Marcan: NO' && cBSi > 1 && cBNo > 1) {
+                marketOdds = cBNo;
+                marketOverround = ((1/cBSi + 1/cBNo) - 1) * 100;
+            }
+
+            if(marketOdds > 1) {
+                const edge = ((prob/100 * marketOdds) - 1) * 100;
+                if(edge >= 3 && edge <= 15 && marketOverround <= 8) {
+                    ruleText = `<span class="rule-status rule-pass">RULE COMPLIANT (E:${edge.toFixed(1)}% OV:${marketOverround.toFixed(1)}%)</span>`;
+                } else {
+                    ruleText = `<span class="rule-status rule-fail">NON COMPLIANT</span>`;
+                }
+            }
+
             h += `<div class="row ${prob > 55 ? 'value-hit' : ''}" onclick="openModal('${m}', ${fair}, '${tH} vs ${tV}', ${prob})">
-                    <div><span style="font-weight:bold;">${m}</span></div>
+                    <div>
+                        <span style="font-weight:bold;">${m}</span><br>
+                        ${ruleText}
+                    </div>
                     <div class="val-group"><span class="pct">${prob.toFixed(1)}%</span><span class="odds" style="font-size:0.7rem; color:var(--text-dim)">Justa: ${fair}</span></div>
                 </div>`;
         }
@@ -622,12 +688,21 @@
         const container = document.getElementById('odds-container');
         container.innerHTML = "";
         const isThreeWay = name.includes('(1)') || name.includes('(X)') || name.includes('(2)');
+        
+        // Precargar cuotas si existen en el setup
+        let preO1 = "", preO2 = "";
+        if(name === 'Más de 2.5 Goles') { preO1 = document.getElementById('in-o25').value; preO2 = document.getElementById('in-u25').value; }
+        else if(name === 'Menos de 2.5 Goles') { preO1 = document.getElementById('in-u25').value; preO2 = document.getElementById('in-o25').value; }
+        else if(name === 'Ambos Marcan: SI') { preO1 = document.getElementById('in-bsi').value; preO2 = document.getElementById('in-bno').value; }
+        else if(name === 'Ambos Marcan: NO') { preO1 = document.getElementById('in-bno').value; preO2 = document.getElementById('in-bsi').value; }
+
         if(isThreeWay) {
             container.innerHTML = `<label style="font-size:0.6rem">CUOTA 1</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()"><label style="font-size:0.6rem">CUOTA X</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()"><label style="font-size:0.6rem">CUOTA 2</label><input type="number" id="o3" step="0.01" oninput="liveUpdateOverround()">`;
         } else {
-            container.innerHTML = `<label style="font-size:0.6rem">CUOTA MERCADO</label><input type="number" id="o1" step="0.01" oninput="liveUpdateOverround()"><label style="font-size:0.6rem">CUOTA OPUESTA</label><input type="number" id="o2" step="0.01" oninput="liveUpdateOverround()">`;
+            container.innerHTML = `<label style="font-size:0.6rem">CUOTA MERCADO</label><input type="number" id="o1" value="${preO1}" step="0.01" oninput="liveUpdateOverround()"><label style="font-size:0.6rem">CUOTA OPUESTA</label><input type="number" id="o2" value="${preO2}" step="0.01" oninput="liveUpdateOverround()">`;
         }
         document.getElementById('pick-modal').style.display = 'flex';
+        if(preO1) liveUpdateOverround();
     }
 
     function liveUpdateOverround() {
