@@ -128,6 +128,13 @@
         .sharp-title { color: var(--sharp-purple); font-weight: 900; font-size: 0.8rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 
         .kelly-box { background: rgba(0, 255, 136, 0.05); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(0, 255, 136, 0.2); }
+
+        /* Estilos nuevos para filtros */
+        .filter-panel { background: rgba(255,215,0,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 15px; }
+        .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .filter-item { display: flex; flex-direction: column; gap: 4px; }
+        .filter-item label { font-size: 0.55rem; color: var(--text-dim); text-transform: uppercase; }
+        .filter-item select, .filter-item input { padding: 6px; font-size: 0.65rem; margin-bottom: 0; height: 30px; }
     </style>
 </head>
 <body>
@@ -226,6 +233,51 @@
 <div id="history-screen">
     <div class="header-box"><h2>CONTROL PROFESIONAL</h2></div>
     <div class="scroll-content">
+        <div class="filter-panel">
+            <div style="font-size: 0.6rem; color: var(--accent-gold); font-weight: bold; margin-bottom: 8px;">
+                <i class="fa-solid fa-filter"></i> FILTROS DE ANÁLISIS DINÁMICO
+            </div>
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label>Liga</label>
+                    <select id="filter-league" onchange="loadHistory()">
+                        <option value="all">Todas</option>
+                        <option value="ITALY">ITALIA</option>
+                        <option value="ENGLAND">INGLATERRA</option>
+                        <option value="SPAIN">ESPAÑA</option>
+                        <option value="GERMANY">ALEMANIA</option>
+                        <option value="PORTUGAL">PORTUGAL</option>
+                        <option value="FRANCE">FRANCIA</option>
+                        <option value="NETHERLANDS">P. BAJOS</option>
+                        <option value="GREECE">GRECIA</option>
+                        <option value="SCOTLAND">ESCOCIA</option>
+                        <option value="BELGIUM">BÉLGICA</option>
+                        <option value="TURKEY">TURQUÍA</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>Edge Mín (%)</label>
+                    <input type="number" id="filter-edge" value="0" step="1" oninput="loadHistory()">
+                </div>
+                <div class="filter-item">
+                    <label>Cuota Mín</label>
+                    <input type="number" id="filter-odds-min" value="1.00" step="0.1" oninput="loadHistory()">
+                </div>
+                <div class="filter-item">
+                    <label>Cuota Máx</label>
+                    <input type="number" id="filter-odds-max" value="50.00" step="0.1" oninput="loadHistory()">
+                </div>
+                <div class="filter-item">
+                    <label>Overround Máx (%)</label>
+                    <input type="number" id="filter-ov-max" value="100" step="1" oninput="loadHistory()">
+                </div>
+                <div class="filter-item">
+                    <label>Cuota Justa Máx</label>
+                    <input type="number" id="filter-fair-max" value="50.00" step="0.1" oninput="loadHistory()">
+                </div>
+            </div>
+        </div>
+
         <div class="stat-grid">
             <div class="stat-box">
                 <div style="font-size: 0.6rem; color: var(--text-dim);">PROFIT TOTAL</div>
@@ -323,7 +375,7 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item active" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
     </div>
@@ -733,8 +785,8 @@
             status: 'pending', 
             id: Date.now(), 
             date: new Date().toLocaleDateString(),
-            savedEdge: currentLiveEdge,
-            savedOv: currentLiveOverround
+            savedEdge: parseFloat(currentLiveEdge),
+            savedOv: parseFloat(currentLiveOverround)
         });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
@@ -750,31 +802,55 @@
         const container = document.getElementById('history-list');
         const today = new Date().toLocaleDateString();
         
+        // Obtener valores de los filtros
+        const fLeague = document.getElementById('filter-league').value;
+        const fEdge = parseFloat(document.getElementById('filter-edge').value) || 0;
+        const fOddsMin = parseFloat(document.getElementById('filter-odds-min').value) || 0;
+        const fOddsMax = parseFloat(document.getElementById('filter-odds-max').value) || 999;
+        const fOvMax = parseFloat(document.getElementById('filter-ov-max').value) || 100;
+        const fFairMax = parseFloat(document.getElementById('filter-fair-max').value) || 999;
+
         let totalProfit = 0, runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0, sessionLoss = 0;
         let chartData = [0];
         let profitsByTeam = {};
 
+        // Filtrar y procesar para las estadísticas y gráfico
         [...history].reverse().forEach(item => {
-            let pChange = 0;
-            if(item.status === 'win') { 
-                pChange = (item.odds - 1) * item.stake; 
-                runningProfit += pChange; runningBank += pChange;
-            } else if(item.status === 'loss') { 
-                pChange = -item.stake;
-                runningProfit += pChange; runningBank += pChange;
-            }
-            if(item.status !== 'pending') {
-                chartData.push(runningProfit);
-                if(runningBank > maxBank) maxBank = runningBank;
-                let currentDD = ((maxBank - runningBank) / maxBank) * 100;
-                if(currentDD > maxDD) maxDD = currentDD;
-                if(item.date === today) sessionLoss += pChange;
+            // Aplicar filtros dinámicos
+            const passLeague = fLeague === 'all' || item.league === fLeague;
+            const passEdge = (item.savedEdge || 0) >= fEdge;
+            const passOdds = item.odds >= fOddsMin && item.odds <= fOddsMax;
+            const passOv = (item.savedOv || 0) <= fOvMax;
+            const passFair = (item.fair || 0) <= fFairMax;
 
-                const teams = item.teams.split(' vs ');
-                teams.forEach(t => {
-                    let teamName = t.trim();
-                    profitsByTeam[teamName] = (profitsByTeam[teamName] || 0) + pChange;
-                });
+            if (passLeague && passEdge && passOdds && passOv && passFair) {
+                let pChange = 0;
+                if(item.status === 'win') { 
+                    pChange = (item.odds - 1) * item.stake; 
+                    runningProfit += pChange; runningBank += pChange;
+                } else if(item.status === 'loss') { 
+                    pChange = -item.stake;
+                    runningProfit += pChange; runningBank += pChange;
+                }
+
+                if(item.status !== 'pending') {
+                    chartData.push(runningProfit);
+                    if(runningBank > maxBank) maxBank = runningBank;
+                    let currentDD = ((maxBank - runningBank) / maxBank) * 100;
+                    if(currentDD > maxDD) maxDD = currentDD;
+                    
+                    const teams = item.teams.split(' vs ');
+                    teams.forEach(t => {
+                        let teamName = t.trim();
+                        profitsByTeam[teamName] = (profitsByTeam[teamName] || 0) + pChange;
+                    });
+                }
+            }
+            
+            // El sessionLoss y el guardián siempre actúan sobre el total real, sin filtros
+            if(item.date === today && item.status !== 'pending') {
+                 let realPChange = item.status === 'win' ? (item.odds - 1) * item.stake : -item.stake;
+                 sessionLoss += realPChange;
             }
         });
 
