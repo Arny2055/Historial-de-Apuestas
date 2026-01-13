@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quantum Engine | Pro Value Sniffer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #050d0a; --card: #101d18; --accent-gold: #FFD700; --accent-green: #00ff88;
+            --text-main: #e0e7e4; --text-dim: #7f9c93; --border: #243a33; --delete: #ff4d4d;
+            --quantum-blue: #00ffff; --warning: #ff8800; --fire: #ff3300; --surebet: #b300ff;
+            --sharp-purple: #9d00ff;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
+        body { margin: 0; background: var(--bg); color: var(--text-main); overflow: hidden; height: 100vh; }
+        
+        .header-box { text-align: center; padding: 15px; background: var(--card); border-bottom: 2px solid var(--accent-gold); }
+        .header-box h2 { margin: 0; font-size: 1.2rem; letter-spacing: 1px; color: var(--accent-gold); }
+        
+        .scroll-content { height: calc(100vh - 140px); overflow-y: auto; padding: 15px; padding-bottom: 100px; }
+        
+        textarea { 
+            width: 100%; height: 50px; background: #000; border: 1px solid var(--border); 
+            border-radius: 8px; color: var(--accent-green); padding: 8px; font-size: 11px; margin-bottom: 10px;
+        }
+
+        .btn-main { 
+            width: 100%; background: var(--accent-green); color: #000; border: none; 
+            padding: 15px; border-radius: 8px; font-weight: 900; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        .btn-cloud {
+            width: 100%; background: #222; color: var(--accent-gold); border: 1px solid var(--accent-gold);
+            padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        .btn-direct {
+            width: 100%; background: rgba(0, 255, 255, 0.1); color: var(--quantum-blue); border: 1px solid var(--quantum-blue);
+            padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px; margin-bottom: 15px; }
+        .row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;
+        }
+        .row:active { background: rgba(255,255,255,0.05); }
+        .row.value-hit { background: rgba(0, 255, 136, 0.08); border-left: 3px solid var(--accent-green); }
+        
+        .val-group { text-align: right; }
+        .pct { display: block; font-weight: 900; color: var(--accent-gold); font-size: 1rem; }
+
+        .tab-bar { 
+            position: fixed; bottom: 0; width: 100%; height: 70px; 
+            background: var(--card); display: flex; border-top: 1px solid var(--border); z-index: 100;
+        }
+        .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; text-decoration: none; }
+        .tab-item.active { color: var(--accent-gold); }
+
+        #setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen { display: none; height: 100%; }
+        .active-screen { display: block !important; }
+
+        .history-item { background: var(--card); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--border); position: relative; }
+        .win { border-left-color: var(--accent-green) !important; }
+        .loss { border-left-color: var(--delete) !important; }
+        
+        .status-badge { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; font-weight: bold; text-transform: uppercase; }
+
+        .modal { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 9999;
+        }
+        .modal-content { background: var(--card); border: 1px solid var(--accent-gold); padding: 20px; border-radius: 15px; width: 100%; max-width: 320px; overflow-y: auto; max-height: 90vh; }
+        
+        input, select { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 8px; margin-bottom: 10px; font-size: 16px; }
+
+        .overround-box { background: rgba(0, 255, 255, 0.05); border: 1px solid var(--quantum-blue); border-radius: 8px; padding: 10px; margin-bottom: 15px; font-size: 0.75rem; }
+        .chart-container { background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 15px; border: 1px solid var(--border); height: 180px; }
+        
+        .stress-box { background: rgba(255, 77, 77, 0.05); border: 1px solid #331a1a; padding: 10px; border-radius: 8px; margin-top: 10px; }
+        .stress-title { font-size: 0.65rem; color: var(--delete); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+
+        .panic-active { background: #330000 !important; border-color: var(--delete) !important; animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); } }
+
+        .report-summary { font-family: monospace; font-size: 0.65rem; background: #000; color: var(--accent-green); padding: 12px; border-radius: 8px; white-space: pre-wrap; margin: 10px 0; border: 1px solid var(--border); line-height: 1.5; box-shadow: inset 0 0 10px rgba(0,255,136,0.1); }
+
+        .sniff-alert { padding: 10px; border-radius: 8px; font-weight: 900; text-align: center; margin-bottom: 10px; display: none; font-size: 0.8rem; letter-spacing: 1px; }
+        .sniff-mega { background: var(--fire); color: #fff; animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0.5; } }
+
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-box { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
+
+        .sync-status { font-size: 0.6rem; text-align: center; margin-bottom: 10px; color: var(--text-dim); }
+        .ov-badge { font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; background: rgba(255,215,0,0.2); color: var(--accent-gold); }
+        .multi-odds { display: grid; gap: 5px; margin-bottom: 10px; }
+
+        .edge-rules { font-size: 0.6rem; color: var(--text-dim); margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; }
+        .rule-item { display: flex; justify-content: space-between; margin-bottom: 2px; }
+
+        .bt-result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 15px; }
+        .bt-stat { background: #000; padding: 8px; border-radius: 5px; text-align: center; border: 1px solid var(--border); }
+        .bt-label { font-size: 0.5rem; color: var(--text-dim); display: block; }
+        .bt-val { font-size: 0.8rem; font-weight: bold; color: var(--accent-gold); }
+
+        .guardian-alert { background: rgba(255, 77, 77, 0.15); border: 2px solid var(--delete); color: var(--delete); padding: 15px; border-radius: 12px; margin-bottom: 15px; display: none; text-align: center; }
+        .guardian-active { display: block !important; animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        .arb-box { background: rgba(179, 0, 255, 0.1); border: 1px solid var(--surebet); border-radius: 8px; padding: 10px; margin-top: 10px; display: none; }
+        .arb-title { font-size: 0.7rem; color: var(--surebet); font-weight: bold; display: flex; align-items: center; gap: 5px; margin-bottom: 5px; }
+        .arb-row { display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 2px; }
+
+        .card-metrics { display: flex; gap: 5px; margin-top: 5px; }
+        .metric-badge { font-size: 0.55rem; padding: 2px 5px; border-radius: 3px; font-weight: bold; }
+        .badge-edge { background: rgba(0, 255, 136, 0.1); color: var(--accent-green); border: 1px solid rgba(0, 255, 136, 0.2); }
+        .badge-ov { background: rgba(0, 255, 255, 0.1); color: var(--quantum-blue); border: 1px solid rgba(0, 255, 255, 0.2); }
+
+        .guide-section { margin-bottom: 20px; border-left: 2px solid var(--accent-gold); padding-left: 10px; }
+        .guide-h3 { color: var(--accent-gold); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 5px; }
+        .guide-p { font-size: 0.75rem; color: var(--text-dim); line-height: 1.4; margin: 5px 0; }
+        .guide-tag { display: inline-block; padding: 2px 5px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 5px; }
+        
+        .strategy-card { background: linear-gradient(145, #1a2a24, #101d18); border: 1px solid var(--sharp-purple); padding: 15px; border-radius: 12px; margin-top: 15px; }
+        .sharp-title { color: var(--sharp-purple); font-weight: 900; font-size: 0.8rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
+        .kelly-box { background: rgba(0, 255, 136, 0.05); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(0, 255, 136, 0.2); }
+
+        /* Estilos nuevos para filtros */
+        .filter-panel { background: rgba(255,215,0,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 15px; }
+        .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .filter-item { display: flex; flex-direction: column; gap: 4px; }
+        .filter-item label { font-size: 0.55rem; color: var(--text-dim); text-transform: uppercase; }
+        .filter-item select, .filter-item input { padding: 6px; font-size: 0.65rem; margin-bottom: 0; height: 30px; }
+    </style>
+</head>
+<body>
+
+<div id="setup-screen" class="active-screen">
+    <div class="header-box"><h2>QUANTUM ENGINE PRO</h2></div>
+    <div class="scroll-content">
+        <div id="guardian-banner" class="guardian-alert">
+            <i class="fa-solid fa-hand"></i> <b>STOP LOSS DIARIO ACTIVO</b><br>
+            <small>Has perdido el 15% de tu banca hoy.</small>
+            <button onclick="resetGuardian()" style="background:var(--delete); color:#fff; border:none; padding:5px 10px; border-radius:5px; margin-top:10px; font-weight:bold; cursor:pointer; font-size:0.6rem;">RESET SESIÓN (FORCE)</button>
+        </div>
+
+        <div class="card" id="bank-card">
+            <label style="font-size: 0.7rem; color: var(--accent-gold);">MI BANCA ACTUAL ($):</label>
+            <input type="number" id="user-bank" value="1000" oninput="saveBank(); runStressTest();">
+            
+            <button id="panic-btn" class="btn-main" style="background: #222; color: var(--delete); border: 1px solid #444; font-size: 0.7rem; margin: 10px 0;" onclick="togglePanic()">
+                <i class="fa-solid fa-triangle-exclamation"></i> MODO PÁNICO: <span id="panic-status">OFF</span>
+            </button>
+
+            <div class="stress-box">
+                <div class="stress-title"><i class="fa-solid fa-biohazard"></i> ESCENARIO CRÍTICO (5 Ls)</div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 0.55rem; color: var(--text-dim);">BANCA RESTANTE</div>
+                        <div id="stress-result-money" style="font-size: 1.1rem; font-weight: 900; color: var(--delete);">$ 0.00</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.55rem; color: var(--text-dim);">DRAWDOWN</div>
+                        <div id="stress-result-pct" style="font-size: 1.1rem; font-weight: 900; color: var(--warning);">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-direct" onclick="nav('history-screen'); loadHistory();">
+            <i class="fa-solid fa-briefcase"></i> IR A MI CONTROL (HISTORIAL)
+        </button>
+
+        <label style="font-size: 0.7rem; color: var(--accent-gold);">SELECCIONAR LIGA (CLOUD):</label>
+        <select id="cloud-league-selector">
+            <option value="italy">Italia - Serie A</option>
+            <option value="england">Inglaterra - Premier</option>
+            <option value="spain">España - LaLiga</option>
+            <option value="germany">Alemania - Bundesliga</option>
+            <option value="portugal">Portugal - Liga Portugal</option>
+            <option value="france">Francia - Ligue 1</option>
+            <option value="netherlands">Países Bajos - Eredivisie</option>
+            <option value="greece">Grecia - Super League</option>
+            <option value="scotland">Escocia - Premiership</option>
+            <option value="belgium">Bélgica - Pro League</option>
+            <option value="turkey">Turquía - Super Lig</option>
+        </select>
+
+        <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
+            <i class="fa-solid fa-cloud-arrow-down"></i> SINCRONIZAR DESDE GOOGLE SHEETS
+        </button>
+        <div id="sync-info" class="sync-status">Sincronización Inteligente de Rangos</div>
+
+        <textarea id="hIn" placeholder="PEGAR DATOS LOCAL (TABLA)..."></textarea>
+        <textarea id="vIn" placeholder="PEGAR DATOS VISITA (TABLA)..."></textarea>
+        <textarea id="sIn" placeholder="PEGAR PROMEDIOS LIGA..."></textarea>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+            <select id="sH"><option>Seleccione Local</option></select>
+            <select id="sV"><option>Seleccione Visita</option></select>
+        </div>
+        
+        <button class="btn-main" id="btn-analyze" onclick="calculate()">
+            <i class="fa-solid fa-magnifying-glass-chart"></i> ANALIZAR PARTIDO
+        </button>
+    </div>
+</div>
+
+<div id="dashboard-screen">
+    <div class="header-box"><h2 id="match-label">RESULTADOS</h2></div>
+    <div class="scroll-content">
+        <div id="league-over-audit" class="overround-box">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="fa-solid fa-shield-halved"></i> Audit Poisson: <b style="color:var(--accent-green)">OK</b></span>
+                <span id="market-quality-tag" class="ov-badge">LISTO</span>
+            </div>
+        </div>
+        <div id="results-area"></div>
+    </div>
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
+        <div class="tab-item" onclick="nav('history-screen'); loadHistory();"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
+        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
+    </div>
+</div>
+
+<div id="history-screen">
+    <div class="header-box"><h2>CONTROL PROFESIONAL</h2></div>
+    <div class="scroll-content">
+        <div class="filter-panel">
+            <div style="font-size: 0.6rem; color: var(--accent-gold); font-weight: bold; margin-bottom: 8px;">
+                <i class="fa-solid fa-filter"></i> FILTROS DE ANÁLISIS DINÁMICO
+            </div>
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label>Liga</label>
+                    <select id="filter-league" onchange="loadHistory()">
+                        <option value="all">Todas</option>
+                        <option value="ITALY">ITALIA</option>
+                        <option value="ENGLAND">INGLATERRA</option>
+                        <option value="SPAIN">ESPAÑA</option>
+                        <option value="GERMANY">ALEMANIA</option>
+                        <option value="PORTUGAL">PORTUGAL</option>
+                        <option value="FRANCE">FRANCIA</option>
+                        <option value="NETHERLANDS">P. BAJOS</option>
+                        <option value="GREECE">GRECIA</option>
+                        <option value="SCOTLAND">ESCOCIA</option>
+                        <option value="BELGIUM">BÉLGICA</option>
+                        <option value="TURKEY">TURQUÍA</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>Mercado</label>
+                    <select id="filter-market" onchange="loadHistory()">
+                        <option value="all">Todos</option>
+                        <option value="Local (1)">Victoria Local</option>
+                        <option value="Empate (X)">Empate</option>
+                        <option value="Visita (2)">Victoria Visita</option>
+                        <option value="2.5 Goles">Over/Under 2.5</option>
+                        <option value="Ambos Marcan">Ambos Marcan</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>Edge Mín (%)</label>
+                    <input type="number" id="filter-edge" value="0" step="1" oninput="loadHistory()">
+                </div>
+                <div class="filter-item">
+                    <label>Cuota Mín</label>
+                    <input type="number" id="filter-odds-min" value="1.00" step="0.1" oninput="loadHistory()">
+                </div>
+                <div class="filter-item">
+                    <label>Cuota Máx</label>
+                    <input type="number" id="filter-odds-max" value="50.00" step="0.1" oninput="loadHistory()">
+                </div>
+                <div class="filter-item">
+                    <label>Overround Máx (%)</label>
+                    <input type="number" id="filter-ov-max" value="100" step="1" oninput="loadHistory()">
+                </div>
+                <div class="filter-item">
+                    <label>Cuota Justa Máx</label>
+                    <input type="number" id="filter-fair-max" value="50.00" step="0.1" oninput="loadHistory()">
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-grid">
+            <div class="stat-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">PROFIT TOTAL</div>
+                <div id="total-profit" style="font-size: 1.2rem; font-weight: 900;">0.00</div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">MAX DRAWDOWN</div>
+                <div id="max-drawdown-hist" style="font-size: 1.2rem; font-weight: 900; color: var(--delete);">0.0%</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="profitChart"></canvas>
+        </div>
+
+        <div class="chart-container" style="height: 220px; margin-bottom: 20px;">
+            <div style="font-size: 0.6rem; color: var(--accent-gold); margin-bottom: 5px; text-align: center;">PROFIT POR EQUIPO ($)</div>
+            <canvas id="teamChart"></canvas>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <button class="btn-main" style="background: var(--quantum-blue); color: #000;" onclick="openSessionModal()">
+                <i class="fa-solid fa-flag-checkered"></i> SESIÓN HOY
+            </button>
+            <button class="btn-main" style="background: var(--accent-gold); color: #000;" onclick="generateWeeklyReport()">
+                <i class="fa-solid fa-crown"></i> AUDITORÍA LEGEND
+            </button>
+        </div>
+        
+        <button class="btn-main" style="background: #222; color: #fff; border: 1px solid #444;" onclick="exportToCSV()">
+            <i class="fa-solid fa-file-csv"></i> EXPORTAR CONTROL (CSV)
+        </button>
+        
+        <div id="history-list"></div>
+        <button class="btn-main" style="background:var(--delete); color:#fff; margin-top:20px;" onclick="clearHistory()">BORRAR TODO EL CONTROL</button>
+    </div>
+    <div class="tab-bar">
+        <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
+        <div class="tab-item active" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
+        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
+    </div>
+</div>
+
+<div id="backtest-screen">
+    <div class="header-box"><h2>BACKTESTING SIMULATOR</h2></div>
+    <div class="scroll-content">
+        <div class="card">
+            <label style="font-size: 0.7rem; color: var(--accent-gold);">MERCADO A SIMULAR:</label>
+            <select id="bt-market">
+                <option value="pH">Victoria Local (1)</option>
+                <option value="pD">Empate (X)</option>
+                <option value="pV">Victoria Visita (2)</option>
+                <option value="ov25">Más 2.5 Goles</option>
+                <option value="un25">Menos 2.5 Goles</option>
+                <option value="btts">Ambos Marcan: SI</option>
+                <option value="btts_no">Ambos Marcan: NO</option>
+            </select>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="font-size: 0.6rem;">CUOTA CASA ($):</label>
+                    <input type="number" id="bt-odds" value="2.00" step="0.05">
+                </div>
+                <div>
+                    <label style="font-size: 0.6rem;">Nº PARTIDOS:</label>
+                    <input type="number" id="bt-iterations" value="100">
+                </div>
+            </div>
+
+            <label style="font-size: 0.7rem; color: var(--accent-gold);">FRACCIÓN KELLY (0.01 a 1.0):</label>
+            <input type="number" id="bt-kelly-frac" value="0.25" step="0.05" min="0.01" max="1.0">
+
+            <button class="btn-main" style="background: var(--accent-gold); color: #000;" onclick="runBacktest()">
+                <i class="fa-solid fa-flask-vial"></i> EJECUTAR SIMULACIÓN KELLY
+            </button>
+        </div>
+
+        <div id="bt-results" style="display: none;">
+            <div id="ruin-alert" style="display:none; background:var(--delete); color:#fff; padding:10px; border-radius:8px; margin-bottom:10px; text-align:center; font-weight:bold; font-size:0.7rem;">
+                ⚠️ QUIEBRA DETECTADA EN EL PARTIDO <span id="ruin-index">0</span>
+            </div>
+            <div class="bt-result-grid">
+                <div class="bt-stat"><span class="bt-label">EDGE REAL</span><span id="bt-res-edge" class="bt-val">0%</span></div>
+                <div class="bt-stat"><span class="bt-label">WINS</span><span id="bt-res-wins" class="bt-val">0</span></div>
+                <div class="bt-stat"><span class="bt-label">BANCA FINAL</span><span id="bt-res-profit" class="bt-val">0</span></div>
+            </div>
+            <div class="chart-container">
+                <canvas id="btChart"></canvas>
+            </div>
+            <div id="bt-log" class="report-summary" style="max-height: 150px; overflow-y: auto;"></div>
+        </div>
+    </div>
+    <div class="tab-bar">
+        <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
+        <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
+        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
+    </div>
+</div>
+
+<div id="guide-screen">
+    <div class="header-box"><h2>GUÍA DE OPERACIÓN PRO</h2></div>
+    <div class="scroll-content">
+        <div class="guide-section">
+            <h3 class="guide-h3"><i class="fa-solid fa-play"></i> Cómo empezar</h3>
+            <p class="guide-p">1. Ajusta tu <b>Banca Actual</b> en la pestaña Nuevo. Esto es vital para el cálculo del Stake.</p>
+            <p class="guide-p">2. Selecciona una liga y pulsa <b>Sincronizar Cloud</b>. El motor traerá las estadísticas más recientes.</p>
+            <p class="guide-p">3. Elige los equipos y pulsa <b>Analizar Partido</b> para ver las probabilidades de Poisson.</p>
+        </div>
+
+        <div class="strategy-card">
+            <div class="sharp-title"><i class="fa-solid fa-bolt"></i> PROTOCOLO DE ÉLITE: "THE SYNDICATE"</div>
+            <p class="guide-p" style="color: #fff; font-size: 0.8rem; border-bottom: 1px solid var(--sharp-purple); padding-bottom: 8px;">Esta es la estrategia utilizada por los sindicatos de apuestas en Londres para mantener un Yield del 8-12% constante:</p>
+            <p class="guide-p"><b>1. La Regla de los 15 Minutos:</b> Compara la cuota de Quantum Engine con la cuota de cierre (Closing Line) de Pinnacle. Si tu cuota es mayor que la de cierre y Quantum tiene Edge > 4%, apuesta <b>Stake Doble</b>.</p>
+            <p class="guide-p"><b>2. Filtro de Liquidez:</b> Solo opera en ligas donde el Overround sea <b>menor al 3.5%</b>. Los mercados con altos márgenes son trampas estadísticas.</p>
+            <p class="guide-p"><b>3. El Sesgo del Empate:</b> En Poisson, si el Empate (X) tiene una probabilidad > 28% y la cuota de mercado es > 3.60, históricamente es el mercado con mayor retorno de inversión (ROI) a largo plazo.</p>
+            <p class="guide-p"><b>4. Anti-Tilt:</b> Nunca realices más de 3 apuestas simultáneas. El riesgo de correlación puede destruir tu banca en un solo set de partidos.</p>
+        </div>
+
+        <div class="guide-section">
+            <h3 class="guide-h3"><i class="fa-solid fa-brain"></i> Conceptos Clave</h3>
+            <p class="guide-p"><span class="guide-tag" style="background:var(--accent-green); color:#000;">EDGE</span> La ventaja matemática sobre la casa. Si el Edge es > 3%, hay valor. Si es > 15%, ten cuidado (cuota mal puesta o error de data).</p>
+            <p class="guide-p"><span class="guide-tag" style="background:var(--quantum-blue); color:#000;">OVERROUND</span> El margen de beneficio de la casa. Un Overround < 5% indica un mercado eficiente. Si es negativo (< 0%), es una <b>Arbitraje/Surebet</b>.</p>
+            <p class="guide-p"><span class="guide-tag" style="background:var(--accent-gold); color:#000;">CRITERIO KELLY</span> Fórmula que calcula cuánto dinero arriesgar basándose en tu ventaja. Usamos "Fractional Kelly" (25%) para proteger tu banca.</p>
+        </div>
+
+        <div class="guide-section">
+            <h3 class="guide-h3"><i class="fa-solid fa-shield-virus"></i> Gestión de Riesgo</h3>
+            <p class="guide-p"><b>Modo Pánico:</b> Reduce a la mitad todos los riesgos. Actívalo si estás en una mala racha.</p>
+            <p class="guide-p"><b>Guardian Alert:</b> Si pierdes el 15% de tu banca en un solo día, el sistema bloqueará nuevos análisis para protegerte del "Tilt".</p>
+        </div>
+
+        <div class="guide-section">
+            <h3 class="guide-h3"><i class="fa-solid fa-microchip"></i> Auditoría Legend</h3>
+            <p class="guide-p"><b>Z-Score:</b> Mide si tus resultados son suerte o habilidad. Un Z-Score > 2.0 indica que tu sistema es estadísticamente ganador.</p>
+            <p class="guide-p"><b>Sharpe Ratio:</b> Indica si tu beneficio compensa el riesgo que tomas.</p>
+        </div>
+    </div>
+    <div class="tab-bar">
+        <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
+        <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item active" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
+        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
+    </div>
+</div>
+
+<div id="pick-modal" class="modal">
+    <div class="modal-content">
+        <h3 id="m-name" style="color:var(--accent-gold); margin:0 0 10px 0;">Mercado</h3>
+        
+        <div id="sniff-alert" class="sniff-alert">INEFICIENCIA</div>
+
+        <div id="panic-warning" style="display:none; color:var(--delete); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">⚠️ MODO PÁNICO ACTIVO</div>
+        
+        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-bottom: 5px;">
+                <span>OVERROUND (Margen Real):</span>
+                <span id="live-overround" style="color: var(--accent-gold); font-weight: bold;">0.00%</span>
+            </div>
+            <div style="height: 4px; background: #222; border-radius: 2px;">
+                <div id="ov-bar" style="height: 100%; width: 0%; background: var(--accent-green); border-radius: 2px; transition: 0.3s;"></div>
+            </div>
+        </div>
+
+        <div class="kelly-box">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 0.6rem; color: var(--text-dim);">Gestión Sugerida:</div>
+                <div id="kelly-label-tag" style="font-size: 0.5rem; color: var(--accent-gold); font-weight: bold;"></div>
+            </div>
+            <div id="kelly-suggestion" style="color: var(--accent-green); font-weight:900; font-size:1.1rem;">0.00 $</div>
+        </div>
+
+        <div id="arb-panel" class="arb-box">
+            <div class="arb-title"><i class="fa-solid fa-scale-balanced"></i> ARBITRAJE DETECTADO</div>
+            <div id="arb-details"></div>
+        </div>
+        
+        <div id="odds-container" class="multi-odds"></div>
+
+        <label style="font-size: 0.7rem;">STAKE PERSONALIZADO ($):</label>
+        <input type="number" id="m-stake-money" placeholder="Dejar vacío para usar sugerencia" oninput="liveUpdateOverround()">
+        
+        <button class="btn-main" onclick="savePick()">CONFIRMAR APUESTA</button>
+        
+        <div class="edge-rules">
+            <div class="rule-item"><span>Edge Mínimo (Valor):</span> <span style="color:var(--accent-green)">> 3%</span></div>
+            <div class="rule-item"><span>Edge Sospechoso:</span> <span style="color:var(--fire)">> 15%</span></div>
+            <div class="rule-item"><span>Overround Límite:</span> <span style="color:var(--warning)">8%</span></div>
+        </div>
+
+        <button onclick="closeModal('pick-modal')" style="background:none; border:none; color:var(--text-dim); width:100%; margin-top:10px; cursor:pointer;">Cancelar</button>
+    </div>
+</div>
+
+<div id="session-modal" class="modal">
+    <div class="modal-content" style="text-align: center;">
+        <h2 style="color: var(--accent-gold); margin-top: 0;">SESIÓN DE HOY</h2>
+        <div id="session-date" style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 15px;"></div>
+        <div id="session-profit" style="font-size: 1.8rem; font-weight: 900;">0.00 $</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; font-size: 0.7rem;">
+            <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:8px;">Yield: <span id="session-yield">0%</span></div>
+            <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:8px;">W.R: <span id="session-wr">0%</span></div>
+        </div>
+        <button class="btn-main" style="margin-top: 25px;" onclick="closeModal('session-modal')">CONTINUAR</button>
+    </div>
+</div>
+
+<div id="report-modal" class="modal">
+    <div class="modal-content" style="max-width: 420px; border: 2px solid var(--accent-gold); background: #08110d;">
+        <div style="text-align: center; margin-bottom: 15px;">
+            <i class="fa-solid fa-crown" style="color:var(--accent-gold); font-size: 2rem;"></i>
+            <h2 style="color: var(--accent-gold); margin: 5px 0; font-size: 1.2rem; letter-spacing: 2px;">LEGENDARY AUDIT</h2>
+        </div>
+        <div id="report-text" class="report-summary"></div>
+        <div style="font-size: 0.55rem; color: var(--text-dim); text-align: center; margin-bottom: 10px;">Quantum AI Engine v4.0 - Sharp Betting Protocol</div>
+        <button class="btn-main" onclick="copyReport()"><i class="fa-solid fa-copy"></i> COPIAR DATA ESTRATÉGICA</button>
+        <button class="btn-main" style="background:#222; color:#fff; border: 1px solid #444;" onclick="closeModal('report-modal')">CERRAR</button>
+    </div>
+</div>
+
+<script>
+    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, teamChartInstance=null, isPanic = false;
+    let guardianForcedReset = false;
+    let lastSuggestedKelly = 0;
+    let currentLiveOverround = 0; 
+    let currentLiveEdge = 0; 
+
+    const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
+
+    window.onload = () => {
+        const savedBank = localStorage.getItem('q_pro_bank');
+        if(savedBank) document.getElementById('user-bank').value = savedBank;
+        const savedPanic = localStorage.getItem('q_pro_panic');
+        if(savedPanic === 'true') togglePanic(true);
+        loadHistory();
+        runStressTest();
+    };
+
+    async function syncCloudData() {
+        const btn = document.getElementById('btn-sync');
+        const info = document.getElementById('sync-info');
+        const leagueKey = document.getElementById('cloud-league-selector').value;
+        btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> SINCRONIZANDO RANGOS...';
+        try {
+            const response = await fetch(CLOUD_URL);
+            const rawData = await response.text();
+            const allRows = rawData.split('\n');
+            let hLines = [], vLines = [], sLines = [];
+            
+            const ranges = {
+                'italy': [3, 32, 36, 65, 68, 74],
+                'england': [80, 109, 113, 142, 145, 151],
+                'spain': [157, 186, 190, 219, 222, 228],
+                'germany': [234, 263, 267, 296, 299, 305],
+                'portugal': [311, 340, 344, 373, 376, 382],
+                'france': [388, 417, 421, 450, 453, 459],
+                'netherlands': [465, 494, 498, 527, 530, 536],
+                'greece': [542, 571, 575, 604, 607, 613],
+                'scotland': [619, 648, 652, 681, 684, 690],
+                'belgium': [696, 725, 729, 758, 761, 767],
+                'turkey': [774, 803, 807, 836, 839, 845]
+            };
+
+            const r = ranges[leagueKey];
+            if(r) {
+                for(let i=r[0]; i<=r[1]; i++) if(allRows[i]) hLines.push(allRows[i]);
+                for(let i=r[2]; i<=r[3]; i++) if(allRows[i]) vLines.push(allRows[i]);
+                for(let i=r[4]; i<=r[5]; i++) if(allRows[i]) sLines.push(allRows[i]);
+            }
+
+            document.getElementById('hIn').value = hLines.join('\n');
+            document.getElementById('vIn').value = vLines.join('\n');
+            document.getElementById('sIn').value = sLines.join('\n');
+            dH = ext(document.getElementById('hIn').value);
+            dV = ext(document.getElementById('vIn').value);
+            uS(); fill();
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> DATOS CARGADOS';
+            btn.style.borderColor = "var(--accent-green)";
+            info.innerText = `Sincronizado: ${leagueKey.toUpperCase()} OK`;
+            window.lastSyncedLeague = leagueKey.toUpperCase();
+        } catch (e) { btn.innerHTML = 'ERROR DE CONEXIÓN'; }
+    }
+
+    function ext(t) {
+        const o={};
+        t.split('\n').forEach(l => {
+            const cols = l.split(',');
+            if(cols.length > 8) {
+                const team = cols[2]?.replace(/\*/g, '').trim();
+                const gp = parseInt(cols[3]);
+                const gf = parseInt(cols[7]);
+                const ga = parseInt(cols[8]);
+                if(team && !isNaN(gp) && gp > 0) o[team] = { f: gf/gp, a: ga/gp };
+            }
+        });
+        return o;
+    }
+
+    function uS() {
+        const t = document.getElementById('sIn').value;
+        const hm = t.match(/Home goals per match:[^,]*,\*?([\d.]+)\*?/i);
+        const am = t.match(/Away goals per match:[^,]*,\*?([\d.]+)\*?/i);
+        if(hm) aH = parseFloat(hm[1]);
+        if(am) aV = parseFloat(am[1]);
+    }
+
+    function togglePanic(init = false) {
+        if(!init) isPanic = !isPanic; else isPanic = true;
+        const btn = document.getElementById('panic-btn');
+        const status = document.getElementById('panic-status');
+        const card = document.getElementById('bank-card');
+        if(isPanic) { btn.classList.add('panic-active'); status.innerText = "ON"; card.style.borderColor = "var(--delete)"; }
+        else { btn.classList.remove('panic-active'); status.innerText = "OFF"; card.style.borderColor = "var(--border)"; }
+        localStorage.setItem('q_pro_panic', isPanic);
+        runStressTest();
+    }
+
+    function saveBank() { localStorage.setItem('q_pro_bank', document.getElementById('user-bank').value); }
+
+    function runStressTest() {
+        const bank = parseFloat(document.getElementById('user-bank').value) || 0;
+        let riskPerBetPct = isPanic ? 0.0125 : 0.025; 
+        let currentBank = bank;
+        for(let i=0; i<5; i++) currentBank -= (currentBank * riskPerBetPct);
+        const drawdown = ((bank - currentBank) / bank * 100).toFixed(1);
+        document.getElementById('stress-result-money').innerText = "$ " + currentBank.toFixed(2);
+        document.getElementById('stress-result-pct').innerText = "-" + (isNaN(drawdown) ? 0 : drawdown) + "%";
+    }
+
+    function fill() {
+        const sH=document.getElementById('sH'), sV=document.getElementById('sV');
+        sH.innerHTML=sV.innerHTML='<option value="">Seleccionar Equipo</option>';
+        Object.keys(dH).sort().forEach(t=>sH.add(new Option(t,t)));
+        Object.keys(dV).sort().forEach(t=>sV.add(new Option(t,t)));
+    }
+
+    function poi(k,l){ 
+        if(l <= 0) return k === 0 ? 1 : 0;
+        let f=1; for(let i=2; i<=k; i++) f*=i; 
+        return (Math.pow(l,k)*Math.exp(-l))/f; 
+    }
+
+    function calculate() {
+        const tH=document.getElementById('sH').value, tV=document.getElementById('sV').value;
+        if(!dH[tH] || !dV[tV]) { alert("Seleccione ambos equipos con datos válidos"); return; }
+        const xH = (dH[tH].f/aH)*(dV[tV].a/aH)*aH, xV = (dV[tV].f/aV)*(dH[tH].a/aV)*aV;
+        let pH=0, pD=0, pV=0, ov25=0, btts=0;
+        for(let i=0; i<=9; i++) {
+            for(let j=0; j<=9; j++) {
+                let p = poi(i,xH)*poi(j,xV);
+                if(i>j) pH+=p; else if(i===j) pD+=p; else pV+=p;
+                if((i+j)>2.5) ov25+=p;
+                if(i>0 && j>0) btts+=p;
+            }
+        }
+        window.currentProbs = { pH, pD, pV, ov25, un25: (1 - ov25), btts, btts_no: (1 - btts) };
+        renderResults(tH, tV, {
+            'Local (1)': pH*100, 'Empate (X)': pD*100, 'Visita (2)': pV*100,
+            'Más de 2.5 Goles': ov25*100, 'Menos de 2.5 Goles': (1-ov25)*100,
+            'Ambos Marcan: SI': btts*100, 'Ambos Marcan: NO': (1-btts)*100
+        });
+        nav('dashboard-screen');
+    }
+
+    function renderResults(tH, tV, data) {
+        document.getElementById('match-label').innerText = `${tH} vs ${tV}`;
+        let h = `<div class="card">`;
+        for(let m in data) {
+            const prob = data[m]; const fair = (100/prob).toFixed(2);
+            h += `<div class="row ${prob > 55 ? 'value-hit' : ''}" onclick="openModal('${m}', ${fair}, '${tH} vs ${tV}', ${prob})">
+                    <div><span style="font-weight:bold;">${m}</span></div>
+                    <div class="val-group"><span class="pct">${prob.toFixed(1)}%</span><span class="odds" style="font-size:0.7rem; color:var(--text-dim)">Justa: ${fair}</span></div>
+                </div>`;
+        }
+        document.getElementById('results-area').innerHTML = h + `</div>`;
+    }
+
+    function openModal(name, fair, teams, prob) {
+        selectedPick = { name, fair, teams, prob, league: window.lastSyncedLeague || 'UNKNOWN' };
+        document.getElementById('m-name').innerText = name;
+        document.getElementById('m-stake-money').value = "";
+        document.getElementById('sniff-alert').style.display = 'none';
+        document.getElementById('arb-panel').style.display = 'none';
+        document.getElementById('panic-warning').style.display = isPanic ? "block" : "none";
+        document.getElementById('kelly-suggestion').innerText = "0.00 $";
+        
+        currentLiveOverround = 0;
+        currentLiveEdge = 0;
+
+        const container = document.getElementById('odds-container');
+        container.innerHTML = "";
+        
+        if(name.includes('(1)') || name.includes('(X)') || name.includes('(2)')) {
+            container.innerHTML = `
+                <label style="font-size:0.6rem">CUOTA LOCAL (1)</label><input type="number" id="o1" step="0.01" placeholder="Ej: 2.10" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA EMPATE (X)</label><input type="number" id="o2" step="0.01" placeholder="Ej: 3.40" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA VISITA (2)</label><input type="number" id="o3" step="0.01" placeholder="Ej: 4.50" oninput="liveUpdateOverround()">`;
+        } else if(name.includes('2.5 Goles')) {
+            container.innerHTML = `
+                <label style="font-size:0.6rem">CUOTA MÁS 2.5</label><input type="number" id="o1" step="0.01" placeholder="Ej: 1.95" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA MENOS 2.5</label><input type="number" id="o2" step="0.01" placeholder="Ej: 1.85" oninput="liveUpdateOverround()">`;
+        } else if(name.includes('Ambos Marcan')) {
+            container.innerHTML = `
+                <label style="font-size:0.6rem">CUOTA AMBOS SI</label><input type="number" id="o1" step="0.01" placeholder="Ej: 1.70" oninput="liveUpdateOverround()">
+                <label style="font-size:0.6rem">CUOTA AMBOS NO</label><input type="number" id="o2" step="0.01" placeholder="Ej: 2.10" oninput="liveUpdateOverround()">`;
+        }
+        
+        document.getElementById('pick-modal').style.display = 'flex';
+    }
+
+    function liveUpdateOverround() {
+        const o1 = parseFloat(document.getElementById('o1')?.value) || 0;
+        const o2 = parseFloat(document.getElementById('o2')?.value) || 0;
+        const o3 = parseFloat(document.getElementById('o3')?.value) || 0;
+        const totalStake = parseFloat(document.getElementById('m-stake-money')?.value) || 0;
+        const name = selectedPick.name;
+
+        let sum = 0; 
+        if(o1 > 1) sum += (1/o1); 
+        if(o2 > 1) sum += (1/o2); 
+        if(o3 > 1) sum += (1/o3);
+
+        if(sum === 0) return;
+        
+        const overround = ((sum - 1) * 100).toFixed(2);
+        currentLiveOverround = overround;
+        const liveOv = document.getElementById('live-overround');
+        liveOv.innerText = overround + "%";
+        
+        const bar = document.getElementById('ov-bar');
+        bar.style.width = Math.min(Math.abs(overround) * 5, 100) + "%";
+        
+        const arbPanel = document.getElementById('arb-panel');
+        if(overround < 0) {
+            arbPanel.style.display = 'block';
+            bar.style.background = "var(--surebet)";
+            liveOv.style.color = "var(--surebet)";
+            if(totalStake > 0) {
+                const profit = ((totalStake / sum) - totalStake).toFixed(2);
+                let arbHTML = `<div class="arb-row" style="color:var(--accent-green); font-weight:bold;"><span>Profit Seguro:</span><span>${profit}$</span></div>`;
+                document.getElementById('arb-details').innerHTML = arbHTML;
+            }
+        } else {
+            arbPanel.style.display = 'none';
+            if(overround > 8) { bar.style.background = "var(--delete)"; liveOv.style.color = "var(--delete)"; }
+            else { bar.style.background = "var(--accent-green)"; liveOv.style.color = "var(--accent-green)"; }
+        }
+
+        let inputOdds = o1; 
+        let targetProb = selectedPick.prob / 100;
+
+        if(name.includes('(X)')) { inputOdds = o2; }
+        else if(name.includes('(2)')) { inputOdds = o3; }
+        else if(name.includes('Menos 2.5') || name.includes('Ambos Marcan: NO')) { inputOdds = o2; }
+
+        if(inputOdds > 1) {
+            const edge = ((targetProb * inputOdds) - 1) * 100;
+            currentLiveEdge = edge.toFixed(1);
+            const sniff = document.getElementById('sniff-alert');
+            const kellyLabel = document.getElementById('kelly-label-tag');
+            
+            if(edge >= 3) {
+                sniff.style.display = 'block';
+                sniff.innerText = `EDGE: ${edge.toFixed(1)}%`;
+                sniff.style.background = edge > 15 ? 'var(--fire)' : 'var(--accent-green)';
+            } else { sniff.style.display = 'none'; }
+
+            let bank = parseFloat(document.getElementById('user-bank').value) || 1000;
+            let mult = isPanic ? 0.125 : 0.25;
+            let kelly = (((inputOdds - 1) * targetProb) - (1 - targetProb)) / (inputOdds - 1);
+            lastSuggestedKelly = Math.max(0, bank * kelly * mult);
+            document.getElementById('kelly-suggestion').innerText = lastSuggestedKelly.toFixed(2) + " $";
+            kellyLabel.innerText = isPanic ? "Fractional Kelly (Pánic 12%)" : "Fractional Kelly (25%)";
+        }
+    }
+
+    function savePick() {
+        const name = selectedPick.name;
+        const o1 = parseFloat(document.getElementById('o1')?.value);
+        const o2 = parseFloat(document.getElementById('o2')?.value);
+        const o3 = parseFloat(document.getElementById('o3')?.value);
+        
+        let finalOdds = o1;
+        if(name.includes('(X)')) finalOdds = o2;
+        if(name.includes('(2)')) finalOdds = o3;
+        if((name.includes('Menos 2.5') || name.includes('Ambos Marcan: NO'))) finalOdds = o2;
+
+        let stake = parseFloat(document.getElementById('m-stake-money').value);
+        if(isNaN(stake) || stake <= 0) stake = lastSuggestedKelly;
+        
+        if(!finalOdds || finalOdds <= 1 || stake <= 0) { 
+            alert("Error: Falta cuota válida o stake para el mercado seleccionado."); 
+            return; 
+        }
+        
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        history.unshift({ 
+            ...selectedPick, 
+            odds: finalOdds, 
+            stake: parseFloat(stake.toFixed(2)), 
+            status: 'pending', 
+            id: Date.now(), 
+            date: new Date().toLocaleDateString(),
+            savedEdge: parseFloat(currentLiveEdge),
+            savedOv: parseFloat(currentLiveOverround)
+        });
+        localStorage.setItem('q_pro_hist', JSON.stringify(history));
+        closeModal('pick-modal'); loadHistory(); nav('history-screen');
+    }
+
+    function resetGuardian() {
+        if(confirm("¿Reiniciar sesión?")) { guardianForcedReset = true; loadHistory(); }
+    }
+
+    function loadHistory() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const initialBank = parseFloat(localStorage.getItem('q_pro_bank')) || 1000;
+        const container = document.getElementById('history-list');
+        const today = new Date().toLocaleDateString();
+        
+        // Obtener valores de los filtros
+        const fLeague = document.getElementById('filter-league').value;
+        const fMarket = document.getElementById('filter-market').value;
+        const fEdge = parseFloat(document.getElementById('filter-edge').value) || 0;
+        const fOddsMin = parseFloat(document.getElementById('filter-odds-min').value) || 0;
+        const fOddsMax = parseFloat(document.getElementById('filter-odds-max').value) || 999;
+        const fOvMax = parseFloat(document.getElementById('filter-ov-max').value) || 100;
+        const fFairMax = parseFloat(document.getElementById('filter-fair-max').value) || 999;
+
+        let totalProfit = 0, runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0, sessionLoss = 0;
+        let chartData = [0];
+        let profitsByTeam = {};
+
+        // Filtrar y procesar para las estadísticas y gráfico
+        [...history].reverse().forEach(item => {
+            // Aplicar filtros dinámicos
+            const passLeague = fLeague === 'all' || item.league === fLeague;
+            const passMarket = fMarket === 'all' || item.name.includes(fMarket);
+            const passEdge = (item.savedEdge || 0) >= fEdge;
+            const passOdds = item.odds >= fOddsMin && item.odds <= fOddsMax;
+            const passOv = (item.savedOv || 0) <= fOvMax;
+            const passFair = (item.fair || 0) <= fFairMax;
+
+            if (passLeague && passMarket && passEdge && passOdds && passOv && passFair) {
+                let pChange = 0;
+                if(item.status === 'win') { 
+                    pChange = (item.odds - 1) * item.stake; 
+                    runningProfit += pChange; runningBank += pChange;
+                } else if(item.status === 'loss') { 
+                    pChange = -item.stake;
+                    runningProfit += pChange; runningBank += pChange;
+                }
+
+                if(item.status !== 'pending') {
+                    chartData.push(runningProfit);
+                    if(runningBank > maxBank) maxBank = runningBank;
+                    let currentDD = ((maxBank - runningBank) / maxBank) * 100;
+                    if(currentDD > maxDD) maxDD = currentDD;
+                    
+                    const teams = item.teams.split(' vs ');
+                    teams.forEach(t => {
+                        let teamName = t.trim();
+                        profitsByTeam[teamName] = (profitsByTeam[teamName] || 0) + pChange;
+                    });
+                }
+            }
+            
+            // El sessionLoss y el guardián siempre actúan sobre el total real, sin filtros
+            if(item.date === today && item.status !== 'pending') {
+                 let realPChange = item.status === 'win' ? (item.odds - 1) * item.stake : -item.stake;
+                 sessionLoss += realPChange;
+            }
+        });
+
+        const guardianBanner = document.getElementById('guardian-banner');
+        const btnAnalyze = document.getElementById('btn-analyze');
+        if(!guardianForcedReset && sessionLoss < -(initialBank * 0.15)) {
+            guardianBanner.classList.add('guardian-active');
+            btnAnalyze.disabled = true; btnAnalyze.style.opacity = "0.3";
+        } else {
+            guardianBanner.classList.remove('guardian-active');
+            btnAnalyze.disabled = false; btnAnalyze.style.opacity = "1";
+        }
+
+        container.innerHTML = history.length ? history.map(item => {
+            // Aplicar filtros visuales a la lista
+            const passLeague = fLeague === 'all' || item.league === fLeague;
+            const passMarket = fMarket === 'all' || item.name.includes(fMarket);
+            const passEdge = (item.savedEdge || 0) >= fEdge;
+            const passOdds = item.odds >= fOddsMin && item.odds <= fOddsMax;
+            const passOv = (item.savedOv || 0) <= fOvMax;
+            const passFair = (item.fair || 0) <= fFairMax;
+
+            if (!(passLeague && passMarket && passEdge && passOdds && passOv && passFair)) return '';
+
+            let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
+            let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
+            let metricsHTML = item.savedEdge !== undefined ? `<div class="card-metrics"><span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span><span class="metric-badge badge-ov">OV: ${item.savedOv}%</span></div>` : '';
+
+            return `<div class="history-item ${item.status}">
+                    <span class="status-badge" style="color:${color}">${resText}</span>
+                    <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
+                    <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
+                    <div style="font-size:0.7rem; color:var(--text-dim);">Cuota: ${item.odds} | Stake: ${item.stake}$</div>
+                    ${metricsHTML}
+                    <div style="margin-top:10px; display:flex; gap:8px;">
+                        <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">GANADA</button>
+                        <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">PERDIDA</button>
+                    </div>
+                    <i class="fa-solid fa-trash-can" style="position:absolute; bottom:15px; right:15px; color:var(--delete); font-size:1rem; cursor:pointer;" onclick="deletePick(${item.id})"></i>
+                </div>`;
+        }).join('') : `<p style="text-align:center; color:var(--text-dim); margin-top:20px;">No hay apuestas registradas.</p>`;
+        
+        document.getElementById('total-profit').innerText = runningProfit.toFixed(2) + " $";
+        document.getElementById('total-profit').style.color = runningProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
+        document.getElementById('max-drawdown-hist').innerText = maxDD.toFixed(1) + "%";
+        updateChart(chartData);
+        updateTeamChart(profitsByTeam);
+    }
+
+    function updateChart(data) {
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, { type: 'line', data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } } } } });
+    }
+
+    function updateTeamChart(profits) {
+        const ctx = document.getElementById('teamChart').getContext('2d');
+        if(teamChartInstance) teamChartInstance.destroy();
+        const sortedEntries = Object.entries(profits).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 10);
+        const labels = sortedEntries.map(e => e[0]);
+        const values = sortedEntries.map(e => e[1]);
+        teamChartInstance = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ data: values, backgroundColor: values.map(v => v >= 0 ? 'rgba(0, 255, 136, 0.5)' : 'rgba(255, 77, 77, 0.5)'), borderColor: values.map(v => v >= 0 ? '#00ff88' : '#ff4d4d'), borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#7f9c93', font: { size: 8 } } }, x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } } } } });
+    }
+
+    function updateStatus(id, status) {
+        let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const i = history.findIndex(x => x.id === id);
+        if(i !== -1) { history[i].status = status; localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); }
+    }
+
+    function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist')).filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
+    function clearHistory() { if(confirm("¿Borrar TODO?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function nav(id) { document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
+
+    function openSessionModal() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const today = new Date().toLocaleDateString();
+        const todayPicks = history.filter(p => p.date === today && p.status !== 'pending');
+        let sProf = 0, sVol = 0, sWin = 0;
+        todayPicks.forEach(p => { sVol += p.stake; if(p.status === 'win') { sProf += (p.odds - 1) * p.stake; sWin++; } else sProf -= p.stake; });
+        document.getElementById('session-date').innerText = today;
+        document.getElementById('session-profit').innerText = sProf.toFixed(2) + " $";
+        document.getElementById('session-profit').style.color = sProf >= 0 ? "var(--accent-green)" : "var(--delete)";
+        document.getElementById('session-yield').innerText = (sVol > 0 ? (sProf / sVol * 100).toFixed(1) : 0) + "%";
+        document.getElementById('session-wr').innerText = (todayPicks.length > 0 ? (sWin / todayPicks.length * 100).toFixed(0) : 0) + "%";
+        document.getElementById('session-modal').style.display = 'flex';
+    }
+
+    function generateWeeklyReport() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const resolved = history.filter(p => p.status !== 'pending');
+        if(resolved.length === 0) { alert("Sin apuestas resueltas."); return; }
+        
+        let totalStaked = 0, totalProfit = 0, wins = 0;
+        let streak = 0, maxW = 0, maxL = 0;
+
+        resolved.reverse().forEach(p => {
+            totalStaked += p.stake;
+            if(p.status === 'win') {
+                totalProfit += (p.odds - 1) * p.stake;
+                wins++; streak = (streak < 0) ? 1 : streak + 1;
+                if(streak > maxW) maxW = streak;
+            } else {
+                totalProfit -= p.stake;
+                streak = (streak > 0) ? -1 : streak - 1;
+                if(Math.abs(streak) > maxL) maxL = Math.abs(streak);
+            }
+        });
+
+        const n = resolved.length;
+        const yieldPct = (totalProfit / totalStaked) * 100;
+        const winRate = (wins / n) * 100;
+        const avgOdds = resolved.reduce((a, b) => a + b.odds, 0) / n;
+        const zScore = (n * ((wins/n) - (1/avgOdds))) / Math.sqrt(n * (1/avgOdds) * (1 - (1/avgOdds)));
+
+        const report = `[ AUDITORÍA QUANTUM LEGENDARY ]
+💰 PROFIT: ${totalProfit.toFixed(2)}$
+📈 YIELD: ${yieldPct.toFixed(2)}%
+🎯 WR: ${winRate.toFixed(1)}% (N=${n})
+⚡ Z-SCORE: ${zScore.toFixed(2)} ${zScore > 2 ? '(!) SISTEMA' : '(?) SUERTE'}
+---------------------------------
+[ RIESGO ]
+💀 RUINA: ${Math.pow((1-Math.abs(yieldPct/100))/(1+Math.abs(yieldPct/100)), 10).toFixed(4)}%
+📉 MAX L: ${maxL} Picks
+---------------------------------
+TIER: ${zScore > 2 ? 'PRO' : 'AMATEUR'}`;
+
+        document.getElementById('report-text').innerText = report;
+        document.getElementById('report-modal').style.display = 'flex';
+    }
+
+    function copyReport() { navigator.clipboard.writeText(document.getElementById('report-text').innerText).then(() => alert("Copiado")); }
+
+    function exportToCSV() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        if(!history.length) return alert("Historial vacío");
+        let csv = "Fecha,Equipos,Mercado,Cuota,Stake,Estado,Edge,Overround\n";
+        history.forEach(p => { csv += `${p.date},"${p.teams}","${p.name}",${p.odds},${p.stake},${p.status},${p.savedEdge || 0},${p.savedOv || 0}\n`; });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'quantum_control.csv'; a.click();
+    }
+
+    function runBacktest() {
+        if(!window.currentProbs) { alert("Analice un partido primero"); return; }
+        const market = document.getElementById('bt-market').value;
+        const odds1 = parseFloat(document.getElementById('bt-odds').value);
+        const iter = parseInt(document.getElementById('bt-iterations').value);
+        const kellyFrac = parseFloat(document.getElementById('bt-kelly-frac').value);
+        const initialBank = parseFloat(document.getElementById('user-bank').value) || 1000;
+        
+        const prob = window.currentProbs[market];
+        const edge1 = ((prob * odds1) - 1);
+        
+        let bank1 = initialBank, wins = 0, data1 = [initialBank];
+        
+        for(let i=1; i<=iter; i++) {
+            let f1 = Math.max(0, (edge1 / (odds1 - 1)) * kellyFrac);
+            const stake1 = bank1 * f1;
+            if(Math.random() < prob) { wins++; bank1 += stake1 * (odds1 - 1); } else { bank1 -= stake1; }
+            data1.push(bank1);
+            if(bank1 <= 0) break;
+        }
+        
+        document.getElementById('bt-results').style.display = 'block';
+        document.getElementById('bt-res-edge').innerText = (edge1*100).toFixed(1) + "%";
+        document.getElementById('bt-res-wins').innerText = wins;
+        document.getElementById('bt-res-profit').innerText = bank1.toFixed(2) + "$";
+        
+        const ctx = document.getElementById('btChart').getContext('2d');
+        if(btChartInstance) btChartInstance.destroy();
+        btChartInstance = new Chart(ctx, { type: 'line', data: { labels: data1.map((_,i)=>i), datasets: [{ data: data1, borderColor: '#00ff88', borderWidth: 2, pointRadius: 0 }] }, options: { responsive:true, maintainAspectRatio:false, plugins: { legend: { display:false } } } });
+    }
+</script>
+</body>
+</html>
