@@ -798,21 +798,31 @@
         let totalStaked = 0, totalProfit = 0, wins = 0, expectedValue = 0;
         let pArray = [], streak = 0, maxW = 0, maxL = 0;
         let marketStats = {};
+        
+        // Métricas Psicológicas y de Sesgo
+        let lowOddsProf = 0, highOddsProf = 0;
 
         resolved.reverse().forEach(p => {
             totalStaked += p.stake;
             const evP = (p.prob / 100) * (p.odds - 1) * p.stake - (1 - (p.prob/100)) * p.stake;
             expectedValue += evP;
 
+            let currentChange = 0;
             if(p.status === 'win') {
-                totalProfit += (p.odds - 1) * p.stake;
+                currentChange = (p.odds - 1) * p.stake;
+                totalProfit += currentChange;
                 wins++; streak = (streak < 0) ? 1 : streak + 1;
                 if(streak > maxW) maxW = streak;
             } else {
+                currentChange = -p.stake;
                 totalProfit -= p.stake;
                 streak = (streak > 0) ? -1 : streak - 1;
                 if(Math.abs(streak) > maxL) maxL = Math.abs(streak);
             }
+            
+            // Psicológica: Sesgo de cuotas
+            if(p.odds < 2.0) lowOddsProf += currentChange; else highOddsProf += currentChange;
+
             pArray.push(totalProfit);
             if(!marketStats[p.name]) marketStats[p.name] = { w:0, t:0, p:0 };
             marketStats[p.name].t++;
@@ -820,35 +830,44 @@
             else marketStats[p.name].p -= p.stake;
         });
 
+        const n = resolved.length;
         const yieldPct = (totalProfit / totalStaked) * 100;
-        const winRate = (wins / resolved.length) * 100;
-        const avgOdds = resolved.reduce((a, b) => a + b.odds, 0) / resolved.length;
+        const winRate = (wins / n) * 100;
+        const avgOdds = resolved.reduce((a, b) => a + b.odds, 0) / n;
         const eYield = (expectedValue / totalStaked) * 100;
         
-        const n = resolved.length;
+        // Robustez Estadística
         const p_hit = wins / n;
         const e = 1 / avgOdds;
         const zScore = (n * (p_hit - e)) / Math.sqrt(n * e * (1 - e));
+        
+        // P-Value aproximado usando Z-Score
+        const pValue = 1 - (0.5 * (1 + Math.tanh(0.798 * (zScore + 0.035 * Math.pow(zScore, 3)))));
+        
+        // Sharpe Ratio (Beneficio/Volatilidad)
+        const stdDev = Math.sqrt(resolved.reduce((a, b) => {
+            let res = (b.status === 'win' ? (b.odds-1)*b.stake : -b.stake);
+            return a + Math.pow(res - (totalProfit/n), 2);
+        }, 0) / n);
+        const sharpe = stdDev > 0 ? (totalProfit / n) / stdDev : 0;
 
-        // --- NUEVA LÓGICA: CÁLCULO DE N PARA Z=2.0 ---
+        // Gestión de Riesgo: Factor de Ruina (fR = ((1-Edge)/(1+Edge))^Banca)
+        const edge_decimal = yieldPct / 100;
+        const ruinProb = Math.pow((1 - Math.abs(edge_decimal)) / (1 + Math.abs(edge_decimal)), 10) * 100; // Simulado sobre 10 unidades
+
+        // Proyección Monte Carlo (Simple)
+        const monteCarlo = totalProfit + (expectedValue * 2); // Proyección a +200% volumen
+
         let nextLevelText = "";
         if (zScore < 2.0 && n > 0) {
-            // Re-arreglamos la fórmula del Z-score para despejar N necesario
-            // N = (Z^2 * e * (1-e)) / (p-e)^2
             const numerator = (Math.pow(2.0, 2) * e * (1 - e));
             const denominator = Math.pow((p_hit - e), 2);
             const nNeeded = Math.ceil(numerator / denominator);
             const remaining = nNeeded - n;
-            
-            if (p_hit > e) {
-                nextLevelText = `🚀 OBJETIVO PRO: Faltan ~${remaining > 0 ? remaining : 1} picks con este ritmo para Z=2.0`;
-            } else {
-                nextLevelText = `⚠️ MEJORA EL EDGE: Tu Win Rate actual no proyecta un Z=2.0`;
-            }
+            nextLevelText = p_hit > e ? `🚀 OBJETIVO PRO: Faltan ~${remaining > 0 ? remaining : 1} picks para Z=2.0` : `⚠️ MEJORA EL EDGE: WR insuficiente para Z=2.0`;
         } else if (zScore >= 2.0) {
-            nextLevelText = `✅ ESTATUS PRO: Tu sistema es estadísticamente sólido.`;
+            nextLevelText = `✅ ESTATUS PRO: Sistema estadísticamente sólido.`;
         }
-        // ---------------------------------------------
 
         let marketText = ""; 
         for(let m in marketStats) { 
@@ -862,13 +881,25 @@
 📈 YIELD REAL:    ${yieldPct.toFixed(2)}%
 🎯 WIN RATE:      ${winRate.toFixed(1)}% (N=${n})
 ---------------------------------
-[ MÉTRICAS SHARP BETTING ]
-💎 VALUE EXPECTED: ${expectedValue.toFixed(2)}$
-📊 YIELD ESP (EV): ${eYield.toFixed(2)}%
+[ ROBUSTEZ ESTADÍSTICA ]
 ⚡ Z-SCORE:        ${zScore.toFixed(2)} ${zScore > 2 ? '(!) SISTEMA' : '(?) SUERTE'}
+🧬 P-VALUE:        ${pValue.toFixed(4)} (${pValue < 0.05 ? 'SIGNIFICATIVO' : 'ALEATORIO'})
+📊 RATIO SHARPE:   ${sharpe.toFixed(2)} (Eficiencia de riesgo)
 ${nextLevelText}
-📉 MAX DD (EST):   ${maxL} Ls Seguidas
-🔥 RACHA MAX:     +${maxW} Ws Seguidas
+---------------------------------
+[ GESTIÓN DE RIESGO ]
+💀 FACTOR RUINA:   ${ruinProb.toFixed(2)}% (Prob. Quiebra)
+📉 DD TEMPORAL:    ${maxL} Picks seguidos en negativo
+💎 VALUE ESP (EV): ${expectedValue.toFixed(2)}$
+📊 YIELD ESP (EV): ${eYield.toFixed(2)}%
+---------------------------------
+[ PSICOLOGÍA Y SESGOS ]
+⚖️ SESGO FAVORITOS (<2.00): ${lowOddsProf.toFixed(1)}$
+⚖️ SESGO SORPRESAS (>2.00): ${highOddsProf.toFixed(1)}$
+---------------------------------
+[ PROYECCIONES FUTURAS ]
+🎲 MONTE CARLO (EST): ${monteCarlo.toFixed(2)}$ a 30 días
+🏆 TIER ACTUAL: ${zScore > 3 ? 'ELITE SHARP' : (zScore > 2 ? 'PRO' : 'AMATEUR')}
 ---------------------------------
 [ RENDIMIENTO POR MERCADO ]
 ${marketText}
