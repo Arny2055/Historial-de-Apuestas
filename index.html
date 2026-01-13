@@ -11,6 +11,7 @@
             --bg: #050d0a; --card: #101d18; --accent-gold: #FFD700; --accent-green: #00ff88;
             --text-main: #e0e7e4; --text-dim: #7f9c93; --border: #243a33; --delete: #ff4d4d;
             --quantum-blue: #00ffff; --warning: #ff8800; --fire: #ff3300; --surebet: #b300ff;
+            --sharp-purple: #9d00ff;
         }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: -apple-system, sans-serif; }
         body { margin: 0; background: var(--bg); color: var(--text-main); overflow: hidden; height: 100vh; }
@@ -123,6 +124,9 @@
         .guide-h3 { color: var(--accent-gold); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 5px; }
         .guide-p { font-size: 0.75rem; color: var(--text-dim); line-height: 1.4; margin: 5px 0; }
         .guide-tag { display: inline-block; padding: 2px 5px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 5px; }
+        
+        .strategy-card { background: linear-gradient(145, #1a2a24, #101d18); border: 1px solid var(--sharp-purple); padding: 15px; border-radius: 12px; margin-top: 15px; }
+        .sharp-title { color: var(--sharp-purple); font-weight: 900; font-size: 0.8rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
     </style>
 </head>
 <body>
@@ -332,6 +336,15 @@
             <p class="guide-p">1. Ajusta tu <b>Banca Actual</b> en la pestaña Nuevo. Esto es vital para el cálculo del Stake.</p>
             <p class="guide-p">2. Selecciona una liga y pulsa <b>Sincronizar Cloud</b>. El motor traerá las estadísticas más recientes.</p>
             <p class="guide-p">3. Elige los equipos y pulsa <b>Analizar Partido</b> para ver las probabilidades de Poisson.</p>
+        </div>
+
+        <div class="strategy-card">
+            <div class="sharp-title"><i class="fa-solid fa-bolt"></i> PROTOCOLO DE ÉLITE: "THE SYNDICATE"</div>
+            <p class="guide-p" style="color: #fff; font-size: 0.8rem; border-bottom: 1px solid var(--sharp-purple); padding-bottom: 8px;">Esta es la estrategia utilizada por los sindicatos de apuestas en Londres para mantener un Yield del 8-12% constante:</p>
+            <p class="guide-p"><b>1. La Regla de los 15 Minutos:</b> Compara la cuota de Quantum Engine con la cuota de cierre (Closing Line) de Pinnacle. Si tu cuota es mayor que la de cierre y Quantum tiene Edge > 4%, apuesta <b>Stake Doble</b>.</p>
+            <p class="guide-p"><b>2. Filtro de Liquidez:</b> Solo opera en ligas donde el Overround sea <b>menor al 3.5%</b>. Los mercados con altos márgenes son trampas estadísticas.</p>
+            <p class="guide-p"><b>3. El Sesgo del Empate:</b> En Poisson, si el Empate (X) tiene una probabilidad > 28% y la cuota de mercado es > 3.60, históricamente es el mercado con mayor retorno de inversión (ROI) a largo plazo.</p>
+            <p class="guide-p"><b>4. Anti-Tilt:</b> Nunca realices más de 3 apuestas simultáneas. El riesgo de correlación puede destruir tu banca en un solo set de partidos.</p>
         </div>
 
         <div class="guide-section">
