@@ -180,6 +180,7 @@
             <option value="scotland">Escocia - Premiership</option>
             <option value="belgium">Bélgica - Pro League</option>
             <option value="turkey">Turquía - Super Lig</option>
+            <option value="austria">Austria - Bundesliga</option>
         </select>
 
         <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
@@ -489,7 +490,8 @@
                 'greece': [542, 571, 575, 604, 607, 613],
                 'scotland': [619, 648, 652, 681, 684, 690],
                 'belgium': [696, 725, 729, 758, 761, 767],
-                'turkey': [774, 803, 807, 836, 839, 845]
+                'turkey': [774, 803, 807, 836, 839, 845],
+                'austria': [850, 879, 883, 912, 915, 921]
             };
 
             const r = ranges[leagueKey];
@@ -778,7 +780,7 @@
                 metricsHTML = `
                 <div class="card-metrics">
                     <span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span>
-                    <span class="metric-badge badge-ov">OV: ${item.savedOv}%</span>
+                    <span class="metric-badge badge-ov: ${item.savedOv}%</span>
                 </div>`;
             }
 
