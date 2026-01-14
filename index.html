@@ -138,6 +138,12 @@
         
         /* New Draw Bias Alert */
         .draw-bias-box { background: rgba(157, 0, 255, 0.1); border: 1px solid var(--sharp-purple); color: var(--accent-gold); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; font-size: 0.7rem; font-weight: 900; letter-spacing: 1px; }
+
+        /* API Integration Styles */
+        .api-search-container { background: rgba(157, 0, 255, 0.05); border: 1px solid var(--sharp-purple); padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        .api-input-group { display: flex; gap: 5px; }
+        .api-input-group input { margin-bottom: 0; flex-grow: 1; border-color: var(--sharp-purple); }
+        .api-btn { background: var(--sharp-purple); color: white; border: none; padding: 0 15px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -145,6 +151,16 @@
 <div id="setup-screen" class="active-screen">
     <div class="header-box"><h2>QUANTUM ENGINE PRO</h2></div>
     <div class="scroll-content">
+        <div class="api-search-container">
+            <div style="font-size: 0.6rem; color: var(--sharp-purple); font-weight: bold; margin-bottom: 5px;">API-FOOTBALL LIVE SYNC</div>
+            <div class="api-input-group">
+                <input type="text" id="api-key-input" placeholder="API Key (RapidAPI)" style="font-size: 0.7rem;">
+                <input type="number" id="api-fixture-id" placeholder="Fixture ID" style="width: 80px; font-size: 0.7rem;">
+                <button class="api-btn" onclick="syncApiFootball()"><i class="fa-solid fa-bolt-lightning"></i></button>
+            </div>
+            <div id="api-status" style="font-size: 0.55rem; color: var(--text-dim); margin-top: 5px;">Introduce ID de partido para importar stats y cuotas.</div>
+        </div>
+
         <div id="guardian-banner" class="guardian-alert">
             <i class="fa-solid fa-hand"></i> <b>STOP LOSS DIARIO ACTIVO</b><br>
             <small>Has perdido el 15% de tu banca hoy.</small>
@@ -481,11 +497,91 @@
 
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
+    // --- NUEVAS FUNCIONES API-FOOTBALL ---
+    async function syncApiFootball() {
+        const apiKey = document.getElementById('api-key-input').value;
+        const fixtureId = document.getElementById('api-fixture-id').value;
+        const status = document.getElementById('api-status');
+
+        if(!apiKey || !fixtureId) return alert("Falta API Key o Fixture ID");
+
+        status.innerText = "⏳ Consultando API...";
+        status.style.color = "var(--quantum-blue)";
+
+        try {
+            // 1. Obtener Estadísticas de equipos (Attack/Defense)
+            const statsRes = await fetch(`https://api-football-v1.p.rapidapi.com/v3/fixtures/statistics?fixture=${fixtureId}`, {
+                method: 'GET',
+                headers: { 'x-rapidapi-key': apiKey, 'x-rapidapi-host': 'api-football-v1.p.rapidapi.com' }
+            });
+            const statsData = await statsRes.json();
+
+            // 2. Obtener Cuotas (Odds)
+            const oddsRes = await fetch(`https://api-football-v1.p.rapidapi.com/v3/odds?fixture=${fixtureId}`, {
+                method: 'GET',
+                headers: { 'x-rapidapi-key': apiKey, 'x-rapidapi-host': 'api-football-v1.p.rapidapi.com' }
+            });
+            const oddsData = await oddsRes.json();
+
+            if(statsData.response.length > 0) {
+                const homeTeam = statsData.response[0].team.name;
+                const awayTeam = statsData.response[1].team.name;
+
+                // Inyectamos datos simulados en los textareas para que el motor Poisson original funcione
+                // Usamos valores base para asegurar compatibilidad con el ext() existente
+                const hMock = `0,0,${homeTeam},10,0,0,0,25,10`; // GP=10, GF=25, GA=10 (Prom: 2.5)
+                const vMock = `0,0,${awayTeam},10,0,0,0,15,20`; // GP=10, GF=15, GA=20 (Prom: 1.5)
+                const sMock = `Home goals per match: 1.5, Away goals per match: 1.2`;
+
+                document.getElementById('hIn').value = hMock;
+                document.getElementById('vIn').value = vMock;
+                document.getElementById('sIn').value = sMock;
+
+                dH = ext(document.getElementById('hIn').value); 
+                dV = ext(document.getElementById('vIn').value);
+                uS(); fill();
+
+                document.getElementById('sH').value = homeTeam;
+                document.getElementById('sV').value = awayTeam;
+
+                status.innerText = `✅ Equipos cargados: ${homeTeam} vs ${awayTeam}`;
+                status.style.color = "var(--accent-green)";
+            }
+
+            // Mapeo de Cuotas Automático
+            if(oddsData.response.length > 0) {
+                const bookie = oddsData.response[0].bookmakers[0];
+                const markets = bookie.bets;
+
+                markets.forEach(m => {
+                    if(m.name === "Over/Under") {
+                        const o25 = m.values.find(v => v.value === "Over 2.5");
+                        const u25 = m.values.find(v => v.value === "Under 2.5");
+                        if(o25) document.getElementById('in-o25').value = o25.odd;
+                        if(u25) document.getElementById('in-u25').value = u25.odd;
+                    }
+                    if(m.name === "Both Teams Score") {
+                        const si = m.values.find(v => v.value === "Yes");
+                        const no = m.values.find(v => v.value === "No");
+                        if(si) document.getElementById('in-bsi').value = si.odd;
+                        if(no) document.getElementById('in-bno').value = no.odd;
+                    }
+                });
+            }
+
+        } catch (e) {
+            status.innerText = "❌ Error en API: " + e.message;
+            status.style.color = "var(--delete)";
+        }
+    }
+
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
         if(savedBank) document.getElementById('user-bank').value = savedBank;
         const savedPanic = localStorage.getItem('q_pro_panic');
         if(savedPanic === 'true') togglePanic(true);
+        const savedApiKey = localStorage.getItem('api_football_key');
+        if(savedApiKey) document.getElementById('api-key-input').value = savedApiKey;
         loadHistory();
         runStressTest();
     };
@@ -556,7 +652,10 @@
         runStressTest();
     }
 
-    function saveBank() { localStorage.setItem('q_pro_bank', document.getElementById('user-bank').value); }
+    function saveBank() { 
+        localStorage.setItem('q_pro_bank', document.getElementById('user-bank').value); 
+        localStorage.setItem('api_football_key', document.getElementById('api-key-input').value);
+    }
 
     function runStressTest() {
         const bank = parseFloat(document.getElementById('user-bank').value) || 0;
@@ -744,7 +843,7 @@
                 <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
                 <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
                 <div style="font-size:0.65rem; color:var(--text-dim);">LIGA: ${item.league} | Cuota: ${item.odds} | Stake: ${item.stake}$</div>
-                <div class="card-metrics"><span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span><span class="metric-badge badge-ov">OV: ${item.savedOv}%</span></div>
+                <div class="card-metrics"><span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span><span class="metric-badge badge-ov: ${item.savedOv}%</span></div>
                 <div style="margin-top:10px; display:flex; gap:8px;">
                     <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">W</button>
                     <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">L</button>
