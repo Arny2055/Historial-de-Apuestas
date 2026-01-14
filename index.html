@@ -135,6 +135,8 @@
         /* Filtros */
         .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
         .filter-grid select, .filter-grid input { margin-bottom: 0; font-size: 0.65rem; padding: 8px; }
+        
+        .filter-range-label { grid-column: span 2; font-size: 0.55rem; color: var(--accent-gold); text-transform: uppercase; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -265,8 +267,18 @@
                 <option value="loss">Perdidas</option>
                 <option value="pending">Pendientes</option>
             </select>
-            <input type="number" id="f-edge" placeholder="Min Edge %" step="0.1" oninput="loadHistory()">
-            <input type="number" id="f-odds" placeholder="Min Cuota" step="0.1" oninput="loadHistory()">
+            
+            <div class="filter-range-label">Edge % (Min / Max)</div>
+            <input type="number" id="f-edge-min" placeholder="Min Edge" step="0.1" oninput="loadHistory()">
+            <input type="number" id="f-edge-max" placeholder="Max Edge" step="0.1" oninput="loadHistory()">
+            
+            <div class="filter-range-label">Cuota (Min / Max)</div>
+            <input type="number" id="f-odds-min" placeholder="Min Cuota" step="0.1" oninput="loadHistory()">
+            <input type="number" id="f-odds-max" placeholder="Max Cuota" step="0.1" oninput="loadHistory()">
+            
+            <div class="filter-range-label">Overround % (Min / Max)</div>
+            <input type="number" id="f-ov-min" placeholder="Min OV" step="0.1" oninput="loadHistory()">
+            <input type="number" id="f-ov-max" placeholder="Max OV" step="0.1" oninput="loadHistory()">
         </div>
 
         <div class="stat-grid">
@@ -697,17 +709,27 @@
         const leagues = [...new Set(history.map(x => x.league))];
         fLeague.innerHTML = '<option value="">Todas las Ligas</option>' + leagues.map(l => `<option value="${l}" ${l===currentLValue?'selected':''}>${l}</option>`).join('');
 
-        // Aplicar Filtros
+        // Capturar valores de filtros
         const selL = fLeague.value;
         const selS = document.getElementById('f-status').value;
-        const minE = parseFloat(document.getElementById('f-edge').value) || -999;
-        const minO = parseFloat(document.getElementById('f-odds').value) || 0;
+        const eMin = parseFloat(document.getElementById('f-edge-min').value) || -999;
+        const eMax = parseFloat(document.getElementById('f-edge-max').value) || 999;
+        const oMin = parseFloat(document.getElementById('f-odds-min').value) || 0;
+        const oMax = parseFloat(document.getElementById('f-odds-max').value) || 999;
+        const ovMin = parseFloat(document.getElementById('f-ov-min').value) || -999;
+        const ovMax = parseFloat(document.getElementById('f-ov-max').value) || 999;
 
+        // Aplicar Filtros Dinámicos
         const filtered = history.filter(p => {
+            const edge = parseFloat(p.savedEdge || 0);
+            const odds = parseFloat(p.odds || 0);
+            const ov = parseFloat(p.savedOv || 0);
+            
             return (!selL || p.league === selL) && 
                    (!selS || p.status === selS) && 
-                   (parseFloat(p.savedEdge || 0) >= minE) && 
-                   (p.odds >= minO);
+                   (edge >= eMin && edge <= eMax) && 
+                   (odds >= oMin && odds <= oMax) &&
+                   (ov >= ovMin && ov <= ovMax);
         });
 
         const container = document.getElementById('history-list');
