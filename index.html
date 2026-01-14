@@ -297,11 +297,6 @@
             <canvas id="profitChart"></canvas>
         </div>
 
-        <div class="chart-container" style="height: 220px; margin-bottom: 20px;">
-            <div style="font-size: 0.6rem; color: var(--accent-gold); margin-bottom: 5px; text-align: center;">PROFIT POR EQUIPO ($)</div>
-            <canvas id="teamChart"></canvas>
-        </div>
-
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
             <button class="btn-main" style="background: var(--quantum-blue); color: #000;" onclick="openSessionModal()">
                 <i class="fa-solid fa-flag-checkered"></i> SESIÓN HOY
@@ -379,7 +374,7 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item active" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
     </div>
@@ -478,7 +473,7 @@
 </div>
 
 <script>
-    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, teamChartInstance=null, isPanic = false;
+    let dH={}, dV={}, aH=1.5, aV=1.2, selectedPick={}, chartInstance=null, btChartInstance=null, isPanic = false;
     let guardianForcedReset = false;
     let lastSuggestedKelly = 0;
     let currentLiveOverround = 0; 
@@ -728,8 +723,8 @@
         });
 
         const container = document.getElementById('history-list');
-        let runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0, sessionLoss = 0;
-        let chartData = [0], profitsByTeam = {}, today = new Date().toLocaleDateString();
+        let runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0;
+        let chartData = [0], today = new Date().toLocaleDateString();
 
         [...filtered].reverse().forEach(item => {
             let pChange = 0;
@@ -740,8 +735,6 @@
                 chartData.push(runningProfit);
                 if(runningBank > maxBank) maxBank = runningBank;
                 let cDD = ((maxBank - runningBank) / maxBank) * 100; if(cDD > maxDD) maxDD = cDD;
-                if(item.date === today) sessionLoss += pChange;
-                item.teams.split(' vs ').forEach(t => profitsByTeam[t.trim()] = (profitsByTeam[t.trim()] || 0) + pChange);
             }
         });
 
@@ -762,20 +755,13 @@
         document.getElementById('total-profit').innerText = runningProfit.toFixed(2) + " $";
         document.getElementById('total-profit').style.color = runningProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
         document.getElementById('max-drawdown-hist').innerText = maxDD.toFixed(1) + "%";
-        updateChart(chartData); updateTeamChart(profitsByTeam);
+        updateChart(chartData);
     }
 
     function updateChart(data) {
         const ctx = document.getElementById('profitChart').getContext('2d');
         if(chartInstance) chartInstance.destroy();
         chartInstance = new Chart(ctx, { type: 'line', data: { labels: data.map((_, i) => i), datasets: [{ data: data, borderColor: '#00ff88', backgroundColor: 'rgba(0, 255, 136, 0.1)', borderWidth: 2, fill: true, tension: 0.3, pointRadius: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7f9c93', font: { size: 9 } } } } } });
-    }
-
-    function updateTeamChart(profits) {
-        const ctx = document.getElementById('teamChart').getContext('2d');
-        if(teamChartInstance) teamChartInstance.destroy();
-        const entries = Object.entries(profits).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,10);
-        teamChartInstance = new Chart(ctx, { type: 'bar', data: { labels: entries.map(e=>e[0]), datasets: [{ data: entries.map(e=>e[1]), backgroundColor: entries.map(e=>e[1]>=0?'rgba(0,255,136,0.5)':'rgba(255,77,77,0.5)') }] }, options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}} } });
     }
 
     function updateStatus(id, status) {
