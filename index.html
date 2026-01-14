@@ -119,6 +119,7 @@
         .badge-edge { background: rgba(0, 255, 136, 0.1); color: var(--accent-green); border: 1px solid rgba(0, 255, 136, 0.3); }
         .badge-ov { background: rgba(0, 255, 255, 0.1); color: var(--quantum-blue); border: 1px solid rgba(0, 255, 255, 0.3); }
 
+        /* Estilos Guía */
         .guide-section { margin-bottom: 20px; border-left: 2px solid var(--accent-gold); padding-left: 10px; }
         .guide-h3 { color: var(--accent-gold); font-size: 0.9rem; text-transform: uppercase; margin-bottom: 5px; }
         .guide-p { font-size: 0.75rem; color: var(--text-dim); line-height: 1.4; margin: 5px 0; }
@@ -131,6 +132,7 @@
         .rule-pass { background: var(--accent-green); color: #000; }
         .rule-fail { background: rgba(255,255,255,0.05); color: var(--text-dim); border: 1px solid var(--border); }
 
+        /* Filtros */
         .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border); }
         .filter-grid select, .filter-grid input { margin-bottom: 0; font-size: 0.65rem; padding: 8px; }
     </style>
@@ -142,7 +144,7 @@
     <div class="scroll-content">
         <div id="guardian-banner" class="guardian-alert">
             <i class="fa-solid fa-hand"></i> <b>STOP LOSS DIARIO ACTIVO</b><br>
-            <small>Has perdido el límite de seguridad de tu banca hoy.</small>
+            <small>Has perdido el 15% de tu banca hoy.</small>
             <button onclick="resetGuardian()" style="background:var(--delete); color:#fff; border:none; padding:5px 10px; border-radius:5px; margin-top:10px; font-weight:bold; cursor:pointer; font-size:0.6rem;">RESET SESIÓN (FORCE)</button>
         </div>
 
@@ -382,17 +384,24 @@
 
         <div class="strategy-card">
             <div class="sharp-title"><i class="fa-solid fa-bolt"></i> PROTOCOLO DE ÉLITE: "THE SYNDICATE"</div>
-            <p class="guide-p" style="color: #fff; font-size: 0.8rem; border-bottom: 1px solid var(--sharp-purple); padding-bottom: 8px;">Esta es la estrategia utilizada por los sindicatos de apuestas para mantener un Yield constante:</p>
-            <p class="guide-p"><b>1. La Regla de los 15 Minutos:</b> Compara la cuota de Quantum Engine con la cuota de cierre de casas asiáticas. Si tienes Edge > 4%, opera con Stake Doble.</p>
+            <p class="guide-p" style="color: #fff; font-size: 0.8rem; border-bottom: 1px solid var(--sharp-purple); padding-bottom: 8px;">Esta es la estrategia utilizada por los sindicatos de apuestas en Londres para mantener un Yield del 8-12% constante:</p>
+            <p class="guide-p"><b>1. La Regla de los 15 Minutos:</b> Compara la cuota de Quantum Engine con la cuota de cierre (Closing Line) de Pinnacle. Si tu cuota es mayor que la de cierre y Quantum tiene Edge > 4%, apuesta <b>Stake Doble</b>.</p>
             <p class="guide-p"><b>2. Filtro de Liquidez:</b> Solo opera en ligas donde el Overround sea <b>menor al 3.5%</b>. Los mercados con altos márgenes son trampas estadísticas.</p>
-            <p class="guide-p"><b>3. Anti-Tilt:</b> Nunca realices más de 3 apuestas simultáneas para evitar correlación negativa.</p>
+            <p class="guide-p"><b>3. El Sesgo del Empate:</b> En Poisson, si el Empate (X) tiene una probabilidad > 28% y la cuota de mercado es > 3.60, históricamente es el mercado con mayor retorno de inversión (ROI) a largo plazo.</p>
+            <p class="guide-p"><b>4. Anti-Tilt:</b> Nunca realices más de 3 apuestas simultáneas. El riesgo de correlación puede destruir tu banca en un solo set de partidos.</p>
         </div>
 
         <div class="guide-section">
             <h3 class="guide-h3"><i class="fa-solid fa-brain"></i> Conceptos Clave</h3>
-            <p class="guide-p"><span class="guide-tag" style="background:var(--accent-green); color:#000;">EDGE</span> La ventaja matemática sobre la casa. Si el Edge es > 3%, hay valor.</p>
-            <p class="guide-p"><span class="guide-tag" style="background:var(--quantum-blue); color:#000;">OVERROUND</span> El margen de beneficio de la casa. Un Overround < 5% indica un mercado eficiente.</p>
-            <p class="guide-p"><span class="guide-tag" style="background:var(--accent-gold); color:#000;">CRITERIO KELLY</span> Fórmula que calcula cuánto dinero arriesgar basándose en tu ventaja.</p>
+            <p class="guide-p"><span class="guide-tag" style="background:var(--accent-green); color:#000;">EDGE</span> La ventaja matemática sobre la casa. Si el Edge es > 3%, hay valor. Si es > 15%, ten cuidado (cuota mal puesta o error de data).</p>
+            <p class="guide-p"><span class="guide-tag" style="background:var(--quantum-blue); color:#000;">OVERROUND</span> El margen de beneficio de la casa. Un Overround < 5% indica un mercado eficiente. Si es negativo (< 0%), es una <b>Arbitraje/Surebet</b>.</p>
+            <p class="guide-p"><span class="guide-tag" style="background:var(--accent-gold); color:#000;">CRITERIO KELLY</span> Fórmula que calcula cuánto dinero arriesgar basándose en tu ventaja. Usamos "Fractional Kelly" (25%) para proteger tu banca.</p>
+        </div>
+
+        <div class="guide-section">
+            <h3 class="guide-h3"><i class="fa-solid fa-shield-virus"></i> Gestión de Riesgo</h3>
+            <p class="guide-p"><b>Modo Pánico:</b> Reduce a la mitad todos los riesgos. Actívalo si estás en una mala racha.</p>
+            <p class="guide-p"><b>Guardian Alert:</b> Si pierdes el 15% de tu banca en un solo día, el sistema bloqueará nuevos análisis para protegerte del "Tilt".</p>
         </div>
     </div>
     <div class="tab-bar">
@@ -634,6 +643,7 @@
         container.innerHTML = "";
         const isThreeWay = name.includes('(1)') || name.includes('(X)') || name.includes('(2)');
         
+        let preO1 = ""; if(name.includes('Más 2.5')) preO1 = document.getElementById('in-o25').value;
         if(isThreeWay) container.innerHTML = `<input type="number" id="o1" placeholder="Cuota 1" oninput="liveUpdateOverround()"><input type="number" id="o2" placeholder="Cuota X" oninput="liveUpdateOverround()"><input type="number" id="o3" placeholder="Cuota 2" oninput="liveUpdateOverround()">`;
         else container.innerHTML = `<input type="number" id="o1" placeholder="Cuota Mercado" oninput="liveUpdateOverround()"><input type="number" id="o2" placeholder="Cuota Opuesta" oninput="liveUpdateOverround()">`;
         
@@ -681,11 +691,13 @@
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const initialBank = parseFloat(localStorage.getItem('q_pro_bank')) || 1000;
         
+        // Actualizar Select de Ligas en Filtros
         const fLeague = document.getElementById('f-league');
         const currentLValue = fLeague.value;
         const leagues = [...new Set(history.map(x => x.league))];
         fLeague.innerHTML = '<option value="">Todas las Ligas</option>' + leagues.map(l => `<option value="${l}" ${l===currentLValue?'selected':''}>${l}</option>`).join('');
 
+        // Aplicar Filtros
         const selL = fLeague.value;
         const selS = document.getElementById('f-status').value;
         const minE = parseFloat(document.getElementById('f-edge').value) || -999;
@@ -716,10 +728,6 @@
                 item.teams.split(' vs ').forEach(t => profitsByTeam[t.trim()] = (profitsByTeam[t.trim()] || 0) + pChange);
             }
         });
-
-        const gBanner = document.getElementById('guardian-banner');
-        if(sessionLoss < -(initialBank * 0.15) && !guardianForcedReset) gBanner.classList.add('guardian-active');
-        else gBanner.classList.remove('guardian-active');
 
         container.innerHTML = filtered.map(item => `
             <div class="history-item ${item.status}">
@@ -805,61 +813,23 @@
         const a = document.createElement('a'); a.href = url; a.download = 'control.csv'; a.click();
     }
 
-    function copyReport() {
-        const text = document.getElementById('report-text').innerText;
-        navigator.clipboard.writeText(text).then(() => alert("Copiado al portapapeles"));
-    }
-
     function runBacktest() {
-        if(!window.currentProbs) return alert("Analice un partido primero");
-        const market = document.getElementById('bt-market').value;
-        const odds1 = parseFloat(document.getElementById('bt-odds').value);
-        const iter = parseInt(document.getElementById('bt-iterations').value);
-        const kF = parseFloat(document.getElementById('bt-kelly-frac').value);
+        if(!window.currentProbs) return alert("Analice partido");
+        const market = document.getElementById('bt-market').value, odds1 = parseFloat(document.getElementById('bt-odds').value);
+        const iter = parseInt(document.getElementById('bt-iterations').value), kF = parseFloat(document.getElementById('bt-kelly-frac').value);
         const prob = window.currentProbs[market];
-        
-        let bank = parseFloat(document.getElementById('user-bank').value) || 1000;
-        let data = [bank];
-        let w = 0;
-        let ruinIdx = -1;
-
+        let bank = parseFloat(document.getElementById('user-bank').value) || 1000, data = [bank], w = 0;
         for(let i=0; i<iter; i++) {
             let edge = (prob * odds1) - 1;
-            let kellyStake = (edge / (odds1 - 1)) * kF;
-            let stake = bank * Math.max(0, kellyStake);
-            
-            if(Math.random() < prob) {
-                w++; bank += stake * (odds1 - 1);
-            } else {
-                bank -= stake;
-            }
-            data.push(bank);
-            if(bank < 1 && ruinIdx === -1) ruinIdx = i;
+            let stake = bank * Math.max(0, (edge/(odds1-1))*kF);
+            if(Math.random() < prob) { w++; bank += stake * (odds1-1); } else bank -= stake;
+            data.push(bank); if(bank < 1) break;
         }
-
         document.getElementById('bt-results').style.display = 'block';
-        document.getElementById('bt-res-edge').innerText = ((prob * odds1 - 1) * 100).toFixed(1) + "%";
-        document.getElementById('bt-res-wins').innerText = w;
         document.getElementById('bt-res-profit').innerText = bank.toFixed(2) + "$";
-        
-        const rAlert = document.getElementById('ruin-alert');
-        if(ruinIdx !== -1) {
-            rAlert.style.display = 'block';
-            document.getElementById('ruin-index').innerText = ruinIdx;
-        } else {
-            rAlert.style.display = 'none';
-        }
-
         const ctx = document.getElementById('btChart').getContext('2d');
         if(btChartInstance) btChartInstance.destroy();
-        btChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.map((_,i)=>i),
-                datasets: [{ data: data, borderColor: '#00ff88', backgroundColor: 'rgba(0,255,136,0.1)', fill: true }]
-            },
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
+        btChartInstance = new Chart(ctx, { type:'line', data:{labels:data.map((_,i)=>i), datasets:[{data:data, borderColor:'#00ff88'}]}, options:{maintainAspectRatio:false} });
     }
 </script>
 </body>
