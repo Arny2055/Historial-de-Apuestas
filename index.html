@@ -650,7 +650,8 @@
 
             if(marketOdds > 1) {
                 const edge = ((prob/100 * marketOdds) - 1) * 100;
-                if(edge >= 3 && edge <= 15 && marketOverround <= 8) {
+                // Modificado: Se permite hasta el 100% de Edge en visualización
+                if(edge >= 3 && edge <= 100 && marketOverround <= 8) {
                     ruleText = `<span class="rule-status rule-pass">RULE COMPLIANT (E:${edge.toFixed(1)}% OV:${marketOverround.toFixed(1)}%)</span>`;
                 } else {
                     ruleText = `<span class="rule-status rule-fail">NON COMPLIANT</span>`;
@@ -739,23 +740,29 @@
             
             const sniff = document.getElementById('sniff-alert');
             const kellyLabel = document.getElementById('kelly-label-tag');
-            let multiplier = 0.25; let tagText = "Quarter Kelly (25%)";
+            
+            // Lógica de Kelly actualizada según requerimiento
+            let multiplier = 0.25; 
+            let tagText = "Quarter Kelly (25%)";
             
             if(edgeVal > 0.03) {
                 sniff.style.display = 'block';
+                // Si el edge es superior al 15%, forzamos multiplicador al 5%
                 if(edgeVal > 0.15) {
                     sniff.innerText = `⚠️ SOSPECHOSO (EDGE ${currentLiveEdge}%)`;
                     sniff.className = 'sniff-alert sniff-mega';
-                    multiplier = 0.05; tagText = "Risk Mitigator (5%)";
+                    multiplier = 0.05; 
+                    tagText = "Risk Mitigator (5%)";
                 } else {
                     sniff.innerText = `EDGE DETECTADO: ${currentLiveEdge}%`;
-                    sniff.className = 'sniff-alert'; sniff.style.background = 'var(--accent-green)'; sniff.style.color = '#000';
+                    sniff.className = 'sniff-alert'; 
+                    sniff.style.background = 'var(--accent-green)'; 
+                    sniff.style.color = '#000';
                 }
             } else { sniff.style.display = 'none'; }
             
             if(isPanic) { multiplier *= 0.5; tagText += " + Panic"; }
             
-            // Kelly: ((b * p) - q) / b  donde b = cuota - 1
             let kellyRaw = (( (o1 - 1) * p ) - (1 - p)) / (o1 - 1);
             let kFrac = Math.max(0, kellyRaw * multiplier);
             kellyLabel.innerText = tagText;
@@ -824,7 +831,6 @@
             let resText = item.status === 'win' ? 'W' : (item.status === 'loss' ? 'L' : 'P');
             let color = item.status === 'win' ? 'var(--accent-green)' : (item.status === 'loss' ? 'var(--delete)' : 'var(--text-dim)');
             
-            // Visualización de Edge y Overround en la tarjeta
             let metricsHTML = '';
             if(item.savedEdge !== undefined) {
                 metricsHTML = `
