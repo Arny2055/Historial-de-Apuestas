@@ -655,11 +655,34 @@
         container.innerHTML = "";
         const isThreeWay = name.includes('(1)') || name.includes('(X)') || name.includes('(2)');
         
-        let preO1 = ""; if(name.includes('Más 2.5')) preO1 = document.getElementById('in-o25').value;
-        if(isThreeWay) container.innerHTML = `<input type="number" id="o1" placeholder="Cuota 1" oninput="liveUpdateOverround()"><input type="number" id="o2" placeholder="Cuota X" oninput="liveUpdateOverround()"><input type="number" id="o3" placeholder="Cuota 2" oninput="liveUpdateOverround()">`;
-        else container.innerHTML = `<input type="number" id="o1" placeholder="Cuota Mercado" oninput="liveUpdateOverround()"><input type="number" id="o2" placeholder="Cuota Opuesta" oninput="liveUpdateOverround()">`;
+        // Determinar cuotas precargadas según el mercado seleccionado
+        let preO1 = "", preO2 = "";
+        if(name.includes('Más de 2.5')) {
+            preO1 = document.getElementById('in-o25').value;
+            preO2 = document.getElementById('in-u25').value;
+        } else if(name.includes('Menos de 2.5')) {
+            preO1 = document.getElementById('in-u25').value;
+            preO2 = document.getElementById('in-o25').value;
+        } else if(name.includes('Ambos Marcan: SI')) {
+            preO1 = document.getElementById('in-bsi').value;
+            preO2 = document.getElementById('in-bno').value;
+        } else if(name.includes('Ambos Marcan: NO')) {
+            preO1 = document.getElementById('in-bno').value;
+            preO2 = document.getElementById('in-bsi').value;
+        }
+
+        if(isThreeWay) {
+            container.innerHTML = `<input type="number" id="o1" placeholder="Cuota 1" oninput="liveUpdateOverround()"><input type="number" id="o2" placeholder="Cuota X" oninput="liveUpdateOverround()"><input type="number" id="o3" placeholder="Cuota 2" oninput="liveUpdateOverround()">`;
+        } else {
+            container.innerHTML = `<input type="number" id="o1" placeholder="Cuota Mercado" value="${preO1}" oninput="liveUpdateOverround()"><input type="number" id="o2" placeholder="Cuota Opuesta" value="${preO2}" oninput="liveUpdateOverround()">`;
+        }
         
         document.getElementById('pick-modal').style.display = 'flex';
+        
+        // Disparar actualización inmediata si hay datos precargados
+        if(!isThreeWay && preO1 !== "") {
+            liveUpdateOverround();
+        }
     }
 
     function liveUpdateOverround() {
@@ -703,13 +726,11 @@
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const initialBank = parseFloat(localStorage.getItem('q_pro_bank')) || 1000;
         
-        // Actualizar Select de Ligas en Filtros
         const fLeague = document.getElementById('f-league');
         const currentLValue = fLeague.value;
         const leagues = [...new Set(history.map(x => x.league))];
         fLeague.innerHTML = '<option value="">Todas las Ligas</option>' + leagues.map(l => `<option value="${l}" ${l===currentLValue?'selected':''}>${l}</option>`).join('');
 
-        // Capturar valores de filtros
         const selL = fLeague.value;
         const selS = document.getElementById('f-status').value;
         const eMin = parseFloat(document.getElementById('f-edge-min').value) || -999;
@@ -719,7 +740,6 @@
         const ovMin = parseFloat(document.getElementById('f-ov-min').value) || -999;
         const ovMax = parseFloat(document.getElementById('f-ov-max').value) || 999;
 
-        // Aplicar Filtros Dinámicos
         const filtered = history.filter(p => {
             const edge = parseFloat(p.savedEdge || 0);
             const odds = parseFloat(p.odds || 0);
