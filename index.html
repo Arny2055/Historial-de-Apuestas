@@ -59,7 +59,7 @@
         .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; text-decoration: none; }
         .tab-item.active { color: var(--accent-gold); }
 
-        #setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen, #raw-data-screen { display: none; height: 100%; }
+        #setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen { display: none; height: 100%; }
         .active-screen { display: block !important; }
 
         .history-item { background: var(--card); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--border); position: relative; }
@@ -138,35 +138,14 @@
         
         .draw-bias-box { background: rgba(157, 0, 255, 0.1); border: 1px solid var(--sharp-purple); color: var(--accent-gold); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; font-size: 0.7rem; font-weight: 900; letter-spacing: 1px; }
         
+        /* NUEVO: Badge de estado de Backup */
         .backup-status { font-size: 0.55rem; color: var(--accent-green); margin-top: 5px; text-align: center; display: block; }
 
+        /* NUEVAS CLASES PARA CLV Y P-VALUE */
         .badge-clv { background: rgba(157, 0, 255, 0.1); color: var(--sharp-purple); border: 1px solid rgba(157, 0, 255, 0.3); }
         .clv-input-group { display: flex; align-items: center; gap: 5px; margin-top: 8px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; }
         .clv-input { width: 60px !important; padding: 4px !important; font-size: 10px !important; margin-bottom: 0 !important; height: auto !important; }
         .clv-label { font-size: 9px; color: var(--text-dim); }
-
-        /* ESTILOS PARA MODO HÍBRIDO */
-        .hybrid-box { background: rgba(157, 0, 255, 0.05); border: 1px solid var(--sharp-purple); border-radius: 8px; padding: 10px; margin-bottom: 15px; }
-        .hybrid-toggle { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 20px; }
-        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--sharp-purple); }
-        input:checked + .slider:before { transform: translateX(20px); }
-        .hybrid-badge { font-size: 0.6rem; color: var(--sharp-purple); font-weight: 900; }
-
-        /* NUEVO: AVISO DE MUESTRA BAJA */
-        .sample-warning { background: rgba(255, 136, 0, 0.1); border: 1px solid var(--warning); color: var(--warning); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.7rem; text-align: center; display: none; }
-        .sample-warning i { margin-right: 5px; }
-
-        /* ESTILOS RAW DATA */
-        .raw-table-wrapper { overflow-x: auto; background: #000; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px; }
-        .raw-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; color: var(--text-main); }
-        .raw-table th { background: var(--card); color: var(--accent-gold); padding: 10px; text-align: left; border-bottom: 2px solid var(--border); position: sticky; left: 0; }
-        .raw-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .raw-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
-        .raw-title { font-size: 0.75rem; color: var(--accent-green); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -223,55 +202,22 @@
             <i class="fa-solid fa-briefcase"></i> IR A MI CONTROL (HISTORIAL)
         </button>
 
-        <div class="hybrid-box">
-            <div class="hybrid-toggle">
-                <span class="hybrid-badge"><i class="fa-solid fa-flask"></i> ANALIZADOR HÍBRIDO (CHAMPIONS/EUROPA)</span>
-                <label class="switch">
-                    <input type="checkbox" id="hybrid-mode-toggle" onchange="toggleHybridUI()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <div id="league-selection-container">
-                <label style="font-size: 0.7rem; color: var(--accent-gold);">SELECCIONAR LIGA <span id="league-target-label">(ESTÁNDAR)</span>:</label>
-                <select id="cloud-league-selector">
-                    <option value="italy">Italia - Serie A</option>
-                    <option value="england">Inglaterra - Premier</option>
-                    <option value="spain">España - LaLiga</option>
-                    <option value="germany">Alemania - Bundesliga</option>
-                    <option value="portugal">Portugal - Liga Portugal</option>
-                    <option value="france">Francia - Ligue 1</option>
-                    <option value="netherlands">Países Bajos - Eredivisie</option>
-                    <option value="greece">Grecia - Super League</option>
-                    <option value="scotland">Escocia - Premiership</option>
-                    <option value="belgium">Bélgica - Pro League</option>
-                    <option value="turkey">Turquía - Super Lig</option>
-                    <option value="austria">Austria - Bundesliga</option>
-                    <option value="saudi">Arabia Saudita - Pro League</option>
-                    <option value="poland">Polonia - Ekstraklasa</option>
-                </select>
-
-                <div id="hybrid-v-selector" style="display:none; margin-top:10px; padding-top:10px; border-top: 1px solid var(--border);">
-                    <label style="font-size: 0.7rem; color: var(--sharp-purple);">LIGA PARA VISITA (TEAM B):</label>
-                    <select id="cloud-league-selector-v">
-                        <option value="italy">Italia - Serie A</option>
-                        <option value="england">Inglaterra - Premier</option>
-                        <option value="spain">España - LaLiga</option>
-                        <option value="germany">Alemania - Bundesliga</option>
-                        <option value="portugal">Portugal - Liga Portugal</option>
-                        <option value="france">Francia - Ligue 1</option>
-                        <option value="netherlands">Países Bajos - Eredivisie</option>
-                        <option value="greece">Grecia - Super League</option>
-                        <option value="scotland">Escocia - Premiership</option>
-                        <option value="belgium">Bélgica - Pro League</option>
-                        <option value="turkey">Turquía - Super Lig</option>
-                        <option value="austria">Austria - Bundesliga</option>
-                        <option value="saudi">Arabia Saudita - Pro League</option>
-                        <option value="poland">Polonia - Ekstraklasa</option>
-                    </select>
-                </div>
-            </div>
-        </div>
+        <label style="font-size: 0.7rem; color: var(--accent-gold);">SELECCIONAR LIGA (CLOUD):</label>
+        <select id="cloud-league-selector">
+            <option value="italy">Italia - Serie A</option>
+            <option value="england">Inglaterra - Premier</option>
+            <option value="spain">España - LaLiga</option>
+            <option value="germany">Alemania - Bundesliga</option>
+            <option value="portugal">Portugal - Liga Portugal</option>
+            <option value="france">Francia - Ligue 1</option>
+            <option value="netherlands">Países Bajos - Eredivisie</option>
+            <option value="greece">Grecia - Super League</option>
+            <option value="scotland">Escocia - Premiership</option>
+            <option value="belgium">Bélgica - Pro League</option>
+            <option value="turkey">Turquía - Super Lig</option>
+            <option value="austria">Austria - Bundesliga</option>
+            <option value="saudi">Arabia Saudita - Pro League</option>
+        </select>
 
         <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
             <i class="fa-solid fa-cloud-arrow-down"></i> SINCRONIZAR DESDE GOOGLE SHEETS
@@ -300,25 +246,13 @@
             </div>
         </div>
 
-        <div style="display:none">
-            <textarea id="hIn"></textarea>
-            <textarea id="vIn"></textarea>
-            <textarea id="sIn"></textarea>
-        </div>
-
-        <div id="sample-audit-msg" class="sample-warning">
-            <i class="fa-solid fa-triangle-exclamation"></i> MUESTRA BAJA: El cálculo Poisson puede ser inestable.
-        </div>
+        <textarea id="hIn" placeholder="PEGAR DATOS LOCAL (TABLA)..."></textarea>
+        <textarea id="vIn" placeholder="PEGAR DATOS VISITA (TABLA)..."></textarea>
+        <textarea id="sIn" placeholder="PEGAR PROMEDIOS LIGA..."></textarea>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-            <div>
-                <label style="font-size:0.5rem; color:var(--text-dim);">LOCAL</label>
-                <select id="sH" onchange="auditSampleCount()"><option value="">Seleccione Local</option></select>
-            </div>
-            <div>
-                <label style="font-size:0.5rem; color:var(--text-dim);">VISITA</label>
-                <select id="sV" onchange="auditSampleCount()"><option value="">Seleccione Visita</option></select>
-            </div>
+            <select id="sH"><option>Seleccione Local</option></select>
+            <select id="sV"><option>Seleccione Visita</option></select>
         </div>
         
         <button class="btn-main" id="btn-analyze" onclick="calculate()">
@@ -341,68 +275,6 @@
     <div class="tab-bar">
         <div class="tab-item active" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen'); loadHistory();"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
-        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
-        <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
-        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
-    </div>
-</div>
-
-<div id="raw-data-screen">
-    <div class="header-box"><h2>TABLAS DE LIGA</h2></div>
-    <div class="scroll-content">
-        <div id="raw-league-info" class="card" style="border-left: 4px solid var(--accent-gold); display:none;">
-            <div class="raw-title"><i class="fa-solid fa-globe"></i> PROMEDIOS LIGA</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">
-                    <div style="font-size: 0.55rem; color: var(--text-dim);">AVG GOLES LOCAL</div>
-                    <div id="raw-avg-h" style="font-size: 1rem; font-weight: bold; color: var(--accent-gold);">0.00</div>
-                </div>
-                <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">
-                    <div style="font-size: 0.55rem; color: var(--text-dim);">AVG GOLES VISITA</div>
-                    <div id="raw-avg-v" style="font-size: 1rem; font-weight: bold; color: var(--accent-gold);">0.00</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="raw-title"><i class="fa-solid fa-house"></i> TABLA LOCAL (FORM)</div>
-        <div class="raw-table-wrapper">
-            <table class="raw-table" id="table-raw-home">
-                <thead>
-                    <tr>
-                        <th>EQUIPO</th>
-                        <th style="text-align: center;">PJ</th>
-                        <th style="text-align: center;">GF</th>
-                        <th style="text-align: center;">GC</th>
-                        <th style="text-align: center;">GF/P</th>
-                        <th style="text-align: center;">GC/P</th>
-                    </tr>
-                </thead>
-                <tbody id="tbody-raw-home"></tbody>
-            </table>
-        </div>
-
-        <div class="raw-title"><i class="fa-solid fa-plane"></i> TABLA VISITA (FORM)</div>
-        <div class="raw-table-wrapper">
-            <table class="raw-table" id="table-raw-away">
-                <thead>
-                    <tr>
-                        <th>EQUIPO</th>
-                        <th style="text-align: center;">PJ</th>
-                        <th style="text-align: center;">GF</th>
-                        <th style="text-align: center;">GC</th>
-                        <th style="text-align: center;">GF/P</th>
-                        <th style="text-align: center;">GC/P</th>
-                    </tr>
-                </thead>
-                <tbody id="tbody-raw-away"></tbody>
-            </table>
-        </div>
-    </div>
-    <div class="tab-bar">
-        <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
-        <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item active" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
         <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
@@ -468,7 +340,6 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item active" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
         <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
@@ -527,7 +398,6 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
         <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
@@ -562,7 +432,6 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
-        <div class="tab-item" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
         <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item active" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
@@ -633,38 +502,10 @@
     let lastSuggestedKelly = 0;
     let currentLiveOverround = 0; 
     let currentLiveEdge = 0; 
-    
-    // Variables de Modo Híbrido
-    let hybridMode = false;
 
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
-    // NUEVO: Función para Auditar la Muestra (P.J. < 5)
-    function auditSampleCount() {
-        const tH = document.getElementById('sH').value;
-        const tV = document.getElementById('sV').value;
-        const alertBox = document.getElementById('sample-audit-msg');
-        
-        let isLowSample = false;
-        let warningText = "";
-
-        if(dH[tH] && dH[tH].gp < 5) {
-            isLowSample = true;
-            warningText += `LOCAL (${tH}) solo tiene ${dH[tH].gp} partidos. `;
-        }
-        if(dV[tV] && dV[tV].gp < 5) {
-            isLowSample = true;
-            warningText += `VISITA (${tV}) solo tiene ${dV[tV].gp} partidos. `;
-        }
-
-        if(isLowSample) {
-            alertBox.style.display = 'block';
-            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <b>MUESTRA BAJA:</b> ${warningText} Poisson inestable.`;
-        } else {
-            alertBox.style.display = 'none';
-        }
-    }
-
+    // NUEVO: Funciones de persistencia de datos (Backup y Restore)
     function exportFullData() {
         const history = localStorage.getItem('q_pro_hist') || '[]';
         const bank = localStorage.getItem('q_pro_bank') || '1000';
@@ -713,35 +554,16 @@
         runStressTest();
     };
 
-    function toggleHybridUI() {
-        hybridMode = document.getElementById('hybrid-mode-toggle').checked;
-        const vSelector = document.getElementById('hybrid-v-selector');
-        const label = document.getElementById('league-target-label');
-        
-        if(hybridMode) {
-            vSelector.style.display = 'block';
-            label.innerText = "(TEAM A / LOCAL)";
-            label.style.color = "var(--accent-gold)";
-        } else {
-            vSelector.style.display = 'none';
-            label.innerText = "(ESTÁNDAR)";
-            label.style.color = "inherit";
-        }
-    }
-
     async function syncCloudData() {
         const btn = document.getElementById('btn-sync');
         const info = document.getElementById('sync-info');
-        const leagueKeyH = document.getElementById('cloud-league-selector').value;
-        const leagueKeyV = document.getElementById('cloud-league-selector-v').value;
-        
+        const leagueKey = document.getElementById('cloud-league-selector').value;
         btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> SINCRONIZANDO...';
-        
         try {
             const response = await fetch(CLOUD_URL);
             const rawData = await response.text();
             const allRows = rawData.split('\n');
-            
+            let hLines = [], vLines = [], sLines = [];
             const ranges = {
                 'italy': [3, 32, 36, 65, 68, 74], 'england': [80, 109, 113, 142, 145, 151],
                 'spain': [157, 186, 190, 219, 222, 228], 'germany': [234, 263, 267, 296, 299, 305],
@@ -749,92 +571,38 @@
                 'netherlands': [465, 494, 498, 527, 530, 536], 'greece': [542, 571, 575, 604, 607, 613],
                 'scotland': [619, 648, 652, 681, 684, 690], 'belgium': [696, 725, 729, 758, 761, 767],
                 'turkey': [774, 803, 807, 836, 839, 845], 'austria': [850, 879, 883, 912, 915, 921],
-                'saudi': [927, 956, 960, 989, 992, 998],
-                'poland': [1004, 1033, 1037, 1066, 1069, 1075]
+                'saudi': [927, 956, 960, 989, 992, 998]
             };
-
-            let rH = ranges[leagueKeyH];
-            let hLines = [], sLinesH = [];
-            for(let i=rH[0]; i<=rH[1]; i++) if(allRows[i]) hLines.push(allRows[i]);
-            for(let i=rH[4]; i<=rH[5]; i++) if(allRows[i]) sLinesH.push(allRows[i]);
-            dH = extLines(hLines);
-            aH = getAvgFromLines(sLinesH.join('\n'), 'home');
-
-            let targetLeagueV = hybridMode ? leagueKeyV : leagueKeyH;
-            let rV = ranges[targetLeagueV];
-            let vLines = [], sLinesV = [];
-            for(let i=rV[2]; i<=rV[3]; i++) if(allRows[i]) vLines.push(allRows[i]);
-            for(let i=rV[4]; i<=rV[5]; i++) if(allRows[i]) sLinesV.push(allRows[i]);
-            dV = extLines(vLines);
-            aV = getAvgFromLines(sLinesV.join('\n'), 'away');
-
-            fill();
-            renderRawTables(); // Llamada a renderizar las tablas crudas
+            const r = ranges[leagueKey];
+            if(r) {
+                for(let i=r[0]; i<=r[1]; i++) if(allRows[i]) hLines.push(allRows[i]);
+                for(let i=r[2]; i<=r[3]; i++) if(allRows[i]) vLines.push(allRows[i]);
+                for(let i=r[4]; i<=r[5]; i++) if(allRows[i]) sLines.push(allRows[i]);
+            }
+            document.getElementById('hIn').value = hLines.join('\n');
+            document.getElementById('vIn').value = vLines.join('\n');
+            document.getElementById('sIn').value = sLines.join('\n');
+            dH = ext(document.getElementById('hIn').value); dV = ext(document.getElementById('vIn').value);
+            uS(); fill();
             btn.innerHTML = '<i class="fa-solid fa-check"></i> DATOS CARGADOS';
-            info.innerText = hybridMode ? `MODO HÍBRIDO: ${leagueKeyH}/${leagueKeyV} OK` : `Sincronizado: ${leagueKeyH.toUpperCase()} OK`;
-            window.lastSyncedLeague = hybridMode ? "HYBRID" : leagueKeyH.toUpperCase();
-            
-        } catch (e) { 
-            console.error(e);
-            btn.innerHTML = 'ERROR DE CONEXIÓN'; 
-        }
+            info.innerText = `Sincronizado: ${leagueKey.toUpperCase()} OK`;
+            window.lastSyncedLeague = leagueKey.toUpperCase();
+        } catch (e) { btn.innerHTML = 'ERROR DE CONEXIÓN'; }
     }
 
-    function renderRawTables() {
-        const tbodyH = document.getElementById('tbody-raw-home');
-        const tbodyV = document.getElementById('tbody-raw-away');
-        
-        tbodyH.innerHTML = Object.entries(dH).map(([name, data]) => `
-            <tr>
-                <th style="background: #111;">${name}</th>
-                <td style="text-align: center;">${data.gp}</td>
-                <td style="text-align: center;">${(data.f * data.gp).toFixed(0)}</td>
-                <td style="text-align: center;">${(data.a * data.gp).toFixed(0)}</td>
-                <td style="text-align: center; color: var(--accent-green);">${data.f.toFixed(2)}</td>
-                <td style="text-align: center; color: var(--delete);">${data.a.toFixed(2)}</td>
-            </tr>
-        `).join('');
-
-        tbodyV.innerHTML = Object.entries(dV).map(([name, data]) => `
-            <tr>
-                <th style="background: #111;">${name}</th>
-                <td style="text-align: center;">${data.gp}</td>
-                <td style="text-align: center;">${(data.f * data.gp).toFixed(0)}</td>
-                <td style="text-align: center;">${(data.a * data.gp).toFixed(0)}</td>
-                <td style="text-align: center; color: var(--accent-green);">${data.f.toFixed(2)}</td>
-                <td style="text-align: center; color: var(--delete);">${data.a.toFixed(2)}</td>
-            </tr>
-        `).join('');
-
-        document.getElementById('raw-avg-h').innerText = aH.toFixed(2);
-        document.getElementById('raw-avg-v').innerText = aV.toFixed(2);
-        document.getElementById('raw-league-info').style.display = 'block';
-    }
-
-    function extLines(lines) {
+    function ext(t) {
         const o={};
-        lines.forEach(l => {
+        t.split('\n').forEach(l => {
             const cols = l.split(',');
             if(cols.length > 8) {
                 const team = cols[2]?.replace(/\*/g, '').trim();
                 const gp = parseInt(cols[3]); const gf = parseInt(cols[7]); const ga = parseInt(cols[8]);
-                if(team && !isNaN(gp) && gp > 0) o[team] = { f: gf/gp, a: ga/gp, gp: gp };
+                if(team && !isNaN(gp) && gp > 0) o[team] = { f: gf/gp, a: ga/gp };
             }
         });
         return o;
     }
 
-    function getAvgFromLines(t, type) {
-        if(type === 'home') {
-            const hm = t.match(/Home goals per match:[^,]*,\*?([\d.]+)\*?/i);
-            return hm ? parseFloat(hm[1]) : 1.5;
-        } else {
-            const am = t.match(/Away goals per match:[^,]*,\*?([\d.]+)\*?/i);
-            return am ? parseFloat(am[1]) : 1.2;
-        }
-    }
-
-    function ext(t) { return extLines(t.split('\n')); }
     function uS() {
         const t = document.getElementById('sIn').value;
         const hm = t.match(/Home goals per match:[^,]*,\*?([\d.]+)\*?/i);
@@ -869,7 +637,6 @@
         sH.innerHTML=sV.innerHTML='<option value="">Seleccionar Equipo</option>';
         Object.keys(dH).sort().forEach(t=>sH.add(new Option(t,t)));
         Object.keys(dV).sort().forEach(t=>sV.add(new Option(t,t)));
-        document.getElementById('sample-audit-msg').style.display = 'none';
     }
 
     function poi(k,l){ 
@@ -907,6 +674,8 @@
         const cBNo = parseFloat(document.getElementById('in-bno').value) || 0;
 
         let h = "";
+        
+        // New Draw Bias Alert
         if(data['Empate (X)'] > 28) {
             h += `<div class="draw-bias-box"><i class="fa-solid fa-bolt"></i> SESGO DEL EMPATE DETECTADO (${data['Empate (X)'].toFixed(1)}%)</div>`;
         }
@@ -998,6 +767,7 @@
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
     }
 
+    // NUEVA FUNCIÓN PARA CLV
     function updateClosingOdds(id, val) {
         let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const i = history.findIndex(x => x.id === id);
@@ -1087,10 +857,7 @@
     function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist')).filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
     function clearHistory() { if(confirm("¿Borrar TODO?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-    function nav(id) { 
-        document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen, #raw-data-screen').forEach(s => s.classList.remove('active-screen')); 
-        document.getElementById(id).classList.add('active-screen'); 
-    }
+    function nav(id) { document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
     function resetGuardian() { guardianForcedReset = true; loadHistory(); }
 
     function openSessionModal() {
@@ -1107,6 +874,7 @@
         document.getElementById('session-modal').style.display = 'flex';
     }
 
+    // MATEMÁTICAS PARA P-VALUE
     function combinations(n, k) { if(k < 0 || k > n) return 0; if(k === 0 || k === n) return 1; if(k > n/2) k = n - k; let res = 1; for(let i=1; i<=k; i++) { res = res * (n - i + 1) / i; } return res; }
     function binomialPValue(n, k, p) { let prob = 0; for(let i=k; i<=n; i++) { prob += combinations(n, i) * Math.pow(p, i) * Math.pow(1-p, n-i); } return prob; }
 
@@ -1116,18 +884,9 @@
         if(resolved.length === 0) return alert("Sin datos resueltos para auditar");
         
         let totalStaked = 0, totalProfit = 0, wins = 0, totalOdds = 0, maxLoss = 0, totalCLV = 0, clvCount = 0;
-        let brierSum = 0;
-
         resolved.forEach(p => {
             totalStaked += p.stake;
             totalOdds += parseFloat(p.odds);
-            
-            // Lógica Brier Score: (Probabilidad - Resultado)^2
-            // Resultado es 1 si ganó (status win), 0 si perdió (status loss)
-            const outcome = p.status === 'win' ? 1 : 0;
-            const probDecimal = p.prob / 100;
-            brierSum += Math.pow(probDecimal - outcome, 2);
-
             if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } 
             else { totalProfit -= p.stake; maxLoss = Math.max(maxLoss, p.stake); }
             if(p.closingOdds > 0) { totalCLV += ((p.odds / p.closingOdds) - 1) * 100; clvCount++; }
@@ -1136,8 +895,8 @@
         const yieldVal = (totalProfit / totalStaked * 100).toFixed(2);
         const winRate = (wins / resolved.length * 100).toFixed(1);
         const avgOdds = (totalOdds / resolved.length).toFixed(2);
-        const avgBrier = (brierSum / resolved.length).toFixed(4);
         
+        // Cálculo de P-Value (Probabilidad de que el éxito sea azar)
         const expectedWR = 1 / parseFloat(avgOdds);
         const pVal = binomialPValue(resolved.length, wins, expectedWR);
         const luckStatus = pVal < 0.01 ? "ELITE SHARP" : (pVal < 0.05 ? "HABILIDAD" : "AZAR/VARIANZA");
@@ -1149,7 +908,6 @@
                        `YIELD: ${yieldVal}% | WR: ${winRate}%\n` +
                        `AVG CLV: ${clvCount > 0 ? (totalCLV / clvCount).toFixed(2) : 0}%\n` +
                        `-------------------------------\n` +
-                       `BRIER SCORE: ${avgBrier} (Ref: 0.25 azar)\n` +
                        `P-VALUE: ${pVal.toFixed(4)}\n` +
                        `CONFIDENCE: ${luckStatus}\n` +
                        `STATUS: ${yieldVal > 0 ? 'PROFITABLE' : 'UNDER REVIEW'}\n` +
@@ -1192,4 +950,4 @@
     }
 </script>
 </body>
-</html>
+</html> 
