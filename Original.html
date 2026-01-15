@@ -136,8 +136,10 @@
         
         .filter-range-label { grid-column: span 2; font-size: 0.55rem; color: var(--accent-gold); text-transform: uppercase; margin-top: 5px; }
         
-        /* New Draw Bias Alert */
         .draw-bias-box { background: rgba(157, 0, 255, 0.1); border: 1px solid var(--sharp-purple); color: var(--accent-gold); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; font-size: 0.7rem; font-weight: 900; letter-spacing: 1px; }
+        
+        /* NUEVO: Badge de estado de Backup */
+        .backup-status { font-size: 0.55rem; color: var(--accent-green); margin-top: 5px; text-align: center; display: block; }
     </style>
 </head>
 <body>
@@ -145,6 +147,22 @@
 <div id="setup-screen" class="active-screen">
     <div class="header-box"><h2>QUANTUM ENGINE PRO</h2></div>
     <div class="scroll-content">
+        <div class="card" style="border-color: var(--quantum-blue); background: rgba(0, 255, 255, 0.02);">
+            <div style="font-size: 0.65rem; color: var(--quantum-blue); margin-bottom: 10px; font-weight: 900; text-transform: uppercase;">
+                <i class="fa-solid fa-cloud-shield"></i> Protección de Historial Permanente
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <button onclick="exportFullData()" style="background: #111; border: 1px solid var(--accent-gold); color: var(--accent-gold); padding: 8px; border-radius: 6px; font-size: 0.6rem; font-weight: bold; cursor: pointer;">
+                    <i class="fa-solid fa-download"></i> EXPORTAR BACKUP
+                </button>
+                <button onclick="document.getElementById('import-file').click()" style="background: #111; border: 1px solid var(--text-dim); color: var(--text-dim); padding: 8px; border-radius: 6px; font-size: 0.6rem; font-weight: bold; cursor: pointer;">
+                    <i class="fa-solid fa-upload"></i> IMPORTAR BACKUP
+                </button>
+                <input type="file" id="import-file" style="display: none;" onchange="importFullData(event)">
+            </div>
+            <span class="backup-status" id="last-backup-info">Último cambio guardado en LocalStorage</span>
+        </div>
+
         <div id="guardian-banner" class="guardian-alert">
             <i class="fa-solid fa-hand"></i> <b>STOP LOSS DIARIO ACTIVO</b><br>
             <small>Has perdido el 15% de tu banca hoy.</small>
@@ -481,6 +499,46 @@
 
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
+    // NUEVO: Funciones de persistencia de datos (Backup y Restore)
+    function exportFullData() {
+        const history = localStorage.getItem('q_pro_hist') || '[]';
+        const bank = localStorage.getItem('q_pro_bank') || '1000';
+        const backupData = {
+            history: JSON.parse(history),
+            bank: bank,
+            exportDate: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Quantum_Backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        document.getElementById('last-backup-info').innerText = "Backup exportado correctamente";
+    }
+
+    function importFullData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.history && Array.isArray(imported.history)) {
+                    localStorage.setItem('q_pro_hist', JSON.stringify(imported.history));
+                    if (imported.bank) localStorage.setItem('q_pro_bank', imported.bank);
+                    alert("Importación exitosa. La aplicación se reiniciará.");
+                    location.reload();
+                } else {
+                    alert("Archivo de backup no válido.");
+                }
+            } catch (err) {
+                alert("Error al leer el archivo.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
     window.onload = () => {
         const savedBank = localStorage.getItem('q_pro_bank');
         if(savedBank) document.getElementById('user-bank').value = savedBank;
@@ -611,7 +669,7 @@
 
         let h = "";
         
-        // SESGO DEL EMPATE CHECK
+        // New Draw Bias Alert
         if(data['Empate (X)'] > 28) {
             h += `<div class="draw-bias-box"><i class="fa-solid fa-bolt"></i> SESGO DEL EMPATE DETECTADO (${data['Empate (X)'].toFixed(1)}%)</div>`;
         }
