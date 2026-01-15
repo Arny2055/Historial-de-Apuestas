@@ -138,8 +138,27 @@
         
         .draw-bias-box { background: rgba(157, 0, 255, 0.1); border: 1px solid var(--sharp-purple); color: var(--accent-gold); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; font-size: 0.7rem; font-weight: 900; letter-spacing: 1px; }
         
-        /* NUEVO: Badge de estado de Backup */
         .backup-status { font-size: 0.55rem; color: var(--accent-green); margin-top: 5px; text-align: center; display: block; }
+
+        .badge-clv { background: rgba(157, 0, 255, 0.1); color: var(--sharp-purple); border: 1px solid rgba(157, 0, 255, 0.3); }
+        .clv-input-group { display: flex; align-items: center; gap: 5px; margin-top: 8px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; }
+        .clv-input { width: 60px !important; padding: 4px !important; font-size: 10px !important; margin-bottom: 0 !important; height: auto !important; }
+        .clv-label { font-size: 9px; color: var(--text-dim); }
+
+        /* ESTILOS PARA MODO HÍBRIDO */
+        .hybrid-box { background: rgba(157, 0, 255, 0.05); border: 1px solid var(--sharp-purple); border-radius: 8px; padding: 10px; margin-bottom: 15px; }
+        .hybrid-toggle { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--sharp-purple); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .hybrid-badge { font-size: 0.6rem; color: var(--sharp-purple); font-weight: 900; }
+
+        /* NUEVO: AVISO DE MUESTRA BAJA */
+        .sample-warning { background: rgba(255, 136, 0, 0.1); border: 1px solid var(--warning); color: var(--warning); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.7rem; text-align: center; display: none; }
+        .sample-warning i { margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -196,22 +215,53 @@
             <i class="fa-solid fa-briefcase"></i> IR A MI CONTROL (HISTORIAL)
         </button>
 
-        <label style="font-size: 0.7rem; color: var(--accent-gold);">SELECCIONAR LIGA (CLOUD):</label>
-        <select id="cloud-league-selector">
-            <option value="italy">Italia - Serie A</option>
-            <option value="england">Inglaterra - Premier</option>
-            <option value="spain">España - LaLiga</option>
-            <option value="germany">Alemania - Bundesliga</option>
-            <option value="portugal">Portugal - Liga Portugal</option>
-            <option value="france">Francia - Ligue 1</option>
-            <option value="netherlands">Países Bajos - Eredivisie</option>
-            <option value="greece">Grecia - Super League</option>
-            <option value="scotland">Escocia - Premiership</option>
-            <option value="belgium">Bélgica - Pro League</option>
-            <option value="turkey">Turquía - Super Lig</option>
-            <option value="austria">Austria - Bundesliga</option>
-            <option value="saudi">Arabia Saudita - Pro League</option>
-        </select>
+        <div class="hybrid-box">
+            <div class="hybrid-toggle">
+                <span class="hybrid-badge"><i class="fa-solid fa-flask"></i> ANALIZADOR HÍBRIDO (CHAMPIONS/EUROPA)</span>
+                <label class="switch">
+                    <input type="checkbox" id="hybrid-mode-toggle" onchange="toggleHybridUI()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div id="league-selection-container">
+                <label style="font-size: 0.7rem; color: var(--accent-gold);">SELECCIONAR LIGA <span id="league-target-label">(ESTÁNDAR)</span>:</label>
+                <select id="cloud-league-selector">
+                    <option value="italy">Italia - Serie A</option>
+                    <option value="england">Inglaterra - Premier</option>
+                    <option value="spain">España - LaLiga</option>
+                    <option value="germany">Alemania - Bundesliga</option>
+                    <option value="portugal">Portugal - Liga Portugal</option>
+                    <option value="france">Francia - Ligue 1</option>
+                    <option value="netherlands">Países Bajos - Eredivisie</option>
+                    <option value="greece">Grecia - Super League</option>
+                    <option value="scotland">Escocia - Premiership</option>
+                    <option value="belgium">Bélgica - Pro League</option>
+                    <option value="turkey">Turquía - Super Lig</option>
+                    <option value="austria">Austria - Bundesliga</option>
+                    <option value="saudi">Arabia Saudita - Pro League</option>
+                </select>
+
+                <div id="hybrid-v-selector" style="display:none; margin-top:10px; padding-top:10px; border-top: 1px solid var(--border);">
+                    <label style="font-size: 0.7rem; color: var(--sharp-purple);">LIGA PARA VISITA (TEAM B):</label>
+                    <select id="cloud-league-selector-v">
+                        <option value="italy">Italia - Serie A</option>
+                        <option value="england">Inglaterra - Premier</option>
+                        <option value="spain">España - LaLiga</option>
+                        <option value="germany">Alemania - Bundesliga</option>
+                        <option value="portugal">Portugal - Liga Portugal</option>
+                        <option value="france">Francia - Ligue 1</option>
+                        <option value="netherlands">Países Bajos - Eredivisie</option>
+                        <option value="greece">Grecia - Super League</option>
+                        <option value="scotland">Escocia - Premiership</option>
+                        <option value="belgium">Bélgica - Pro League</option>
+                        <option value="turkey">Turquía - Super Lig</option>
+                        <option value="austria">Austria - Bundesliga</option>
+                        <option value="saudi">Arabia Saudita - Pro League</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
         <button class="btn-cloud" id="btn-sync" onclick="syncCloudData()">
             <i class="fa-solid fa-cloud-arrow-down"></i> SINCRONIZAR DESDE GOOGLE SHEETS
@@ -240,13 +290,25 @@
             </div>
         </div>
 
-        <textarea id="hIn" placeholder="PEGAR DATOS LOCAL (TABLA)..."></textarea>
-        <textarea id="vIn" placeholder="PEGAR DATOS VISITA (TABLA)..."></textarea>
-        <textarea id="sIn" placeholder="PEGAR PROMEDIOS LIGA..."></textarea>
+        <div style="display:none">
+            <textarea id="hIn"></textarea>
+            <textarea id="vIn"></textarea>
+            <textarea id="sIn"></textarea>
+        </div>
+
+        <div id="sample-audit-msg" class="sample-warning">
+            <i class="fa-solid fa-triangle-exclamation"></i> MUESTRA BAJA: El cálculo Poisson puede ser inestable.
+        </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-            <select id="sH"><option>Seleccione Local</option></select>
-            <select id="sV"><option>Seleccione Visita</option></select>
+            <div>
+                <label style="font-size:0.5rem; color:var(--text-dim);">LOCAL</label>
+                <select id="sH" onchange="auditSampleCount()"><option value="">Seleccione Local</option></select>
+            </div>
+            <div>
+                <label style="font-size:0.5rem; color:var(--text-dim);">VISITA</label>
+                <select id="sV" onchange="auditSampleCount()"><option value="">Seleccione Visita</option></select>
+            </div>
         </div>
         
         <button class="btn-main" id="btn-analyze" onclick="calculate()">
@@ -496,10 +558,38 @@
     let lastSuggestedKelly = 0;
     let currentLiveOverround = 0; 
     let currentLiveEdge = 0; 
+    
+    // Variables de Modo Híbrido
+    let hybridMode = false;
 
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
-    // NUEVO: Funciones de persistencia de datos (Backup y Restore)
+    // NUEVO: Función para Auditar la Muestra (P.J. < 5)
+    function auditSampleCount() {
+        const tH = document.getElementById('sH').value;
+        const tV = document.getElementById('sV').value;
+        const alertBox = document.getElementById('sample-audit-msg');
+        
+        let isLowSample = false;
+        let warningText = "";
+
+        if(dH[tH] && dH[tH].gp < 5) {
+            isLowSample = true;
+            warningText += `LOCAL (${tH}) solo tiene ${dH[tH].gp} partidos. `;
+        }
+        if(dV[tV] && dV[tV].gp < 5) {
+            isLowSample = true;
+            warningText += `VISITA (${tV}) solo tiene ${dV[tV].gp} partidos. `;
+        }
+
+        if(isLowSample) {
+            alertBox.style.display = 'block';
+            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <b>MUESTRA BAJA:</b> ${warningText} Poisson inestable.`;
+        } else {
+            alertBox.style.display = 'none';
+        }
+    }
+
     function exportFullData() {
         const history = localStorage.getItem('q_pro_hist') || '[]';
         const bank = localStorage.getItem('q_pro_bank') || '1000';
@@ -548,16 +638,35 @@
         runStressTest();
     };
 
+    function toggleHybridUI() {
+        hybridMode = document.getElementById('hybrid-mode-toggle').checked;
+        const vSelector = document.getElementById('hybrid-v-selector');
+        const label = document.getElementById('league-target-label');
+        
+        if(hybridMode) {
+            vSelector.style.display = 'block';
+            label.innerText = "(TEAM A / LOCAL)";
+            label.style.color = "var(--accent-gold)";
+        } else {
+            vSelector.style.display = 'none';
+            label.innerText = "(ESTÁNDAR)";
+            label.style.color = "inherit";
+        }
+    }
+
     async function syncCloudData() {
         const btn = document.getElementById('btn-sync');
         const info = document.getElementById('sync-info');
-        const leagueKey = document.getElementById('cloud-league-selector').value;
+        const leagueKeyH = document.getElementById('cloud-league-selector').value;
+        const leagueKeyV = document.getElementById('cloud-league-selector-v').value;
+        
         btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> SINCRONIZANDO...';
+        
         try {
             const response = await fetch(CLOUD_URL);
             const rawData = await response.text();
             const allRows = rawData.split('\n');
-            let hLines = [], vLines = [], sLines = [];
+            
             const ranges = {
                 'italy': [3, 32, 36, 65, 68, 74], 'england': [80, 109, 113, 142, 145, 151],
                 'spain': [157, 186, 190, 219, 222, 228], 'germany': [234, 263, 267, 296, 299, 305],
@@ -567,36 +676,57 @@
                 'turkey': [774, 803, 807, 836, 839, 845], 'austria': [850, 879, 883, 912, 915, 921],
                 'saudi': [927, 956, 960, 989, 992, 998]
             };
-            const r = ranges[leagueKey];
-            if(r) {
-                for(let i=r[0]; i<=r[1]; i++) if(allRows[i]) hLines.push(allRows[i]);
-                for(let i=r[2]; i<=r[3]; i++) if(allRows[i]) vLines.push(allRows[i]);
-                for(let i=r[4]; i<=r[5]; i++) if(allRows[i]) sLines.push(allRows[i]);
-            }
-            document.getElementById('hIn').value = hLines.join('\n');
-            document.getElementById('vIn').value = vLines.join('\n');
-            document.getElementById('sIn').value = sLines.join('\n');
-            dH = ext(document.getElementById('hIn').value); dV = ext(document.getElementById('vIn').value);
-            uS(); fill();
+
+            let rH = ranges[leagueKeyH];
+            let hLines = [], sLinesH = [];
+            for(let i=rH[0]; i<=rH[1]; i++) if(allRows[i]) hLines.push(allRows[i]);
+            for(let i=rH[4]; i<=rH[5]; i++) if(allRows[i]) sLinesH.push(allRows[i]);
+            dH = extLines(hLines);
+            aH = getAvgFromLines(sLinesH.join('\n'), 'home');
+
+            let targetLeagueV = hybridMode ? leagueKeyV : leagueKeyH;
+            let rV = ranges[targetLeagueV];
+            let vLines = [], sLinesV = [];
+            for(let i=rV[2]; i<=rV[3]; i++) if(allRows[i]) vLines.push(allRows[i]);
+            for(let i=rV[4]; i<=rV[5]; i++) if(allRows[i]) sLinesV.push(allRows[i]);
+            dV = extLines(vLines);
+            aV = getAvgFromLines(sLinesV.join('\n'), 'away');
+
+            fill();
             btn.innerHTML = '<i class="fa-solid fa-check"></i> DATOS CARGADOS';
-            info.innerText = `Sincronizado: ${leagueKey.toUpperCase()} OK`;
-            window.lastSyncedLeague = leagueKey.toUpperCase();
-        } catch (e) { btn.innerHTML = 'ERROR DE CONEXIÓN'; }
+            info.innerText = hybridMode ? `MODO HÍBRIDO: ${leagueKeyH}/${leagueKeyV} OK` : `Sincronizado: ${leagueKeyH.toUpperCase()} OK`;
+            window.lastSyncedLeague = hybridMode ? "HYBRID" : leagueKeyH.toUpperCase();
+            
+        } catch (e) { 
+            console.error(e);
+            btn.innerHTML = 'ERROR DE CONEXIÓN'; 
+        }
     }
 
-    function ext(t) {
+    function extLines(lines) {
         const o={};
-        t.split('\n').forEach(l => {
+        lines.forEach(l => {
             const cols = l.split(',');
             if(cols.length > 8) {
                 const team = cols[2]?.replace(/\*/g, '').trim();
                 const gp = parseInt(cols[3]); const gf = parseInt(cols[7]); const ga = parseInt(cols[8]);
-                if(team && !isNaN(gp) && gp > 0) o[team] = { f: gf/gp, a: ga/gp };
+                if(team && !isNaN(gp) && gp > 0) o[team] = { f: gf/gp, a: ga/gp, gp: gp };
             }
         });
         return o;
     }
 
+    function getAvgFromLines(t, type) {
+        if(type === 'home') {
+            const hm = t.match(/Home goals per match:[^,]*,\*?([\d.]+)\*?/i);
+            return hm ? parseFloat(hm[1]) : 1.5;
+        } else {
+            const am = t.match(/Away goals per match:[^,]*,\*?([\d.]+)\*?/i);
+            return am ? parseFloat(am[1]) : 1.2;
+        }
+    }
+
+    function ext(t) { return extLines(t.split('\n')); }
     function uS() {
         const t = document.getElementById('sIn').value;
         const hm = t.match(/Home goals per match:[^,]*,\*?([\d.]+)\*?/i);
@@ -631,6 +761,7 @@
         sH.innerHTML=sV.innerHTML='<option value="">Seleccionar Equipo</option>';
         Object.keys(dH).sort().forEach(t=>sH.add(new Option(t,t)));
         Object.keys(dV).sort().forEach(t=>sV.add(new Option(t,t)));
+        document.getElementById('sample-audit-msg').style.display = 'none';
     }
 
     function poi(k,l){ 
@@ -668,8 +799,6 @@
         const cBNo = parseFloat(document.getElementById('in-bno').value) || 0;
 
         let h = "";
-        
-        // New Draw Bias Alert
         if(data['Empate (X)'] > 28) {
             h += `<div class="draw-bias-box"><i class="fa-solid fa-bolt"></i> SESGO DEL EMPATE DETECTADO (${data['Empate (X)'].toFixed(1)}%)</div>`;
         }
@@ -756,9 +885,18 @@
         let stake = parseFloat(document.getElementById('m-stake-money').value) || lastSuggestedKelly;
         if(!odds || stake <= 0) return alert("Datos inválidos");
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift({ ...selectedPick, odds, stake: parseFloat(stake.toFixed(2)), status: 'pending', id: Date.now(), date: new Date().toLocaleDateString(), savedEdge: currentLiveEdge, savedOv: currentLiveOverround });
+        history.unshift({ ...selectedPick, odds, stake: parseFloat(stake.toFixed(2)), status: 'pending', id: Date.now(), date: new Date().toLocaleDateString(), savedEdge: currentLiveEdge, savedOv: currentLiveOverround, closingOdds: 0 });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
+    }
+
+    function updateClosingOdds(id, val) {
+        let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const i = history.findIndex(x => x.id === id);
+        if(i !== -1) { 
+            history[i].closingOdds = parseFloat(val) || 0; 
+            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
+        }
     }
 
     function loadHistory() {
@@ -796,19 +934,29 @@
             }
         });
 
-        container.innerHTML = filtered.map(item => `
+        container.innerHTML = filtered.map(item => {
+            const clvVal = item.closingOdds > 0 ? (((item.odds / item.closingOdds) - 1) * 100).toFixed(1) : "N/A";
+            return `
             <div class="history-item ${item.status}">
                 <span class="status-badge" style="color:${item.status==='win'?'var(--accent-green)':'var(--delete)'}">${item.status==='pending'?'P':item.status.toUpperCase()[0]}</span>
                 <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
                 <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
                 <div style="font-size:0.65rem; color:var(--text-dim);">LIGA: ${item.league} | Cuota: ${item.odds} | Stake: ${item.stake}$</div>
-                <div class="card-metrics"><span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span><span class="metric-badge badge-ov">OV: ${item.savedOv}%</span></div>
+                <div class="card-metrics">
+                    <span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span>
+                    <span class="metric-badge badge-ov">OV: ${item.savedOv}%</span>
+                    <span class="metric-badge badge-clv">CLV: ${clvVal}%</span>
+                </div>
+                <div class="clv-input-group">
+                    <span class="clv-label">Cuota Cierre:</span>
+                    <input type="number" class="clv-input" placeholder="Cierre" value="${item.closingOdds || ''}" onchange="updateClosingOdds(${item.id}, this.value)">
+                </div>
                 <div style="margin-top:10px; display:flex; gap:8px;">
                     <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">W</button>
                     <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">L</button>
                     <button onclick="deletePick(${item.id})" style="background:#222; border:1px solid var(--border); border-radius:4px; padding:6px 12px; color:var(--delete); cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
                 </div>
-            </div>`).join('');
+            </div>`;}).join('');
 
         document.getElementById('total-profit').innerText = runningProfit.toFixed(2) + " $";
         document.getElementById('total-profit').style.color = runningProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
@@ -848,33 +996,51 @@
         document.getElementById('session-modal').style.display = 'flex';
     }
 
+    function combinations(n, k) { if(k < 0 || k > n) return 0; if(k === 0 || k === n) return 1; if(k > n/2) k = n - k; let res = 1; for(let i=1; i<=k; i++) { res = res * (n - i + 1) / i; } return res; }
+    function binomialPValue(n, k, p) { let prob = 0; for(let i=k; i<=n; i++) { prob += combinations(n, i) * Math.pow(p, i) * Math.pow(1-p, n-i); } return prob; }
+
     function generateWeeklyReport() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const resolved = history.filter(p => p.status !== 'pending');
         if(resolved.length === 0) return alert("Sin datos resueltos para auditar");
         
-        let totalStaked = 0, totalProfit = 0, wins = 0, totalOdds = 0, maxLoss = 0;
+        let totalStaked = 0, totalProfit = 0, wins = 0, totalOdds = 0, maxLoss = 0, totalCLV = 0, clvCount = 0;
+        let brierSum = 0;
+
         resolved.forEach(p => {
             totalStaked += p.stake;
             totalOdds += parseFloat(p.odds);
+            
+            // Lógica Brier Score: (Probabilidad - Resultado)^2
+            // Resultado es 1 si ganó (status win), 0 si perdió (status loss)
+            const outcome = p.status === 'win' ? 1 : 0;
+            const probDecimal = p.prob / 100;
+            brierSum += Math.pow(probDecimal - outcome, 2);
+
             if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } 
             else { totalProfit -= p.stake; maxLoss = Math.max(maxLoss, p.stake); }
+            if(p.closingOdds > 0) { totalCLV += ((p.odds / p.closingOdds) - 1) * 100; clvCount++; }
         });
 
         const yieldVal = (totalProfit / totalStaked * 100).toFixed(2);
         const winRate = (wins / resolved.length * 100).toFixed(1);
         const avgOdds = (totalOdds / resolved.length).toFixed(2);
-        const recoveryFactor = (totalProfit / (maxLoss || 1)).toFixed(2);
+        const avgBrier = (brierSum / resolved.length).toFixed(4);
+        
+        const expectedWR = 1 / parseFloat(avgOdds);
+        const pVal = binomialPValue(resolved.length, wins, expectedWR);
+        const luckStatus = pVal < 0.01 ? "ELITE SHARP" : (pVal < 0.05 ? "HABILIDAD" : "AZAR/VARIANZA");
 
         const report = `>>> QUANTUM INSIDER AUDIT <<<\n` +
                        `-------------------------------\n` +
                        `SAMPLES: ${resolved.length} picks\n` +
                        `PROFIT: ${totalProfit.toFixed(2)}$\n` +
-                       `YIELD: ${yieldVal}%\n` +
-                       `WIN RATE: ${winRate}%\n` +
-                       `AVG ODDS: ${avgOdds}\n` +
-                       `REC. FACTOR: ${recoveryFactor}\n` +
+                       `YIELD: ${yieldVal}% | WR: ${winRate}%\n` +
+                       `AVG CLV: ${clvCount > 0 ? (totalCLV / clvCount).toFixed(2) : 0}%\n` +
                        `-------------------------------\n` +
+                       `BRIER SCORE: ${avgBrier} (Ref: 0.25 azar)\n` +
+                       `P-VALUE: ${pVal.toFixed(4)}\n` +
+                       `CONFIDENCE: ${luckStatus}\n` +
                        `STATUS: ${yieldVal > 0 ? 'PROFITABLE' : 'UNDER REVIEW'}\n` +
                        `DATE: ${new Date().toLocaleDateString()}`;
 
@@ -889,8 +1055,8 @@
 
     function exportToCSV() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        let csv = "Fecha,Liga,Equipos,Mercado,Cuota,Stake,Estado,Edge\n";
-        history.forEach(p => csv += `${p.date},${p.league},"${p.teams}","${p.name}",${p.odds},${p.stake},${p.status},${p.savedEdge}\n`);
+        let csv = "Fecha,Liga,Equipos,Mercado,Cuota,Stake,Estado,Edge,CuotaCierre\n";
+        history.forEach(p => csv += `${p.date},${p.league},"${p.teams}","${p.name}",${p.odds},${p.stake},${p.status},${p.savedEdge},${p.closingOdds}\n`);
         const blob = new Blob([csv], { type: 'text/csv' }); const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = 'control.csv'; a.click();
     }
