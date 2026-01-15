@@ -1005,9 +1005,18 @@
         if(resolved.length === 0) return alert("Sin datos resueltos para auditar");
         
         let totalStaked = 0, totalProfit = 0, wins = 0, totalOdds = 0, maxLoss = 0, totalCLV = 0, clvCount = 0;
+        let brierSum = 0;
+
         resolved.forEach(p => {
             totalStaked += p.stake;
             totalOdds += parseFloat(p.odds);
+            
+            // Lógica Brier Score: (Probabilidad - Resultado)^2
+            // Resultado es 1 si ganó (status win), 0 si perdió (status loss)
+            const outcome = p.status === 'win' ? 1 : 0;
+            const probDecimal = p.prob / 100;
+            brierSum += Math.pow(probDecimal - outcome, 2);
+
             if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } 
             else { totalProfit -= p.stake; maxLoss = Math.max(maxLoss, p.stake); }
             if(p.closingOdds > 0) { totalCLV += ((p.odds / p.closingOdds) - 1) * 100; clvCount++; }
@@ -1016,6 +1025,7 @@
         const yieldVal = (totalProfit / totalStaked * 100).toFixed(2);
         const winRate = (wins / resolved.length * 100).toFixed(1);
         const avgOdds = (totalOdds / resolved.length).toFixed(2);
+        const avgBrier = (brierSum / resolved.length).toFixed(4);
         
         const expectedWR = 1 / parseFloat(avgOdds);
         const pVal = binomialPValue(resolved.length, wins, expectedWR);
@@ -1028,6 +1038,7 @@
                        `YIELD: ${yieldVal}% | WR: ${winRate}%\n` +
                        `AVG CLV: ${clvCount > 0 ? (totalCLV / clvCount).toFixed(2) : 0}%\n` +
                        `-------------------------------\n` +
+                       `BRIER SCORE: ${avgBrier} (Ref: 0.25 azar)\n` +
                        `P-VALUE: ${pVal.toFixed(4)}\n` +
                        `CONFIDENCE: ${luckStatus}\n` +
                        `STATUS: ${yieldVal > 0 ? 'PROFITABLE' : 'UNDER REVIEW'}\n` +
