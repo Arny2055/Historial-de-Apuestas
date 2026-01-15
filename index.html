@@ -155,6 +155,10 @@
         input:checked + .slider { background-color: var(--sharp-purple); }
         input:checked + .slider:before { transform: translateX(20px); }
         .hybrid-badge { font-size: 0.6rem; color: var(--sharp-purple); font-weight: 900; }
+
+        /* NUEVO: AVISO DE MUESTRA BAJA */
+        .sample-warning { background: rgba(255, 136, 0, 0.1); border: 1px solid var(--warning); color: var(--warning); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.7rem; text-align: center; display: none; }
+        .sample-warning i { margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -291,15 +295,19 @@
             <textarea id="vIn"></textarea>
             <textarea id="sIn"></textarea>
         </div>
+
+        <div id="sample-audit-msg" class="sample-warning">
+            <i class="fa-solid fa-triangle-exclamation"></i> MUESTRA BAJA: El cálculo Poisson puede ser inestable.
+        </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
             <div>
                 <label style="font-size:0.5rem; color:var(--text-dim);">LOCAL</label>
-                <select id="sH"><option>Seleccione Local</option></select>
+                <select id="sH" onchange="auditSampleCount()"><option value="">Seleccione Local</option></select>
             </div>
             <div>
                 <label style="font-size:0.5rem; color:var(--text-dim);">VISITA</label>
-                <select id="sV"><option>Seleccione Visita</option></select>
+                <select id="sV" onchange="auditSampleCount()"><option value="">Seleccione Visita</option></select>
             </div>
         </div>
         
@@ -553,11 +561,35 @@
     
     // Variables de Modo Híbrido
     let hybridMode = false;
-    let dH_hybrid = {}, dV_hybrid = {}, aH_hybrid = 1.5, aV_hybrid = 1.2;
 
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
-    // NUEVO: Funciones de persistencia de datos (Backup y Restore)
+    // NUEVO: Función para Auditar la Muestra (P.J. < 5)
+    function auditSampleCount() {
+        const tH = document.getElementById('sH').value;
+        const tV = document.getElementById('sV').value;
+        const alertBox = document.getElementById('sample-audit-msg');
+        
+        let isLowSample = false;
+        let warningText = "";
+
+        if(dH[tH] && dH[tH].gp < 5) {
+            isLowSample = true;
+            warningText += `LOCAL (${tH}) solo tiene ${dH[tH].gp} partidos. `;
+        }
+        if(dV[tV] && dV[tV].gp < 5) {
+            isLowSample = true;
+            warningText += `VISITA (${tV}) solo tiene ${dV[tV].gp} partidos. `;
+        }
+
+        if(isLowSample) {
+            alertBox.style.display = 'block';
+            alertBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <b>MUESTRA BAJA:</b> ${warningText} Poisson inestable.`;
+        } else {
+            alertBox.style.display = 'none';
+        }
+    }
+
     function exportFullData() {
         const history = localStorage.getItem('q_pro_hist') || '[]';
         const bank = localStorage.getItem('q_pro_bank') || '1000';
@@ -606,7 +638,6 @@
         runStressTest();
     };
 
-    // UI MODO HÍBRIDO
     function toggleHybridUI() {
         hybridMode = document.getElementById('hybrid-mode-toggle').checked;
         const vSelector = document.getElementById('hybrid-v-selector');
@@ -646,7 +677,6 @@
                 'saudi': [927, 956, 960, 989, 992, 998]
             };
 
-            // Procesar Local (Team A)
             let rH = ranges[leagueKeyH];
             let hLines = [], sLinesH = [];
             for(let i=rH[0]; i<=rH[1]; i++) if(allRows[i]) hLines.push(allRows[i]);
@@ -654,7 +684,6 @@
             dH = extLines(hLines);
             aH = getAvgFromLines(sLinesH.join('\n'), 'home');
 
-            // Procesar Visita (Team B)
             let targetLeagueV = hybridMode ? leagueKeyV : leagueKeyH;
             let rV = ranges[targetLeagueV];
             let vLines = [], sLinesV = [];
@@ -681,7 +710,7 @@
             if(cols.length > 8) {
                 const team = cols[2]?.replace(/\*/g, '').trim();
                 const gp = parseInt(cols[3]); const gf = parseInt(cols[7]); const ga = parseInt(cols[8]);
-                if(team && !isNaN(gp) && gp > 0) o[team] = { f: gf/gp, a: ga/gp };
+                if(team && !isNaN(gp) && gp > 0) o[team] = { f: gf/gp, a: ga/gp, gp: gp };
             }
         });
         return o;
@@ -697,7 +726,6 @@
         }
     }
 
-    // Funciones originales mantenidas para compatibilidad de estructura
     function ext(t) { return extLines(t.split('\n')); }
     function uS() {
         const t = document.getElementById('sIn').value;
@@ -733,6 +761,7 @@
         sH.innerHTML=sV.innerHTML='<option value="">Seleccionar Equipo</option>';
         Object.keys(dH).sort().forEach(t=>sH.add(new Option(t,t)));
         Object.keys(dV).sort().forEach(t=>sV.add(new Option(t,t)));
+        document.getElementById('sample-audit-msg').style.display = 'none';
     }
 
     function poi(k,l){ 
