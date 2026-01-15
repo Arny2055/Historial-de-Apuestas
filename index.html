@@ -59,7 +59,7 @@
         .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-dim); font-size: 10px; text-decoration: none; }
         .tab-item.active { color: var(--accent-gold); }
 
-        #setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen { display: none; height: 100%; }
+        #setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen, #raw-data-screen { display: none; height: 100%; }
         .active-screen { display: block !important; }
 
         .history-item { background: var(--card); padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--border); position: relative; }
@@ -159,6 +159,14 @@
         /* NUEVO: AVISO DE MUESTRA BAJA */
         .sample-warning { background: rgba(255, 136, 0, 0.1); border: 1px solid var(--warning); color: var(--warning); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.7rem; text-align: center; display: none; }
         .sample-warning i { margin-right: 5px; }
+
+        /* ESTILOS RAW DATA */
+        .raw-table-wrapper { overflow-x: auto; background: #000; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px; }
+        .raw-table { width: 100%; border-collapse: collapse; font-size: 0.65rem; color: var(--text-main); }
+        .raw-table th { background: var(--card); color: var(--accent-gold); padding: 10px; text-align: left; border-bottom: 2px solid var(--border); position: sticky; left: 0; }
+        .raw-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .raw-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+        .raw-title { font-size: 0.75rem; color: var(--accent-green); font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -333,6 +341,68 @@
     <div class="tab-bar">
         <div class="tab-item active" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen'); loadHistory();"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
+        <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
+        <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
+        <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
+    </div>
+</div>
+
+<div id="raw-data-screen">
+    <div class="header-box"><h2>TABLAS DE LIGA</h2></div>
+    <div class="scroll-content">
+        <div id="raw-league-info" class="card" style="border-left: 4px solid var(--accent-gold); display:none;">
+            <div class="raw-title"><i class="fa-solid fa-globe"></i> PROMEDIOS LIGA</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">
+                    <div style="font-size: 0.55rem; color: var(--text-dim);">AVG GOLES LOCAL</div>
+                    <div id="raw-avg-h" style="font-size: 1rem; font-weight: bold; color: var(--accent-gold);">0.00</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">
+                    <div style="font-size: 0.55rem; color: var(--text-dim);">AVG GOLES VISITA</div>
+                    <div id="raw-avg-v" style="font-size: 1rem; font-weight: bold; color: var(--accent-gold);">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="raw-title"><i class="fa-solid fa-house"></i> TABLA LOCAL (FORM)</div>
+        <div class="raw-table-wrapper">
+            <table class="raw-table" id="table-raw-home">
+                <thead>
+                    <tr>
+                        <th>EQUIPO</th>
+                        <th style="text-align: center;">PJ</th>
+                        <th style="text-align: center;">GF</th>
+                        <th style="text-align: center;">GC</th>
+                        <th style="text-align: center;">GF/P</th>
+                        <th style="text-align: center;">GC/P</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-raw-home"></tbody>
+            </table>
+        </div>
+
+        <div class="raw-title"><i class="fa-solid fa-plane"></i> TABLA VISITA (FORM)</div>
+        <div class="raw-table-wrapper">
+            <table class="raw-table" id="table-raw-away">
+                <thead>
+                    <tr>
+                        <th>EQUIPO</th>
+                        <th style="text-align: center;">PJ</th>
+                        <th style="text-align: center;">GF</th>
+                        <th style="text-align: center;">GC</th>
+                        <th style="text-align: center;">GF/P</th>
+                        <th style="text-align: center;">GC/P</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-raw-away"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="tab-bar">
+        <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
+        <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item active" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
         <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
@@ -398,6 +468,7 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item active" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
         <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
@@ -456,6 +527,7 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
         <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
@@ -490,6 +562,7 @@
     <div class="tab-bar">
         <div class="tab-item" onclick="nav('dashboard-screen')"><i class="fa-solid fa-chart-line"></i><span>DATA</span></div>
         <div class="tab-item" onclick="nav('history-screen')"><i class="fa-solid fa-briefcase"></i><span>CONTROL</span></div>
+        <div class="tab-item" onclick="nav('raw-data-screen')"><i class="fa-solid fa-table"></i><span>RAW DATA</span></div>
         <div class="tab-item" onclick="nav('backtest-screen')"><i class="fa-solid fa-vial-circle-check"></i><span>BT</span></div>
         <div class="tab-item active" onclick="nav('guide-screen')"><i class="fa-solid fa-book-open"></i><span>GUÍA</span></div>
         <div class="tab-item" onclick="nav('setup-screen')"><i class="fa-solid fa-rotate"></i><span>NUEVO</span></div>
@@ -696,6 +769,7 @@
             aV = getAvgFromLines(sLinesV.join('\n'), 'away');
 
             fill();
+            renderRawTables(); // Llamada a renderizar las tablas crudas
             btn.innerHTML = '<i class="fa-solid fa-check"></i> DATOS CARGADOS';
             info.innerText = hybridMode ? `MODO HÍBRIDO: ${leagueKeyH}/${leagueKeyV} OK` : `Sincronizado: ${leagueKeyH.toUpperCase()} OK`;
             window.lastSyncedLeague = hybridMode ? "HYBRID" : leagueKeyH.toUpperCase();
@@ -704,6 +778,37 @@
             console.error(e);
             btn.innerHTML = 'ERROR DE CONEXIÓN'; 
         }
+    }
+
+    function renderRawTables() {
+        const tbodyH = document.getElementById('tbody-raw-home');
+        const tbodyV = document.getElementById('tbody-raw-away');
+        
+        tbodyH.innerHTML = Object.entries(dH).map(([name, data]) => `
+            <tr>
+                <th style="background: #111;">${name}</th>
+                <td style="text-align: center;">${data.gp}</td>
+                <td style="text-align: center;">${(data.f * data.gp).toFixed(0)}</td>
+                <td style="text-align: center;">${(data.a * data.gp).toFixed(0)}</td>
+                <td style="text-align: center; color: var(--accent-green);">${data.f.toFixed(2)}</td>
+                <td style="text-align: center; color: var(--delete);">${data.a.toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        tbodyV.innerHTML = Object.entries(dV).map(([name, data]) => `
+            <tr>
+                <th style="background: #111;">${name}</th>
+                <td style="text-align: center;">${data.gp}</td>
+                <td style="text-align: center;">${(data.f * data.gp).toFixed(0)}</td>
+                <td style="text-align: center;">${(data.a * data.gp).toFixed(0)}</td>
+                <td style="text-align: center; color: var(--accent-green);">${data.f.toFixed(2)}</td>
+                <td style="text-align: center; color: var(--delete);">${data.a.toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        document.getElementById('raw-avg-h').innerText = aH.toFixed(2);
+        document.getElementById('raw-avg-v').innerText = aV.toFixed(2);
+        document.getElementById('raw-league-info').style.display = 'block';
     }
 
     function extLines(lines) {
@@ -982,7 +1087,10 @@
     function deletePick(id) { if(confirm("¿Eliminar?")) { let history = JSON.parse(localStorage.getItem('q_pro_hist')).filter(item => item.id !== id); localStorage.setItem('q_pro_hist', JSON.stringify(history)); loadHistory(); } }
     function clearHistory() { if(confirm("¿Borrar TODO?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-    function nav(id) { document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
+    function nav(id) { 
+        document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen, #raw-data-screen').forEach(s => s.classList.remove('active-screen')); 
+        document.getElementById(id).classList.add('active-screen'); 
+    }
     function resetGuardian() { guardianForcedReset = true; loadHistory(); }
 
     function openSessionModal() {
