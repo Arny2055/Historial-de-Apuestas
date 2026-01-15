@@ -138,7 +138,6 @@
         
         .draw-bias-box { background: rgba(157, 0, 255, 0.1); border: 1px solid var(--sharp-purple); color: var(--accent-gold); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; font-size: 0.7rem; font-weight: 900; letter-spacing: 1px; }
         
-        /* NUEVO: Badge de estado de Backup */
         .backup-status { font-size: 0.55rem; color: var(--accent-green); margin-top: 5px; text-align: center; display: block; }
     </style>
 </head>
@@ -499,7 +498,6 @@
 
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
-    // NUEVO: Funciones de persistencia de datos (Backup y Restore)
     function exportFullData() {
         const history = localStorage.getItem('q_pro_hist') || '[]';
         const bank = localStorage.getItem('q_pro_bank') || '1000';
@@ -668,8 +666,6 @@
         const cBNo = parseFloat(document.getElementById('in-bno').value) || 0;
 
         let h = "";
-        
-        // New Draw Bias Alert
         if(data['Empate (X)'] > 28) {
             h += `<div class="draw-bias-box"><i class="fa-solid fa-bolt"></i> SESGO DEL EMPATE DETECTADO (${data['Empate (X)'].toFixed(1)}%)</div>`;
         }
@@ -782,7 +778,7 @@
 
         const container = document.getElementById('history-list');
         let runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0;
-        let chartData = [0], today = new Date().toLocaleDateString();
+        let chartData = [0];
 
         [...filtered].reverse().forEach(item => {
             let pChange = 0;
@@ -900,11 +896,11 @@
         const market = document.getElementById('bt-market').value, odds1 = parseFloat(document.getElementById('bt-odds').value);
         const iter = parseInt(document.getElementById('bt-iterations').value), kF = parseFloat(document.getElementById('bt-kelly-frac').value);
         const prob = window.currentProbs[market];
-        let bank = parseFloat(document.getElementById('user-bank').value) || 1000, data = [bank], w = 0;
+        let bank = parseFloat(document.getElementById('user-bank').value) || 1000, data = [bank];
         for(let i=0; i<iter; i++) {
             let edge = (prob * odds1) - 1;
             let stake = bank * Math.max(0, (edge/(odds1-1))*kF);
-            if(Math.random() < prob) { w++; bank += stake * (odds1-1); } else bank -= stake;
+            if(Math.random() < prob) bank += stake * (odds1-1); else bank -= stake;
             data.push(bank); if(bank < 1) break;
         }
         document.getElementById('bt-results').style.display = 'block';
