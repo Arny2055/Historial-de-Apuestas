@@ -138,7 +138,14 @@
         
         .draw-bias-box { background: rgba(157, 0, 255, 0.1); border: 1px solid var(--sharp-purple); color: var(--accent-gold); padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; font-size: 0.7rem; font-weight: 900; letter-spacing: 1px; }
         
+        /* NUEVO: Badge de estado de Backup */
         .backup-status { font-size: 0.55rem; color: var(--accent-green); margin-top: 5px; text-align: center; display: block; }
+
+        /* NUEVAS CLASES PARA CLV Y P-VALUE */
+        .badge-clv { background: rgba(157, 0, 255, 0.1); color: var(--sharp-purple); border: 1px solid rgba(157, 0, 255, 0.3); }
+        .clv-input-group { display: flex; align-items: center; gap: 5px; margin-top: 8px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 5px; }
+        .clv-input { width: 60px !important; padding: 4px !important; font-size: 10px !important; margin-bottom: 0 !important; height: auto !important; }
+        .clv-label { font-size: 9px; color: var(--text-dim); }
     </style>
 </head>
 <body>
@@ -498,6 +505,7 @@
 
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
+    // NUEVO: Funciones de persistencia de datos (Backup y Restore)
     function exportFullData() {
         const history = localStorage.getItem('q_pro_hist') || '[]';
         const bank = localStorage.getItem('q_pro_bank') || '1000';
@@ -666,6 +674,8 @@
         const cBNo = parseFloat(document.getElementById('in-bno').value) || 0;
 
         let h = "";
+        
+        // New Draw Bias Alert
         if(data['Empate (X)'] > 28) {
             h += `<div class="draw-bias-box"><i class="fa-solid fa-bolt"></i> SESGO DEL EMPATE DETECTADO (${data['Empate (X)'].toFixed(1)}%)</div>`;
         }
@@ -752,9 +762,19 @@
         let stake = parseFloat(document.getElementById('m-stake-money').value) || lastSuggestedKelly;
         if(!odds || stake <= 0) return alert("Datos inválidos");
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        history.unshift({ ...selectedPick, odds, stake: parseFloat(stake.toFixed(2)), status: 'pending', id: Date.now(), date: new Date().toLocaleDateString(), savedEdge: currentLiveEdge, savedOv: currentLiveOverround });
+        history.unshift({ ...selectedPick, odds, stake: parseFloat(stake.toFixed(2)), status: 'pending', id: Date.now(), date: new Date().toLocaleDateString(), savedEdge: currentLiveEdge, savedOv: currentLiveOverround, closingOdds: 0 });
         localStorage.setItem('q_pro_hist', JSON.stringify(history));
         closeModal('pick-modal'); loadHistory(); nav('history-screen');
+    }
+
+    // NUEVA FUNCIÓN PARA CLV
+    function updateClosingOdds(id, val) {
+        let history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const i = history.findIndex(x => x.id === id);
+        if(i !== -1) { 
+            history[i].closingOdds = parseFloat(val) || 0; 
+            localStorage.setItem('q_pro_hist', JSON.stringify(history)); 
+        }
     }
 
     function loadHistory() {
@@ -778,7 +798,7 @@
 
         const container = document.getElementById('history-list');
         let runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0;
-        let chartData = [0];
+        let chartData = [0], today = new Date().toLocaleDateString();
 
         [...filtered].reverse().forEach(item => {
             let pChange = 0;
@@ -792,19 +812,29 @@
             }
         });
 
-        container.innerHTML = filtered.map(item => `
+        container.innerHTML = filtered.map(item => {
+            const clvVal = item.closingOdds > 0 ? (((item.odds / item.closingOdds) - 1) * 100).toFixed(1) : "N/A";
+            return `
             <div class="history-item ${item.status}">
                 <span class="status-badge" style="color:${item.status==='win'?'var(--accent-green)':'var(--delete)'}">${item.status==='pending'?'P':item.status.toUpperCase()[0]}</span>
                 <div style="font-size:0.8rem; font-weight:bold;">${item.teams}</div>
                 <div style="font-size:0.75rem; color:var(--accent-gold);">${item.name}</div>
                 <div style="font-size:0.65rem; color:var(--text-dim);">LIGA: ${item.league} | Cuota: ${item.odds} | Stake: ${item.stake}$</div>
-                <div class="card-metrics"><span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span><span class="metric-badge badge-ov">OV: ${item.savedOv}%</span></div>
+                <div class="card-metrics">
+                    <span class="metric-badge badge-edge">EDGE: ${item.savedEdge}%</span>
+                    <span class="metric-badge badge-ov">OV: ${item.savedOv}%</span>
+                    <span class="metric-badge badge-clv">CLV: ${clvVal}%</span>
+                </div>
+                <div class="clv-input-group">
+                    <span class="clv-label">Cuota Cierre:</span>
+                    <input type="number" class="clv-input" placeholder="Cierre" value="${item.closingOdds || ''}" onchange="updateClosingOdds(${item.id}, this.value)">
+                </div>
                 <div style="margin-top:10px; display:flex; gap:8px;">
                     <button onclick="updateStatus(${item.id}, 'win')" style="background:var(--accent-green); border:none; border-radius:4px; padding:6px 12px; font-weight:bold; cursor:pointer;">W</button>
                     <button onclick="updateStatus(${item.id}, 'loss')" style="background:var(--delete); border:none; border-radius:4px; padding:6px 12px; color:#fff; font-weight:bold; cursor:pointer;">L</button>
                     <button onclick="deletePick(${item.id})" style="background:#222; border:1px solid var(--border); border-radius:4px; padding:6px 12px; color:var(--delete); cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
                 </div>
-            </div>`).join('');
+            </div>`;}).join('');
 
         document.getElementById('total-profit').innerText = runningProfit.toFixed(2) + " $";
         document.getElementById('total-profit').style.color = runningProfit >= 0 ? "var(--accent-green)" : "var(--delete)";
@@ -844,33 +874,42 @@
         document.getElementById('session-modal').style.display = 'flex';
     }
 
+    // MATEMÁTICAS PARA P-VALUE
+    function combinations(n, k) { if(k < 0 || k > n) return 0; if(k === 0 || k === n) return 1; if(k > n/2) k = n - k; let res = 1; for(let i=1; i<=k; i++) { res = res * (n - i + 1) / i; } return res; }
+    function binomialPValue(n, k, p) { let prob = 0; for(let i=k; i<=n; i++) { prob += combinations(n, i) * Math.pow(p, i) * Math.pow(1-p, n-i); } return prob; }
+
     function generateWeeklyReport() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
         const resolved = history.filter(p => p.status !== 'pending');
         if(resolved.length === 0) return alert("Sin datos resueltos para auditar");
         
-        let totalStaked = 0, totalProfit = 0, wins = 0, totalOdds = 0, maxLoss = 0;
+        let totalStaked = 0, totalProfit = 0, wins = 0, totalOdds = 0, maxLoss = 0, totalCLV = 0, clvCount = 0;
         resolved.forEach(p => {
             totalStaked += p.stake;
             totalOdds += parseFloat(p.odds);
             if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } 
             else { totalProfit -= p.stake; maxLoss = Math.max(maxLoss, p.stake); }
+            if(p.closingOdds > 0) { totalCLV += ((p.odds / p.closingOdds) - 1) * 100; clvCount++; }
         });
 
         const yieldVal = (totalProfit / totalStaked * 100).toFixed(2);
         const winRate = (wins / resolved.length * 100).toFixed(1);
         const avgOdds = (totalOdds / resolved.length).toFixed(2);
-        const recoveryFactor = (totalProfit / (maxLoss || 1)).toFixed(2);
+        
+        // Cálculo de P-Value (Probabilidad de que el éxito sea azar)
+        const expectedWR = 1 / parseFloat(avgOdds);
+        const pVal = binomialPValue(resolved.length, wins, expectedWR);
+        const luckStatus = pVal < 0.01 ? "ELITE SHARP" : (pVal < 0.05 ? "HABILIDAD" : "AZAR/VARIANZA");
 
         const report = `>>> QUANTUM INSIDER AUDIT <<<\n` +
                        `-------------------------------\n` +
                        `SAMPLES: ${resolved.length} picks\n` +
                        `PROFIT: ${totalProfit.toFixed(2)}$\n` +
-                       `YIELD: ${yieldVal}%\n` +
-                       `WIN RATE: ${winRate}%\n` +
-                       `AVG ODDS: ${avgOdds}\n` +
-                       `REC. FACTOR: ${recoveryFactor}\n` +
+                       `YIELD: ${yieldVal}% | WR: ${winRate}%\n` +
+                       `AVG CLV: ${clvCount > 0 ? (totalCLV / clvCount).toFixed(2) : 0}%\n` +
                        `-------------------------------\n` +
+                       `P-VALUE: ${pVal.toFixed(4)}\n` +
+                       `CONFIDENCE: ${luckStatus}\n` +
                        `STATUS: ${yieldVal > 0 ? 'PROFITABLE' : 'UNDER REVIEW'}\n` +
                        `DATE: ${new Date().toLocaleDateString()}`;
 
@@ -885,8 +924,8 @@
 
     function exportToCSV() {
         const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
-        let csv = "Fecha,Liga,Equipos,Mercado,Cuota,Stake,Estado,Edge\n";
-        history.forEach(p => csv += `${p.date},${p.league},"${p.teams}","${p.name}",${p.odds},${p.stake},${p.status},${p.savedEdge}\n`);
+        let csv = "Fecha,Liga,Equipos,Mercado,Cuota,Stake,Estado,Edge,CuotaCierre\n";
+        history.forEach(p => csv += `${p.date},${p.league},"${p.teams}","${p.name}",${p.odds},${p.stake},${p.status},${p.savedEdge},${p.closingOdds}\n`);
         const blob = new Blob([csv], { type: 'text/csv' }); const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = 'control.csv'; a.click();
     }
@@ -896,11 +935,11 @@
         const market = document.getElementById('bt-market').value, odds1 = parseFloat(document.getElementById('bt-odds').value);
         const iter = parseInt(document.getElementById('bt-iterations').value), kF = parseFloat(document.getElementById('bt-kelly-frac').value);
         const prob = window.currentProbs[market];
-        let bank = parseFloat(document.getElementById('user-bank').value) || 1000, data = [bank];
+        let bank = parseFloat(document.getElementById('user-bank').value) || 1000, data = [bank], w = 0;
         for(let i=0; i<iter; i++) {
             let edge = (prob * odds1) - 1;
             let stake = bank * Math.max(0, (edge/(odds1-1))*kF);
-            if(Math.random() < prob) bank += stake * (odds1-1); else bank -= stake;
+            if(Math.random() < prob) { w++; bank += stake * (odds1-1); } else bank -= stake;
             data.push(bank); if(bank < 1) break;
         }
         document.getElementById('bt-results').style.display = 'block';
