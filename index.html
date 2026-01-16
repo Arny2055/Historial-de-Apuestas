@@ -22,9 +22,8 @@
         .scroll-content { height: calc(100vh - 140px); overflow-y: auto; padding: 15px; padding-bottom: 100px; }
         
         textarea { 
-            width: 100%; height: 60px; background: #000; border: 1px solid var(--border); 
-            border-radius: 8px; color: var(--accent-green); padding: 8px; font-size: 10px; margin-bottom: 10px;
-            resize: vertical;
+            width: 100%; height: 50px; background: #000; border: 1px solid var(--border); 
+            border-radius: 8px; color: var(--accent-green); padding: 8px; font-size: 11px; margin-bottom: 10px;
         }
 
         .btn-main { 
@@ -146,6 +145,7 @@
         .clv-input { width: 60px !important; padding: 4px !important; font-size: 10px !important; margin-bottom: 0 !important; height: auto !important; }
         .clv-label { font-size: 9px; color: var(--text-dim); }
 
+        /* ESTILOS PARA MODO HÍBRIDO */
         .hybrid-box { background: rgba(157, 0, 255, 0.05); border: 1px solid var(--sharp-purple); border-radius: 8px; padding: 10px; margin-bottom: 15px; }
         .hybrid-toggle { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
@@ -156,15 +156,9 @@
         input:checked + .slider:before { transform: translateX(20px); }
         .hybrid-badge { font-size: 0.6rem; color: var(--sharp-purple); font-weight: 900; }
 
+        /* NUEVO: AVISO DE MUESTRA BAJA */
         .sample-warning { background: rgba(255, 136, 0, 0.1); border: 1px solid var(--warning); color: var(--warning); padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 0.7rem; text-align: center; display: none; }
         .sample-warning i { margin-right: 5px; }
-
-        /* Estilo para la nueva sección manual */
-        .manual-input-section {
-            border: 1px solid var(--accent-gold);
-            background: rgba(255, 215, 0, 0.02);
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
@@ -274,26 +268,7 @@
         </button>
         <div id="sync-info" class="sync-status">Sincronización Inteligente de Rangos</div>
 
-        <div class="card manual-input-section">
-            <div style="font-size: 0.65rem; color: var(--accent-gold); margin-bottom: 10px; font-weight: bold; text-transform: uppercase;">
-                <i class="fa-solid fa-keyboard"></i> Entrada Manual de Datos
-            </div>
-            
-            <label style="font-size: 0.55rem; color: var(--text-dim);">TABLA LOCAL (HOME):</label>
-            <textarea id="hIn" placeholder="Pega aquí la tabla del local..."></textarea>
-            
-            <label style="font-size: 0.55rem; color: var(--text-dim);">TABLA VISITA (AWAY):</label>
-            <textarea id="vIn" placeholder="Pega aquí la tabla del visitante..."></textarea>
-            
-            <label style="font-size: 0.55rem; color: var(--text-dim);">DATOS LIGA (SUMMARY):</label>
-            <textarea id="sIn" placeholder="Pega aquí el resumen de goles por partido..."></textarea>
-            
-            <button class="btn-cloud" style="background: rgba(255, 215, 0, 0.1); margin-top: 5px; border-style: dashed;" onclick="manualLoad()">
-                <i class="fa-solid fa-file-import"></i> PROCESAR PEGADO MANUAL
-            </button>
-        </div>
-
-        <div class="card" style="border: 1px solid var(--quantum-blue); background: rgba(0, 255, 255, 0.02); margin-top: 15px;">
+        <div class="card" style="border: 1px solid var(--quantum-blue); background: rgba(0, 255, 255, 0.02);">
             <div style="font-size: 0.65rem; color: var(--quantum-blue); margin-bottom: 10px; font-weight: bold; text-transform: uppercase;">Cuotas de Mercado (Auditoría Real)</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                 <div>
@@ -313,6 +288,12 @@
                     <input type="number" id="in-bno" placeholder="Cuota" step="0.01">
                 </div>
             </div>
+        </div>
+
+        <div style="display:none">
+            <textarea id="hIn"></textarea>
+            <textarea id="vIn"></textarea>
+            <textarea id="sIn"></textarea>
         </div>
 
         <div id="sample-audit-msg" class="sample-warning">
@@ -577,41 +558,13 @@
     let lastSuggestedKelly = 0;
     let currentLiveOverround = 0; 
     let currentLiveEdge = 0; 
+    
+    // Variables de Modo Híbrido
     let hybridMode = false;
 
     const CLOUD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5K_dAlhz15lirT1reZIzs4uo6UxKLgAP2wkvu9x_HExsON2edDJ-ZMWgZ6Bo03y1mJQNxoYoCT21k/pub?output=csv";
 
-    // CARGA MANUAL: Procesa los textareas visibles
-    function manualLoad() {
-        const hText = document.getElementById('hIn').value;
-        const vText = document.getElementById('vIn').value;
-        const sText = document.getElementById('sIn').value;
-
-        if(!hText || !vText || !sText) {
-            alert("Por favor patea los datos en los 3 campos manuales.");
-            return;
-        }
-
-        try {
-            dH = extLines(hText.split('\n'));
-            dV = extLines(vText.split('\n'));
-            
-            // Extraer promedios de liga
-            const hm = sText.match(/Home goals per match:[^,]*,\*?([\d.]+)\*?/i);
-            const am = sText.match(/Away goals per match:[^,]*,\*?([\d.]+)\*?/i);
-            if(hm) aH = parseFloat(hm[1]);
-            if(am) aV = parseFloat(am[1]);
-
-            fill();
-            document.getElementById('sync-info').innerText = "Carga Manual Exitosa";
-            window.lastSyncedLeague = "MANUAL";
-            alert("Equipos cargados correctamente.");
-        } catch (e) {
-            alert("Error al procesar el formato de los datos.");
-            console.error(e);
-        }
-    }
-
+    // NUEVO: Función para Auditar la Muestra (P.J. < 5)
     function auditSampleCount() {
         const tH = document.getElementById('sH').value;
         const tV = document.getElementById('sV').value;
@@ -712,7 +665,8 @@
         try {
             const response = await fetch(CLOUD_URL);
             const rawData = await response.text();
-            const allRows = rawData.split('\n');
+            // CORRECCIÓN: Usar Regex para soportar saltos de línea Windows/Unix
+            const allRows = rawData.split(/\r?\n/);
             
             const ranges = {
                 'italy': [3, 32, 36, 65, 68, 74], 'england': [80, 109, 113, 142, 145, 151],
@@ -726,6 +680,7 @@
 
             let rH = ranges[leagueKeyH];
             let hLines = [], sLinesH = [];
+            // Validación de existencia de fila para evitar errores de undefined
             for(let i=rH[0]; i<=rH[1]; i++) if(allRows[i]) hLines.push(allRows[i]);
             for(let i=rH[4]; i<=rH[5]; i++) if(allRows[i]) sLinesH.push(allRows[i]);
             dH = extLines(hLines);
@@ -754,9 +709,10 @@
         const o={};
         lines.forEach(l => {
             const cols = l.split(',');
-            if(cols.length > 8) {
+            // Verificación robusta de columnas
+            if(cols.length >= 8) {
                 const team = cols[2]?.replace(/\*/g, '').trim();
-                const gp = parseInt(cols[3]); const gf = parseFloat(cols[7]); const ga = parseFloat(cols[8]);
+                const gp = parseInt(cols[3]); const gf = parseInt(cols[7]); const ga = parseInt(cols[8]);
                 if(team && !isNaN(gp) && gp > 0) o[team] = { f: gf/gp, a: ga/gp, gp: gp };
             }
         });
@@ -773,33 +729,16 @@
         }
     }
 
-    function togglePanic(init = false) {
-        if(!init) isPanic = !isPanic; else isPanic = true;
-        const btn = document.getElementById('panic-btn');
-        const status = document.getElementById('panic-status');
-        if(isPanic) { btn.classList.add('panic-active'); status.innerText = "ON"; }
-        else { btn.classList.remove('panic-active'); status.innerText = "OFF"; }
-        localStorage.setItem('q_pro_panic', isPanic);
-        runStressTest();
-    }
-
-    function saveBank() { localStorage.setItem('q_pro_bank', document.getElementById('user-bank').value); }
-
-    function runStressTest() {
-        const bank = parseFloat(document.getElementById('user-bank').value) || 0;
-        let riskPerBetPct = isPanic ? 0.0125 : 0.025; 
-        let currentBank = bank;
-        for(let i=0; i<5; i++) currentBank -= (currentBank * riskPerBetPct);
-        const drawdown = ((bank - currentBank) / bank * 100).toFixed(1);
-        document.getElementById('stress-result-money').innerText = "$ " + currentBank.toFixed(2);
-        document.getElementById('stress-result-pct').innerText = "-" + (isNaN(drawdown) ? 0 : drawdown) + "%";
-    }
-
     function fill() {
         const sH=document.getElementById('sH'), sV=document.getElementById('sV');
         sH.innerHTML=sV.innerHTML='<option value="">Seleccionar Equipo</option>';
-        Object.keys(dH).sort().forEach(t=>sH.add(new Option(t,t)));
-        Object.keys(dV).sort().forEach(t=>sV.add(new Option(t,t)));
+        
+        const teamsH = Object.keys(dH).sort();
+        const teamsV = Object.keys(dV).sort();
+
+        teamsH.forEach(t => sH.add(new Option(t, t)));
+        teamsV.forEach(t => sV.add(new Option(t, t)));
+        
         document.getElementById('sample-audit-msg').style.display = 'none';
     }
 
@@ -911,11 +850,11 @@
                 sniff.className = edgeVal > 0.15 ? 'sniff-alert sniff-mega' : 'sniff-alert';
             } else sniff.style.display = 'none';
 
-            let mult = 0.25; if(isPanic) mult *= 0.5; // Kelly al 25% sugerido
+            let mult = edgeVal > 0.15 ? 0.05 : 0.25; if(isPanic) mult *= 0.5;
             let kRaw = (((o1-1)*(selectedPick.prob/100))-(1-(selectedPick.prob/100)))/(o1-1);
             lastSuggestedKelly = (parseFloat(document.getElementById('user-bank').value) || 1000) * Math.max(0, kRaw * mult);
             document.getElementById('kelly-suggestion').innerText = lastSuggestedKelly.toFixed(2) + " $";
-            document.getElementById('kelly-label-tag').innerText = "Kelly Fraccional (25%)";
+            document.getElementById('kelly-label-tag').innerText = edgeVal > 0.15 ? "Risk Mitigator (5%)" : "Fractional Kelly (25%)";
         }
     }
 
@@ -959,7 +898,7 @@
 
         const container = document.getElementById('history-list');
         let runningProfit = 0, runningBank = initialBank, maxBank = initialBank, maxDD = 0;
-        let chartData = [0];
+        let chartData = [0], today = new Date().toLocaleDateString();
 
         [...filtered].reverse().forEach(item => {
             let pChange = 0;
@@ -1019,6 +958,121 @@
     function clearHistory() { if(confirm("¿Borrar TODO?")) { localStorage.removeItem('q_pro_hist'); loadHistory(); } }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
     function nav(id) { document.querySelectorAll('#setup-screen, #dashboard-screen, #history-screen, #backtest-screen, #guide-screen').forEach(s => s.classList.remove('active-screen')); document.getElementById(id).classList.add('active-screen'); }
+    
+    function togglePanic(init = false) {
+        if(!init) isPanic = !isPanic; else isPanic = true;
+        const btn = document.getElementById('panic-btn');
+        const status = document.getElementById('panic-status');
+        if(isPanic) { btn.classList.add('panic-active'); status.innerText = "ON"; }
+        else { btn.classList.remove('panic-active'); status.innerText = "OFF"; }
+        localStorage.setItem('q_pro_panic', isPanic);
+        runStressTest();
+    }
+
+    function saveBank() { localStorage.setItem('q_pro_bank', document.getElementById('user-bank').value); }
+
+    function runStressTest() {
+        const bank = parseFloat(document.getElementById('user-bank').value) || 0;
+        let riskPerBetPct = isPanic ? 0.0125 : 0.025; 
+        let currentBank = bank;
+        for(let i=0; i<5; i++) currentBank -= (currentBank * riskPerBetPct);
+        const drawdown = ((bank - currentBank) / bank * 100).toFixed(1);
+        document.getElementById('stress-result-money').innerText = "$ " + currentBank.toFixed(2);
+        document.getElementById('stress-result-pct').innerText = "-" + (isNaN(drawdown) ? 0 : drawdown) + "%";
+    }
+
+    function openSessionModal() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const today = new Date().toLocaleDateString();
+        const todayPicks = history.filter(p => p.date === today && p.status !== 'pending');
+        let sProf = 0, sVol = 0, sWin = 0;
+        todayPicks.forEach(p => { sVol += p.stake; if(p.status === 'win') { sProf += (p.odds - 1) * p.stake; sWin++; } else sProf -= p.stake; });
+        document.getElementById('session-date').innerText = today;
+        document.getElementById('session-profit').innerText = sProf.toFixed(2) + " $";
+        document.getElementById('session-profit').style.color = sProf >= 0 ? "var(--accent-green)" : "var(--delete)";
+        document.getElementById('session-yield').innerText = (sVol > 0 ? (sProf / sVol * 100).toFixed(1) : 0) + "%";
+        document.getElementById('session-wr').innerText = (todayPicks.length > 0 ? (sWin / todayPicks.length * 100).toFixed(0) : 0) + "%";
+        document.getElementById('session-modal').style.display = 'flex';
+    }
+
+    function combinations(n, k) { if(k < 0 || k > n) return 0; if(k === 0 || k === n) return 1; if(k > n/2) k = n - k; let res = 1; for(let i=1; i<=k; i++) { res = res * (n - i + 1) / i; } return res; }
+    function binomialPValue(n, k, p) { let prob = 0; for(let i=k; i<=n; i++) { prob += combinations(n, i) * Math.pow(p, i) * Math.pow(1-p, n-i); } return prob; }
+
+    function generateWeeklyReport() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        const resolved = history.filter(p => p.status !== 'pending');
+        if(resolved.length === 0) return alert("Sin datos resueltos para auditar");
+        
+        let totalStaked = 0, totalProfit = 0, wins = 0, totalOdds = 0, maxLoss = 0, totalCLV = 0, clvCount = 0;
+        let brierSum = 0;
+
+        resolved.forEach(p => {
+            totalStaked += p.stake;
+            totalOdds += parseFloat(p.odds);
+            const outcome = p.status === 'win' ? 1 : 0;
+            const probDecimal = p.prob / 100;
+            brierSum += Math.pow(probDecimal - outcome, 2);
+            if(p.status === 'win') { totalProfit += (p.odds - 1) * p.stake; wins++; } 
+            else { totalProfit -= p.stake; maxLoss = Math.max(maxLoss, p.stake); }
+            if(p.closingOdds > 0) { totalCLV += ((p.odds / p.closingOdds) - 1) * 100; clvCount++; }
+        });
+
+        const yieldVal = (totalProfit / totalStaked * 100).toFixed(2);
+        const winRate = (wins / resolved.length * 100).toFixed(1);
+        const avgOdds = (totalOdds / resolved.length).toFixed(2);
+        const avgBrier = (brierSum / resolved.length).toFixed(4);
+        const expectedWR = 1 / parseFloat(avgOdds);
+        const pVal = binomialPValue(resolved.length, wins, expectedWR);
+        const luckStatus = pVal < 0.01 ? "ELITE SHARP" : (pVal < 0.05 ? "HABILIDAD" : "AZAR/VARIANZA");
+
+        const report = `>>> QUANTUM INSIDER AUDIT <<<\n` +
+                       `-------------------------------\n` +
+                       `SAMPLES: ${resolved.length} picks\n` +
+                       `PROFIT: ${totalProfit.toFixed(2)}$\n` +
+                       `YIELD: ${yieldVal}% | WR: ${winRate}%\n` +
+                       `AVG CLV: ${clvCount > 0 ? (totalCLV / clvCount).toFixed(2) : 0}%\n` +
+                       `-------------------------------\n` +
+                       `BRIER SCORE: ${avgBrier} (Ref: 0.25 azar)\n` +
+                       `P-VALUE: ${pVal.toFixed(4)}\n` +
+                       `CONFIDENCE: ${luckStatus}\n` +
+                       `STATUS: ${yieldVal > 0 ? 'PROFITABLE' : 'UNDER REVIEW'}\n` +
+                       `DATE: ${new Date().toLocaleDateString()}`;
+
+        document.getElementById('report-text').innerText = report;
+        document.getElementById('report-modal').style.display = 'flex';
+    }
+
+    function copyReport() {
+        const text = document.getElementById('report-text').innerText;
+        navigator.clipboard.writeText(text).then(() => alert("Copiado al portapapeles"));
+    }
+
+    function exportToCSV() {
+        const history = JSON.parse(localStorage.getItem('q_pro_hist') || '[]');
+        let csv = "Fecha,Liga,Equipos,Mercado,Cuota,Stake,Estado,Edge,CuotaCierre\n";
+        history.forEach(p => csv += `${p.date},${p.league},"${p.teams}","${p.name}",${p.odds},${p.stake},${p.status},${p.savedEdge},${p.closingOdds}\n`);
+        const blob = new Blob([csv], { type: 'text/csv' }); const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'control.csv'; a.click();
+    }
+
+    function runBacktest() {
+        if(!window.currentProbs) return alert("Analice partido");
+        const market = document.getElementById('bt-market').value, odds1 = parseFloat(document.getElementById('bt-odds').value);
+        const iter = parseInt(document.getElementById('bt-iterations').value), kF = parseFloat(document.getElementById('bt-kelly-frac').value);
+        const prob = window.currentProbs[market];
+        let bank = parseFloat(document.getElementById('user-bank').value) || 1000, data = [bank], w = 0;
+        for(let i=0; i<iter; i++) {
+            let edge = (prob * odds1) - 1;
+            let stake = bank * Math.max(0, (edge/(odds1-1))*kF);
+            if(Math.random() < prob) { w++; bank += stake * (odds1-1); } else bank -= stake;
+            data.push(bank); if(bank < 1) break;
+        }
+        document.getElementById('bt-results').style.display = 'block';
+        document.getElementById('bt-res-profit').innerText = bank.toFixed(2) + "$";
+        const ctx = document.getElementById('btChart').getContext('2d');
+        if(btChartInstance) btChartInstance.destroy();
+        btChartInstance = new Chart(ctx, { type:'line', data:{labels:data.map((_,i)=>i), datasets:[{data:data, borderColor:'#00ff88'}]}, options:{maintainAspectRatio:false} });
+    }
 </script>
 </body>
 </html>
