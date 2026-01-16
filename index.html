@@ -646,27 +646,45 @@
     }
 
     function calculate() {
-        const tH=document.getElementById('sH').value, tV=document.getElementById('sV').value;
-        if(!dH[tH] || !dV[tV]) { alert("Seleccione ambos equipos"); return; }
-        
-        // --- POISSON EXTENDIDO: CALCULO DE FUERZAS Y xG ---
-        
-        // 1. Calcular Fuerza de Ataque (Attack Strength)
-        const homeAttackStrength = dH[tH].f / aH; // Goles Local promedio / Media Liga Local
-        const awayAttackStrength = dV[tV].f / aV; // Goles Visita promedio / Media Liga Visita
+        const tH = document.getElementById('sH').value;
+        const tV = document.getElementById('sV').value;
 
-        // 2. Calcular Fuerza de Defensa (Defense Strength)
-        const homeDefenseStrength = dH[tH].a / aV; // Goles recibidos Local promedio / Media Liga Visita
-        const awayDefenseStrength = dV[tV].a / aH; // Goles recibidos Visita promedio / Media Liga Local
+        if(!dH[tH] || !dV[tV]) { 
+            alert("Seleccione ambos equipos y asegúrese de que los datos estén cargados."); 
+            return; 
+        }
 
-        // 3. Calcular Goles Esperados (Expected Goals - Lambda)
-        // xG Local = Fuerza Ataque Local * Fuerza Defensa Visita * Media Liga Local
-        const xH = homeAttackStrength * awayDefenseStrength * aH;
+        // --- SAFEGUARD: PROMEDIOS DE LIGA ---
+        // Si por error de carga aH/aV son 0, usamos 1.0 para evitar Infinity/NaN
+        const leagueAvgHome = (aH > 0) ? aH : 1.5;
+        const leagueAvgAway = (aV > 0) ? aV : 1.2;
+
+        // --- POISSON EXTENDIDO (CORREGIDO) ---
         
-        // xG Visita = Fuerza Ataque Visita * Fuerza Defensa Local * Media Liga Visita
-        const xV = awayAttackStrength * homeDefenseStrength * aV;
+        // 1. FUERZA DE ATAQUE (ATTACK STRENGTH)
+        // Ratio: (Promedio goles del equipo) / (Promedio goles de la liga en esa condición)
+        // dH[tH].f ya es "Goles a Favor / Partidos Jugados" (Promedio del equipo)
+        const homeAttackStrength = dH[tH].f / leagueAvgHome;
+        const awayAttackStrength = dV[tV].f / leagueAvgAway;
+
+        // 2. FUERZA DE DEFENSA (DEFENSE STRENGTH)
+        // Ratio: (Promedio goles concedidos) / (Promedio goles que la liga marca en contra)
+        // Local defiende contra Visitantes: Se compara con el promedio que marcan los Visitantes (leagueAvgAway)
+        // Visitante defiende contra Locales: Se compara con el promedio que marcan los Locales (leagueAvgHome)
+        const homeDefenseStrength = dH[tH].a / leagueAvgAway; 
+        const awayDefenseStrength = dV[tV].a / leagueAvgHome;
+
+        // 3. GOLES ESPERADOS (EXPECTED GOALS - LAMBDA)
+        // xG = Fuerza Ataque * Fuerza Defensa Oponente * Promedio Liga
+        const xH = homeAttackStrength * awayDefenseStrength * leagueAvgHome;
+        const xV = awayAttackStrength * homeDefenseStrength * leagueAvgAway;
 
         // --- FIN CALCULO EXTENDIDO ---
+
+        if (isNaN(xH) || isNaN(xV)) {
+            alert("Error en el cálculo matemático. Verifique los datos de entrada.");
+            return;
+        }
 
         let pH=0, pD=0, pV=0, ov25=0, btts=0;
         for(let i=0; i<=9; i++) {
