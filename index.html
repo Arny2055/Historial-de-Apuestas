@@ -648,7 +648,25 @@
     function calculate() {
         const tH=document.getElementById('sH').value, tV=document.getElementById('sV').value;
         if(!dH[tH] || !dV[tV]) { alert("Seleccione ambos equipos"); return; }
-        const xH = (dH[tH].f/aH)*(dV[tV].a/aH)*aH, xV = (dV[tV].f/aV)*(dH[tH].a/aV)*aV;
+        
+        // CÁLCULO DE POISSON USANDO FUERZA DE ATAQUE Y DEFENSA
+        // Promedio de goles de la liga (global)
+        const leagueAvg = (aH + aV) / 2;
+        
+        // Fuerzas de equipo (Relación con el promedio de liga)
+        // Ataque: Goles anotados por equipo / Goles anotados promedio liga
+        // Defensa: Goles recibidos por equipo / Goles recibidos promedio liga
+        const attH = dH[tH].f / aH; // Fuerza Ataque Local
+        const defH = dH[tH].a / aV; // Fuerza Defensa Local
+        const attV = dV[tV].f / aV; // Fuerza Ataque Visita
+        const defV = dV[tV].a / aH; // Fuerza Defensa Visita
+
+        // Goles Esperados (xG) para Poisson
+        // xG Local = Fuerza Ataque Local * Fuerza Defensa Visita * Promedio Goles Local Liga
+        // xG Visita = Fuerza Ataque Visita * Fuerza Defensa Local * Promedio Goles Visita Liga
+        const xH = attH * defV * aH;
+        const xV = attV * defH * aV;
+
         let pH=0, pD=0, pV=0, ov25=0, btts=0;
         for(let i=0; i<=9; i++) {
             for(let j=0; j<=9; j++) {
@@ -950,4 +968,4 @@
     }
 </script>
 </body>
-</html> 
+</html>
