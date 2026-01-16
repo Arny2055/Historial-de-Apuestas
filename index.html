@@ -27,6 +27,20 @@
     <div class="container mx-auto p-4">
         
         <div id="calc" class="tab-content active">
+            <div class="bg-white p-6 rounded-lg shadow mb-6">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2 text-blue-800">Promedios de la Liga (Base)</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold">Promedio Goles Local (League Home AVG)</label>
+                        <input type="number" id="league_home_avg" step="0.01" class="w-full border p-2 rounded bg-blue-50" value="1.81">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold">Promedio Goles Visitante (League Away AVG)</label>
+                        <input type="number" id="league_away_avg" step="0.01" class="w-full border p-2 rounded bg-blue-50" value="1.45">
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white p-6 rounded-lg shadow">
                     <h2 class="text-xl font-bold mb-4 border-b pb-2">Datos del Encuentro</h2>
@@ -147,11 +161,8 @@
     </div>
 
     <script>
-        // Configuración Liga (Promedios según tu tabla)
-        const LEAGUE_HOME_AVG = 1.81;
-        const LEAGUE_AWAY_AVG = 1.45;
+        // Configuración Global
         const BANKROLL_BASE = 100;
-
         let bets = JSON.parse(localStorage.getItem('bets')) || [];
 
         function showTab(tabId) {
@@ -169,24 +180,31 @@
         }
 
         function calcularPoisson() {
+            // Obtener promedios de la liga desde los inputs
+            const league_h_avg = parseFloat(document.getElementById('league_home_avg').value);
+            const league_a_avg = parseFloat(document.getElementById('league_away_avg').value);
+
+            // Datos equipos
             const h_gf = parseFloat(document.getElementById('home_gf_avg').value);
             const h_gc = parseFloat(document.getElementById('home_gc_avg').value);
             const a_gf = parseFloat(document.getElementById('away_gf_avg').value);
             const a_gc = parseFloat(document.getElementById('away_gc_avg').value);
 
-            if (!h_gf || !h_gc || !a_gf || !a_gc) return alert("Completa los datos de goles");
+            if (!h_gf || !h_gc || !a_gf || !a_gc || !league_h_avg || !league_a_avg) {
+                return alert("Completa todos los datos (Goles y Promedios de Liga)");
+            }
 
-            // Fuerza de Ataque y Defensa
-            const home_attack = h_gf / LEAGUE_HOME_AVG;
-            const home_defense = h_gc / LEAGUE_AWAY_AVG;
-            const away_attack = a_gf / LEAGUE_AWAY_AVG;
-            const away_defense = a_gc / LEAGUE_HOME_AVG;
+            // Fuerza de Ataque y Defensa usando los inputs dinámicos
+            const home_attack = h_gf / league_h_avg;
+            const home_defense = h_gc / league_a_avg;
+            const away_attack = a_gf / league_a_avg;
+            const away_defense = a_gc / league_h_avg;
 
             // xG proyectados
-            const home_xg = home_attack * away_defense * LEAGUE_HOME_AVG;
-            const away_xg = away_attack * home_defense * LEAGUE_AWAY_AVG;
+            const home_xg = home_attack * away_defense * league_h_avg;
+            const away_xg = away_attack * home_defense * league_a_avg;
 
-            // Probabilidades de goles exactos (0 a 5)
+            // Probabilidades de goles exactos (0 a 10)
             let prob_home = [], prob_away = [];
             for (let i = 0; i <= 10; i++) {
                 prob_home.push(poisson(i, home_xg));
@@ -234,7 +252,7 @@
                 let stake = 0;
                 let passFilters = false;
 
-                if (edge >= 0.03 && edge <= 0.15 && overround <= 108) { // 100 + 8%
+                if (edge >= 0.03 && edge <= 0.15 && overround <= 108) { 
                     // Kelly Fraccional 25%
                     stake = (edge / (bookieOdds - 1)) * 0.25 * BANKROLL_BASE;
                     passFilters = true;
@@ -322,14 +340,14 @@
             const roiVal = totalStaked > 0 ? ((totalProfit + totalStaked) / totalStaked * 100) - 100 : 0;
             document.getElementById('stat_roi').innerText = `${roiVal.toFixed(2)}%`;
 
-            // P-Value simplificado (Z-score aproximado para apuestas)
+            // P-Value simplificado
             if (bets.length > 5) {
                 const avgOdds = bets.reduce((a, b) => a + b.odds, 0) / bets.length;
                 const p = 1 / avgOdds;
                 const expectedWins = bets.length * p;
                 const stdDev = Math.sqrt(bets.length * p * (1-p));
                 const z = (wins - expectedWins) / stdDev;
-                const pValue = 1 - 0.5 * (1 + Math.erf(z / Math.sqrt(2))); // Función error para distribución normal
+                const pValue = 1 - 0.5 * (1 + Math.erf(z / Math.sqrt(2))); 
                 document.getElementById('stat_pvalue').innerText = pValue.toFixed(4);
             }
         }
