@@ -188,7 +188,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-size: 0.55rem; color: var(--text-dim);">BANCA RESTANTE</div>
-                        <div id="stress-result-money" style="font-size: 1.1rem; font-weight: 900; color: var(--delete);">$ 0.00</div>
+                        <div id="stress-result-money" style="font-size: 1.1rem; font-weight: 900; color: var(--delete);">0.00 $</div>
                     </div>
                     <div style="text-align: right;">
                         <div style="font-size: 0.55rem; color: var(--text-dim);">DRAWDOWN</div>
@@ -309,7 +309,7 @@
         <div class="stat-grid">
             <div class="stat-box">
                 <div style="font-size: 0.6rem; color: var(--text-dim);">PROFIT FILTRADO</div>
-                <div id="total-profit" style="font-size: 1.2rem; font-weight: 900;">0.00</div>
+                <div id="total-profit" style="font-size: 1.2rem; font-weight: 900;">0.00 $</div>
             </div>
             <div class="stat-box">
                 <div style="font-size: 0.6rem; color: var(--text-dim);">MAX DRAWDOWN</div>
@@ -649,23 +649,24 @@
         const tH=document.getElementById('sH').value, tV=document.getElementById('sV').value;
         if(!dH[tH] || !dV[tV]) { alert("Seleccione ambos equipos"); return; }
         
-        // CÁLCULO DE POISSON USANDO FUERZA DE ATAQUE Y DEFENSA
-        // Promedio de goles de la liga (global)
-        const leagueAvg = (aH + aV) / 2;
+        // --- POISSON EXTENDIDO: CALCULO DE FUERZAS Y xG ---
         
-        // Fuerzas de equipo (Relación con el promedio de liga)
-        // Ataque: Goles anotados por equipo / Goles anotados promedio liga
-        // Defensa: Goles recibidos por equipo / Goles recibidos promedio liga
-        const attH = dH[tH].f / aH; // Fuerza Ataque Local
-        const defH = dH[tH].a / aV; // Fuerza Defensa Local
-        const attV = dV[tV].f / aV; // Fuerza Ataque Visita
-        const defV = dV[tV].a / aH; // Fuerza Defensa Visita
+        // 1. Calcular Fuerza de Ataque (Attack Strength)
+        const homeAttackStrength = dH[tH].f / aH; // Goles Local promedio / Media Liga Local
+        const awayAttackStrength = dV[tV].f / aV; // Goles Visita promedio / Media Liga Visita
 
-        // Goles Esperados (xG) para Poisson
-        // xG Local = Fuerza Ataque Local * Fuerza Defensa Visita * Promedio Goles Local Liga
-        // xG Visita = Fuerza Ataque Visita * Fuerza Defensa Local * Promedio Goles Visita Liga
-        const xH = attH * defV * aH;
-        const xV = attV * defH * aV;
+        // 2. Calcular Fuerza de Defensa (Defense Strength)
+        const homeDefenseStrength = dH[tH].a / aV; // Goles recibidos Local promedio / Media Liga Visita
+        const awayDefenseStrength = dV[tV].a / aH; // Goles recibidos Visita promedio / Media Liga Local
+
+        // 3. Calcular Goles Esperados (Expected Goals - Lambda)
+        // xG Local = Fuerza Ataque Local * Fuerza Defensa Visita * Media Liga Local
+        const xH = homeAttackStrength * awayDefenseStrength * aH;
+        
+        // xG Visita = Fuerza Ataque Visita * Fuerza Defensa Local * Media Liga Visita
+        const xV = awayAttackStrength * homeDefenseStrength * aV;
+
+        // --- FIN CALCULO EXTENDIDO ---
 
         let pH=0, pD=0, pV=0, ov25=0, btts=0;
         for(let i=0; i<=9; i++) {
