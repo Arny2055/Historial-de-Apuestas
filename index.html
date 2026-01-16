@@ -654,33 +654,32 @@
             return; 
         }
 
-        // --- SAFEGUARD: PROMEDIOS DE LIGA ---
-        // Si por error de carga aH/aV son 0, usamos 1.0 para evitar Infinity/NaN
+        // --- PASO 0: MEDIAS DE LIGA (Soporte para evitar NaN) ---
         const leagueAvgHome = (aH > 0) ? aH : 1.5;
         const leagueAvgAway = (aV > 0) ? aV : 1.2;
 
-        // --- POISSON EXTENDIDO (CORREGIDO) ---
+        // --- PASO 1: CALCULAR FUERZA DE ATAQUE Y DEFENSA ---
         
-        // 1. FUERZA DE ATAQUE (ATTACK STRENGTH)
-        // Ratio: (Promedio goles del equipo) / (Promedio goles de la liga en esa condición)
-        // dH[tH].f ya es "Goles a Favor / Partidos Jugados" (Promedio del equipo)
-        const homeAttackStrength = dH[tH].f / leagueAvgHome;
-        const awayAttackStrength = dV[tV].f / leagueAvgAway;
+        // Fuerza de Ataque (Attack Strength)
+        const HAS = dH[tH].f / leagueAvgHome; // Home Attack Strength
+        const AAS = dV[tV].f / leagueAvgAway; // Away Attack Strength
 
-        // 2. FUERZA DE DEFENSA (DEFENSE STRENGTH)
-        // Ratio: (Promedio goles concedidos) / (Promedio goles que la liga marca en contra)
-        // Local defiende contra Visitantes: Se compara con el promedio que marcan los Visitantes (leagueAvgAway)
-        // Visitante defiende contra Locales: Se compara con el promedio que marcan los Locales (leagueAvgHome)
-        const homeDefenseStrength = dH[tH].a / leagueAvgAway; 
-        const awayDefenseStrength = dV[tV].a / leagueAvgHome;
+        // Fuerza de Defensa (Defense Strength)
+        // Nota: La defensa local se compara contra la media de goles que marca la visita en la liga
+        const HDS = dH[tH].a / leagueAvgAway; // Home Defense Strength
+        // Nota: La defensa visita se compara contra la media de goles que marca el local en la liga
+        const ADS = dV[tV].a / leagueAvgHome; // Away Defense Strength
 
-        // 3. GOLES ESPERADOS (EXPECTED GOALS - LAMBDA)
-        // xG = Fuerza Ataque * Fuerza Defensa Oponente * Promedio Liga
-        const xH = homeAttackStrength * awayDefenseStrength * leagueAvgHome;
-        const xV = awayAttackStrength * homeDefenseStrength * leagueAvgAway;
+        // --- PASO 2: CALCULAR GOLES ESPERADOS (xG) ---
+        
+        // xG Local = Ataque Local * Defensa Visita * Media Liga Local
+        const xH = HAS * ADS * leagueAvgHome;
+        
+        // xG Visita = Ataque Visita * Defensa Local * Media Liga Visita
+        const xV = AAS * HDS * leagueAvgAway;
 
-        // --- FIN CALCULO EXTENDIDO ---
-
+        // --- PASO 3: APLICAR DISTRIBUCIÓN DE POISSON ---
+        
         if (isNaN(xH) || isNaN(xV)) {
             alert("Error en el cálculo matemático. Verifique los datos de entrada.");
             return;
@@ -689,7 +688,9 @@
         let pH=0, pD=0, pV=0, ov25=0, btts=0;
         for(let i=0; i<=9; i++) {
             for(let j=0; j<=9; j++) {
-                let p = poi(i,xH)*poi(j,xV);
+                // Aplicación de fórmula Poisson: P(k) = (lambda^k * e^-lambda) / k!
+                let p = poi(i,xH) * poi(j,xV);
+                
                 if(i>j) pH+=p; else if(i===j) pD+=p; else pV+=p;
                 if((i+j)>2.5) ov25+=p; if(i>0 && j>0) btts+=p;
             }
