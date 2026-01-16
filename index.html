@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BetAGS - Poisson Pro Dark</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Personalización de colores de marca y modo oscuro */
         :root {
             --bet-green: #006341;
             --bet-yellow: #ffeb00;
@@ -14,91 +14,101 @@
             --dark-card: #1e293b;
             --dark-border: #334155;
         }
-        body { background-color: var(--dark-bg); color: #f8fafc; }
+        body { 
+            background-color: var(--dark-bg); 
+            color: #f8fafc;
+            background-image: radial-gradient(circle at top right, rgba(0, 99, 65, 0.1), transparent);
+            min-height: 100vh;
+        }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .bg-bet-green { background-color: var(--bet-green); }
         .text-bet-yellow { color: var(--bet-yellow); }
-        .border-bet-dark { border-color: var(--dark-border); }
         
-        /* Estilos de inputs para modo oscuro */
+        /* Estilos de inputs mejorados */
         input, select {
-            background-color: #334155 !important;
+            background-color: #1e293b !important;
             color: white !important;
-            border-color: #475569 !important;
+            border: 1px solid #334155 !important;
+            transition: all 0.2s;
         }
         input:focus {
-            outline: 2px solid var(--bet-yellow) !important;
-            border-color: transparent !important;
+            outline: none !important;
+            border-color: var(--bet-yellow) !important;
+            box-shadow: 0 0 0 2px rgba(255, 235, 0, 0.2);
         }
         .highlight-row {
-            background-color: rgba(0, 99, 65, 0.2);
+            background-color: rgba(0, 99, 65, 0.1);
             border-left: 4px solid var(--bet-yellow);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
     </style>
 </head>
 <body class="font-sans">
 
-    <nav class="bg-bet-green text-white p-4 shadow-2xl border-b border-yellow-500/30">
+    <nav class="sticky top-0 z-50 bg-bet-green/90 backdrop-blur text-white p-4 shadow-2xl border-b border-yellow-500/30">
         <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-2xl font-bold italic tracking-tighter">Bet<span class="text-bet-yellow">AGS</span> <span class="text-xs font-normal uppercase opacity-70 ml-2 italic">Pro Dark Mode</span></h1>
-            <div class="space-x-4">
-                <button onclick="showTab('calc')" class="hover:text-bet-yellow font-semibold transition-colors">Calculadora</button>
-                <button onclick="showTab('control')" class="hover:text-bet-yellow font-semibold transition-colors">Gestión de Bank</button>
+            <h1 class="text-2xl font-bold italic tracking-tighter">Bet<span class="text-bet-yellow">AGS</span> <span class="text-xs font-normal uppercase opacity-70 ml-2 italic">Pro Analytics</span></h1>
+            <div class="flex space-x-2">
+                <button onclick="showTab('calc')" class="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-semibold">Calculadora</button>
+                <button onclick="showTab('control')" class="px-4 py-2 rounded-lg hover:bg-white/10 transition-colors font-semibold">Gestión de Bank</button>
             </div>
         </div>
     </nav>
 
     <div class="container mx-auto p-4 max-w-6xl">
         
-        <div id="calc" class="tab-content active space-y-6">
+        <div id="calc" class="tab-content active space-y-6 animate-in fade-in duration-500">
             
-            <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
-                <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-bet-yellow">
-                    <span class="bg-bet-green p-1 rounded">📊</span> Promedios de la Liga
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">League Home AVG (Goles Local)</label>
-                        <input type="number" id="league_home_avg" step="0.01" class="w-full p-3 rounded-lg border" value="1.81">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-bet-yellow">
+                        <span class="bg-bet-green p-1 rounded">📊</span> Parámetros Liga
+                    </h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">League Home AVG</label>
+                            <input type="number" id="league_home_avg" step="0.01" class="w-full p-3 rounded-lg" value="1.81">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">League Away AVG</label>
+                            <input type="number" id="league_away_avg" step="0.01" class="w-full p-3 rounded-lg" value="1.45">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">League Away AVG (Goles Visitante)</label>
-                        <input type="number" id="league_away_avg" step="0.01" class="w-full p-3 rounded-lg border" value="1.45">
+
+                    <h2 class="text-lg font-bold mt-8 mb-4 border-b border-slate-700 pb-2">Equipos</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="col-span-2 text-[10px] font-black text-blue-400 uppercase">Local</div>
+                            <input type="number" id="home_gf_avg" step="0.01" class="p-2 rounded" placeholder="GF">
+                            <input type="number" id="home_gc_avg" step="0.01" class="p-2 rounded" placeholder="GC">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="col-span-2 text-[10px] font-black text-orange-400 uppercase">Visitante</div>
+                            <input type="number" id="away_gf_avg" step="0.01" class="p-2 rounded" placeholder="GF">
+                            <input type="number" id="away_gc_avg" step="0.01" class="p-2 rounded" placeholder="GC">
+                        </div>
+                    </div>
+                    <button onclick="calcularPoisson()" class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95">
+                        GENERAR PRONÓSTICO
+                    </button>
+                </div>
+
+                <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+                    <h2 class="text-lg font-bold mb-4 text-slate-300">Distribución de Probabilidad (Goles)</h2>
+                    <div class="h-[300px]">
+                        <canvas id="poissonChart"></canvas>
                     </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
-                    <h2 class="text-lg font-bold mb-4 border-b border-slate-700 pb-2">Datos del Encuentro</h2>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="col-span-2 text-xs font-bold text-blue-400 uppercase">Local</div>
-                        <div>
-                            <label class="block text-xs mb-1">GF Promedio</label>
-                            <input type="number" id="home_gf_avg" step="0.01" class="w-full p-2 rounded" placeholder="2.50">
-                        </div>
-                        <div>
-                            <label class="block text-xs mb-1">GC Promedio</label>
-                            <input type="number" id="home_gc_avg" step="0.01" class="w-full p-2 rounded" placeholder="1.20">
-                        </div>
-                        <div class="col-span-2 text-xs font-bold text-orange-400 uppercase mt-2">Visitante</div>
-                        <div>
-                            <label class="block text-xs mb-1">GF Promedio</label>
-                            <input type="number" id="away_gf_avg" step="0.01" class="w-full p-2 rounded" placeholder="1.50">
-                        </div>
-                        <div>
-                            <label class="block text-xs mb-1">GC Promedio</label>
-                            <input type="number" id="away_gc_avg" step="0.01" class="w-full p-2 rounded" placeholder="1.10">
-                        </div>
-                    </div>
-                    <button onclick="calcularPoisson()" class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold transition-all shadow-lg active:scale-95">
-                        GENERAR PRONÓSTICO XG
-                    </button>
-                </div>
-
-                <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
-                    <h2 class="text-lg font-bold mb-4 border-b border-slate-700 pb-2">Cuotas Actuales (Bookie)</h2>
+                    <h2 class="text-lg font-bold mb-4 border-b border-slate-700 pb-2">Cuotas del Mercado</h2>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs mb-1 text-slate-400">Over 2.5</label>
@@ -117,28 +127,33 @@
                             <input type="number" id="odds_btts_no" step="0.01" class="w-full p-2 rounded">
                         </div>
                     </div>
-                    <div class="mt-8 p-4 bg-slate-900 rounded-lg border border-slate-700">
-                        <p class="text-sm text-center italic text-slate-400">"El criterio de Kelly se activará al 25% si el Edge está entre 3% y 15%."</p>
+                </div>
+
+                <div class="bg-slate-900/50 p-6 rounded-xl border border-dashed border-slate-700 flex flex-col justify-center">
+                    <div class="text-center space-y-2">
+                        <p class="text-bet-yellow font-bold">Criterio Kelly 25%</p>
+                        <p class="text-sm text-slate-400">Filtro de Valor: Edge 3% - 15%</p>
+                        <p class="text-xs text-slate-500">Overround Max: 108%</p>
                     </div>
                 </div>
             </div>
 
-            <div id="results_area" class="mt-6 hidden animate-in fade-in duration-500">
+            <div id="results_area" class="mt-6 hidden">
                 <div class="bg-slate-800 p-6 rounded-xl shadow-2xl border border-slate-700">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">Análisis de Probabilidades</h2>
-                        <div id="overround_info" class="px-3 py-1 bg-slate-900 rounded-full text-xs font-mono text-bet-yellow border border-bet-yellow/30"></div>
+                        <h2 class="text-xl font-bold">Oportunidades de Valor</h2>
+                        <div id="overround_info" class="px-3 py-1 bg-slate-950 rounded-full text-xs font-mono text-bet-yellow border border-bet-yellow/30"></div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left">
                             <thead>
-                                <tr class="bg-slate-900 text-bet-yellow uppercase text-xs">
-                                    <th class="p-3 border-b border-slate-700">Mercado</th>
-                                    <th class="p-3 border-b border-slate-700">Prob %</th>
-                                    <th class="p-3 border-b border-slate-700">Cuota Justa</th>
-                                    <th class="p-3 border-b border-slate-700">Edge %</th>
-                                    <th class="p-3 border-b border-slate-700">Stake Suggested</th>
-                                    <th class="p-3 border-b border-slate-700 text-center">Acción</th>
+                                <tr class="bg-slate-900 text-bet-yellow uppercase text-[10px] tracking-widest">
+                                    <th class="p-4">Mercado</th>
+                                    <th class="p-4">Prob %</th>
+                                    <th class="p-4">Cuota Justa</th>
+                                    <th class="p-4">Edge %</th>
+                                    <th class="p-4">Stake Sug.</th>
+                                    <th class="p-4 text-center">Acción</th>
                                 </tr>
                             </thead>
                             <tbody id="table_body"></tbody>
@@ -148,52 +163,56 @@
             </div>
         </div>
 
-        <div id="control" class="tab-content space-y-6">
-            <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
-                <h2 class="text-2xl font-bold mb-6 text-bet-yellow">Rendimiento Histórico</h2>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div class="p-4 bg-slate-900 rounded-lg border border-slate-700">
-                        <p class="text-xs text-slate-400 uppercase">Total Picks</p>
-                        <p id="stat_count" class="text-2xl font-bold">0</p>
+        <div id="control" class="tab-content space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+                    <h2 class="text-xl font-bold mb-4 text-bet-yellow">Evolución de Ganancias</h2>
+                    <div class="h-[300px]">
+                        <canvas id="bankrollChart"></canvas>
                     </div>
-                    <div class="p-4 bg-slate-900 rounded-lg border border-slate-700">
-                        <p class="text-xs text-slate-400 uppercase">Profit Neto</p>
-                        <p id="stat_profit" class="text-2xl font-bold">$0.00</p>
-                    </div>
-                    <div class="p-4 bg-slate-900 rounded-lg border border-slate-700">
-                        <p class="text-xs text-slate-400 uppercase">Yield</p>
-                        <p id="stat_yield" class="text-2xl font-bold">0%</p>
-                    </div>
-                    <div class="p-4 bg-slate-900 rounded-lg border border-slate-700">
-                        <p class="text-xs text-slate-400 uppercase">ROI</p>
-                        <p id="stat_roi" class="text-2xl font-bold">0%</p>
-                    </div>
-                    <div class="p-4 bg-slate-900 rounded-lg border border-slate-700">
-                        <p class="text-xs text-slate-400 uppercase">P-Value</p>
-                        <p id="stat_pvalue" class="text-2xl font-bold text-blue-400">0.000</p>
+                </div>
+                <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+                    <h2 class="text-xl font-bold mb-6">Métricas Key</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-slate-900 rounded-lg">
+                            <p class="text-[10px] text-slate-500 uppercase">Picks</p>
+                            <p id="stat_count" class="text-xl font-bold">0</p>
+                        </div>
+                        <div class="p-4 bg-slate-900 rounded-lg">
+                            <p class="text-[10px] text-slate-500 uppercase">Yield</p>
+                            <p id="stat_yield" class="text-xl font-bold">0%</p>
+                        </div>
+                        <div class="p-4 bg-slate-900 rounded-lg col-span-2">
+                            <p class="text-[10px] text-slate-500 uppercase">Profit Neto</p>
+                            <p id="stat_profit" class="text-3xl font-bold">$0.00</p>
+                        </div>
+                        <div class="p-4 bg-slate-900 rounded-lg">
+                            <p class="text-[10px] text-slate-500 uppercase">ROI</p>
+                            <p id="stat_roi" class="text-lg font-bold">0%</p>
+                        </div>
+                        <div class="p-4 bg-slate-900 rounded-lg">
+                            <p class="text-[10px] text-slate-500 uppercase">P-Value</p>
+                            <p id="stat_pvalue" class="text-lg font-bold text-blue-400">0.00</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-slate-900 text-slate-400 uppercase text-xs">
-                            <tr>
-                                <th class="p-4">Fecha</th>
-                                <th class="p-4">Mercado</th>
-                                <th class="p-4">Cuota</th>
-                                <th class="p-4">Stake</th>
-                                <th class="p-4">Edge</th>
-                                <th class="p-4">OV</th>
-                                <th class="p-4">CLV</th>
-                                <th class="p-4">Resultado</th>
-                                <th class="p-4">Control</th>
-                            </tr>
-                        </thead>
-                        <tbody id="control_table_body" class="divide-y divide-slate-700"></tbody>
-                    </table>
-                </div>
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-slate-900 text-slate-500 uppercase text-xs">
+                        <tr>
+                            <th class="p-4">Fecha</th>
+                            <th class="p-4">Mercado</th>
+                            <th class="p-4">Cuota</th>
+                            <th class="p-4">Stake</th>
+                            <th class="p-4">CLV</th>
+                            <th class="p-4">Estado</th>
+                            <th class="p-4 text-right">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="control_table_body" class="divide-y divide-slate-700"></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -201,6 +220,7 @@
     <script>
         const BANKROLL_BASE = 100;
         let bets = JSON.parse(localStorage.getItem('bets')) || [];
+        let pChart, bChart;
 
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -219,6 +239,30 @@
             return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
         }
 
+        function initPoissonChart(labels, dataHome, dataAway) {
+            const ctx = document.getElementById('poissonChart').getContext('2d');
+            if(pChart) pChart.destroy();
+            pChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Local', data: dataHome, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 },
+                        { label: 'Visitante', data: dataAway, borderColor: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.1)', fill: true, tension: 0.4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } },
+                        x: { ticks: { color: '#64748b' }, grid: { color: '#334155' } }
+                    }
+                }
+            });
+        }
+
         function calcularPoisson() {
             const league_h_avg = parseFloat(document.getElementById('league_home_avg').value);
             const league_a_avg = parseFloat(document.getElementById('league_away_avg').value);
@@ -232,20 +276,30 @@
             const home_xg = (h_gf / league_h_avg) * (a_gc / league_h_avg) * league_h_avg;
             const away_xg = (a_gf / league_a_avg) * (h_gc / league_a_avg) * league_a_avg;
 
-            let prob_home = [], prob_away = [];
+            let prob_home = [], prob_away = [], labels = [];
+            for (let i = 0; i <= 6; i++) {
+                labels.push(i + " Goles");
+                prob_home.push((poisson(i, home_xg) * 100).toFixed(2));
+                prob_away.push((poisson(i, away_xg) * 100).toFixed(2));
+            }
+
+            initPoissonChart(labels, prob_home, prob_away);
+
+            let p_home_arr = [];
+            let p_away_arr = [];
             for (let i = 0; i <= 10; i++) {
-                prob_home.push(poisson(i, home_xg));
-                prob_away.push(poisson(i, away_xg));
+                p_home_arr.push(poisson(i, home_xg));
+                p_away_arr.push(poisson(i, away_xg));
             }
 
             let prob_u25 = 0;
             for (let h = 0; h <= 2; h++) {
                 for (let a = 0; a <= (2 - h); a++) {
-                    prob_u25 += prob_home[h] * prob_away[a];
+                    prob_u25 += p_home_arr[h] * p_away_arr[a];
                 }
             }
             let prob_o25 = 1 - prob_u25;
-            let prob_btts_yes = (1 - prob_home[0]) * (1 - prob_away[0]);
+            let prob_btts_yes = (1 - p_home_arr[0]) * (1 - p_away_arr[0]);
             let prob_btts_no = 1 - prob_btts_yes;
 
             renderTable(prob_o25, prob_u25, prob_btts_yes, prob_btts_no);
@@ -263,7 +317,7 @@
             const u_val = parseFloat(document.getElementById('odds_under').value) || 0;
             const overround = o_val > 0 && u_val > 0 ? ((1/o_val) + (1/u_val)) * 100 : 0;
             
-            document.getElementById('overround_info').innerText = `Overround O/U: ${overround.toFixed(2)}%`;
+            document.getElementById('overround_info').innerText = `O/U Overround: ${overround.toFixed(2)}%`;
             const tbody = document.getElementById('table_body');
             tbody.innerHTML = '';
             document.getElementById('results_area').classList.remove('hidden');
@@ -276,47 +330,76 @@
                 let stake = 0;
                 let isValuable = false;
 
-                // CRITERIO: Edge entre 3% y 15%, Overround <= 108%
                 if (edge >= 0.03 && edge <= 0.15 && overround <= 108) { 
                     stake = (edge / (bookieOdds - 1)) * 0.25 * BANKROLL_BASE;
                     isValuable = true;
                 }
 
-                const row = `
+                tbody.innerHTML += `
                     <tr class="${isValuable ? 'highlight-row' : 'border-b border-slate-700'}">
-                        <td class="p-3 font-bold text-slate-200">${res.name}</td>
-                        <td class="p-3 text-slate-400">${(res.prob * 100).toFixed(2)}%</td>
-                        <td class="p-3 font-mono text-slate-300">${fairOdds.toFixed(2)}</td>
-                        <td class="p-3 ${edge > 0.03 ? 'text-green-400 font-bold' : 'text-slate-500'}">${(edge * 100).toFixed(2)}%</td>
-                        <td class="p-3 font-bold ${isValuable ? 'text-bet-yellow' : 'text-slate-600'}">${stake > 0 ? '$' + stake.toFixed(2) : '--'}</td>
-                        <td class="p-3 text-center">
+                        <td class="p-4 font-bold text-slate-200">${res.name}</td>
+                        <td class="p-4 text-slate-400">${(res.prob * 100).toFixed(1)}%</td>
+                        <td class="p-4 font-mono text-slate-400">${fairOdds.toFixed(2)}</td>
+                        <td class="p-4 ${edge > 0.03 ? 'text-green-400 font-bold' : 'text-slate-500'}">${(edge * 100).toFixed(2)}%</td>
+                        <td class="p-4 font-bold ${isValuable ? 'text-bet-yellow' : 'text-slate-600'}">${stake > 0 ? '$' + stake.toFixed(2) : '--'}</td>
+                        <td class="p-4 text-center">
                             <button onclick="saveBet('${res.name}', ${bookieOdds}, ${stake}, ${edge}, ${overround})" 
-                                class="px-4 py-2 rounded-lg font-bold text-xs transition-all ${isValuable ? 'bg-bet-yellow text-black hover:scale-105 shadow-yellow-500/20 shadow-lg' : 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'}">
-                                ${isValuable ? '⚡ COLOCAR APUESTA' : 'SIN VALOR'}
+                                class="px-4 py-2 rounded-lg font-bold text-[10px] transition-all ${isValuable ? 'bg-bet-yellow text-black hover:scale-105 shadow-lg shadow-yellow-500/10' : 'bg-slate-700 text-slate-400 opacity-50 cursor-not-allowed'}">
+                                ${isValuable ? '⚡ GUARDAR' : 'SIN VALOR'}
                             </button>
                         </td>
                     </tr>
                 `;
-                tbody.innerHTML += row;
             });
         }
 
         function saveBet(market, odds, stake, edge, overround) {
             const bet = {
                 id: Date.now(),
-                date: new Date().toLocaleDateString(),
-                market,
-                odds,
-                stake,
-                edge: (edge * 100).toFixed(2),
-                overround: overround.toFixed(2),
-                clv: 0,
-                status: 'pending',
-                profit: 0
+                date: new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit'}),
+                market, odds, stake, edge: (edge * 100).toFixed(2),
+                overround: overround.toFixed(2), clv: 0, status: 'pending', profit: 0
             };
             bets.push(bet);
             localStorage.setItem('bets', JSON.stringify(bets));
-            alert("✓ Apuesta enviada al panel de control");
+            alert("✓ Apuesta guardada");
+        }
+
+        function updateBankrollChart() {
+            const ctx = document.getElementById('bankrollChart').getContext('2d');
+            let labels = ['Inicio'], data = [0], current = 0;
+            
+            bets.filter(b => b.status !== 'pending').forEach(b => {
+                current += parseFloat(b.profit);
+                labels.push(b.date);
+                data.push(current.toFixed(2));
+            });
+
+            if(bChart) bChart.destroy();
+            bChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Profit Acumulado',
+                        data: data,
+                        borderColor: '#006341',
+                        backgroundColor: 'rgba(0, 99, 65, 0.2)',
+                        fill: true,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#ffeb00'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } },
+                        x: { ticks: { color: '#64748b' }, grid: { display: false } }
+                    }
+                }
+            });
         }
 
         function updateControlTable() {
@@ -330,46 +413,49 @@
                 if(bet.status === 'win') wins++;
 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-700/50 transition-colors">
-                        <td class="p-4 text-slate-400">${bet.date}</td>
-                        <td class="p-4 font-bold text-bet-yellow">${bet.market}</td>
-                        <td class="p-4 text-slate-300">${bet.odds}</td>
-                        <td class="p-4">$${bet.stake.toFixed(2)}</td>
-                        <td class="p-4 text-green-500 text-xs">${bet.edge}%</td>
-                        <td class="p-4 text-slate-500 text-xs">${bet.overround}%</td>
-                        <td class="p-4"><input type="number" step="0.01" class="w-16 p-1 rounded bg-slate-900 text-xs" onchange="updateCLV(${index}, this.value)" value="${bet.clv}"></td>
+                    <tr class="hover:bg-slate-700/30 transition-colors">
+                        <td class="p-4 text-slate-500 text-xs">${bet.date}</td>
+                        <td class="p-4 font-bold text-slate-200">${bet.market}</td>
+                        <td class="p-4 font-mono">${bet.odds}</td>
+                        <td class="p-4 text-slate-400">$${bet.stake.toFixed(2)}</td>
                         <td class="p-4">
-                            <select onchange="resolveBet(${index}, this.value)" class="p-1 rounded bg-slate-900 text-xs">
-                                <option value="pending" ${bet.status === 'pending' ? 'selected' : ''}>Pendiente</option>
-                                <option value="win" ${bet.status === 'win' ? 'selected' : ''}>Ganada</option>
-                                <option value="loss" ${bet.status === 'loss' ? 'selected' : ''}>Perdida</option>
+                            <input type="number" step="0.01" class="w-16 p-1 rounded bg-slate-900 text-[10px]" onchange="updateCLV(${index}, this.value)" value="${bet.clv}">
+                        </td>
+                        <td class="p-4">
+                            <select onchange="resolveBet(${index}, this.value)" class="p-1 rounded bg-slate-900 text-[10px] ${bet.status === 'win' ? 'text-green-400' : (bet.status === 'loss' ? 'text-red-400' : '')}">
+                                <option value="pending" ${bet.status === 'pending' ? 'selected' : ''}>⏳</option>
+                                <option value="win" ${bet.status === 'win' ? 'selected' : ''}>WIN</option>
+                                <option value="loss" ${bet.status === 'loss' ? 'selected' : ''}>LOSS</option>
                             </select>
                         </td>
-                        <td class="p-4 text-red-500 hover:text-red-300 cursor-pointer text-xs uppercase font-bold" onclick="deleteBet(${index})">Eliminar</td>
+                        <td class="p-4 text-right">
+                            <button onclick="deleteBet(${index})" class="text-slate-600 hover:text-red-500">✕</button>
+                        </td>
                     </tr>
                 `;
             });
 
             document.getElementById('stat_count').innerText = bets.length;
             document.getElementById('stat_profit').innerText = `$${totalProfit.toFixed(2)}`;
-            document.getElementById('stat_profit').className = totalProfit >= 0 ? 'text-2xl font-bold text-green-400' : 'text-2xl font-bold text-red-400';
+            document.getElementById('stat_profit').className = totalProfit >= 0 ? 'text-3xl font-bold text-green-400' : 'text-3xl font-bold text-red-400';
             
             const yieldVal = totalStaked > 0 ? (totalProfit / totalStaked) * 100 : 0;
-            document.getElementById('stat_yield').innerText = `${yieldVal.toFixed(2)}%`;
+            document.getElementById('stat_yield').innerText = `${yieldVal.toFixed(1)}%`;
             
-            const roiVal = totalStaked > 0 ? ((totalProfit + totalStaked) / totalStaked * 100) - 100 : 0;
-            document.getElementById('stat_roi').innerText = `${roiVal.toFixed(2)}%`;
+            const roiVal = totalStaked > 0 ? (totalProfit / BANKROLL_BASE) * 100 : 0;
+            document.getElementById('stat_roi').innerText = `${roiVal.toFixed(1)}%`;
 
-            // Cálculo simplificado de P-Value para validación de suerte vs habilidad
-            if (bets.length > 5) {
+            if (bets.length > 3) {
                 const avgOdds = bets.reduce((a, b) => a + b.odds, 0) / bets.length;
                 const p = 1 / avgOdds;
                 const expectedWins = bets.length * p;
                 const stdDev = Math.sqrt(bets.length * p * (1-p));
                 const z = (wins - expectedWins) / stdDev;
                 const pValue = 1 - 0.5 * (1 + Math.erf(z / Math.sqrt(2))); 
-                document.getElementById('stat_pvalue').innerText = pValue.toFixed(4);
+                document.getElementById('stat_pvalue').innerText = pValue.toFixed(3);
             }
+
+            updateBankrollChart();
         }
 
         function resolveBet(index, status) {
@@ -386,7 +472,7 @@
         }
 
         function deleteBet(index) {
-            if(confirm("¿Seguro que deseas eliminar este registro?")) {
+            if(confirm("Eliminar registro?")) {
                 bets.splice(index, 1);
                 localStorage.setItem('bets', JSON.stringify(bets));
                 updateControlTable();
