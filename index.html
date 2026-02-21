@@ -2,63 +2,65 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Herramienta Convertida</title>
+    <title>Controlador de URLs</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #3498db; color: white; }
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 50px; background: #f4f7f6; }
+        .panel { background: white; padding: 30px; border-radius: 10px; shadow: 0 4px 6px rgba(0,0,0,0.1); width: 400px; }
+        select { width: 100%; padding: 10px; margin: 20px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #status { margin-top: 15px; font-size: 0.9em; color: green; display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Mi Herramienta desde Google Sheets</h1>
-    <div id="contenido">Cargando datos...</div>
+<div class="panel">
+    <h3>Selector de Scraping</h3>
+    <p>Elige la URL para actualizar el Sheet:</p>
+
+    <select id="urlPicker">
+        <option value="https://ejemplo.com/producto1">Producto A</option>
+        <option value="https://ejemplo.com/producto2">Producto B</option>
+        <option value="https://ejemplo.com/lista-precios">Lista de Precios</option>
+    </select>
+
+    <button onclick="enviarAlSheet()">Actualizar Hoja</button>
+    <p id="status">✓ URL enviada a la hoja de cálculo</p>
 </div>
 
+<iframe name="vacio" id="vacio" style="display:none;"></iframe>
+
 <script>
-    // Tu ID de Google Sheet
-    const SHEET_ID = '1H7gXOwMnuPb7iDz-9g-MLCruC3PVPanq2U8wZl-QXpQ';
-    const SHEET_TITLE = 'Hoja 1'; // Cambia esto al nombre de tu pestaña
-    const SHEET_RANGE = 'A1:Z100'; // Rango de datos
+    function enviarAlSheet() {
+        const urlSeleccionada = document.getElementById('urlPicker').value;
+        
+        // CONFIGURACIÓN (RELLENA CON TUS DATOS DEL PASO 1)
+        const FORM_URL = "https://docs.google.com/forms/d/e/TU_ID_DE_FORMULARIO/formResponse";
+        const ENTRY_ID = "entry.123456789"; // El ID que encontraste inspeccionando
 
-    const FULL_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_TITLE}&range=${SHEET_RANGE}`;
+        // Creamos un formulario invisible para enviar los datos
+        const form = document.createElement('form');
+        form.action = FORM_URL;
+        form.method = 'POST';
+        form.target = 'vacio'; // Apunta al iframe oculto
 
-    fetch(FULL_URL)
-        .then(res => res.text())
-        .then(rep => {
-            // Limpiar la respuesta extraña de Google
-            const data = JSON.parse(rep.substr(47).slice(0, -2));
-            const contenido = document.getElementById('contenido');
-            
-            let tablaHTML = '<table><thead><tr>';
-            
-            // Crear encabezados
-            data.table.cols.forEach(col => {
-                tablaHTML += `<th>${col.label || ''}</th>`;
-            });
-            tablaHTML += '</tr></thead><tbody>';
+        const input = document.createElement('input');
+        input.name = ENTRY_ID;
+        input.value = urlSeleccionada;
 
-            // Crear filas
-            data.table.rows.forEach(row => {
-                tablaHTML += '<tr>';
-                row.c.forEach(cell => {
-                    tablaHTML += `<td>${cell ? cell.v : ''}</td>`;
-                });
-                tablaHTML += '</tr>';
-            });
-
-            tablaHTML += '</tbody></table>';
-            contenido.innerHTML = tablaHTML;
-        })
-        .catch(err => {
-            console.error(err);
-            document.getElementById('contenido').innerHTML = "Error al cargar datos. Asegúrate de que la hoja esté compartida como 'Cualquier persona con el enlace puede leer'.";
-        });
+        form.appendChild(input);
+        document.body.appendChild(form);
+        
+        // Enviar
+        form.submit();
+        
+        // Feedback visual
+        document.getElementById('status').style.display = 'block';
+        setTimeout(() => { document.getElementById('status').style.display = 'none'; }, 3000);
+        
+        // Limpieza
+        document.body.removeChild(form);
+    }
 </script>
 
 </body>
