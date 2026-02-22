@@ -3,139 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Herramienta Poisson Fútbol</title>
+    <title>Calculadora de Probabilidades Poisson - GitHub Tool</title>
     <script src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f0f2f5; color: #333; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h2 { color: #1a73e8; text-align: center; }
-        .selector-group { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
-        .selector-item { flex: 1; min-width: 250px; }
-        select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 16px; margin-top: 5px; }
-        button { background-color: #1a73e8; color: white; border: none; cursor: pointer; font-weight: bold; transition: background 0.3s; margin-top: 20px;}
-        button:hover { background-color: #1557b0; }
-        .result-card { margin-top: 30px; display: none; padding: 20px; border-radius: 8px; background-color: #f8f9fa; border: 1px solid #e1e4e8; }
-        .xg-badge { font-size: 24px; font-weight: bold; color: #d93025; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
-        .league-avg { font-size: 0.9em; color: #666; text-align: center; margin-bottom: 20px; }
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, sans-serif; 
+            background-color: var(--bg); 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            width: 100%;
+            max-width: 850px;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        h1 { color: #1e293b; text-align: center; font-size: 1.5rem; margin-bottom: 1.5rem; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.5rem; }
+
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background-color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus { border-color: var(--primary); }
+
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        button:hover { background-color: #1d4ed8; }
+        button:active { transform: scale(0.98); }
+
+        #results {
+            margin-top: 2rem;
+            display: none;
+            border-top: 2px solid #f1f5f9;
+            padding-top: 2rem;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .team-box { flex: 1; padding: 1.5rem; border-radius: 0.75rem; background: #f1f5f9; }
+        .team-name { font-weight: 800; font-size: 1.1rem; color: #1e293b; margin-bottom: 0.5rem; }
+        .xg-value { font-size: 2.5rem; font-weight: 900; color: var(--primary); }
+        .label-xg { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--secondary); }
+
+        .loader { text-align: center; color: var(--secondary); font-style: italic; display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Calculadora de Probabilidades Poisson</h2>
-    [span_1](start_span)<p class="league-avg">Los datos se extraen automáticamente de "Tablas Poisson"[span_1](end_span)</p>
+<div class="card">
+    <h1>Herramienta de Predicción Poisson</h1>
     
-    <div class="selector-item">
-        <label>Seleccionar Liga:</label>
-        <select id="liga" onchange="fetchData()">
-            <option value="ENG">Inglaterra - Premier League</option>
-            <option value="ITA">Italia - Serie A</option>
-            <option value="SPA">España - La Liga</option>
-            <option value="FRA">Francia - Ligue 1</option>
-            <option value="GER">Alemania - Bundesliga</option>
-        </select>
+    <div class="form-grid">
+        <div>
+            <label>Liga / Competición</label>
+            <select id="sheetSelect" onchange="loadTeams()">
+                <option value="ENG">Premier League (ENG)</option>
+                <option value="ITA">Serie A (ITA)</option>
+                <option value="SPA">La Liga (SPA)</option>
+                <option value="FRA">Ligue 1 (FRA)</option>
+                <option value="GER">Bundesliga (GER)</option>
+            </select>
+        </div>
+        <div>
+            <label>Equipo Local</label>
+            <select id="localSelect"></select>
+        </div>
+        <div>
+            <label>Equipo Visitante</label>
+            <select id="visitanteSelect"></select>
+        </div>
     </div>
 
-    <div class="selector-group" style="margin-top:20px;">
-        <div class="selector-item">
-            <label>Equipo Local (Columna B):</label>
-            <select id="local"></select>
-        </div>
-        <div class="selector-item">
-            <label>Equipo Visitante (Columna N):</label>
-            <select id="visitante"></select>
-        </div>
-    </div>
+    <div id="loader" class="loader">Actualizando datos desde Google Sheets...</div>
+    
+    <button onclick="calculatePoisson()">CALCULAR PRONÓSTICO</button>
 
-    <button onclick="calcularPoisson()">GENERAR PRONÓSTICO</button>
-
-    <div id="resultado" class="result-card">
-        <div class="stats-grid">
-            <div style="text-align: center;">
-                <div id="nombreLocal" style="font-weight: bold; margin-bottom: 5px;">LOCAL</div>
-                <div id="xgL" class="xg-badge">0.00</div>
-                <div>xG Esperado</div>
+    <div id="results">
+        <div class="stats-container">
+            <div class="team-box">
+                <div id="resLocalName" class="team-name">Local</div>
+                <div id="resLocalXG" class="xg-value">0.00</div>
+                <div class="label-xg">xG Local</div>
             </div>
-            <div style="text-align: center;">
-                <div id="nombreVisita" style="font-weight: bold; margin-bottom: 5px;">VISITANTE</div>
-                <div id="xgV" class="xg-badge">0.00</div>
-                <div>xG Esperado</div>
+            <div class="team-box">
+                <div id="resVisitaName" class="team-name">Visitante</div>
+                <div id="resVisitaXG" class="xg-value">0.00</div>
+                <div class="label-xg">xG Visitante</div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    const sheetId = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
-    let rawData = [];
-    let avgGfLiga = 0;
+    // ID del archivo proporcionado por el usuario
+    const SPREADSHEET_ID = '1H7gXOwMnuPb7iDz-9g-MLCruC3PVPanq2U8wZl-QXpQ';
+    let currentData = [];
 
     google.charts.load('current', {'packages':['corechart']});
-    google.charts.setOnLoadCallback(fetchData);
+    google.charts.setOnLoadCallback(loadTeams);
 
-    async function fetchData() {
-        const league = document.getElementById('liga').value;
-        // B=Local, F=GF_L, G=GC_L, N=Visita, R=GF_V, S=GC_V (basado en estructura común)
-        const query = encodeURIComponent('SELECT B, F, G, N, R, S OFFSET 2'); 
-        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${league}&tq=${query}`;
+    async function loadTeams() {
+        const sheetName = document.getElementById('sheetSelect').value;
+        const loader = document.getElementById('loader');
+        loader.style.display = 'block';
+
+        // Consulta: Columna B (Local), F (GF L), G (GC L), N (Visita), R (GF V), S (GC V)
+        const query = encodeURIComponent('SELECT B, F, G, N, R, S OFFSET 2');
+        const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${sheetName}&tq=${query}`;
 
         try {
             const response = await fetch(url);
             const text = await response.text();
-            const data = JSON.parse(text.substr(47).slice(0, -2));
-            rawData = data.table.rows.filter(r => r.c[0] && r.c[3]); // Filtrar filas vacías
+            const json = JSON.parse(text.substr(47).slice(0, -2));
+            currentData = json.table.rows;
 
-            const localSel = document.getElementById('local');
-            const visitaSel = document.getElementById('visitante');
-            localSel.innerHTML = ""; visitaSel.innerHTML = "";
+            const localDropdown = document.getElementById('localSelect');
+            const visitaDropdown = document.getElementById('visitanteSelect');
+            
+            localDropdown.innerHTML = '';
+            visitaDropdown.innerHTML = '';
 
-            let totalGoles = 0;
-            let totalPartidos = 0;
-
-            rawData.forEach((row, i) => {
-                localSel.innerHTML += `<option value="${i}">${row.c[0].v}</option>`;
-                visitaSel.innerHTML += `<option value="${i}">${row.c[3].v}</option>`;
-                
-                // Cálculo de promedio de liga para GF/GC
-                totalGoles += (row.c[1].v + row.c[4].v);
-                totalPartidos += 2; // (Estimación simplificada)
+            currentData.forEach((row, index) => {
+                if (row.c[0] && row.c[3]) {
+                    let optL = new Option(row.c[0].v, index);
+                    let optV = new Option(row.c[3].v, index);
+                    localDropdown.add(optL);
+                    visitaDropdown.add(optV);
+                }
             });
-
-            avgGfLiga = totalGoles / totalPartidos;
-
-        } catch (e) { console.error("Error cargando datos", e); }
+        } catch (error) {
+            console.error("Error cargando datos:", error);
+            alert("Error al conectar con Google Sheets. Verifica que el archivo sea público.");
+        } finally {
+            loader.style.display = 'none';
+        }
     }
 
-    function calcularPoisson() {
-        const localIdx = document.getElementById('local').value;
-        const visitaIdx = document.getElementById('visitante').value;
+    function calculatePoisson() {
+        const idxL = document.getElementById('localSelect').value;
+        const idxV = document.getElementById('visitanteSelect').value;
 
-        const rowL = rawData[localIdx].c;
-        const rowV = rawData[visitaIdx].c;
+        if (idxL === "" || idxV === "") return;
 
-        // Fórmulas solicitadas por el usuario:
-        // 1. Promedio goles favor local / promedio liga
-        const fuerzaAtaqueLocal = (rowL[1].v / 14) / avgGfLiga; // asumiendo 14 partidos jugados
-        // 2. Promedio goles contra local / promedio liga
-        const fuerzaDefensaLocal = (rowL[2].v / 14) / avgGfLiga;
+        const rowL = currentData[idxL].c;
+        const rowV = currentData[idxV].c;
 
-        // 3. Visitante
-        const fuerzaAtaqueVisita = (rowV[4].v / 14) / avgGfLiga;
-        const fuerzaDefensaVisita = (rowV[5].v / 14) / avgGfLiga;
-
-        // Cálculo xG Local: (Ataque Local / Liga) * (Defensa Visita / Liga) * Promedio Liga
-        const xGLocal = fuerzaAtaqueLocal * fuerzaDefensaVisita * avgGfLiga;
+        // --- LÓGICA POISSON SOLICITADA ---
         
-        // Cálculo xG Visita: (Ataque Visita / Liga) * (Defensa Local / Liga) * Promedio Liga
-        const xGVisita = fuerzaAtaqueVisita * fuerzaDefensaLocal * avgGfLiga;
+        // 1. Promedios de la Liga (Calculados dinámicamente de la tabla cargada)
+        let totalGolesFavorLiga = 0;
+        let totalPartidos = 0;
+        currentData.forEach(r => {
+            if(r.c[1]) {
+                totalGolesFavorLiga += (r.c[1].v + r.c[4].v);
+                totalPartidos += 2; 
+            }
+        });
+        const avgLiga = totalGolesFavorLiga / totalPartidos;
 
-        // Mostrar Resultados
-        document.getElementById('nombreLocal').innerText = rowL[0].v;
-        document.getElementById('nombreVisita').innerText = rowV[3].v;
-        document.getElementById('xgL').innerText = xGLocal.toFixed(2);
-        document.getElementById('xgV').innerText = xGVisita.toFixed(2);
-        document.getElementById('resultado').style.display = "block";
+        // 2. Ratios del Local (Datos en F y G)
+        // Usamos un divisor de 14 como base de partidos (puedes ajustar según tu sheet)
+        const promGfLocal = rowL[1].v / 14; 
+        const promGcLocal = rowL[2].v / 14;
+        
+        const fuerzaAtqLocal = promGfLocal / avgLiga;
+        const fuerzaDefLocal = promGcLocal / avgLiga;
+
+        // 3. Ratios del Visitante (Datos en R y S)
+        const promGfVisita = rowV[4].v / 14;
+        const promGcVisita = rowV[5].v / 14;
+
+        const fuerzaAtqVisita = promGfVisita / avgLiga;
+        const fuerzaDefVisita = promGcVisita / avgLiga;
+
+        // 4. Cálculo final de xG
+        // xG Local = Atq Local * Def Visita * Promedio Liga
+        const xGLocal = fuerzaAtqLocal * fuerzaDefVisita * avgLiga;
+        // xG Visita = Atq Visita * Def Local * Promedio Liga
+        const xGVisita = fuerzaAtqVisita * fuerzaDefLocal * avgLiga;
+
+        // Mostrar en UI
+        document.getElementById('resLocalName').innerText = rowL[0].v;
+        document.getElementById('resVisitaName').innerText = rowV[3].v;
+        document.getElementById('resLocalXG').innerText = xGLocal.toFixed(2);
+        document.getElementById('resVisitaXG').innerText = xGVisita.toFixed(2);
+        
+        document.getElementById('results').style.display = 'block';
     }
 </script>
 
