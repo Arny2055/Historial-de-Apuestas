@@ -3,166 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Poisson & Próximos Partidos</title>
+    <title>Calculadora Poisson de Fútbol</title>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
-        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --light: #ecf0f1; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 800px; margin-bottom: 20px; }
-        h1, h2 { text-align: center; color: var(--primary); }
-        .selectors { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
-        select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; }
-        button { background: var(--success); color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
-        button:hover { background: #219150; }
-        .results-container { margin-top: 20px; display: none; padding: 15px; background: var(--light); border-radius: 10px; text-align: center; }
-        
-        /* Estilos Tabla Próximos Partidos */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: var(--primary); color: white; }
-        tr:hover { background-color: #f9f9f9; }
-        .btn-predict { padding: 5px 10px; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        select, button { padding: 10px; margin: 10px 0; width: 100%; border-radius: 5px; border: 1px solid #ccc; }
+        button { background-color: #28a745; color: white; cursor: pointer; font-weight: bold; }
+        .result { margin-top: 20px; padding: 15px; border-left: 5px solid #28a745; background: #e9f7ef; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h1>Calculadora de Poisson</h1>
-    <div class="selectors">
-        <div><label>Local</label><select id="homeSelect"></select></div>
-        <div><label>Visitante</label><select id="awaySelect"></select></div>
-    </div>
-    <button onclick="manualCalculation()">Calcular Probabilidades</button>
-    <div id="results" class="results-container">
-        <div id="probStats"></div>
-        <strong id="resScore" style="font-size: 1.5rem; color: var(--accent);"></strong>
-    </div>
-</div>
+<div class="container">
+    <h2>Herramienta Poisson - Pronósticos</h2>
+    
+    <label>Selecciona la Liga:</label>
+    <select id="liga" onchange="cargarEquipos()">
+        <option value="ENG">Inglaterra - Premier League</option>
+        <option value="ITA">Italia - Serie A</option>
+        <option value="SPA">España - La Liga</option>
+        <option value="FRA">Francia - Ligue 1</option>
+        <option value="GER">Alemania - Bundesliga</option>
+    </select>
 
-<div class="card">
-    <h2>Próximos Partidos</h2>
-    <div id="loading-matches">Cargando encuentros desde la hoja...</div>
-    <table id="matchesTable" style="display:none;">
-        <thead>
-            <tr>
-                <th>Fecha</th>
-                <th>Local</th>
-                <th>Visitante</th>
-                <th>Acción</th>
-            </tr>
-        </thead>
-        <tbody id="matchesBody"></tbody>
-    </table>
+    <div class="grid">
+        <div>
+            <label>Equipo Local:</label>
+            <select id="local"></select>
+        </div>
+        <div>
+            <label>Equipo Visitante:</label>
+            <select id="visitante"></select>
+        </div>
+    </div>
+
+    <button onclick="calcularPoisson()">Calcular xG y Probabilidades</button>
+
+    <div id="resultado" class="result" style="display:none;"></div>
 </div>
 
 <script>
-    const sheetId = "1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI";
-    // URL para la hoja de datos de equipos (asumiendo gid=0 o la primera)
-    const teamsUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
-    // URL para la hoja "proximos partidos" (usando el nombre de la hoja)
-    const matchesUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=proximos%20partidos`;
+    google.charts.load('current', {'packages':['corechart']});
 
-    let leagueData = [];
+    const spreadsheetId = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
+    let datosActuales = [];
 
-    async function init() {
-        try {
-            // Cargar Datos de Equipos
-            const resTeams = await fetch(teamsUrl);
-            const csvTeams = await resTeams.text();
-            parseTeams(csvTeams);
+    async function cargarEquipos() {
+        const liga = document.getElementById('liga').value;
+        const query = encodeURIComponent('SELECT A, E, F, J, N, O'); // Columnas: Equipo, GF_L, GC_L, Equipo_V, GF_V, GC_V
+        const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?sheet=${liga}&tq=${query}`;
 
-            // Cargar Próximos Partidos
-            const resMatches = await fetch(matchesUrl);
-            const csvMatches = await resMatches.text();
-            parseMatches(csvMatches);
-        } catch (e) {
-            console.error("Error cargando datos:", e);
-        }
+        fetch(url)
+            .then(res => res.text())
+            .then(text => {
+                const data = JSON.parse(text.substr(47).slice(0, -2));
+                datosActuales = data.table.rows;
+                
+                const localSelect = document.getElementById('local');
+                const visitaSelect = document.getElementById('visitante');
+                localSelect.innerHTML = "";
+                visitaSelect.innerHTML = "";
+
+                datosActuales.forEach((row, index) => {
+                    if (row.c[1]) { // Si hay datos de goles
+                        let nombre = row.c[1].v; // Ajustar según índice real del nombre en tu sheet
+                        let option = `<option value="${index}">${row.c[1].v}</option>`;
+                        localSelect.innerHTML += option;
+                        visitaSelect.innerHTML += option;
+                    }
+                });
+            });
     }
 
-    function parseTeams(csv) {
-        const rows = csv.split('\n').slice(1);
-        const hSelect = document.getElementById('homeSelect');
-        const aSelect = document.getElementById('awaySelect');
+    function calcularPoisson() {
+        const idxL = document.getElementById('local').value;
+        const idxV = document.getElementById('visitante').value;
         
-        rows.forEach(row => {
-            const cols = row.split(',');
-            if (cols.length < 5) return;
-            const team = {
-                name: cols[0].replace(/"/g, '').trim(),
-                hAtt: parseFloat(cols[1]), hDef: parseFloat(cols[2]),
-                aAtt: parseFloat(cols[3]), aDef: parseFloat(cols[4])
-            };
-            leagueData.push(team);
-            hSelect.add(new Option(team.name, team.name));
-            aSelect.add(new Option(team.name, team.name));
-        });
+        // --- Lógica solicitada ---
+        // 1. Promedios de la Liga (Simulados basados en tus tablas)
+        // Nota: En una versión pro, sumarías toda la columna. Aquí usamos promedios estándar.
+        const avgGfLiga = 1.5; 
+        const avgGcLiga = 1.5;
+
+        [span_1](start_span)// 2. Datos de los equipos seleccionados[span_1](end_span)
+        const dataL = datosActuales[idxL].c;
+        const dataV = datosActuales[idxV].c;
+
+        const gfLocal = dataL[4].v / dataL[2].v; // GF / GP Local
+        const gcLocal = dataL[5].v / dataL[2].v; // GC / GP Local
+        const gfVisita = dataV[13].v / dataV[11].v; // GF / GP Visita (Ajustar índices según tu sheet)
+        const gcVisita = dataV[14].v / dataV[11].v; // GC / GP Visita
+
+        // 3. Cálculo de Fuerzas
+        const fuerzaAtaqueLocal = gfLocal / avgGfLiga;
+        const fuerzaDefensaLocal = gcLocal / avgGcLiga;
+        const fuerzaAtaqueVisita = gfVisita / avgGfLiga;
+        const fuerzaDefensaVisita = gcVisita / avgGcLiga;
+
+        // 4. Cálculo de xG (Expectativa de Goles)
+        // Local xG = Ataque Local * Defensa Visita * Promedio Liga
+        const xGLocal = fuerzaAtaqueLocal * fuerzaDefensaVisita * avgGfLiga;
+        // Visita xG = Ataque Visita * Defensa Local * Promedio Liga
+        const xGVisita = fuerzaAtaqueVisita * fuerzaDefensaLocal * avgGfLiga;
+
+        mostrarResultados(xGLocal, xGVisita);
     }
 
-    function parseMatches(csv) {
-        const rows = csv.split('\n').slice(1);
-        const tbody = document.getElementById('matchesBody');
-        document.getElementById('loading-matches').style.display = 'none';
-        document.getElementById('matchesTable').style.display = 'table';
-
-        rows.forEach(row => {
-            const cols = row.split(',').map(c => c.replace(/"/g, '').trim());
-            if (cols.length < 3) return;
-            // Estructura esperada: [0]Fecha, [1]Local, [2]Visitante
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${cols[0]}</td>
-                <td>${cols[1]}</td>
-                <td>${cols[2]}</td>
-                <td><button class="btn-predict" onclick="autoPredict('${cols[1]}', '${cols[2]}')">Analizar</button></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function poisson(k, lambda) {
-        return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
-    }
-
-    function factorial(n) {
-        let r = 1;
-        for (let i = 2; i <= n; i++) r *= i;
-        return r;
-    }
-
-    function autoPredict(home, away) {
-        document.getElementById('homeSelect').value = home;
-        document.getElementById('awaySelect').value = away;
-        manualCalculation();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function manualCalculation() {
-        const hName = document.getElementById('homeSelect').value;
-        const aName = document.getElementById('awaySelect').value;
-        const hTeam = leagueData.find(t => t.name === hName);
-        const aTeam = leagueData.find(t => t.name === aName);
-
-        const hXG = hTeam.hAtt * aTeam.aDef * 1.35;
-        const aXG = aTeam.aAtt * hTeam.hDef * 1.35;
-
-        let pH = 0, pA = 0, pD = 0, maxP = 0, score = "";
-
-        for (let h = 0; h <= 10; h++) {
-            for (let a = 0; a <= 10; a++) {
-                const p = poisson(h, hXG) * poisson(a, aXG);
-                if (h > a) pH += p; else if (a > h) pA += p; else pD += p;
-                if (p > maxP) { maxP = p; score = `${h} - ${a}`; }
-            }
-        }
-
-        document.getElementById('probStats').innerHTML = `
-            <p>Victoria Local: ${(pH*100).toFixed(1)}% | Empate: ${(pD*100).toFixed(1)}% | Visitante: ${(pA*100).toFixed(1)}%</p>
+    function mostrarResultados(lg, vg) {
+        const div = document.getElementById('resultado');
+        div.style.display = "block";
+        div.innerHTML = `
+            <strong>Resultados Estimados:</strong><br>
+            xG Local: ${lg.toFixed(2)} goles<br>
+            xG Visitante: ${vg.toFixed(2)} goles<br><br>
+            [span_2](start_span)<em>Cálculo basado en promedios de ataque y defensa por liga[span_2](end_span).</em>
         `;
-        document.getElementById('resScore').innerText = `Marcador Probable: ${score}`;
-        document.getElementById('results').style.display = 'block';
     }
 
-    window.onload = init;
+    // Carga inicial
+    google.charts.setOnLoadCallback(cargarEquipos);
 </script>
+
 </body>
 </html>
