@@ -6,9 +6,11 @@
     <title>Selección de Equipos - Tablas Poisson</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
-        .container { display: flex; gap: 20px; }
-        select { padding: 8px; width: 250px; }
+        .container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .field-group { margin-bottom: 15px; }
+        select, input { padding: 8px; width: 250px; display: block; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .sub-container { border: 1px solid #ccc; padding: 15px; border-radius: 8px; background: #f9f9f9; }
     </style>
 </head>
 <body>
@@ -16,74 +18,91 @@
     <h2>Equipos de Tablas Poisson</h2>
 
     <div class="container">
-        <div>
-            <label for="local">Local (B3:B50):</label>
-            <select id="local">
-                <option value="">Seleccione Local</option>
-                <option>Manchester City</option>
-                <option>Arsenal</option>
-                <option>Aston Villa</option>
-                <option>Manchester Utd</option>
-                <option>Sunderland</option>
-                <option>Brentford</option>
-                <option>Liverpool</option>
-                <option>Chelsea</option>
-                <option>Fulham</option>
-                <option>Bournemouth</option>
-                <option>Newcastle Utd</option>
-                <option>Leeds Utd</option>
-                <option>Brighton</option>
-                <option>Everton</option>
-                <option>Crystal Palace</option>
-                <option>Nottm Forest</option>
-                <option>West Ham Utd</option>
-                <option>Tottenham</option>
-                <option>Burnley</option>
-                <option>Wolverhampton</option>
-                <option>Inter Milan</option>
-                <option>Atalanta</option>
-                <option>Napoli</option>
-                <option>Juventus</option>
-                <option>AS Roma</option>
-                <option>AC Milan</option>
-                <option>Como</option>
-            </select>
+        <div class="sub-container">
+            <div class="field-group">
+                <label for="local">Local (B3:B50):</label>
+                <select id="local" onchange="updateGP('local', 'gp-local')">
+                    <option value="">Seleccione Local</option>
+                    <option data-gp="14">Manchester City</option>
+                    <option data-gp="13">Arsenal</option>
+                    <option data-gp="14">Aston Villa</option>
+                    <option data-gp="13">Manchester Utd</option>
+                    <option data-gp="14">Sunderland</option>
+                    <option data-gp="14">Brentford</option>
+                    <option data-gp="13">Liverpool</option>
+                    <option data-gp="14">Chelsea</option>
+                    <option data-gp="13">Fulham</option>
+                    <option data-gp="13">Bournemouth</option>
+                    <option data-gp="13">Newcastle Utd</option>
+                    <option data-gp="13">Leeds Utd</option>
+                    <option data-gp="13">Brighton</option>
+                    <option data-gp="13">Everton</option>
+                    <option data-gp="14">Crystal Palace</option>
+                    <option data-gp="14">Nottm Forest</option>
+                    <option data-gp="14">West Ham Utd</option>
+                    <option data-gp="14">Tottenham</option>
+                    <option data-gp="13">Burnley</option>
+                    <option data-gp="14">Wolverhampton</option>
+                    <option data-gp="15">Inter Milan</option>
+                    <option data-gp="14">Atalanta</option>
+                    <option data-gp="15">Napoli</option>
+                    <option data-gp="14">Juventus</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label for="gp-local">Partidos Jugados (C3:C50):</label>
+                <input type="text" id="gp-local" readonly placeholder="GP Local">
+            </div>
         </div>
 
-        <div>
-            <label for="visita">Visita (N3:N50):</label>
-            <select id="visita">
-                <option value="">Seleccione Visita</option>
-                <option>Arsenal</option>
-                <option>Chelsea</option>
-                <option>Aston Villa</option>
-                <option>Manchester City</option>
-                <option>Everton</option>
-                <option>Liverpool</option>
-                <option>Crystal Palace</option>
-                <option>Tottenham</option>
-                <option>Manchester Utd</option>
-                <option>Brentford</option>
-                <option>Bournemouth</option>
-                <option>Nottm Forest</option>
-                <option>Fulham</option>
-                <option>Brighton</option>
-                <option>Newcastle Utd</option>
-                <option>West Ham Utd</option>
-                <option>Sunderland</option>
-                <option>Leeds Utd</option>
-                <option>Burnley</option>
-                <option>Wolverhampton</option>
-                <option>Inter Milan</option>
-                <option>AC Milan</option>
-                <option>Como</option>
-                <option>AS Roma</option>
-                <option>Napoli</option>
-                <option>Juventus</option>
-                <option>Bologna</option>
-            </select>
+        <div class="sub-container">
+            <div class="field-group">
+                <label for="visita">Visita (N3:N50):</label>
+                <select id="visita" onchange="updateGP('visita', 'gp-visita')">
+                    <option value="">Seleccione Visita</option>
+                    <option data-gp="13">Arsenal</option>
+                    <option data-gp="14">Chelsea</option>
+                    <option data-gp="14">Aston Villa</option>
+                    <option data-gp="14">Manchester City</option>
+                    <option data-gp="13">Everton</option>
+                    <option data-gp="13">Liverpool</option>
+                    <option data-gp="14">Crystal Palace</option>
+                    <option data-gp="14">Tottenham</option>
+                    <option data-gp="13">Manchester Utd</option>
+                    <option data-gp="14">Brentford</option>
+                    <option data-gp="13">Bournemouth</option>
+                    <option data-gp="14">Nottm Forest</option>
+                    <option data-gp="13">Fulham</option>
+                    <option data-gp="13">Brighton</option>
+                    <option data-gp="13">Newcastle Utd</option>
+                    <option data-gp="14">West Ham Utd</option>
+                    <option data-gp="14">Sunderland</option>
+                    <option data-gp="13">Leeds Utd</option>
+                    <option data-gp="13">Burnley</option>
+                    <option data-gp="14">Wolverhampton</option>
+                    <option data-gp="15">Inter Milan</option>
+                    <option data-gp="14">AC Milan</option>
+                    <option data-gp="15">Napoli</option>
+                    <option data-gp="14">Juventus</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label for="gp-visita">Partidos Jugados (O3:O50):</label>
+                <input type="text" id="gp-visita" readonly placeholder="GP Visita">
+            </div>
         </div>
     </div>
+
+    <script>
+        function updateGP(selectId, inputId) {
+            const select = document.getElementById(selectId);
+            const input = document.getElementById(inputId);
+            const selectedOption = select.options[select.selectedIndex];
+            const gpValue = selectedOption.getAttribute('data-gp');
+            
+            input.value = gpValue ? gpValue : '';
+        }
+    </script>
 
 </body>
 </html>
