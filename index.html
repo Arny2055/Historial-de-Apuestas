@@ -3,106 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selección de Equipos - Tablas Poisson</title>
+    <title>Calculadora Poisson - Análisis de Fútbol</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .container { display: flex; gap: 20px; flex-wrap: wrap; }
-        .field-group { margin-bottom: 15px; }
-        select, input { padding: 8px; width: 250px; display: block; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .sub-container { border: 1px solid #ccc; padding: 15px; border-radius: 8px; background: #f9f9f9; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        .input-section { margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+        textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: none; font-family: monospace; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        select, button { padding: 12px; font-size: 16px; border-radius: 5px; border: 1px solid #ddd; }
+        button { background-color: #27ae60; color: white; border: none; cursor: pointer; transition: 0.3s; }
+        button:hover { background-color: #219150; }
+        .results { margin-top: 30px; display: none; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
+        .prob-card { text-align: center; padding: 20px; border: 1px solid #eee; border-radius: 8px; margin-top: 15px; }
+        .highlight { font-size: 24px; font-weight: bold; color: #2980b9; }
     </style>
 </head>
 <body>
 
-    <h2>Equipos de Tablas Poisson</h2>
+<div class="container">
+    <h1>Herramienta de Análisis Poisson</h1>
+    
+    <div class="input-section">
+        <p><strong>Paso 1:</strong> Pega los datos de tu Excel (incluyendo encabezados o solo las filas):</p>
+        <textarea id="dataInput" placeholder="Pega aquí las tablas de Local y Visitante..."></textarea>
+        <button onclick="procesarDatos()" style="width: 100%; margin-top: 10px;">Cargar y Procesar Equipos</button>
+    </div>
 
-    <div class="container">
-        <div class="sub-container">
-            <div class="field-group">
-                <label for="local">Local (B3:B50):</label>
-                <select id="local" onchange="updateGP('local', 'gp-local')">
-                    <option value="">Seleccione Local</option>
-                    <option data-gp="14">Manchester City</option>
-                    <option data-gp="13">Arsenal</option>
-                    <option data-gp="14">Aston Villa</option>
-                    <option data-gp="13">Manchester Utd</option>
-                    <option data-gp="14">Sunderland</option>
-                    <option data-gp="14">Brentford</option>
-                    <option data-gp="13">Liverpool</option>
-                    <option data-gp="14">Chelsea</option>
-                    <option data-gp="13">Fulham</option>
-                    <option data-gp="13">Bournemouth</option>
-                    <option data-gp="13">Newcastle Utd</option>
-                    <option data-gp="13">Leeds Utd</option>
-                    <option data-gp="13">Brighton</option>
-                    <option data-gp="13">Everton</option>
-                    <option data-gp="14">Crystal Palace</option>
-                    <option data-gp="14">Nottm Forest</option>
-                    <option data-gp="14">West Ham Utd</option>
-                    <option data-gp="14">Tottenham</option>
-                    <option data-gp="13">Burnley</option>
-                    <option data-gp="14">Wolverhampton</option>
-                    <option data-gp="15">Inter Milan</option>
-                    <option data-gp="14">Atalanta</option>
-                    <option data-gp="15">Napoli</option>
-                    <option data-gp="14">Juventus</option>
-                </select>
+    <div id="predictor" style="display:none;">
+        <div class="controls">
+            <div>
+                <label>Equipo Local:</label><br>
+                <select id="localTeam" style="width:100%"></select>
             </div>
-            <div class="field-group">
-                <label for="gp-local">Partidos Jugados (C3:C50):</label>
-                <input type="text" id="gp-local" readonly placeholder="GP Local">
+            <div>
+                <label>Equipo Visitante:</label><br>
+                <select id="visitanteTeam" style="width:100%"></select>
             </div>
         </div>
+        <button onclick="calcularPrediccion()" style="width: 100%; margin-top: 20px; background-color: #2980b9;">Calcular Probabilidades</button>
+    </div>
 
-        <div class="sub-container">
-            <div class="field-group">
-                <label for="visita">Visita (N3:N50):</label>
-                <select id="visita" onchange="updateGP('visita', 'gp-visita')">
-                    <option value="">Seleccione Visita</option>
-                    <option data-gp="13">Arsenal</option>
-                    <option data-gp="14">Chelsea</option>
-                    <option data-gp="14">Aston Villa</option>
-                    <option data-gp="14">Manchester City</option>
-                    <option data-gp="13">Everton</option>
-                    <option data-gp="13">Liverpool</option>
-                    <option data-gp="14">Crystal Palace</option>
-                    <option data-gp="14">Tottenham</option>
-                    <option data-gp="13">Manchester Utd</option>
-                    <option data-gp="14">Brentford</option>
-                    <option data-gp="13">Bournemouth</option>
-                    <option data-gp="14">Nottm Forest</option>
-                    <option data-gp="13">Fulham</option>
-                    <option data-gp="13">Brighton</option>
-                    <option data-gp="13">Newcastle Utd</option>
-                    <option data-gp="14">West Ham Utd</option>
-                    <option data-gp="14">Sunderland</option>
-                    <option data-gp="13">Leeds Utd</option>
-                    <option data-gp="13">Burnley</option>
-                    <option data-gp="14">Wolverhampton</option>
-                    <option data-gp="15">Inter Milan</option>
-                    <option data-gp="14">AC Milan</option>
-                    <option data-gp="15">Napoli</option>
-                    <option data-gp="14">Juventus</option>
-                </select>
+    <div id="results" class="results">
+        <div class="stats-grid">
+            <div id="localStats"></div>
+            <div id="visitanteStats"></div>
+        </div>
+        
+        <div class="prob-card">
+            <h3>Expectativa de Goles (Lambda)</h3>
+            <p id="lambdaDisplay"></p>
+            <div class="highlight" id="marcadorProbable"></div>
+        </div>
+
+        <div class="stats-grid" style="margin-top:10px;">
+            <div style="text-align: center;">
+                <h4>Probabilidades 1X2</h4>
+                <p id="p1x2"></p>
             </div>
-            <div class="field-group">
-                <label for="gp-visita">Partidos Jugados (O3:O50):</label>
-                <input type="text" id="gp-visita" readonly placeholder="GP Visita">
+            <div style="text-align: center;">
+                <h4>Más/Menos 2.5 Goles</h4>
+                <p id="p25"></p>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        function updateGP(selectId, inputId) {
-            const select = document.getElementById(selectId);
-            const input = document.getElementById(inputId);
-            const selectedOption = select.options[select.selectedIndex];
-            const gpValue = selectedOption.getAttribute('data-gp');
+<script>
+let equiposData = {};
+let promedioGolesLocal = 0;
+let promedioGolesVisitante = 0;
+
+function procesarDatos() {
+    const rawData = document.getElementById('dataInput').value.trim();
+    if (!rawData) return alert("Por favor, pega los datos del archivo.");
+
+    const lineas = rawData.split('\n');
+    let tempEquipos = {};
+    let totalGF_L = 0, totalGC_L = 0, totalPJ_L = 0;
+    let totalGF_V = 0, totalGC_V = 0, totalPJ_V = 0;
+
+    // Lógica para detectar columnas basadas en tu formato: GP, W, D, L, GF, GA...
+    lineas.forEach(linea => {
+        const columnas = linea.split(/\t|\s{2,}/); // Soporta tabs o espacios múltiples
+        if (columnas.length >= 8 && !linea.includes("GP")) {
+            let nombre = columnas[1].trim();
+            let pj = parseFloat(columnas[2]);
+            let gf = parseFloat(columnas[6]);
+            let ga = parseFloat(columnas[7]);
+
+            // Como tu Excel tiene dos tablas juntas, intentamos detectar si es bloque Local o Visitante
+            // Esta es una simplificación: asumimos que se procesan por separado o se identifican
+            if (!tempEquipos[nombre]) tempEquipos[nombre] = { l: {}, v: {} };
             
-            input.value = gpValue ? gpValue : '';
+            // Si el nombre ya existe, la segunda vez que aparece lo tomamos como Visitante
+            if (Object.keys(tempEquipos[nombre].l).length === 0) {
+                tempEquipos[nombre].l = { pj, gf, ga };
+                totalGF_L += gf; totalGC_L += ga; totalPJ_L += pj;
+            } else {
+                tempEquipos[nombre].v = { pj, gf, ga };
+                totalGF_V += gf; totalGC_V += ga; totalPJ_V += pj;
+            }
         }
-    </script>
+    });
+
+    // Promedios de la Liga
+    promedioGolesLocal = totalGF_L / totalPJ_L;
+    promedioGolesVisitante = totalGF_V / totalPJ_V;
+
+    equiposData = tempEquipos;
+    actualizarSelects();
+    document.getElementById('predictor').style.display = 'block';
+    alert("Datos cargados: " + Object.keys(equiposData).length + " equipos encontrados.");
+}
+
+function actualizarSelects() {
+    const localSelect = document.getElementById('localTeam');
+    const visitSelect = document.getElementById('visitanteTeam');
+    localSelect.innerHTML = ""; visitSelect.innerHTML = "";
+    
+    Object.keys(equiposData).sort().forEach(equipo => {
+        localSelect.add(new Option(equipo, equipo));
+        visitSelect.add(new Option(equipo, equipo));
+    });
+}
+
+// Función Matemática de Poisson
+function poisson(k, lambda) {
+    return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
+}
+
+function factorial(n) {
+    if (n === 0) return 1;
+    let res = 1;
+    for (let i = 2; i <= n; i++) res *= i;
+    return res;
+}
+
+function calcularPrediccion() {
+    const tL = document.getElementById('localTeam').value;
+    const tV = document.getElementById('visitanteTeam').value;
+
+    const datosL = equiposData[tL].l;
+    const datosV = equiposData[tV].v;
+
+    // 1. Fuerza de Ataque Local = (Goles Favor Local / Partidos Local) / Promedio Goles Local Liga
+    const fuerzaAtaqueL = (datosL.gf / datosL.pj) / promedioGolesLocal;
+    // 2. Fuerza de Defensa Visitante = (Goles Contra Visitante / Partidos Visitante) / Promedio Goles Visitante Liga
+    const fuerzaDefensaV = (datosV.ga / datosV.pj) / promedioGolesVisitante;
+    // 3. Lambda Local = Fuerza Atq L * Fuerza Def V * Promedio Goles Local Liga
+    const lambdaL = fuerzaAtaqueL * fuerzaDefensaV * promedioGolesLocal;
+
+    // Lo mismo para el Visitante
+    const fuerzaAtaqueV = (datosV.gf / datosV.pj) / promedioGolesVisitante;
+    const fuerzaDefensaL = (datosL.ga / datosL.pj) / promedioGolesLocal;
+    const lambdaV = fuerzaAtaqueV * fuerzaDefensaL * promedioGolesVisitante;
+
+    mostrarResultados(tL, tV, lambdaL, lambdaV);
+}
+
+function mostrarResultados(tL, tV, lL, lV) {
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('lambdaDisplay').innerHTML = `Expectativa ${tL}: <b>${lL.toFixed(2)}</b> | Expectativa ${tV}: <b>${lV.toFixed(2)}</b>`;
+
+    let probL = 0, probE = 0, probV = 0;
+    let over25 = 0;
+
+    // Matriz de 10x10 para cubrir la mayoría de marcadores
+    for (let i = 0; i < 10; i++) {
+        for (let j = 0; j < 10; j++) {
+            let p = poisson(i, lL) * poisson(j, lV);
+            if (i > j) probL += p;
+            else if (i === j) probE += p;
+            else probV += p;
+            if (i + j > 2.5) over25 += p;
+        }
+    }
+
+    document.getElementById('marcadorProbable').innerText = `Marcador más probable: ${Math.round(lL)} - ${Math.round(lV)}`;
+    document.getElementById('p1x2').innerHTML = `L: ${(probL*100).toFixed(1)}% | E: ${(probE*100).toFixed(1)}% | V: ${(probV*100).toFixed(1)}%`;
+    document.getElementById('p25').innerHTML = `Over 2.5: ${(over25*100).toFixed(1)}% | Under 2.5: ${((1-over25)*100).toFixed(1)}%`;
+}
+</script>
 
 </body>
 </html>
