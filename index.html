@@ -5,6 +5,11 @@
     <title>Tablas de Posiciones - Poisson</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; padding: 20px; }
+        
+        /* Mejora para el selector */
+        .selector-container { text-align: center; margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #d0d7de; display: inline-block; width: 100%; box-sizing: border-box; }
+        select { padding: 10px 20px; font-size: 16px; border-radius: 6px; border: 1px solid #d0d7de; cursor: pointer; background: #fff; }
+        
         .tables-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
         .table-wrapper { background: white; border: 1px solid #d0d7de; border-radius: 6px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         h2 { color: #24292f; border-bottom: 1px solid #d0d7de; padding-bottom: 8px; font-size: 1.25rem; }
@@ -15,11 +20,25 @@
         .rank { font-weight: bold; color: #57606a; width: 30px; }
         .team-name { font-weight: 600; color: #0969da; }
         .highlight-pts { font-weight: bold; background-color: #dafbe1 !important; }
+        
+        /* Estado de carga */
+        .loading { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body>
 
-<div class="tables-container">
+<div class="selector-container">
+    <label for="leagueSelect"><strong>Seleccionar Liga: </strong></label>
+    <select id="leagueSelect" onchange="cargarDatosLiga()">
+        <option value="SPA">España (La Liga)</option>
+        <option value="ENG">Inglaterra (Premier League)</option>
+        <option value="ITA">Italia (Serie A)</option>
+        <option value="GER">Alemania (Bundesliga)</option>
+        <option value="FRA">Francia (Ligue 1)</option>
+    </select>
+</div>
+
+<div class="tables-container" id="mainContainer">
     <div class="table-wrapper">
         <h2>Estadísticas Local (Home)</h2>
         <table>
@@ -37,7 +56,7 @@
                     <th>Pts</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="bodyLocal">
                 <tr><td class="rank">1</td><td class="team-name">FC Barcelona</td><td>12</td><td>12</td><td>0</td><td>0</td><td>37</td><td>5</td><td>+32</td><td class="highlight-pts">36</td></tr>
                 <tr><td class="rank">2</td><td class="team-name">Atletico Madrid</td><td>13</td><td>11</td><td>1</td><td>1</td><td>30</td><td>10</td><td>+20</td><td class="highlight-pts">34</td></tr>
                 <tr><td class="rank">3</td><td class="team-name">Real Madrid</td><td>12</td><td>11</td><td>0</td><td>1</td><td>29</td><td>8</td><td>+21</td><td class="highlight-pts">33</td></tr>
@@ -69,7 +88,7 @@
                     <th>Pts</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="bodyVisitante">
                 <tr><td class="rank">1</td><td class="team-name">Real Madrid</td><td>13</td><td>8</td><td>3</td><td>2</td><td>25</td><td>13</td><td>+12</td><td class="highlight-pts">27</td></tr>
                 <tr><td class="rank">2</td><td class="team-name">FC Barcelona</td><td>13</td><td>8</td><td>1</td><td>4</td><td>30</td><td>20</td><td>+10</td><td class="highlight-pts">25</td></tr>
                 <tr><td class="rank">3</td><td class="team-name">Celta Vigo</td><td>12</td><td>5</td><td>5</td><td>2</td><td>15</td><td>12</td><td>+3</td><td class="highlight-pts">20</td></tr>
@@ -84,6 +103,95 @@
         </table>
     </div>
 </div>
+
+<script>
+    const SHEET_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
+
+    async function cargarDatosLiga() {
+        const league = document.getElementById('leagueSelect').value;
+        const container = document.getElementById('mainContainer');
+        container.classList.add('loading');
+
+        // URL para obtener los datos de la pestaña seleccionada en formato CSV
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${league}`;
+
+        try {
+            const response = await fetch(url);
+            const csvText = await response.text();
+            
+            // Procesamos las líneas (limpiando comillas del CSV)
+            const filas = csvText.split('\n').map(linea => 
+                linea.split(',').map(celda => celda.replace(/^"(.*)"$/, '$1'))
+            );
+
+            let locales = [];
+            let visitantes = [];
+            let nombresVistos = new Set();
+
+            // Tu estructura: Col 1: Nombre, Col 2: GP, Col 3: W, Col 4: D, Col 5: L, Col 6: GF, Col 7: GA, Col 8: GD, Col 9: Pts
+            // Buscamos a partir de la fila 2 (índice 1) para saltar encabezados
+            filas.forEach((cols, index) => {
+                if (index > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
+                    const equipo = {
+                        rank: cols[0] || (locales.length + 1),
+                        nombre: cols[1],
+                        gp: cols[2],
+                        w: cols[3],
+                        d: cols[4],
+                        l: cols[5],
+                        gf: cols[6],
+                        ga: cols[7],
+                        gd: cols[8],
+                        pts: cols[9]
+                    };
+
+                    // Si el equipo no ha sido agregado, va a la tabla LOCAL. 
+                    // Si ya existe, es porque es la tabla de la derecha (VISITANTE).
+                    if (!nombresVistos.has(equipo.nombre)) {
+                        locales.push(equipo);
+                        nombresVistos.add(equipo.nombre);
+                    } else {
+                        visitantes.push(equipo);
+                    }
+                }
+            });
+
+            renderizarTabla('bodyLocal', locales);
+            renderizarTabla('bodyVisitante', visitantes);
+
+        } catch (error) {
+            console.error("Error cargando datos:", error);
+            alert("No se pudieron cargar los datos. Verifica que el Google Sheets sea público.");
+        } finally {
+            container.classList.remove('loading');
+        }
+    }
+
+    function renderizarTabla(idBody, datos) {
+        const tbody = document.getElementById(idBody);
+        tbody.innerHTML = ''; // Limpiar tabla actual
+
+        datos.forEach((e, i) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="rank">${i + 1}</td>
+                <td class="team-name">${e.nombre}</td>
+                <td>${e.gp}</td>
+                <td>${e.w}</td>
+                <td>${e.d}</td>
+                <td>${e.l}</td>
+                <td>${e.gf}</td>
+                <td>${e.ga}</td>
+                <td>${e.gd}</td>
+                <td class="highlight-pts">${e.pts}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Opcional: Cargar datos iniciales al abrir la página
+    // window.onload = cargarDatosLiga;
+</script>
 
 </body>
 </html>
