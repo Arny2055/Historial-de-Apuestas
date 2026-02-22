@@ -2,65 +2,298 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Controlador de URLs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Poisson - Análisis de Fútbol</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; padding: 50px; background: #f4f7f6; }
-        .panel { background: white; padding: 30px; border-radius: 10px; shadow: 0 4px 6px rgba(0,0,0,0.1); width: 400px; }
-        select { width: 100%; padding: 10px; margin: 20px 0; border: 1px solid #ddd; border-radius: 5px; }
-        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        #status { margin-top: 15px; font-size: 0.9em; color: green; display: none; }
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --light: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .selectors {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--light);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--success);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.3s;
+        }
+
+        button:hover {
+            background-color: #219150;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .results-container {
+            margin-top: 25px;
+            display: none;
+            border-top: 2px solid var(--light);
+            padding-top: 20px;
+        }
+
+        .main-stats {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            flex: 1;
+        }
+
+        .stat-val {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+
+        .prediction-banner {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .prediction-banner strong {
+            font-size: 1.2rem;
+            color: var(--accent);
+        }
+
+        #loading-overlay {
+            text-align: center;
+            color: #666;
+        }
     </style>
 </head>
 <body>
 
-<div class="panel">
-    <h3>Selector de Scraping</h3>
-    <p>Elige la URL para actualizar el Sheet:</p>
+<div class="card">
+    <h1>Calculadora Poisson xG</h1>
+    
+    <div id="loading-overlay">Cargando datos desde Google Sheets...</div>
 
-    <select id="urlPicker">
-        <option value="https://ejemplo.com/producto1">Producto A</option>
-        <option value="https://ejemplo.com/producto2">Producto B</option>
-        <option value="https://ejemplo.com/lista-precios">Lista de Precios</option>
-    </select>
+    <div id="main-content" style="display: none;">
+        <div class="selectors">
+            <div>
+                <label>LOCAL</label>
+                <select id="homeSelect"></select>
+            </div>
+            <div>
+                <label>VISITANTE</label>
+                <select id="awaySelect"></select>
+            </div>
+        </div>
 
-    <button onclick="enviarAlSheet()">Actualizar Hoja</button>
-    <p id="status">✓ URL enviada a la hoja de cálculo</p>
+        <button onclick="calculateResults()">CALCULAR PROBABILIDADES</button>
+
+        <div id="results" class="results-container">
+            <div class="main-stats">
+                <div class="stat-box">
+                    <span class="stat-label">Local</span>
+                    <span id="resHome" class="stat-val">0%</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Empate</span>
+                    <span id="resDraw" class="stat-val">0%</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Visitante</span>
+                    <span id="resAway" class="stat-val">0%</span>
+                </div>
+            </div>
+
+            <div class="prediction-banner">
+                Marcador más probable: <br>
+                <strong id="resScore">0 - 0</strong>
+            </div>
+        </div>
+    </div>
 </div>
 
-<iframe name="vacio" id="vacio" style="display:none;"></iframe>
-
 <script>
-    function enviarAlSheet() {
-        const urlSeleccionada = document.getElementById('urlPicker').value;
-        
-        // CONFIGURACIÓN (RELLENA CON TUS DATOS DEL PASO 1)
-        const FORM_URL = "https://docs.google.com/forms/d/e/TU_ID_DE_FORMULARIO/formResponse";
-        const ENTRY_ID = "entry.123456789"; // El ID que encontraste inspeccionando
+    // URL del Google Sheet exportado como CSV
+    const csvUrl = "https://docs.google.com/spreadsheets/d/1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI/export?format=csv";
+    
+    let leagueData = [];
+    let avgGoals = 1.35; // Valor por defecto si no se encuentra en el sheet
 
-        // Creamos un formulario invisible para enviar los datos
-        const form = document.createElement('form');
-        form.action = FORM_URL;
-        form.method = 'POST';
-        form.target = 'vacio'; // Apunta al iframe oculto
-
-        const input = document.createElement('input');
-        input.name = ENTRY_ID;
-        input.value = urlSeleccionada;
-
-        form.appendChild(input);
-        document.body.appendChild(form);
-        
-        // Enviar
-        form.submit();
-        
-        // Feedback visual
-        document.getElementById('status').style.display = 'block';
-        setTimeout(() => { document.getElementById('status').style.display = 'none'; }, 3000);
-        
-        // Limpieza
-        document.body.removeChild(form);
+    // 1. Cargar datos del Google Sheet
+    async function initApp() {
+        try {
+            const response = await fetch(csvUrl);
+            const csvText = await response.text();
+            parseCSV(csvText);
+            
+            document.getElementById('loading-overlay').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+        } catch (error) {
+            document.getElementById('loading-overlay').innerText = "Error al conectar con la base de datos.";
+            console.error(error);
+        }
     }
+
+    function parseCSV(text) {
+        const rows = text.split('\n').map(row => row.split(','));
+        const homeSelect = document.getElementById('homeSelect');
+        const awaySelect = document.getElementById('awaySelect');
+
+        // Empezamos en i=1 para saltar encabezados
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.length < 5) continue;
+
+            const team = {
+                name: row[0].trim(),
+                hAttack: parseFloat(row[1]),
+                hDefense: parseFloat(row[2]),
+                aAttack: parseFloat(row[3]),
+                aDefense: parseFloat(row[4])
+            };
+
+            leagueData.push(team);
+
+            let optHome = new Option(team.name, team.name);
+            let optAway = new Option(team.name, team.name);
+            homeSelect.add(optHome);
+            awaySelect.add(optAway);
+        }
+        
+        // Asignar el segundo equipo al visitante por defecto
+        if (awaySelect.options.length > 1) awaySelect.selectedIndex = 1;
+    }
+
+    // 2. Lógica Matemática de Poisson
+    function getFactorial(n) {
+        if (n === 0 || n === 1) return 1;
+        let res = 1;
+        for (let i = 2; i <= n; i++) res *= i;
+        return res;
+    }
+
+    function poisson(k, lambda) {
+        return (Math.pow(lambda, k) * Math.exp(-lambda)) / getFactorial(k);
+    }
+
+    // 3. Cálculo Principal
+    function calculateResults() {
+        const homeName = document.getElementById('homeSelect').value;
+        const awayName = document.getElementById('awaySelect').value;
+
+        const homeTeam = leagueData.find(t => t.name === homeName);
+        const awayTeam = leagueData.find(t => t.name === awayName);
+
+        // xG = Fuerza Ataque Local * Fuerza Defensa Visitante * Promedio Goles (Asumiendo 1.35 como base si no hay liga)
+        // Nota: Si tu sheet tiene el promedio de la liga, sustituye '1.35' por esa variable
+        const homeXG = homeTeam.hAttack * awayTeam.aDefense * 1.35;
+        const awayXG = awayTeam.aAttack * homeTeam.hDefense * 1.35;
+
+        let probHome = 0;
+        let probAway = 0;
+        let probDraw = 0;
+        let maxProb = 0;
+        let bestScore = "";
+
+        // Matriz de 0 a 10 goles
+        for (let h = 0; h <= 10; h++) {
+            for (let a = 0; a <= 10; a++) {
+                const pHome = poisson(h, homeXG);
+                const pAway = poisson(a, awayXG);
+                const combinedProb = pHome * pAway;
+
+                if (h > a) probHome += combinedProb;
+                else if (a > h) probAway += combinedProb;
+                else probDraw += combinedProb;
+
+                if (combinedProb > maxProb) {
+                    maxProb = combinedProb;
+                    bestScore = `${h} - ${a}`;
+                }
+            }
+        }
+
+        // Mostrar resultados
+        document.getElementById('resHome').innerText = (probHome * 100).toFixed(1) + "%";
+        document.getElementById('resDraw').innerText = (probDraw * 100).toFixed(1) + "%";
+        document.getElementById('resAway').innerText = (probAway * 100).toFixed(1) + "%";
+        document.getElementById('resScore').innerText = bestScore;
+        
+        document.getElementById('results').style.display = 'block';
+    }
+
+    // Iniciar
+    window.onload = initApp;
 </script>
 
 </body>
