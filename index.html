@@ -3,298 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora de Poisson - Análisis de Fútbol</title>
+    <title>Calculadora Poisson & Próximos Partidos</title>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --accent: #3498db;
-            --success: #27ae60;
-            --light: #ecf0f1;
-        }
-
-        body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f0f2f5;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        .card {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 600px;
-        }
-
-        h1 {
-            text-align: center;
-            color: var(--primary);
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .selectors {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #666;
-        }
-
-        select {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid var(--light);
-            border-radius: 8px;
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.3s;
-        }
-
-        select:focus {
-            border-color: var(--accent);
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--success);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.1s, background 0.3s;
-        }
-
-        button:hover {
-            background-color: #219150;
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .results-container {
-            margin-top: 25px;
-            display: none;
-            border-top: 2px solid var(--light);
-            padding-top: 20px;
-        }
-
-        .main-stats {
-            display: flex;
-            justify-content: space-around;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .stat-box {
-            flex: 1;
-        }
-
-        .stat-val {
-            display: block;
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: #7f8c8d;
-            text-transform: uppercase;
-        }
-
-        .prediction-banner {
-            background: var(--light);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .prediction-banner strong {
-            font-size: 1.2rem;
-            color: var(--accent);
-        }
-
-        #loading-overlay {
-            text-align: center;
-            color: #666;
-        }
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --light: #ecf0f1; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 800px; margin-bottom: 20px; }
+        h1, h2 { text-align: center; color: var(--primary); }
+        .selectors { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 1rem; }
+        button { background: var(--success); color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #219150; }
+        .results-container { margin-top: 20px; display: none; padding: 15px; background: var(--light); border-radius: 10px; text-align: center; }
+        
+        /* Estilos Tabla Próximos Partidos */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: var(--primary); color: white; }
+        tr:hover { background-color: #f9f9f9; }
+        .btn-predict { padding: 5px 10px; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>Calculadora Poisson xG</h1>
-    
-    <div id="loading-overlay">Cargando datos desde Google Sheets...</div>
-
-    <div id="main-content" style="display: none;">
-        <div class="selectors">
-            <div>
-                <label>LOCAL</label>
-                <select id="homeSelect"></select>
-            </div>
-            <div>
-                <label>VISITANTE</label>
-                <select id="awaySelect"></select>
-            </div>
-        </div>
-
-        <button onclick="calculateResults()">CALCULAR PROBABILIDADES</button>
-
-        <div id="results" class="results-container">
-            <div class="main-stats">
-                <div class="stat-box">
-                    <span class="stat-label">Local</span>
-                    <span id="resHome" class="stat-val">0%</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">Empate</span>
-                    <span id="resDraw" class="stat-val">0%</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-label">Visitante</span>
-                    <span id="resAway" class="stat-val">0%</span>
-                </div>
-            </div>
-
-            <div class="prediction-banner">
-                Marcador más probable: <br>
-                <strong id="resScore">0 - 0</strong>
-            </div>
-        </div>
+    <h1>Calculadora de Poisson</h1>
+    <div class="selectors">
+        <div><label>Local</label><select id="homeSelect"></select></div>
+        <div><label>Visitante</label><select id="awaySelect"></select></div>
+    </div>
+    <button onclick="manualCalculation()">Calcular Probabilidades</button>
+    <div id="results" class="results-container">
+        <div id="probStats"></div>
+        <strong id="resScore" style="font-size: 1.5rem; color: var(--accent);"></strong>
     </div>
 </div>
 
+<div class="card">
+    <h2>Próximos Partidos</h2>
+    <div id="loading-matches">Cargando encuentros desde la hoja...</div>
+    <table id="matchesTable" style="display:none;">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Local</th>
+                <th>Visitante</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="matchesBody"></tbody>
+    </table>
+</div>
+
 <script>
-    // URL del Google Sheet exportado como CSV
-    const csvUrl = "https://docs.google.com/spreadsheets/d/1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI/export?format=csv";
-    
+    const sheetId = "1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI";
+    // URL para la hoja de datos de equipos (asumiendo gid=0 o la primera)
+    const teamsUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+    // URL para la hoja "proximos partidos" (usando el nombre de la hoja)
+    const matchesUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=proximos%20partidos`;
+
     let leagueData = [];
-    let avgGoals = 1.35; // Valor por defecto si no se encuentra en el sheet
 
-    // 1. Cargar datos del Google Sheet
-    async function initApp() {
+    async function init() {
         try {
-            const response = await fetch(csvUrl);
-            const csvText = await response.text();
-            parseCSV(csvText);
-            
-            document.getElementById('loading-overlay').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
-        } catch (error) {
-            document.getElementById('loading-overlay').innerText = "Error al conectar con la base de datos.";
-            console.error(error);
+            // Cargar Datos de Equipos
+            const resTeams = await fetch(teamsUrl);
+            const csvTeams = await resTeams.text();
+            parseTeams(csvTeams);
+
+            // Cargar Próximos Partidos
+            const resMatches = await fetch(matchesUrl);
+            const csvMatches = await resMatches.text();
+            parseMatches(csvMatches);
+        } catch (e) {
+            console.error("Error cargando datos:", e);
         }
     }
 
-    function parseCSV(text) {
-        const rows = text.split('\n').map(row => row.split(','));
-        const homeSelect = document.getElementById('homeSelect');
-        const awaySelect = document.getElementById('awaySelect');
-
-        // Empezamos en i=1 para saltar encabezados
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (row.length < 5) continue;
-
-            const team = {
-                name: row[0].trim(),
-                hAttack: parseFloat(row[1]),
-                hDefense: parseFloat(row[2]),
-                aAttack: parseFloat(row[3]),
-                aDefense: parseFloat(row[4])
-            };
-
-            leagueData.push(team);
-
-            let optHome = new Option(team.name, team.name);
-            let optAway = new Option(team.name, team.name);
-            homeSelect.add(optHome);
-            awaySelect.add(optAway);
-        }
+    function parseTeams(csv) {
+        const rows = csv.split('\n').slice(1);
+        const hSelect = document.getElementById('homeSelect');
+        const aSelect = document.getElementById('awaySelect');
         
-        // Asignar el segundo equipo al visitante por defecto
-        if (awaySelect.options.length > 1) awaySelect.selectedIndex = 1;
+        rows.forEach(row => {
+            const cols = row.split(',');
+            if (cols.length < 5) return;
+            const team = {
+                name: cols[0].replace(/"/g, '').trim(),
+                hAtt: parseFloat(cols[1]), hDef: parseFloat(cols[2]),
+                aAtt: parseFloat(cols[3]), aDef: parseFloat(cols[4])
+            };
+            leagueData.push(team);
+            hSelect.add(new Option(team.name, team.name));
+            aSelect.add(new Option(team.name, team.name));
+        });
     }
 
-    // 2. Lógica Matemática de Poisson
-    function getFactorial(n) {
-        if (n === 0 || n === 1) return 1;
-        let res = 1;
-        for (let i = 2; i <= n; i++) res *= i;
-        return res;
+    function parseMatches(csv) {
+        const rows = csv.split('\n').slice(1);
+        const tbody = document.getElementById('matchesBody');
+        document.getElementById('loading-matches').style.display = 'none';
+        document.getElementById('matchesTable').style.display = 'table';
+
+        rows.forEach(row => {
+            const cols = row.split(',').map(c => c.replace(/"/g, '').trim());
+            if (cols.length < 3) return;
+            // Estructura esperada: [0]Fecha, [1]Local, [2]Visitante
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${cols[0]}</td>
+                <td>${cols[1]}</td>
+                <td>${cols[2]}</td>
+                <td><button class="btn-predict" onclick="autoPredict('${cols[1]}', '${cols[2]}')">Analizar</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
     }
 
     function poisson(k, lambda) {
-        return (Math.pow(lambda, k) * Math.exp(-lambda)) / getFactorial(k);
+        return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
     }
 
-    // 3. Cálculo Principal
-    function calculateResults() {
-        const homeName = document.getElementById('homeSelect').value;
-        const awayName = document.getElementById('awaySelect').value;
+    function factorial(n) {
+        let r = 1;
+        for (let i = 2; i <= n; i++) r *= i;
+        return r;
+    }
 
-        const homeTeam = leagueData.find(t => t.name === homeName);
-        const awayTeam = leagueData.find(t => t.name === awayName);
+    function autoPredict(home, away) {
+        document.getElementById('homeSelect').value = home;
+        document.getElementById('awaySelect').value = away;
+        manualCalculation();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-        // xG = Fuerza Ataque Local * Fuerza Defensa Visitante * Promedio Goles (Asumiendo 1.35 como base si no hay liga)
-        // Nota: Si tu sheet tiene el promedio de la liga, sustituye '1.35' por esa variable
-        const homeXG = homeTeam.hAttack * awayTeam.aDefense * 1.35;
-        const awayXG = awayTeam.aAttack * homeTeam.hDefense * 1.35;
+    function manualCalculation() {
+        const hName = document.getElementById('homeSelect').value;
+        const aName = document.getElementById('awaySelect').value;
+        const hTeam = leagueData.find(t => t.name === hName);
+        const aTeam = leagueData.find(t => t.name === aName);
 
-        let probHome = 0;
-        let probAway = 0;
-        let probDraw = 0;
-        let maxProb = 0;
-        let bestScore = "";
+        const hXG = hTeam.hAtt * aTeam.aDef * 1.35;
+        const aXG = aTeam.aAtt * hTeam.hDef * 1.35;
 
-        // Matriz de 0 a 10 goles
+        let pH = 0, pA = 0, pD = 0, maxP = 0, score = "";
+
         for (let h = 0; h <= 10; h++) {
             for (let a = 0; a <= 10; a++) {
-                const pHome = poisson(h, homeXG);
-                const pAway = poisson(a, awayXG);
-                const combinedProb = pHome * pAway;
-
-                if (h > a) probHome += combinedProb;
-                else if (a > h) probAway += combinedProb;
-                else probDraw += combinedProb;
-
-                if (combinedProb > maxProb) {
-                    maxProb = combinedProb;
-                    bestScore = `${h} - ${a}`;
-                }
+                const p = poisson(h, hXG) * poisson(a, aXG);
+                if (h > a) pH += p; else if (a > h) pA += p; else pD += p;
+                if (p > maxP) { maxP = p; score = `${h} - ${a}`; }
             }
         }
 
-        // Mostrar resultados
-        document.getElementById('resHome').innerText = (probHome * 100).toFixed(1) + "%";
-        document.getElementById('resDraw').innerText = (probDraw * 100).toFixed(1) + "%";
-        document.getElementById('resAway').innerText = (probAway * 100).toFixed(1) + "%";
-        document.getElementById('resScore').innerText = bestScore;
-        
+        document.getElementById('probStats').innerHTML = `
+            <p>Victoria Local: ${(pH*100).toFixed(1)}% | Empate: ${(pD*100).toFixed(1)}% | Visitante: ${(pA*100).toFixed(1)}%</p>
+        `;
+        document.getElementById('resScore').innerText = `Marcador Probable: ${score}`;
         document.getElementById('results').style.display = 'block';
     }
 
-    // Iniciar
-    window.onload = initApp;
+    window.onload = init;
 </script>
-
 </body>
 </html>
