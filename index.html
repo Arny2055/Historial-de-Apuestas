@@ -10,7 +10,7 @@
         select { padding: 10px 20px; font-size: 16px; border-radius: 6px; border: 1px solid #d0d7de; cursor: pointer; background: #fff; }
         
         .tables-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-        .table-wrapper { background: white; border: 1px solid #d0d7de; border-radius: 6px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 45%; min-width: 400px; }
+        .table-wrapper { background: white; border: 1px solid #d0d7de; border-radius: 6px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 45%; min-width: 400px; margin-bottom: 20px; }
         h2 { color: #24292f; border-bottom: 1px solid #d0d7de; padding-bottom: 8px; font-size: 1.25rem; text-align: center; }
         table { border-collapse: collapse; width: 100%; font-size: 13px; }
         th { background-color: #f6f8fa; color: #57606a; padding: 8px 5px; text-align: left; border: 1px solid #d0d7de; }
@@ -19,6 +19,13 @@
         .rank { font-weight: bold; color: #57606a; width: 30px; text-align: center; }
         .team-name { font-weight: 600; color: #0969da; min-width: 120px; }
         .highlight-pts { font-weight: bold; background-color: #dafbe1 !important; text-align: center; }
+        .highlight-avg { font-weight: bold; background-color: #fff8c5 !important; text-align: center; }
+        
+        /* Estilos para la tabla de promedios de la liga */
+        .league-avg-container { width: 100%; max-width: 920px; margin: 20px auto; background: #24292f; color: white; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .league-avg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+        .avg-box { background: #32383f; padding: 10px; border-radius: 6px; }
+        .avg-box span { display: block; font-size: 1.2rem; font-weight: bold; color: #adbac7; }
         
         .loading { opacity: 0.5; pointer-events: none; }
     </style>
@@ -54,11 +61,7 @@
                     <th>Pts</th>
                 </tr>
             </thead>
-            <tbody id="bodyLocal">
-                <tr><td class="rank">1</td><td class="team-name">FC Barcelona</td><td>12</td><td>12</td><td>0</td><td>0</td><td>37</td><td>5</td><td>+32</td><td class="highlight-pts">36</td></tr>
-                <tr><td class="rank">2</td><td class="team-name">Atletico Madrid</td><td>13</td><td>11</td><td>1</td><td>1</td><td>30</td><td>10</td><td>+20</td><td class="highlight-pts">34</td></tr>
-                <tr><td class="rank">3</td><td class="team-name">Real Madrid</td><td>12</td><td>11</td><td>0</td><td>1</td><td>29</td><td>8</td><td>+21</td><td class="highlight-pts">33</td></tr>
-            </tbody>
+            <tbody id="bodyLocal"></tbody>
         </table>
     </div>
 
@@ -79,12 +82,50 @@
                     <th>Pts</th>
                 </tr>
             </thead>
-            <tbody id="bodyVisitante">
-                <tr><td class="rank">1</td><td class="team-name">Real Madrid</td><td>13</td><td>8</td><td>3</td><td>2</td><td>25</td><td>13</td><td>+12</td><td class="highlight-pts">27</td></tr>
-                <tr><td class="rank">2</td><td class="team-name">FC Barcelona</td><td>13</td><td>8</td><td>1</td><td>4</td><td>30</td><td>20</td><td>+10</td><td class="highlight-pts">25</td></tr>
-                <tr><td class="rank">3</td><td class="team-name">Celta Vigo</td><td>12</td><td>5</td><td>5</td><td>2</td><td>15</td><td>12</td><td>+3</td><td class="highlight-pts">20</td></tr>
-            </tbody>
+            <tbody id="bodyVisitante"></tbody>
         </table>
+    </div>
+
+    <div class="table-wrapper">
+        <h2>Promedio Goles Local</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Equipo</th>
+                    <th>GP</th>
+                    <th>GF (Avg)</th>
+                    <th>GA (Avg)</th>
+                </tr>
+            </thead>
+            <tbody id="avgBodyLocal"></tbody>
+        </table>
+    </div>
+
+    <div class="table-wrapper">
+        <h2>Promedio Goles Visitante</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Equipo</th>
+                    <th>GP</th>
+                    <th>GF (Avg)</th>
+                    <th>GA (Avg)</th>
+                </tr>
+            </thead>
+            <tbody id="avgBodyVisitante"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="league-avg-container">
+    <h3>Promedios Generales de la Liga</h3>
+    <div class="league-avg-grid">
+        <div class="avg-box">GF Local<span id="avgLigaGFL">0.00</span></div>
+        <div class="avg-box">GA Local<span id="avgLigaGAL">0.00</span></div>
+        <div class="avg-box">GF Visitante<span id="avgLigaGFV">0.00</span></div>
+        <div class="avg-box">GA Visitante<span id="avgLigaGAV">0.00</span></div>
     </div>
 </div>
 
@@ -96,7 +137,6 @@
         const container = document.getElementById('mainContainer');
         container.classList.add('loading');
 
-        // Solicitamos el rango A1:W50 para asegurar que traemos ambas tablas
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${league}&range=A1:W50`;
 
         try {
@@ -111,73 +151,82 @@
             let visitantes = [];
 
             filas.forEach((cols, index) => {
-                // Saltamos encabezados y filas vacías
                 if (index > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
-                    
-                    // Tabla LOCAL (Columnas A a J -> índices 1 a 9)
                     locales.push({
-                        nombre: cols[1],
-                        gp: cols[2],
-                        w: cols[3],
-                        d: cols[4],
-                        l: cols[5],
-                        gf: cols[6],
-                        ga: cols[7],
-                        gd: cols[8],
-                        pts: cols[9]
+                        nombre: cols[1], gp: parseFloat(cols[2]), w: cols[3], d: cols[4], l: cols[5],
+                        gf: parseFloat(cols[6]), ga: parseFloat(cols[7]), gd: cols[8], pts: cols[9]
                     });
 
-                    // Tabla VISITANTE (Suele empezar en columna M -> índice 12 en adelante)
-                    // Verificamos que exista un nombre de equipo en la columna M
                     if (cols[13] && !isNaN(parseFloat(cols[14]))) {
                         visitantes.push({
-                            nombre: cols[13],
-                            gp: cols[14],
-                            w: cols[15],
-                            d: cols[16],
-                            l: cols[17],
-                            gf: cols[18],
-                            ga: cols[19],
-                            gd: cols[20],
-                            pts: cols[21]
+                            nombre: cols[13], gp: parseFloat(cols[14]), w: cols[15], d: cols[16], l: cols[17],
+                            gf: parseFloat(cols[18]), ga: parseFloat(cols[19]), gd: cols[20], pts: cols[21]
                         });
                     }
                 }
             });
 
-            renderizarTabla('bodyLocal', locales);
-            renderizarTabla('bodyVisitante', visitantes);
+            renderizarTabla('bodyLocal', locales, 'posicion');
+            renderizarTabla('bodyVisitante', visitantes, 'posicion');
+            renderizarTabla('avgBodyLocal', locales, 'promedio');
+            renderizarTabla('avgBodyVisitante', visitantes, 'promedio');
+            
+            calcularPromediosLiga(locales, visitantes);
 
         } catch (error) {
             console.error("Error:", error);
-            alert("Error al cargar datos. Verifica la conexión.");
         } finally {
             container.classList.remove('loading');
         }
     }
 
-    function renderizarTabla(idBody, datos) {
+    function renderizarTabla(idBody, datos, tipo) {
         const tbody = document.getElementById(idBody);
         tbody.innerHTML = ''; 
 
         datos.forEach((e, i) => {
-            if(!e.nombre) return;
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="rank">${i + 1}</td>
-                <td class="team-name">${e.nombre}</td>
-                <td style="text-align:center">${e.gp}</td>
-                <td style="text-align:center">${e.w}</td>
-                <td style="text-align:center">${e.d}</td>
-                <td style="text-align:center">${e.l}</td>
-                <td style="text-align:center">${e.gf}</td>
-                <td style="text-align:center">${e.ga}</td>
-                <td style="text-align:center">${e.gd}</td>
-                <td class="highlight-pts">${e.pts}</td>
-            `;
+            if (tipo === 'posicion') {
+                tr.innerHTML = `
+                    <td class="rank">${i + 1}</td>
+                    <td class="team-name">${e.nombre}</td>
+                    <td style="text-align:center">${e.gp}</td>
+                    <td style="text-align:center">${e.w}</td>
+                    <td style="text-align:center">${e.d}</td>
+                    <td style="text-align:center">${e.l}</td>
+                    <td style="text-align:center">${e.gf}</td>
+                    <td style="text-align:center">${e.ga}</td>
+                    <td style="text-align:center">${e.gd}</td>
+                    <td class="highlight-pts">${e.pts}</td>
+                `;
+            } else {
+                tr.innerHTML = `
+                    <td class="rank">${i + 1}</td>
+                    <td class="team-name">${e.nombre}</td>
+                    <td style="text-align:center">${e.gp}</td>
+                    <td class="highlight-avg">${(e.gf / e.gp).toFixed(2)}</td>
+                    <td class="highlight-avg">${(e.ga / e.gp).toFixed(2)}</td>
+                `;
+            }
             tbody.appendChild(tr);
         });
     }
+
+    function calcularPromediosLiga(locales, visitantes) {
+        let sumaGFL = 0, sumaGAL = 0, sumaPJL = 0;
+        let sumaGFV = 0, sumaGAV = 0, sumaPJV = 0;
+
+        locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
+        visitantes.forEach(e => { sumaGFV += e.gf; sumaGAV += e.ga; sumaPJV += e.gp; });
+
+        document.getElementById('avgLigaGFL').innerText = (sumaGFL / sumaPJL).toFixed(4);
+        document.getElementById('avgLigaGAL').innerText = (sumaGAL / sumaPJL).toFixed(4);
+        document.getElementById('avgLigaGFV').innerText = (sumaGFV / sumaPJV).toFixed(4);
+        document.getElementById('avgLigaGAV').innerText = (sumaGAV / sumaPJV).toFixed(4);
+    }
+
+    // Carga automática inicial
+    window.onload = cargarDatosLiga;
 </script>
 
 </body>
