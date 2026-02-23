@@ -119,22 +119,22 @@
 
         /* Tabla de mercados centrada y ordenada */
         .table-wrapper { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 5px; }
-        th { text-align: center; color: var(--text-muted); padding: 12px 5px; font-weight: bold; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 0.65rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-top: 5px; }
+        th { text-align: center; color: var(--text-muted); padding: 12px 5px; font-weight: bold; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 0.6rem; }
         td { padding: 14px 5px; border-bottom: 1px solid var(--border); vertical-align: middle; text-align: center; }
         
         .prob-cell { color: var(--primary); font-weight: 800; }
         .odds-cell { color: var(--text-white); font-family: monospace; font-weight: 600; }
         
         .input-odds {
-            width: 50px;
+            width: 45px;
             background: #0b0e14;
             border: 1px solid var(--border);
             color: var(--accent-yellow);
             padding: 6px;
             border-radius: 6px;
             text-align: center; /* Cuota casa centrada */
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: bold;
             outline: none;
         }
@@ -144,13 +144,30 @@
             padding: 4px 6px;
             border-radius: 6px;
             font-weight: 900;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             display: inline-block;
-            min-width: 45px;
+            min-width: 40px;
             text-align: center;
         }
         .positive-value { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); border: 1px solid rgba(81, 207, 102, 0.3); }
         .negative-value { background: rgba(255, 107, 107, 0.15); color: var(--accent-red); border: 1px solid rgba(255, 107, 107, 0.2); }
+
+        /* Estilo Botón ROI */
+        .btn-roi {
+            background: var(--primary);
+            color: var(--bg-dark);
+            border: none;
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+            text-decoration: none;
+            display: none; /* Oculto por defecto */
+            animation: fadeIn 0.3s ease;
+        }
+        .btn-roi:hover { background: var(--text-white); }
 
         .loading-text { color: var(--primary); text-align: center; font-size: 0.9rem; display: none; margin-top: 30px; font-weight: bold; letter-spacing: 1px;}
         #xgPanel { display: none; animation: fadeIn 0.5s ease; width: 100%; }
@@ -222,6 +239,7 @@
                             <th>JUSTA</th>
                             <th>CASA</th>
                             <th>VALUE</th>
+                            <th>ACTION</th>
                         </tr>
                     </thead>
                     <tbody id="marketsTable"></tbody>
@@ -372,6 +390,7 @@
                 <td class="odds-cell">${fairOdds}</td>
                 <td><input type="number" step="0.01" class="input-odds" id="input_${m.id}" oninput="calculateValue('${m.id}', ${m.p})" placeholder="0.00"></td>
                 <td id="val_${m.id}"><span class="value-badge">--</span></td>
+                <td><a href="roi.html" class="btn-roi" id="btn_roi_${m.id}">SEND</a></td>
             </tr>
         `}).join('');
     }
@@ -379,10 +398,12 @@
     function calculateValue(id, prob) {
         const input = document.getElementById('input_' + id);
         const valCell = document.getElementById('val_' + id);
+        const roiBtn = document.getElementById('btn_roi_' + id);
         const houseOdds = parseFloat(input.value);
 
         if(!houseOdds || houseOdds <= 1) {
             valCell.innerHTML = '<span class="value-badge">--</span>';
+            roiBtn.style.display = 'none';
             return;
         }
 
@@ -391,6 +412,13 @@
         
         const className = edge > 0 ? 'positive-value' : 'negative-value';
         valCell.innerHTML = `<span class="value-badge ${className}">${edgePercent}%</span>`;
+
+        // Mostrar botón solo si hay valor positivo
+        if (edge > 0) {
+            roiBtn.style.display = 'inline-block';
+        } else {
+            roiBtn.style.display = 'none';
+        }
     }
 
     window.onload = cargarDatosLiga;
