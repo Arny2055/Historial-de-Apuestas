@@ -349,15 +349,22 @@
     /** * CONFIGURACIÓN DE LIGAS */
     const DEFAULT_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
 
-    // Cargar ligas desde localStorage o usar las predeterminadas
+    let dataGlobal = { locales: [], visitantes: [], liga: {} };
+    let currentMarkets = [];
+
+    // Cargar ligas desde localStorage (ahora sin lista predeterminada)
     function getSavedLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
-        return saved ? JSON.parse(saved) : DEFAULT_LEAGUES;
+        return saved ? JSON.parse(saved) : [];
     }
 
     function renderLeagueSelect() {
         const select = document.getElementById('leagueSelect');
         const leagues = getSavedLeagues();
+        if (leagues.length === 0) {
+            select.innerHTML = '<option value="">SIN LIGAS GUARDADAS</option>';
+            return;
+        }
         select.innerHTML = leagues.map(l => `<option value="${l.sheet}">${l.name}</option>`).join('');
     }
 
@@ -369,7 +376,6 @@
 
         const leagues = getSavedLeagues();
         
-        // Evitar duplicados
         if (leagues.some(l => l.sheet === sheetName)) {
             alert("Esta hoja ya existe en la lista.");
             return;
@@ -386,25 +392,27 @@
         cargarDatosLiga();
     }
 
-    // NUEVA FUNCIÓN PARA BORRAR LIGAS
     function borrarLigaSeleccionada() {
         const select = document.getElementById('leagueSelect');
         const sheetToDelete = select.value;
         
-        // No permitir borrar las ligas base por seguridad
-        const isDefault = DEFAULT_LEAGUES.some(l => l.sheet === sheetToDelete);
-        if (isDefault) {
-            alert("Las ligas principales del sistema no pueden ser eliminadas.");
-            return;
-        }
+        if (!sheetToDelete) return;
 
-        if (confirm(`¿Estás seguro de que deseas eliminar la hoja "${sheetToDelete}" de tu lista guardada?`)) {
+        if (confirm(`¿Eliminar la hoja "${sheetToDelete}" de la lista?`)) {
             let leagues = getSavedLeagues();
             leagues = leagues.filter(l => l.sheet !== sheetToDelete);
             
             localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
             renderLeagueSelect();
-            cargarDatosLiga();
+            
+            // Limpiar datos si no quedan ligas
+            if (leagues.length === 0) {
+                document.getElementById('homeTeamSelect').innerHTML = '<option value="">EQUIPO LOCAL...</option>';
+                document.getElementById('awayTeamSelect').innerHTML = '<option value="">EQUIPO VISITANTE...</option>';
+                document.getElementById('xgPanel').style.display = 'none';
+            } else {
+                cargarDatosLiga();
+            }
         }
     }
 
@@ -421,6 +429,8 @@
 
     async function cargarDatosLiga() {
         const sheetKey = document.getElementById('leagueSelect').value;
+        if (!sheetKey) return;
+
         const loading = document.getElementById('loading');
         loading.style.display = 'block';
         document.getElementById('xgPanel').style.display = 'none';
@@ -446,6 +456,8 @@
                 }
             });
 
+            if (dataGlobal.locales.length === 0) throw new Error("No data");
+
             let sumaGFL = 0, sumaGAL = 0, sumaPJL = 0, sumaGFV = 0, sumaGAV = 0, sumaPJV = 0;
             dataGlobal.locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
             dataGlobal.visitantes.forEach(e => { sumaGFV += e.gf; sumaGAV += e.ga; sumaPJV += e.gp; });
@@ -454,7 +466,7 @@
             actualizarSelectoresEquipos();
         } catch (error) {
             console.error("Error al cargar datos:", error);
-            alert("No se encontró la hoja '" + sheetKey + "'. Asegúrate de que el nombre sea idéntico al de la pestaña del Google Sheets.");
+            alert("No se pudo obtener datos de '" + sheetKey + "'. Verifica que la pestaña exista en Google Sheets.");
         } finally {
             loading.style.display = 'none';
         }
@@ -578,7 +590,10 @@
     // Inicialización
     window.onload = () => {
         renderLeagueSelect();
-        cargarDatosLiga();
+        const leagues = getSavedLeagues();
+        if (leagues.length > 0) {
+            cargarDatosLiga();
+        }
     };
 </script>
 </body>
