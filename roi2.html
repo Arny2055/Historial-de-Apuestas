@@ -145,7 +145,6 @@
             font-weight: 600;
         }
 
-        /* Estilos Top Rendimiento */
         .top-performance-badge {
             background: linear-gradient(90deg, #10b981, #059669);
             color: white;
@@ -163,8 +162,8 @@
             <h1 class="text-xl font-bold tracking-tighter">BETAGS <span class="text-emerald-500">ROI LAB</span></h1>
             <div class="flex flex-wrap gap-2">
                 <a href="index.html" class="px-4 py-1.5 text-xs font-semibold bg-slate-900 rounded-full border border-slate-800 hover:border-emerald-500/50 transition">Poisson</a>
-                <a href="roi.html" class="px-4 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/30">ROI Pre</a>
-                <a href="propicks.html" class="px-4 py-1.5 text-xs font-semibold bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/30 hover:bg-blue-500/20 transition">Pro Picks ⭐</a>
+                <a href="roi2.html" class="px-4 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/30">ROI Pre</a>
+                <a href="xg.html" class="px-4 py-1.5 text-xs font-semibold bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/30 hover:bg-blue-500/20 transition">XG ANALYTICS ⭐</a>
             </div>
         </div>
     </nav>
@@ -379,7 +378,6 @@
 
     <script>
         const STORAGE_KEY = 'betags_pre_match'; 
-        const PRO_PICKS_KEY = 'betags_pro_picks';
         let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let bChart;
 
@@ -404,7 +402,6 @@
             });
         }
 
-        // --- MEJORA: TOP RENDIMIENTO ---
         function updatePerformanceTops() {
             const resolved = bets.filter(b => b.status === 'win' || b.status === 'loss');
             const leagueStats = {};
@@ -424,7 +421,6 @@
                 marketStats[market].count += 1;
             });
 
-            // Filtrar las mejores (mínimo 5 picks y profit positivo)
             const topLeagues = Object.entries(leagueStats)
                 .filter(([name, stats]) => stats.profit > 1 && stats.count >= 5)
                 .sort((a, b) => b[1].profit - a[1].profit)
@@ -669,7 +665,6 @@
                 const league = b.teams && b.teams.includes(':') ? b.teams.split(':')[0].trim() : 'General';
                 const market = b.market || 'Unknown';
                 
-                // Lógica de Marcado de TOPS
                 const isProfitableLeague = tops.leagues.includes(league);
                 const isProfitableMarket = tops.markets.includes(market);
                 const profitableClass = (status === 'pending' && (isProfitableLeague || isProfitableMarket)) ? 'profitable-alert' : '';
@@ -723,7 +718,6 @@
                             <button onclick="resolve('${b.id}', 'win')" class="btn-action btn-win">W</button>
                             <button onclick="resolve('${b.id}', 'loss')" class="btn-action btn-loss">L</button>
                             <button onclick="resolve('${b.id}', 'pending')" class="btn-action btn-pending">P</button>
-                            <button onclick="exportToProPicks('${b.id}')" title="Exportar a Pro Picks" class="btn-export"><i class="fa-solid fa-upload"></i></button>
                         </div>
                     </td>
                     <td>
@@ -734,25 +728,12 @@
             });
         }
 
-        function exportToProPicks(id) {
-            const pick = bets.find(x => x.id.toString() === id.toString());
-            if(!pick) return;
-            let proPicks = JSON.parse(localStorage.getItem(PRO_PICKS_KEY)) || [];
-            if(proPicks.some(p => p.id === pick.id)) {
-                alert("Este pick ya está en Pro Picks");
-                return;
-            }
-            proPicks.push({...pick});
-            localStorage.setItem(PRO_PICKS_KEY, JSON.stringify(proPicks));
-            alert("Pick exportado con éxito a Pro Picks ⭐");
-        }
-
         function resolve(id, status) {
             const idx = bets.findIndex(x => x.id.toString() === id.toString());
             if(idx !== -1) {
                 bets[idx].status = status;
                 const odd = Number(bets[idx].odd) || 0;
-                const stake = Number(bets[idx].stake) || 0;
+                const stake = Number(bets[idx].stake) || 1; 
                 bets[idx].profit = status === 'win' ? stake * (odd - 1) : (status === 'loss' ? -stake : 0);
                 saveAndRefresh();
             }
@@ -803,12 +784,8 @@
             const blob = new Blob([headers + csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', 'historial_betags.csv');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            a.setAttribute('hidden', ''); a.setAttribute('href', url); a.setAttribute('download', 'historial_betags.csv');
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
         }
         window.onload = updateStats;
     </script>
