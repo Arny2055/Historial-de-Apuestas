@@ -241,7 +241,7 @@
                 <option value="ITA">ITALIA - SERIE A</option>
                 <option value="GER">ALEMANIA - BUNDESLIGA</option>
                 <option value="FRA">FRANCIA - LIGUE 1</option>
-            </select>
+                <option value="MEX">MEXICO - LIGA MX</option> </select>
             <select id="homeTeamSelect" onchange="calcularXG()">
                 <option value="">EQUIPO LOCAL...</option>
             </select>
@@ -299,7 +299,19 @@
 </div>
 
 <script>
-    const SHEET_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
+    /** * CONFIGURACIÓN DE LIGAS
+     * Aquí puedes agregar diferentes IDs si cada liga está en un archivo distinto,
+     * o usar el mismo ID si todas son hojas del mismo archivo.
+     */
+    const LEAGUE_CONFIG = {
+        'SPA': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'SPA' },
+        'ENG': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'ENG' },
+        'ITA': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'ITA' },
+        'GER': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'GER' },
+        'FRA': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'FRA' },
+        'MEX': { id: 'OTRO_ID_AQUI', sheet: 'MEX' } // Ejemplo para otro archivo
+    };
+
     let dataGlobal = { locales: [], visitantes: [], liga: {} };
     let currentMarkets = [];
 
@@ -315,12 +327,15 @@
     }
 
     async function cargarDatosLiga() {
-        const league = document.getElementById('leagueSelect').value;
+        const leagueKey = document.getElementById('leagueSelect').value;
+        const config = LEAGUE_CONFIG[leagueKey] || LEAGUE_CONFIG['SPA'];
+        
         const loading = document.getElementById('loading');
         loading.style.display = 'block';
         document.getElementById('xgPanel').style.display = 'none';
 
-        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${league}&range=A1:W50`;
+        // Construcción dinámica de la URL usando la configuración seleccionada
+        const url = `https://docs.google.com/spreadsheets/d/${config.id}/gviz/tq?tqx=out:csv&sheet=${config.sheet}&range=A1:W50`;
 
         try {
             const response = await fetch(url);
@@ -348,7 +363,8 @@
 
             actualizarSelectoresEquipos();
         } catch (error) {
-            console.error("Error:", error);
+            console.error("Error al cargar datos:", error);
+            alert("Error al cargar los datos de la liga. Verifica el ID del archivo.");
         } finally {
             loading.style.display = 'none';
         }
