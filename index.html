@@ -523,11 +523,9 @@
         const visitData = dataGlobal.visitantes.find(e => e.nombre === awayName);
 
         if (localData && visitData) {
-            // Cálculo de xG basado en Fuerza de Ataque vs Fuerza de Defensa
             const xGL = ((localData.gf/localData.gp)/dataGlobal.liga.gfl) * ((visitData.ga/visitData.gp)/dataGlobal.liga.gav) * dataGlobal.liga.gfl;
             const xGV = ((visitData.gf/visitData.gp)/dataGlobal.liga.gfv) * ((localData.ga/localData.gp)/dataGlobal.liga.gal) * dataGlobal.liga.gfv;
 
-            // Mostrar xG en la interfaz
             document.getElementById('xg_local_val').innerText = xGL.toFixed(2);
             document.getElementById('xg_away_val').innerText = xGV.toFixed(2);
 
@@ -592,7 +590,7 @@
                 <td class="odds-cell">${fairOdds}</td>
                 <td><input type="number" step="0.01" class="input-odds" id="input_${m.id}" oninput="calculateValue('${m.id}', ${m.p})" placeholder="0.00"></td>
                 <td id="val_${m.id}"><span class="value-badge">--</span></td>
-                <td><a href="roi2.html" class="btn-roi" id="btn_roi_${m.id}">SEND</a></td>
+                <td><button onclick="sendToROI('${m.id}', '${m.n}', ${m.p}, ${fairOdds})" class="btn-roi" id="btn_roi_${m.id}">SEND</button></td>
             </tr>
         `}).join('');
     }
@@ -622,7 +620,39 @@
         }
     }
 
-    // Inicialización
+    // NUEVA FUNCIÓN: Guardar pick en localStorage para roi2.html
+    function sendToROI(id, marketName, prob, fair) {
+        const league = document.getElementById('leagueSelect').value;
+        const home = document.getElementById('homeTeamSelect').value;
+        const away = document.getElementById('awayTeamSelect').value;
+        const houseOdds = parseFloat(document.getElementById('input_' + id).value);
+        
+        if (!houseOdds) return;
+
+        const STORAGE_KEY = 'betags_pre_match';
+        let currentBets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+        const newPick = {
+            id: Date.now(), // ID único
+            date: new Date().toLocaleString(),
+            teams: `${league}: ${home} vs ${away}`,
+            market: marketName,
+            prob: prob,
+            fair_odd: fair,
+            odd: houseOdds,
+            edge: ((prob * houseOdds - 1) * 100).toFixed(1) + '%',
+            stake: 1, // Stake por defecto
+            status: 'pending',
+            profit: 0
+        };
+
+        currentBets.push(newPick);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentBets));
+        
+        alert(`Pick guardado: ${marketName} @${houseOdds}`);
+        window.location.href = 'roi2.html';
+    }
+
     window.onload = () => {
         renderLeagueSelect();
         const leagues = getSavedLeagues();
