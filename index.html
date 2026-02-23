@@ -41,6 +41,33 @@
         h1 { font-size: 1.4rem; color: var(--primary); text-align: center; margin: 20px 0; letter-spacing: 3px; font-weight: 900; }
         h1 span { color: var(--text-white); }
 
+        /* Botón de navegación principal */
+        .nav-header {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .btn-nav-roi {
+            background: rgba(77, 171, 247, 0.1);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 8px 20px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-nav-roi:hover {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+
         .section-title { 
             font-size: 0.7rem; 
             color: var(--primary); 
@@ -183,6 +210,12 @@
 <div class="container">
     <h1>BETA<span>GS</span> ANALYTICS</h1>
     
+    <div class="nav-header">
+        <a href="roi.html" class="btn-nav-roi">
+            <span>🧮</span> CALCULADORA ROI
+        </a>
+    </div>
+
     <div class="section-title"><span>📊</span> CONFIGURACIÓN DE PARTIDO</div>
     <div class="card">
         <div class="input-grid">
