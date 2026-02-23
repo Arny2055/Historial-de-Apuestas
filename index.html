@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Calculadora xG - Simplificada</title>
+    <title>Calculadora xG & Poisson Pro</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; padding: 40px; display: flex; justify-content: center; }
         .container { background: white; padding: 30px; border-radius: 12px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.05); width: 100%; max-width: 600px; text-align: center; }
@@ -16,16 +16,23 @@
         .xg-container { display: flex; justify-content: space-around; align-items: center; }
         .xg-box { flex: 1; }
         .xg-value { font-size: 3rem; font-weight: 800; color: #0969da; display: block; }
-        .xg-label { font-size: 0.85rem; color: #57606a; text-transform: uppercase; font-weight: bold; }
+        .xg-label { font-size: 0.85rem; color: #57606a; text-transform: uppercase; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .vs-label { font-size: 1.2rem; font-weight: bold; color: #8c959f; margin: 0 15px; }
         
+        /* Nuevos estilos para mercados */
+        .market-container { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px solid #d0d7de; pt: 20px; padding-top: 20px; }
+        .market-card { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #e1e4e8; }
+        .market-title { font-size: 0.8rem; font-weight: bold; color: #24292f; margin-bottom: 10px; text-transform: uppercase; }
+        .market-row { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; }
+        .prob-val { font-weight: bold; color: #0969da; }
+
         .loading-text { color: #0969da; font-weight: bold; display: none; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Predicador de Goles (xG)</h1>
+    <h1>Predicador de Goles (xG) & Poisson</h1>
     
     <div class="field-group">
         <label for="leagueSelect">Liga</label>
@@ -66,13 +73,47 @@
                 <span id="xgVisitValue" class="xg-value">0.00</span>
             </div>
         </div>
-        <p style="margin-top:15px; font-size: 0.8rem; color: #57606a;">Goles Esperados basados en Distribución de Poisson</p>
+
+        <div class="market-container">
+            <div class="market-card">
+                <div class="market-title">Goles (2.5)</div>
+                <div class="market-row">
+                    <span>Over 2.5:</span>
+                    <span id="overProb" class="prob-val">0%</span>
+                </div>
+                <div class="market-row">
+                    <span>Under 2.5:</span>
+                    <span id="underProb" class="prob-val">0%</span>
+                </div>
+            </div>
+            <div class="market-card">
+                <div class="market-title">Ambos Anotan</div>
+                <div class="market-row">
+                    <span>Sí:</span>
+                    <span id="bttsYes" class="prob-val">0%</span>
+                </div>
+                <div class="market-row">
+                    <span>No:</span>
+                    <span id="bttsNo" class="prob-val">0%</span>
+                </div>
+            </div>
+        </div>
+
+        <p style="margin-top:15px; font-size: 0.75rem; color: #57606a;">Cálculos basados en Distribución de Poisson e indicadores de ataque/defensa.</p>
     </div>
 </div>
 
 <script>
     const SHEET_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
     let dataGlobal = { locales: [], visitantes: [], liga: {} };
+
+    // Función matemática de Poisson: P(x; λ) = (e^-λ * λ^x) / x!
+    function poisson(k, lambda) {
+        const exponential = Math.exp(-lambda);
+        let factorial = 1;
+        for (let i = 1; i <= k; i++) factorial *= i;
+        return (Math.pow(lambda, k) * exponential) / factorial;
+    }
 
     async function cargarDatosLiga() {
         const league = document.getElementById('leagueSelect').value;
@@ -105,7 +146,6 @@
                 }
             });
 
-            // Calcular promedios de liga para Poisson
             let sumaGFL = 0, sumaGAL = 0, sumaPJL = 0, sumaGFV = 0, sumaGAV = 0, sumaPJV = 0;
             dataGlobal.locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
             dataGlobal.visitantes.forEach(e => { sumaGFV += e.gf; sumaGAV += e.ga; sumaPJV += e.gp; });
@@ -141,6 +181,7 @@
         const visitData = dataGlobal.visitantes.find(e => e.nombre === awayName);
 
         if (localData && visitData) {
+            // Lógica original de xG
             const ataqueLocal = (localData.gf / localData.gp) / dataGlobal.liga.gfl;
             const defensaLocal = (localData.ga / localData.gp) / dataGlobal.liga.gal;
             const ataqueVisit = (visitData.gf / visitData.gp) / dataGlobal.liga.gfv;
@@ -149,10 +190,46 @@
             const xGLocal = ataqueLocal * defensaVisit * dataGlobal.liga.gfl;
             const xGVisit = ataqueVisit * defensaLocal * dataGlobal.liga.gfv;
 
+            // Actualizar Interfaz xG
             document.getElementById('homeNameLabel').innerText = homeName;
             document.getElementById('awayNameLabel').innerText = awayName;
             document.getElementById('xgLocalValue').innerText = xGLocal.toFixed(2);
             document.getElementById('xgVisitValue').innerText = xGVisit.toFixed(2);
+
+            // --- CÁLCULOS POISSON ---
+            let probHome = [];
+            let probAway = [];
+            for (let i = 0; i <= 6; i++) {
+                probHome[i] = poisson(i, xGLocal);
+                probAway[i] = poisson(i, xGVisit);
+            }
+
+            let probUnder25 = 0;
+            let probHomeZero = probHome[0];
+            let probAwayZero = probAway[0];
+
+            // Probabilidades Over/Under
+            for (let h = 0; h <= 6; h++) {
+                for (let v = 0; v <= 6; v++) {
+                    let probEscenario = probHome[h] * probAway[v];
+                    if (h + v < 2.5) {
+                        probUnder25 += probEscenario;
+                    }
+                }
+            }
+
+            // Probabilidad BTTS
+            // BTTS NO es cuando: Local marca 0 O Visitante marca 0
+            // Por ley de De Morgan: P(BTTS No) = P(Home 0) + P(Away 0) - P(Home 0 Y Away 0)
+            let probBTTSNo = probHomeZero + probAwayZero - (probHomeZero * probAwayZero);
+            let probBTTSYes = 1 - probBTTSNo;
+
+            // Mostrar resultados
+            document.getElementById('underProb').innerText = (probUnder25 * 100).toFixed(1) + "%";
+            document.getElementById('overProb').innerText = ((1 - probUnder25) * 100).toFixed(1) + "%";
+            document.getElementById('bttsYes').innerText = (probBTTSYes * 100).toFixed(1) + "%";
+            document.getElementById('bttsNo').innerText = (probBTTSNo * 100).toFixed(1) + "%";
+
             document.getElementById('xgPanel').style.display = 'block';
         }
     }
