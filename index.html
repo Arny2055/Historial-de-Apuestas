@@ -121,6 +121,36 @@
             -webkit-appearance: none;
         }
 
+        /* Estilos para el nuevo campo de añadir ligas */
+        .add-league-box {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .input-new-sheet {
+            flex: 1;
+            background: #0b0e14;
+            border: 1px dashed var(--primary);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            text-align: center;
+            outline: none;
+        }
+
+        .btn-add-sheet {
+            background: var(--primary);
+            color: var(--bg-dark);
+            border: none;
+            padding: 0 15px;
+            border-radius: 8px;
+            font-weight: 900;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
         .chart-container {
             width: 100%;
             height: 160px;
@@ -236,12 +266,13 @@
     <div class="card">
         <div class="input-grid">
             <select id="leagueSelect" onchange="cargarDatosLiga()">
-                <option value="SPA">ESPAÑA - LA LIGA</option>
-                <option value="ENG">INGLATERRA - PREMIER</option>
-                <option value="ITA">ITALIA - SERIE A</option>
-                <option value="GER">ALEMANIA - BUNDESLIGA</option>
-                <option value="FRA">FRANCIA - LIGUE 1</option>
-                <option value="MEX">MEXICO - LIGA MX</option> </select>
+                </select>
+            
+            <div class="add-league-box">
+                <input type="text" id="newSheetName" class="input-new-sheet" placeholder="NOMBRE DE NUEVA HOJA...">
+                <button class="btn-add-sheet" onclick="agregarNuevaLiga()">AÑADIR</button>
+            </div>
+
             <select id="homeTeamSelect" onchange="calcularXG()">
                 <option value="">EQUIPO LOCAL...</option>
             </select>
@@ -299,21 +330,58 @@
 </div>
 
 <script>
-    /** * CONFIGURACIÓN DE LIGAS
-     * Aquí puedes agregar diferentes IDs si cada liga está en un archivo distinto,
-     * o usar el mismo ID si todas son hojas del mismo archivo.
-     */
-    const LEAGUE_CONFIG = {
-        'SPA': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'SPA' },
-        'ENG': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'ENG' },
-        'ITA': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'ITA' },
-        'GER': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'GER' },
-        'FRA': { id: '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI', sheet: 'FRA' },
-        'MEX': { id: 'OTRO_ID_AQUI', sheet: 'MEX' } // Ejemplo para otro archivo
-    };
+    /** * CONFIGURACIÓN DE LIGAS */
+    const DEFAULT_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
+    
+    // Lista inicial de ligas predeterminadas
+    const DEFAULT_LEAGUES = [
+        { name: 'ESPAÑA - LA LIGA', sheet: 'SPA' },
+        { name: 'INGLATERRA - PREMIER', sheet: 'ENG' },
+        { name: 'ITALIA - SERIE A', sheet: 'ITA' },
+        { name: 'ALEMANIA - BUNDESLIGA', sheet: 'GER' },
+        { name: 'FRANCIA - LIGUE 1', sheet: 'FRA' },
+        { name: 'MEXICO - LIGA MX', sheet: 'MEX' }
+    ];
 
     let dataGlobal = { locales: [], visitantes: [], liga: {} };
     let currentMarkets = [];
+
+    // Cargar ligas desde localStorage o usar las predeterminadas
+    function getSavedLeagues() {
+        const saved = localStorage.getItem('betags_custom_leagues');
+        return saved ? JSON.parse(saved) : DEFAULT_LEAGUES;
+    }
+
+    function renderLeagueSelect() {
+        const select = document.getElementById('leagueSelect');
+        const leagues = getSavedLeagues();
+        select.innerHTML = leagues.map(l => `<option value="${l.sheet}">${l.name}</option>`).join('');
+    }
+
+    function agregarNuevaLiga() {
+        const input = document.getElementById('newSheetName');
+        const sheetName = input.value.trim().toUpperCase();
+
+        if (!sheetName) return;
+
+        const leagues = getSavedLeagues();
+        
+        // Evitar duplicados
+        if (leagues.some(l => l.sheet === sheetName)) {
+            alert("Esta hoja ya existe en la lista.");
+            return;
+        }
+
+        const newLeague = { name: `HOJA: ${sheetName}`, sheet: sheetName };
+        leagues.push(newLeague);
+        
+        localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
+        renderLeagueSelect();
+        
+        input.value = "";
+        document.getElementById('leagueSelect').value = sheetName;
+        cargarDatosLiga();
+    }
 
     function poisson(k, lambda) {
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
@@ -327,15 +395,12 @@
     }
 
     async function cargarDatosLiga() {
-        const leagueKey = document.getElementById('leagueSelect').value;
-        const config = LEAGUE_CONFIG[leagueKey] || LEAGUE_CONFIG['SPA'];
-        
+        const sheetKey = document.getElementById('leagueSelect').value;
         const loading = document.getElementById('loading');
         loading.style.display = 'block';
         document.getElementById('xgPanel').style.display = 'none';
 
-        // Construcción dinámica de la URL usando la configuración seleccionada
-        const url = `https://docs.google.com/spreadsheets/d/${config.id}/gviz/tq?tqx=out:csv&sheet=${config.sheet}&range=A1:W50`;
+        const url = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=${sheetKey}&range=A1:W50`;
 
         try {
             const response = await fetch(url);
@@ -364,7 +429,7 @@
             actualizarSelectoresEquipos();
         } catch (error) {
             console.error("Error al cargar datos:", error);
-            alert("Error al cargar los datos de la liga. Verifica el ID del archivo.");
+            alert("No se encontró la hoja '" + sheetKey + "' en el documento de Google.");
         } finally {
             loading.style.display = 'none';
         }
@@ -478,7 +543,6 @@
         const className = edge > 0 ? 'positive-value' : 'negative-value';
         valCell.innerHTML = `<span class="value-badge ${className}">${edgePercent}%</span>`;
 
-        // Mostrar botón solo si hay valor positivo
         if (edge > 0) {
             roiBtn.style.display = 'inline-block';
         } else {
@@ -486,7 +550,11 @@
         }
     }
 
-    window.onload = cargarDatosLiga;
+    // Inicialización
+    window.onload = () => {
+        renderLeagueSelect();
+        cargarDatosLiga();
+    };
 </script>
 </body>
 </html>
