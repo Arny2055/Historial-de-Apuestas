@@ -9,11 +9,18 @@
         .selector-container { text-align: center; margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #d0d7de; display: inline-block; width: 100%; box-sizing: border-box; }
         select { padding: 10px 20px; font-size: 16px; border-radius: 6px; border: 1px solid #d0d7de; cursor: pointer; background: #fff; }
         
-        /* Estilos para los selectores de equipos */
         .match-selector { margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
         .match-field { display: flex; flex-direction: column; align-items: flex-start; }
         .match-field label { font-size: 14px; font-weight: bold; color: #57606a; margin-bottom: 5px; }
         .match-field select { width: 200px; }
+
+        /* Estilos para el panel de xG */
+        .xg-display { margin-top: 25px; padding: 20px; background: #f0f7ff; border: 2px solid #0969da; border-radius: 12px; display: none; }
+        .xg-container { display: flex; justify-content: space-around; align-items: center; }
+        .xg-box { text-align: center; }
+        .xg-value { font-size: 2.5rem; font-weight: 800; color: #0969da; display: block; }
+        .xg-label { font-size: 0.9rem; color: #57606a; text-transform: uppercase; letter-spacing: 1px; }
+        .vs-label { font-size: 1.5rem; font-weight: bold; color: #d0d7de; }
 
         .tables-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
         .table-wrapper { background: white; border: 1px solid #d0d7de; border-radius: 6px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 45%; min-width: 400px; margin-bottom: 20px; }
@@ -51,15 +58,31 @@
     <div class="match-selector">
         <div class="match-field">
             <label>Equipo Local</label>
-            <select id="homeTeamSelect">
+            <select id="homeTeamSelect" onchange="calcularXG()">
                 <option value="">Selecciona local...</option>
             </select>
         </div>
         <div class="match-field">
             <label>Equipo Visitante</label>
-            <select id="awayTeamSelect">
+            <select id="awayTeamSelect" onchange="calcularXG()">
                 <option value="">Selecciona visitante...</option>
             </select>
+        </div>
+    </div>
+
+    <div id="xgPanel" class="xg-display">
+        <div class="xg-container">
+            <div class="xg-box">
+                <span class="xg-label" id="homeNameLabel">Local</span>
+                <span id="xgLocalValue" class="xg-value">0.00</span>
+                <span class="xg-label">Goles Esperados (xG)</span>
+            </div>
+            <div class="vs-label">VS</div>
+            <div class="xg-box">
+                <span class="xg-label" id="awayNameLabel">Visitante</span>
+                <span id="xgVisitValue" class="xg-value">0.00</span>
+                <span class="xg-label">Goles Esperados (xG)</span>
+            </div>
         </div>
     </div>
 </div>
@@ -182,11 +205,13 @@
 
 <script>
     const SHEET_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
+    let dataGlobal = { locales: [], visitantes: [], liga: {} };
 
     async function cargarDatosLiga() {
         const league = document.getElementById('leagueSelect').value;
         const container = document.getElementById('mainContainer');
         container.classList.add('loading');
+        document.getElementById('xgPanel').style.display = 'none';
 
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${league}&range=A1:W50`;
 
@@ -198,18 +223,18 @@
                 linea.split(',').map(celda => celda.replace(/^"(.*)"$/, '$1').trim())
             );
 
-            let locales = [];
-            let visitantes = [];
+            dataGlobal.locales = [];
+            dataGlobal.visitantes = [];
 
             filas.forEach((cols, index) => {
                 if (index > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
-                    locales.push({
+                    dataGlobal.locales.push({
                         nombre: cols[1], gp: parseFloat(cols[2]), w: cols[3], d: cols[4], l: cols[5],
                         gf: parseFloat(cols[6]), ga: parseFloat(cols[7]), gd: cols[8], pts: cols[9]
                     });
 
                     if (cols[13] && !isNaN(parseFloat(cols[14]))) {
-                        visitantes.push({
+                        dataGlobal.visitantes.push({
                             nombre: cols[13], gp: parseFloat(cols[14]), w: cols[15], d: cols[16], l: cols[17],
                             gf: parseFloat(cols[18]), ga: parseFloat(cols[19]), gd: cols[20], pts: cols[21]
                         });
@@ -217,20 +242,16 @@
                 }
             });
 
-            // 1. Calcular promedios de liga primero para usarlos en las nuevas tablas
-            const liga = calcularPromediosLiga(locales, visitantes);
+            dataGlobal.liga = calcularPromediosLiga(dataGlobal.locales, dataGlobal.visitantes);
 
-            // 2. Renderizar todas las tablas
-            renderizarTabla('bodyLocal', locales, 'posicion');
-            renderizarTabla('bodyVisitante', visitantes, 'posicion');
-            renderizarTabla('avgBodyLocal', locales, 'promedio');
-            renderizarTabla('avgBodyVisitante', visitantes, 'promedio');
+            renderizarTabla('bodyLocal', dataGlobal.locales, 'posicion');
+            renderizarTabla('bodyVisitante', dataGlobal.visitantes, 'posicion');
+            renderizarTabla('avgBodyLocal', dataGlobal.locales, 'promedio');
+            renderizarTabla('avgBodyVisitante', dataGlobal.visitantes, 'promedio');
+            renderizarTablaFuerza('poissonBodyLocal', dataGlobal.locales, dataGlobal.liga.gfl, dataGlobal.liga.gal);
+            renderizarTablaFuerza('poissonBodyVisitante', dataGlobal.visitantes, dataGlobal.liga.gfv, dataGlobal.liga.gav);
             
-            // 3. Renderizar las nuevas tablas de Fuerza (Poisson)
-            renderizarTablaFuerza('poissonBodyLocal', locales, liga.gfl, liga.gal);
-            renderizarTablaFuerza('poissonBodyVisitante', visitantes, liga.gfv, liga.gav);
-            
-            actualizarSelectoresEquipos(locales);
+            actualizarSelectoresEquipos(dataGlobal.locales);
 
         } catch (error) {
             console.error("Error:", error);
@@ -249,6 +270,34 @@
             const optHome = document.createElement('option'); optHome.value = nombre; optHome.textContent = nombre; homeSelect.appendChild(optHome);
             const optAway = document.createElement('option'); optAway.value = nombre; optAway.textContent = nombre; awaySelect.appendChild(optAway);
         });
+    }
+
+    function calcularXG() {
+        const homeName = document.getElementById('homeTeamSelect').value;
+        const awayName = document.getElementById('awayTeamSelect').value;
+
+        if (!homeName || !awayName) return;
+
+        const localData = dataGlobal.locales.find(e => e.nombre === homeName);
+        const visitData = dataGlobal.visitantes.find(e => e.nombre === awayName);
+
+        if (localData && visitData) {
+            // Fórmulas Poisson xG
+            const ataqueLocal = (localData.gf / localData.gp) / dataGlobal.liga.gfl;
+            const defensaLocal = (localData.ga / localData.gp) / dataGlobal.liga.gal;
+            
+            const ataqueVisit = (visitData.gf / visitData.gp) / dataGlobal.liga.gfv;
+            const defensaVisit = (visitData.ga / visitData.gp) / dataGlobal.liga.gav;
+
+            const xGLocal = ataqueLocal * defensaVisit * dataGlobal.liga.gfl;
+            const xGVisit = ataqueVisit * defensaLocal * dataGlobal.liga.gfv;
+
+            document.getElementById('homeNameLabel').innerText = homeName;
+            document.getElementById('awayNameLabel').innerText = awayName;
+            document.getElementById('xgLocalValue').innerText = xGLocal.toFixed(2);
+            document.getElementById('xgVisitValue').innerText = xGVisit.toFixed(2);
+            document.getElementById('xgPanel').style.display = 'block';
+        }
     }
 
     function renderizarTabla(idBody, datos, tipo) {
@@ -272,12 +321,7 @@
             const ataqueRelativo = (e.gf / e.gp) / avgLigaAtaque;
             const defensaRelativa = (e.ga / e.gp) / avgLigaDefensa;
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="rank">${i + 1}</td>
-                <td class="team-name">${e.nombre}</td>
-                <td class="highlight-poisson">${ataqueRelativo.toFixed(4)}</td>
-                <td class="highlight-poisson">${defensaRelativa.toFixed(4)}</td>
-            `;
+            tr.innerHTML = `<td class="rank">${i + 1}</td><td class="team-name">${e.nombre}</td><td class="highlight-poisson">${ataqueRelativo.toFixed(4)}</td><td class="highlight-poisson">${defensaRelativa.toFixed(4)}</td>`;
             tbody.appendChild(tr);
         });
     }
@@ -285,22 +329,14 @@
     function calcularPromediosLiga(locales, visitantes) {
         let sumaGFL = 0, sumaGAL = 0, sumaPJL = 0;
         let sumaGFV = 0, sumaGAV = 0, sumaPJV = 0;
-
         locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
         visitantes.forEach(e => { sumaGFV += e.gf; sumaGAV += e.ga; sumaPJV += e.gp; });
 
-        const res = {
-            gfl: sumaGFL / sumaPJL,
-            gal: sumaGAL / sumaPJL,
-            gfv: sumaGFV / sumaPJV,
-            gav: sumaGAV / sumaPJV
-        };
-
+        const res = { gfl: sumaGFL / sumaPJL, gal: sumaGAL / sumaPJL, gfv: sumaGFV / sumaPJV, gav: sumaGAV / sumaPJV };
         document.getElementById('avgLigaGFL').innerText = res.gfl.toFixed(4);
         document.getElementById('avgLigaGAL').innerText = res.gal.toFixed(4);
         document.getElementById('avgLigaGFV').innerText = res.gfv.toFixed(4);
         document.getElementById('avgLigaGAV').innerText = res.gav.toFixed(4);
-        
         return res;
     }
 
