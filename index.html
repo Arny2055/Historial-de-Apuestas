@@ -2,204 +2,71 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Tablas de Posiciones - Poisson</title>
+    <title>Calculadora xG - Simplificada</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; padding: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f6f8fa; padding: 40px; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 12px; border: 1px solid #d0d7de; box-shadow: 0 4px 12px rgba(0,0,0,0.05); width: 100%; max-width: 600px; text-align: center; }
+        h1 { color: #24292f; margin-bottom: 25px; font-size: 1.5rem; }
         
-        .selector-container { text-align: center; margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #d0d7de; display: inline-block; width: 100%; box-sizing: border-box; }
-        select { padding: 10px 20px; font-size: 16px; border-radius: 6px; border: 1px solid #d0d7de; cursor: pointer; background: #fff; }
-        
-        .match-selector { margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
-        .match-field { display: flex; flex-direction: column; align-items: flex-start; }
-        .match-field label { font-size: 14px; font-weight: bold; color: #57606a; margin-bottom: 5px; }
-        .match-field select { width: 200px; }
+        .field-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #57606a; }
+        select { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #d0d7de; font-size: 16px; background-color: #fff; }
 
-        /* Estilos para el panel de xG */
-        .xg-display { margin-top: 25px; padding: 20px; background: #f0f7ff; border: 2px solid #0969da; border-radius: 12px; display: none; }
+        .xg-display { margin-top: 30px; padding: 25px; background: #f0f7ff; border: 2px solid #0969da; border-radius: 12px; display: none; }
         .xg-container { display: flex; justify-content: space-around; align-items: center; }
-        .xg-box { text-align: center; }
-        .xg-value { font-size: 2.5rem; font-weight: 800; color: #0969da; display: block; }
-        .xg-label { font-size: 0.9rem; color: #57606a; text-transform: uppercase; letter-spacing: 1px; }
-        .vs-label { font-size: 1.5rem; font-weight: bold; color: #d0d7de; }
-
-        .tables-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-        .table-wrapper { background: white; border: 1px solid #d0d7de; border-radius: 6px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 45%; min-width: 400px; margin-bottom: 20px; }
-        h2 { color: #24292f; border-bottom: 1px solid #d0d7de; padding-bottom: 8px; font-size: 1.25rem; text-align: center; }
-        table { border-collapse: collapse; width: 100%; font-size: 13px; }
-        th { background-color: #f6f8fa; color: #57606a; padding: 8px 5px; text-align: left; border: 1px solid #d0d7de; }
-        td { padding: 8px 5px; border: 1px solid #d0d7de; color: #24292f; }
-        tr:nth-child(even) { background-color: #f6f8fa; }
-        .rank { font-weight: bold; color: #57606a; width: 30px; text-align: center; }
-        .team-name { font-weight: 600; color: #0969da; min-width: 120px; }
-        .highlight-pts { font-weight: bold; background-color: #dafbe1 !important; text-align: center; }
-        .highlight-avg { font-weight: bold; background-color: #fff8c5 !important; text-align: center; }
-        .highlight-poisson { font-weight: bold; background-color: #ddf4ff !important; text-align: center; }
+        .xg-box { flex: 1; }
+        .xg-value { font-size: 3rem; font-weight: 800; color: #0969da; display: block; }
+        .xg-label { font-size: 0.85rem; color: #57606a; text-transform: uppercase; font-weight: bold; }
+        .vs-label { font-size: 1.2rem; font-weight: bold; color: #8c959f; margin: 0 15px; }
         
-        .league-avg-container { width: 100%; max-width: 920px; margin: 20px auto; background: #24292f; color: white; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
-        .league-avg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
-        .avg-box { background: #32383f; padding: 10px; border-radius: 6px; }
-        .avg-box span { display: block; font-size: 1.2rem; font-weight: bold; color: #adbac7; }
-        
-        .loading { opacity: 0.5; pointer-events: none; }
+        .loading-text { color: #0969da; font-weight: bold; display: none; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div class="selector-container">
-    <label for="leagueSelect"><strong>Seleccionar Liga: </strong></label>
-    <select id="leagueSelect" onchange="cargarDatosLiga()">
-        <option value="SPA">España (La Liga)</option>
-        <option value="ENG">Inglaterra (Premier League)</option>
-        <option value="ITA">Italia (Serie A)</option>
-        <option value="GER">Alemania (Bundesliga)</option>
-        <option value="FRA">Francia (Ligue 1)</option>
-    </select>
-
-    <div class="match-selector">
-        <div class="match-field">
-            <label>Equipo Local</label>
-            <select id="homeTeamSelect" onchange="calcularXG()">
-                <option value="">Selecciona local...</option>
-            </select>
-        </div>
-        <div class="match-field">
-            <label>Equipo Visitante</label>
-            <select id="awayTeamSelect" onchange="calcularXG()">
-                <option value="">Selecciona visitante...</option>
-            </select>
-        </div>
+<div class="container">
+    <h1>Predicador de Goles (xG)</h1>
+    
+    <div class="field-group">
+        <label for="leagueSelect">Liga</label>
+        <select id="leagueSelect" onchange="cargarDatosLiga()">
+            <option value="SPA">España (La Liga)</option>
+            <option value="ENG">Inglaterra (Premier League)</option>
+            <option value="ITA">Italia (Serie A)</option>
+            <option value="GER">Alemania (Bundesliga)</option>
+            <option value="FRA">Francia (Ligue 1)</option>
+        </select>
     </div>
+
+    <div class="field-group">
+        <label>Equipo Local</label>
+        <select id="homeTeamSelect" onchange="calcularXG()">
+            <option value="">Selecciona local...</option>
+        </select>
+    </div>
+
+    <div class="field-group">
+        <label>Equipo Visitante</label>
+        <select id="awayTeamSelect" onchange="calcularXG()">
+            <option value="">Selecciona visitante...</option>
+        </select>
+    </div>
+
+    <div id="loading" class="loading-text">Cargando datos de la liga...</div>
 
     <div id="xgPanel" class="xg-display">
         <div class="xg-container">
             <div class="xg-box">
-                <span class="xg-label" id="homeNameLabel">Local</span>
+                <span id="homeNameLabel" class="xg-label">Local</span>
                 <span id="xgLocalValue" class="xg-value">0.00</span>
-                <span class="xg-label">Goles Esperados (xG)</span>
             </div>
             <div class="vs-label">VS</div>
             <div class="xg-box">
-                <span class="xg-label" id="awayNameLabel">Visitante</span>
+                <span id="awayNameLabel" class="xg-label">Visitante</span>
                 <span id="xgVisitValue" class="xg-value">0.00</span>
-                <span class="xg-label">Goles Esperados (xG)</span>
             </div>
         </div>
-    </div>
-</div>
-
-<div class="tables-container" id="mainContainer">
-    <div class="table-wrapper">
-        <h2>Estadísticas Local (Home)</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Equipo</th>
-                    <th>GP</th>
-                    <th>W</th>
-                    <th>D</th>
-                    <th>L</th>
-                    <th>GF</th>
-                    <th>GA</th>
-                    <th>GD</th>
-                    <th>Pts</th>
-                </tr>
-            </thead>
-            <tbody id="bodyLocal"></tbody>
-        </table>
-    </div>
-
-    <div class="table-wrapper">
-        <h2>Estadísticas Visitante (Away)</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Equipo</th>
-                    <th>GP</th>
-                    <th>W</th>
-                    <th>D</th>
-                    <th>L</th>
-                    <th>GF</th>
-                    <th>GA</th>
-                    <th>GD</th>
-                    <th>Pts</th>
-                </tr>
-            </thead>
-            <tbody id="bodyVisitante"></tbody>
-        </table>
-    </div>
-
-    <div class="table-wrapper">
-        <h2>Promedio Goles Local</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Equipo</th>
-                    <th>GP</th>
-                    <th>GF (Avg)</th>
-                    <th>GA (Avg)</th>
-                </tr>
-            </thead>
-            <tbody id="avgBodyLocal"></tbody>
-        </table>
-    </div>
-
-    <div class="table-wrapper">
-        <h2>Promedio Goles Visitante</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Equipo</th>
-                    <th>GP</th>
-                    <th>GF (Avg)</th>
-                    <th>GA (Avg)</th>
-                </tr>
-            </thead>
-            <tbody id="avgBodyVisitante"></tbody>
-        </table>
-    </div>
-
-    <div class="table-wrapper">
-        <h2>Fuerza Relativa (Local)</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Equipo</th>
-                    <th>Ataque (Local)</th>
-                    <th>Defensa (Local)</th>
-                </tr>
-            </thead>
-            <tbody id="poissonBodyLocal"></tbody>
-        </table>
-    </div>
-
-    <div class="table-wrapper">
-        <h2>Fuerza Relativa (Visitante)</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Equipo</th>
-                    <th>Ataque (Vis.)</th>
-                    <th>Defensa (Vis.)</th>
-                </tr>
-            </thead>
-            <tbody id="poissonBodyVisitante"></tbody>
-        </table>
-    </div>
-</div>
-
-<div class="league-avg-container">
-    <h3>Promedios Generales de la Liga</h3>
-    <div class="league-avg-grid">
-        <div class="avg-box">GF Local<span id="avgLigaGFL">0.00</span></div>
-        <div class="avg-box">GA Local<span id="avgLigaGAL">0.00</span></div>
-        <div class="avg-box">GF Visitante<span id="avgLigaGFV">0.00</span></div>
-        <div class="avg-box">GA Visitante<span id="avgLigaGAV">0.00</span></div>
+        <p style="margin-top:15px; font-size: 0.8rem; color: #57606a;">Goles Esperados basados en Distribución de Poisson</p>
     </div>
 </div>
 
@@ -209,8 +76,8 @@
 
     async function cargarDatosLiga() {
         const league = document.getElementById('leagueSelect').value;
-        const container = document.getElementById('mainContainer');
-        container.classList.add('loading');
+        const loading = document.getElementById('loading');
+        loading.style.display = 'block';
         document.getElementById('xgPanel').style.display = 'none';
 
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${league}&range=A1:W50`;
@@ -218,7 +85,6 @@
         try {
             const response = await fetch(url);
             const csvText = await response.text();
-            
             const filas = csvText.split('\n').map(linea => 
                 linea.split(',').map(celda => celda.replace(/^"(.*)"$/, '$1').trim())
             );
@@ -229,63 +95,54 @@
             filas.forEach((cols, index) => {
                 if (index > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
                     dataGlobal.locales.push({
-                        nombre: cols[1], gp: parseFloat(cols[2]), w: cols[3], d: cols[4], l: cols[5],
-                        gf: parseFloat(cols[6]), ga: parseFloat(cols[7]), gd: cols[8], pts: cols[9]
+                        nombre: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7])
                     });
-
                     if (cols[13] && !isNaN(parseFloat(cols[14]))) {
                         dataGlobal.visitantes.push({
-                            nombre: cols[13], gp: parseFloat(cols[14]), w: cols[15], d: cols[16], l: cols[17],
-                            gf: parseFloat(cols[18]), ga: parseFloat(cols[19]), gd: cols[20], pts: cols[21]
+                            nombre: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19])
                         });
                     }
                 }
             });
 
-            dataGlobal.liga = calcularPromediosLiga(dataGlobal.locales, dataGlobal.visitantes);
+            // Calcular promedios de liga para Poisson
+            let sumaGFL = 0, sumaGAL = 0, sumaPJL = 0, sumaGFV = 0, sumaGAV = 0, sumaPJV = 0;
+            dataGlobal.locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
+            dataGlobal.visitantes.forEach(e => { sumaGFV += e.gf; sumaGAV += e.ga; sumaPJV += e.gp; });
+            dataGlobal.liga = { gfl: sumaGFL / sumaPJL, gal: sumaGAL / sumaPJL, gfv: sumaGFV / sumaPJV, gav: sumaGAV / sumaPJV };
 
-            renderizarTabla('bodyLocal', dataGlobal.locales, 'posicion');
-            renderizarTabla('bodyVisitante', dataGlobal.visitantes, 'posicion');
-            renderizarTabla('avgBodyLocal', dataGlobal.locales, 'promedio');
-            renderizarTabla('avgBodyVisitante', dataGlobal.visitantes, 'promedio');
-            renderizarTablaFuerza('poissonBodyLocal', dataGlobal.locales, dataGlobal.liga.gfl, dataGlobal.liga.gal);
-            renderizarTablaFuerza('poissonBodyVisitante', dataGlobal.visitantes, dataGlobal.liga.gfv, dataGlobal.liga.gav);
-            
-            actualizarSelectoresEquipos(dataGlobal.locales);
-
+            actualizarSelectoresEquipos();
         } catch (error) {
             console.error("Error:", error);
         } finally {
-            container.classList.remove('loading');
+            loading.style.display = 'none';
         }
     }
 
-    function actualizarSelectoresEquipos(locales) {
+    function actualizarSelectoresEquipos() {
         const homeSelect = document.getElementById('homeTeamSelect');
         const awaySelect = document.getElementById('awayTeamSelect');
         homeSelect.innerHTML = '<option value="">Selecciona local...</option>';
         awaySelect.innerHTML = '<option value="">Selecciona visitante...</option>';
-        const nombresOrdenados = locales.map(e => e.nombre).sort();
-        nombresOrdenados.forEach(nombre => {
-            const optHome = document.createElement('option'); optHome.value = nombre; optHome.textContent = nombre; homeSelect.appendChild(optHome);
-            const optAway = document.createElement('option'); optAway.value = nombre; optAway.textContent = nombre; awaySelect.appendChild(optAway);
+        
+        const nombres = dataGlobal.locales.map(e => e.nombre).sort();
+        nombres.forEach(nombre => {
+            homeSelect.options.add(new Option(nombre, nombre));
+            awaySelect.options.add(new Option(nombre, nombre));
         });
     }
 
     function calcularXG() {
         const homeName = document.getElementById('homeTeamSelect').value;
         const awayName = document.getElementById('awayTeamSelect').value;
-
         if (!homeName || !awayName) return;
 
         const localData = dataGlobal.locales.find(e => e.nombre === homeName);
         const visitData = dataGlobal.visitantes.find(e => e.nombre === awayName);
 
         if (localData && visitData) {
-            // Fórmulas Poisson xG
             const ataqueLocal = (localData.gf / localData.gp) / dataGlobal.liga.gfl;
             const defensaLocal = (localData.ga / localData.gp) / dataGlobal.liga.gal;
-            
             const ataqueVisit = (visitData.gf / visitData.gp) / dataGlobal.liga.gfv;
             const defensaVisit = (visitData.ga / visitData.gp) / dataGlobal.liga.gav;
 
@@ -300,48 +157,7 @@
         }
     }
 
-    function renderizarTabla(idBody, datos, tipo) {
-        const tbody = document.getElementById(idBody);
-        tbody.innerHTML = ''; 
-        datos.forEach((e, i) => {
-            const tr = document.createElement('tr');
-            if (tipo === 'posicion') {
-                tr.innerHTML = `<td class="rank">${i + 1}</td><td class="team-name">${e.nombre}</td><td style="text-align:center">${e.gp}</td><td style="text-align:center">${e.w}</td><td style="text-align:center">${e.d}</td><td style="text-align:center">${e.l}</td><td style="text-align:center">${e.gf}</td><td style="text-align:center">${e.ga}</td><td style="text-align:center">${e.gd}</td><td class="highlight-pts">${e.pts}</td>`;
-            } else {
-                tr.innerHTML = `<td class="rank">${i + 1}</td><td class="team-name">${e.nombre}</td><td style="text-align:center">${e.gp}</td><td class="highlight-avg">${(e.gf / e.gp).toFixed(2)}</td><td class="highlight-avg">${(e.ga / e.gp).toFixed(2)}</td>`;
-            }
-            tbody.appendChild(tr);
-        });
-    }
-
-    function renderizarTablaFuerza(idBody, datos, avgLigaAtaque, avgLigaDefensa) {
-        const tbody = document.getElementById(idBody);
-        tbody.innerHTML = '';
-        datos.forEach((e, i) => {
-            const ataqueRelativo = (e.gf / e.gp) / avgLigaAtaque;
-            const defensaRelativa = (e.ga / e.gp) / avgLigaDefensa;
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="rank">${i + 1}</td><td class="team-name">${e.nombre}</td><td class="highlight-poisson">${ataqueRelativo.toFixed(4)}</td><td class="highlight-poisson">${defensaRelativa.toFixed(4)}</td>`;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function calcularPromediosLiga(locales, visitantes) {
-        let sumaGFL = 0, sumaGAL = 0, sumaPJL = 0;
-        let sumaGFV = 0, sumaGAV = 0, sumaPJV = 0;
-        locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
-        visitantes.forEach(e => { sumaGFV += e.gf; sumaGAV += e.ga; sumaPJV += e.gp; });
-
-        const res = { gfl: sumaGFL / sumaPJL, gal: sumaGAL / sumaPJL, gfv: sumaGFV / sumaPJV, gav: sumaGAV / sumaPJV };
-        document.getElementById('avgLigaGFL').innerText = res.gfl.toFixed(4);
-        document.getElementById('avgLigaGAL').innerText = res.gal.toFixed(4);
-        document.getElementById('avgLigaGFV').innerText = res.gfv.toFixed(4);
-        document.getElementById('avgLigaGAV').innerText = res.gav.toFixed(4);
-        return res;
-    }
-
     window.onload = cargarDatosLiga;
 </script>
-
 </body>
 </html>
