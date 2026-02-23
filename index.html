@@ -121,7 +121,7 @@
             -webkit-appearance: none;
         }
 
-        /* Estilos para el nuevo campo de añadir ligas */
+        /* Estilos para el campo de añadir/borrar ligas */
         .add-league-box {
             display: flex;
             gap: 8px;
@@ -149,6 +149,21 @@
             font-weight: 900;
             font-size: 0.7rem;
             cursor: pointer;
+        }
+
+        .btn-delete-sheet {
+            background: rgba(255, 107, 107, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            padding: 0 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-delete-sheet:hover {
+            background: var(--accent-red);
+            color: white;
         }
 
         .chart-container {
@@ -271,6 +286,7 @@
             <div class="add-league-box">
                 <input type="text" id="newSheetName" class="input-new-sheet" placeholder="NOMBRE DE NUEVA HOJA...">
                 <button class="btn-add-sheet" onclick="agregarNuevaLiga()">AÑADIR</button>
+                <button class="btn-delete-sheet" onclick="borrarLigaSeleccionada()" title="Borrar liga seleccionada">🗑️</button>
             </div>
 
             <select id="homeTeamSelect" onchange="calcularXG()">
@@ -383,6 +399,28 @@
         cargarDatosLiga();
     }
 
+    // NUEVA FUNCIÓN PARA BORRAR LIGAS
+    function borrarLigaSeleccionada() {
+        const select = document.getElementById('leagueSelect');
+        const sheetToDelete = select.value;
+        
+        // No permitir borrar las ligas base por seguridad
+        const isDefault = DEFAULT_LEAGUES.some(l => l.sheet === sheetToDelete);
+        if (isDefault) {
+            alert("Las ligas principales del sistema no pueden ser eliminadas.");
+            return;
+        }
+
+        if (confirm(`¿Estás seguro de que deseas eliminar la hoja "${sheetToDelete}" de tu lista guardada?`)) {
+            let leagues = getSavedLeagues();
+            leagues = leagues.filter(l => l.sheet !== sheetToDelete);
+            
+            localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
+            renderLeagueSelect();
+            cargarDatosLiga();
+        }
+    }
+
     function poisson(k, lambda) {
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
     }
@@ -429,7 +467,7 @@
             actualizarSelectoresEquipos();
         } catch (error) {
             console.error("Error al cargar datos:", error);
-            alert("No se encontró la hoja '" + sheetKey + "' en el documento de Google.");
+            alert("No se encontró la hoja '" + sheetKey + "'. Asegúrate de que el nombre sea idéntico al de la pestaña del Google Sheets.");
         } finally {
             loading.style.display = 'none';
         }
