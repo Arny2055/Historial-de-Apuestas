@@ -10,6 +10,7 @@
             --bg-card: #151921;
             --primary: #4dabf7;
             --accent-green: #51cf66;
+            --accent-red: #ff6b6b;
             --accent-yellow: #fcc419;
             --text-white: #e9ecef;
             --text-muted: #adb5bd;
@@ -34,7 +35,6 @@
 
         h1 { font-size: 1.2rem; color: var(--primary); text-align: center; margin: 15px 0; letter-spacing: 2px; }
 
-        /* Estilo Data Entry similar a la imagen */
         .section-title { font-size: 0.65rem; color: var(--primary); text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; font-weight: bold; }
         
         .card {
@@ -58,7 +58,6 @@
             outline: none;
         }
 
-        /* Gráfica de Probabilidades */
         .chart-container {
             height: 150px;
             display: flex;
@@ -74,7 +73,6 @@
         .bar.away { background: var(--accent-green); }
         .bar-label { font-size: 0.6rem; color: var(--text-muted); margin-top: 5px; }
 
-        /* Resumen de probabilidad superior */
         .probs-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
         .summary-box { 
             border: 1px solid var(--border); 
@@ -90,27 +88,35 @@
         .summary-val { font-size: 1.1rem; font-weight: 800; margin: 4px 0; }
         .summary-odds { font-size: 0.6rem; color: var(--accent-green); background: rgba(81, 207, 102, 0.1); padding: 2px 4px; border-radius: 4px; display: inline-block; }
 
-        /* Tabla de mercados */
-        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-top: 10px; }
-        th { text-align: left; color: var(--text-muted); padding: 8px; font-weight: normal; border-bottom: 1px solid var(--border); }
-        td { padding: 12px 8px; border-bottom: 1px solid var(--border); }
-        .prob-cell { color: var(--primary); font-weight: bold; }
-        .odds-cell { color: var(--text-white); }
+        /* Tabla de mercados optimizada */
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-top: 10px; }
+        th { text-align: left; color: var(--text-muted); padding: 8px; font-weight: normal; border-bottom: 1px solid var(--border); text-transform: uppercase; }
+        td { padding: 10px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         
-        .action-btn { 
-            background: #1e293b; 
-            color: var(--primary); 
-            border: none; 
-            padding: 5px 8px; 
-            border-radius: 4px; 
-            font-size: 0.65rem; 
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 3px;
+        .prob-cell { color: var(--primary); font-weight: bold; }
+        .odds-cell { color: var(--text-white); font-family: monospace; }
+        
+        .input-odds {
+            width: 45px;
+            background: #0b0e14;
+            border: 1px solid var(--border);
+            color: var(--accent-yellow);
+            padding: 4px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.75rem;
         }
 
-        .loading-text { color: var(--primary); text-align: center; font-size: 0.8rem; display: none; }
+        .value-badge {
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.65rem;
+        }
+        .positive-value { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); }
+        .negative-value { background: rgba(255, 107, 107, 0.2); color: var(--accent-red); }
+
+        .loading-text { color: var(--primary); text-align: center; font-size: 0.8rem; display: none; margin-top: 20px;}
         #xgPanel { display: none; }
     </style>
 </head>
@@ -143,8 +149,7 @@
     <div id="xgPanel">
         <div class="section-title"><span>📈</span> DISTRIBUCIÓN DE PROBABILIDAD</div>
         <div class="card">
-            <div class="chart-container" id="golesChart">
-                </div>
+            <div class="chart-container" id="golesChart"></div>
         </div>
 
         <div class="probs-summary">
@@ -170,13 +175,13 @@
                 <thead>
                     <tr>
                         <th>MERCADO</th>
-                        <th>PROB (%)</th>
-                        <th>C. JUSTA</th>
-                        <th>ACCIÓN</th>
+                        <th>PROB</th>
+                        <th>C.JUSTA</th>
+                        <th>C.CASA</th>
+                        <th>VALUE</th>
                     </tr>
                 </thead>
-                <tbody id="marketsTable">
-                    </tbody>
+                <tbody id="marketsTable"></tbody>
             </table>
         </div>
     </div>
@@ -185,6 +190,7 @@
 <script>
     const SHEET_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
     let dataGlobal = { locales: [], visitantes: [], liga: {} };
+    let currentMarkets = [];
 
     function poisson(k, lambda) {
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
@@ -261,20 +267,16 @@
             const xGL = ((localData.gf/localData.gp)/dataGlobal.liga.gfl) * ((visitData.ga/visitData.gp)/dataGlobal.liga.gav) * dataGlobal.liga.gfl;
             const xGV = ((visitData.gf/visitData.gp)/dataGlobal.liga.gfv) * ((localData.ga/localData.gp)/dataGlobal.liga.gal) * dataGlobal.liga.gfv;
 
-            // Probabilidades
             let pL = [], pV = [];
             for(let i=0; i<=6; i++) { pL[i] = poisson(i, xGL); pV[i] = poisson(i, xGV); }
 
             renderChart(pL, pV);
 
-            // Cálculos Mercados
             let u25 = 0, bttsNo = pL[0] + pV[0] - (pL[0]*pV[0]);
             for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
             
-            // Estimación simple Over 0.5 HT (aprox 33% del xG total)
             let probHT = 1 - Math.exp(-(xGL + xGV) * 0.45);
 
-            // Actualizar UI
             updateUI(probHT, 1-u25, 1-bttsNo, u25, bttsNo);
             document.getElementById('xgPanel').style.display = 'block';
         }
@@ -305,22 +307,47 @@
         document.getElementById('btts_val').innerText = (bttsY*100).toFixed(1) + '%';
         document.getElementById('btts_odds').innerText = 'C. Justa: ' + (1/bttsY).toFixed(2);
 
-        const markets = [
-            {n: 'OVER 0.5 HT', p: ov05ht},
-            {n: 'OVER 2.5 FT', p: ov25},
-            {n: 'UNDER 2.5 FT', p: u25},
-            {n: 'BTTS YES', p: bttsY},
-            {n: 'BTTS NO', p: bttsN}
+        currentMarkets = [
+            {id: 'm1', n: 'OVER 0.5 HT', p: ov05ht},
+            {id: 'm2', n: 'OVER 2.5 FT', p: ov25},
+            {id: 'm3', n: 'UNDER 2.5 FT', p: u25},
+            {id: 'm4', n: 'BTTS YES', p: bttsY},
+            {id: 'm5', n: 'BTTS NO', p: bttsN}
         ];
 
-        document.getElementById('marketsTable').innerHTML = markets.map(m => `
+        renderMarketsTable();
+    }
+
+    function renderMarketsTable() {
+        document.getElementById('marketsTable').innerHTML = currentMarkets.map(m => {
+            const fairOdds = (1/m.p).toFixed(2);
+            return `
             <tr>
                 <td>${m.n}</td>
-                <td class="prob-cell">${(m.p*100).toFixed(1)}%</td>
-                <td class="odds-cell">${(1/m.p).toFixed(2)}</td>
-                <td><button class="action-btn">➜ ROI</button></td>
+                <td class="prob-cell">${(m.p*100).toFixed(0)}%</td>
+                <td class="odds-cell">${fairOdds}</td>
+                <td><input type="number" step="0.01" class="input-odds" id="input_${m.id}" oninput="calculateValue('${m.id}', ${m.p})" placeholder="0.00"></td>
+                <td id="val_${m.id}"><span class="value-badge">--</span></td>
             </tr>
-        `).join('');
+        `}).join('');
+    }
+
+    function calculateValue(id, prob) {
+        const input = document.getElementById('input_' + id);
+        const valCell = document.getElementById('val_' + id);
+        const houseOdds = parseFloat(input.value);
+
+        if(!houseOdds || houseOdds <= 1) {
+            valCell.innerHTML = '<span class="value-badge">--</span>';
+            return;
+        }
+
+        // Fórmual: (Probabilidad * Cuota) - 1
+        const edge = (prob * houseOdds) - 1;
+        const edgePercent = (edge * 100).toFixed(1);
+        
+        const className = edge > 0 ? 'positive-value' : 'negative-value';
+        valCell.innerHTML = `<span class="value-badge ${className}">${edgePercent}%</span>`;
     }
 
     window.onload = cargarDatosLiga;
