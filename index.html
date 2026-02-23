@@ -166,6 +166,25 @@
             color: white;
         }
 
+        /* Botón Analizar Jornada */
+        .btn-analyze-day {
+            width: 100%;
+            background: linear-gradient(90deg, #4dabf7, #339af0);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 900;
+            font-size: 0.8rem;
+            cursor: pointer;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(77, 171, 247, 0.3);
+        }
+
         /* Gráfico y contenedores de xG */
         .chart-container {
             width: 100%;
@@ -273,6 +292,29 @@
         }
         .btn-roi:hover { background: var(--text-white); }
 
+        /* Estilo Panel Resultados Poisson Diarios */
+        #poissonResultsPanel {
+            display: none;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .poisson-row {
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid var(--border);
+            font-size: 0.75rem;
+        }
+        .poisson-teams { text-align: left; flex: 1; font-weight: bold; }
+        .poisson-metrics { display: flex; gap: 10px; }
+        .metric-item { display: flex; flex-direction: column; align-items: center; min-width: 45px;}
+        .metric-item span:first-child { font-size: 0.55rem; color: var(--text-muted); margin-bottom: 2px; }
+        .metric-item span:last-child { color: var(--accent-yellow); font-weight: 900; }
+
         .loading-text { color: var(--primary); text-align: center; font-size: 0.9rem; display: none; margin-top: 30px; font-weight: bold; letter-spacing: 1px;}
         #xgPanel { display: none; animation: fadeIn 0.5s ease; width: 100%; }
 
@@ -308,6 +350,10 @@
                 <button class="btn-delete-sheet" onclick="borrarLigaSeleccionada()" title="Borrar liga seleccionada">🗑️</button>
             </div>
 
+            <button class="btn-analyze-day" onclick="analizarPartidosDelDia()">
+                🚀 ANALIZAR PARTIDOS DEL DÍA (POISSON)
+            </button>
+
             <select id="homeTeamSelect" onchange="calcularXG()">
                 <option value="">EQUIPO LOCAL...</option>
             </select>
@@ -318,6 +364,12 @@
     </div>
 
     <div id="loading" class="loading-text">OBTENIENDO DATA REAL-TIME...</div>
+
+    <div id="poissonResultsPanel">
+        <div class="section-title"><span>📅</span> PARTIDOS DEL DÍA - ANÁLISIS POISSON</div>
+        <div class="card" id="poissonItemsContainer">
+            </div>
+    </div>
 
     <div id="xgPanel">
         <div class="section-title"><span>📈</span> DISTRIBUCIÓN DE PROBABILIDAD</div>
@@ -464,6 +516,7 @@
         const loading = document.getElementById('loading');
         loading.style.display = 'block';
         document.getElementById('xgPanel').style.display = 'none';
+        document.getElementById('poissonResultsPanel').style.display = 'none';
 
         const url = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=${sheetKey}&range=A1:W50`;
 
@@ -512,6 +565,81 @@
             hS.options.add(new Option(n, n));
             aS.options.add(new Option(n, n));
         });
+    }
+
+    /** 🚀 NUEVA FUNCIÓN: ANALIZAR PARTIDOS DEL DIA */
+    async function analizarPartidosDelDia() {
+        const loading = document.getElementById('loading');
+        const resultsPanel = document.getElementById('poissonResultsPanel');
+        const container = document.getElementById('poissonItemsContainer');
+        
+        loading.style.display = 'block';
+        resultsPanel.style.display = 'none';
+        container.innerHTML = '';
+
+        // Consultamos la hoja PARTIDOS DEL DIA, columnas D (Local) y F (Visitante)
+        const url = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F100`;
+
+        try {
+            const response = await fetch(url);
+            const csvText = await response.text();
+            const filas = csvText.split('\n').map(linea => 
+                linea.split(',').map(celda => celda.replace(/^"(.*)"$/, '$1').trim())
+            );
+
+            let matchesFound = 0;
+
+            filas.forEach((cols, index) => {
+                const homeName = cols[0]; // Columna D
+                const awayName = cols[2]; // Columna F
+
+                if (!homeName || !awayName || homeName === "LOCAL" || homeName === "") return;
+
+                const localData = dataGlobal.locales.find(e => e.nombre.toUpperCase() === homeName.toUpperCase());
+                const visitData = dataGlobal.visitantes.find(e => e.nombre.toUpperCase() === awayName.toUpperCase());
+
+                if (localData && visitData) {
+                    matchesFound++;
+                    const xGL = ((localData.gf/localData.gp)/dataGlobal.liga.gfl) * ((visitData.ga/visitData.gp)/dataGlobal.liga.gav) * dataGlobal.liga.gfl;
+                    const xGV = ((visitData.gf/visitData.gp)/dataGlobal.liga.gfv) * ((localData.ga/localData.gp)/dataGlobal.liga.gal) * dataGlobal.liga.gfv;
+
+                    // Cálculo de métricas rápidas
+                    let u25 = 0;
+                    let pL = [], pV = [];
+                    for(let i=0; i<=6; i++) { pL[i] = poisson(i, xGL); pV[i] = poisson(i, xGV); }
+                    for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
+                    
+                    const bttsY = 1 - (pL[0] + pV[0] - (pL[0]*pV[0]));
+                    const ov25 = 1 - u25;
+
+                    // Crear elemento visual
+                    const div = document.createElement('div');
+                    div.className = 'poisson-row';
+                    div.innerHTML = `
+                        <div class="poisson-teams">${homeName} vs ${awayName}</div>
+                        <div class="poisson-metrics">
+                            <div class="metric-item"><span>+2.5</span><span>${(ov25*100).toFixed(0)}%</span></div>
+                            <div class="metric-item"><span>BTTS</span><span>${(bttsY*100).toFixed(0)}%</span></div>
+                            <div class="metric-item"><span>xG L/V</span><span>${xGL.toFixed(1)}/${xGV.toFixed(1)}</span></div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                }
+            });
+
+            if(matchesFound === 0) {
+                container.innerHTML = '<div style="padding:20px; color:var(--text-muted)">No se encontraron equipos de esta liga en la hoja de hoy.</div>';
+            }
+
+            resultsPanel.style.display = 'block';
+            resultsPanel.scrollIntoView({ behavior: 'smooth' });
+
+        } catch (error) {
+            console.error("Error analizando jornada:", error);
+            alert("Error al conectar con 'PARTIDOS DEL DIA'. Revisa el nombre de la hoja.");
+        } finally {
+            loading.style.display = 'none';
+        }
     }
 
     function calcularXG() {
@@ -620,7 +748,6 @@
         }
     }
 
-    // NUEVA FUNCIÓN: Guardar pick en localStorage para roi2.html
     function sendToROI(id, marketName, prob, fair) {
         const league = document.getElementById('leagueSelect').value;
         const home = document.getElementById('homeTeamSelect').value;
@@ -633,7 +760,7 @@
         let currentBets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
         const newPick = {
-            id: Date.now(), // ID único
+            id: Date.now(),
             date: new Date().toLocaleString(),
             teams: `${league}: ${home} vs ${away}`,
             market: marketName,
@@ -641,7 +768,7 @@
             fair_odd: fair,
             odd: houseOdds,
             edge: ((prob * houseOdds - 1) * 100).toFixed(1) + '%',
-            stake: 1, // Stake por defecto
+            stake: 1,
             status: 'pending',
             profit: 0
         };
