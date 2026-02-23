@@ -166,6 +166,7 @@
             color: white;
         }
 
+        /* Gráfico y contenedores de xG */
         .chart-container {
             width: 100%;
             height: 160px;
@@ -175,12 +176,30 @@
             gap: 6px;
             margin: 10px 0;
             padding-bottom: 25px;
-            border-bottom: 1px solid var(--border);
         }
         .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
         .bar { width: 80%; background: var(--primary); border-radius: 3px 3px 0 0; transition: height 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-height: 2px; }
         .bar.away { background: var(--accent-green); }
         .bar-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; font-weight: bold; }
+
+        .xg-info-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+            margin-top: 5px;
+        }
+        .xg-badge {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .xg-badge .label { font-size: 0.6rem; color: var(--text-muted); font-weight: 800; margin-bottom: 4px; }
+        .xg-badge .value { font-size: 1.2rem; font-weight: 900; font-family: monospace; }
+        .xg-badge.local .value { color: var(--primary); }
+        .xg-badge.away .value { color: var(--accent-green); }
 
         .probs-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
         .summary-box { 
@@ -304,6 +323,16 @@
         <div class="section-title"><span>📈</span> DISTRIBUCIÓN DE PROBABILIDAD</div>
         <div class="card">
             <div class="chart-container" id="golesChart"></div>
+            <div class="xg-info-display">
+                <div class="xg-badge local">
+                    <span class="label">xG LOCAL</span>
+                    <span class="value" id="xg_local_val">0.00</span>
+                </div>
+                <div class="xg-badge away">
+                    <span class="label">xG VISITA</span>
+                    <span class="value" id="xg_away_val">0.00</span>
+                </div>
+            </div>
         </div>
 
         <div class="probs-summary">
@@ -352,7 +381,7 @@
     let dataGlobal = { locales: [], visitantes: [], liga: {} };
     let currentMarkets = [];
 
-    // Cargar ligas desde localStorage. Retorna array vacío para forzar solo las del usuario.
+    // Cargar ligas desde localStorage.
     function getSavedLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
         return saved ? JSON.parse(saved) : [];
@@ -378,7 +407,6 @@
 
         const leagues = getSavedLeagues();
         
-        // Evitar duplicados
         if (leagues.some(l => l.sheet === sheetName)) {
             alert("Esta hoja ya existe en la lista.");
             return;
@@ -408,7 +436,6 @@
             localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
             renderLeagueSelect();
             
-            // Si después de borrar no quedan ligas, ocultamos el panel
             if (leagues.length === 0) {
                 document.getElementById('xgPanel').style.display = 'none';
                 document.getElementById('homeTeamSelect').innerHTML = '<option value="">EQUIPO LOCAL...</option>';
@@ -469,7 +496,7 @@
             actualizarSelectoresEquipos();
         } catch (error) {
             console.error("Error al cargar datos:", error);
-            alert("No se encontró la hoja '" + sheetKey + "'. Asegúrate de que el nombre sea idéntico al de la pestaña en el archivo.");
+            alert("No se encontró la hoja '" + sheetKey + "'.");
         } finally {
             loading.style.display = 'none';
         }
@@ -496,8 +523,13 @@
         const visitData = dataGlobal.visitantes.find(e => e.nombre === awayName);
 
         if (localData && visitData) {
+            // Cálculo de xG basado en Fuerza de Ataque vs Fuerza de Defensa
             const xGL = ((localData.gf/localData.gp)/dataGlobal.liga.gfl) * ((visitData.ga/visitData.gp)/dataGlobal.liga.gav) * dataGlobal.liga.gfl;
             const xGV = ((visitData.gf/visitData.gp)/dataGlobal.liga.gfv) * ((localData.ga/localData.gp)/dataGlobal.liga.gal) * dataGlobal.liga.gfv;
+
+            // Mostrar xG en la interfaz
+            document.getElementById('xg_local_val').innerText = xGL.toFixed(2);
+            document.getElementById('xg_away_val').innerText = xGV.toFixed(2);
 
             let pL = [], pV = [];
             for(let i=0; i<=6; i++) { pL[i] = poisson(i, xGL); pV[i] = poisson(i, xGV); }
