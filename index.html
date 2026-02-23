@@ -17,22 +17,23 @@
             --border: #2c3440;
         }
 
-        /* Ajuste a pantalla completa */
+        /* Ajuste a pantalla completa y centrado general */
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             background-color: var(--bg-dark); 
             color: var(--text-white);
             margin: 0;
-            padding: 0; /* Eliminado el padding lateral del body */
+            padding: 0;
             display: flex; 
             justify-content: center;
             min-height: 100vh;
+            text-align: center; /* Centrado de texto base */
         }
 
         .container { 
             width: 100%; 
-            max-width: 100%; /* Ahora ocupa todo el ancho disponible */
-            padding: 15px; /* Padding interno para que el contenido no pegue a los bordes */
+            max-width: 100%; 
+            padding: 15px; 
             box-sizing: border-box;
             padding-bottom: 40px;
         }
@@ -40,7 +41,17 @@
         h1 { font-size: 1.4rem; color: var(--primary); text-align: center; margin: 20px 0; letter-spacing: 3px; font-weight: 900; }
         h1 span { color: var(--text-white); }
 
-        .section-title { font-size: 0.7rem; color: var(--primary); text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-weight: bold; padding-left: 5px; }
+        .section-title { 
+            font-size: 0.7rem; 
+            color: var(--primary); 
+            text-transform: uppercase; 
+            margin-bottom: 12px; 
+            display: flex; 
+            justify-content: center; /* Títulos centrados */
+            align-items: center; 
+            gap: 8px; 
+            font-weight: bold; 
+        }
         
         .card {
             background: var(--bg-card);
@@ -49,9 +60,12 @@
             margin-bottom: 15px;
             border: 1px solid var(--border);
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Contenido de tarjeta centrado */
         }
 
-        .input-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .input-grid { width: 100%; display: grid; grid-template-columns: 1fr; gap: 12px; }
         
         select { 
             width: 100%; 
@@ -62,21 +76,24 @@
             color: white;
             font-size: 1rem;
             outline: none;
-            -webkit-appearance: none; /* Mejor apariencia en iOS */
+            text-align: center; /* Texto de selectores centrado */
+            text-align-last: center; /* Compatibilidad para centrado en select */
+            -webkit-appearance: none;
         }
 
         .chart-container {
+            width: 100%;
             height: 160px;
             display: flex;
             align-items: flex-end;
-            justify-content: space-between;
+            justify-content: space-around; /* Mejor distribución central */
             gap: 6px;
-            margin: 20px 0;
+            margin: 10px 0;
             padding-bottom: 25px;
             border-bottom: 1px solid var(--border);
         }
         .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
-        .bar { width: 100%; background: var(--primary); border-radius: 3px 3px 0 0; transition: height 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-height: 2px; }
+        .bar { width: 80%; background: var(--primary); border-radius: 3px 3px 0 0; transition: height 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); min-height: 2px; }
         .bar.away { background: var(--accent-green); }
         .bar-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 8px; font-weight: bold; }
 
@@ -84,35 +101,39 @@
         .summary-box { 
             border: 1px solid var(--border); 
             border-radius: 12px; 
-            padding: 12px 8px; 
-            text-align: left;
+            padding: 12px 5px; 
+            text-align: center; /* Resúmenes centrados */
             background: rgba(255,255,255,0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
-        .summary-box.blue { border-left: 4px solid var(--primary); }
-        .summary-box.green { border-left: 4px solid var(--accent-green); }
-        .summary-box.yellow { border-left: 4px solid var(--accent-yellow); }
+        .summary-box.blue { border-top: 3px solid var(--primary); }
+        .summary-box.green { border-top: 3px solid var(--accent-green); }
+        .summary-box.yellow { border-top: 3px solid var(--accent-yellow); }
 
         .summary-title { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; }
         .summary-val { font-size: 1.1rem; font-weight: 800; margin: 6px 0; color: var(--text-white); }
-        .summary-odds { font-size: 0.65rem; color: var(--accent-green); background: rgba(81, 207, 102, 0.1); padding: 3px 6px; border-radius: 5px; display: inline-block; font-family: monospace; }
+        .summary-odds { font-size: 0.6rem; color: var(--accent-green); background: rgba(81, 207, 102, 0.1); padding: 3px 6px; border-radius: 5px; display: inline-block; font-family: monospace; }
 
-        /* Tabla de mercados optimizada para pantalla completa */
-        .table-wrapper { overflow-x: auto; }
+        /* Tabla de mercados centrada y ordenada */
+        .table-wrapper { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 5px; }
-        th { text-align: left; color: var(--text-muted); padding: 12px 8px; font-weight: bold; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 0.65rem; }
-        td { padding: 14px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        th { text-align: center; color: var(--text-muted); padding: 12px 5px; font-weight: bold; border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 0.65rem; }
+        td { padding: 14px 5px; border-bottom: 1px solid var(--border); vertical-align: middle; text-align: center; }
         
         .prob-cell { color: var(--primary); font-weight: 800; }
         .odds-cell { color: var(--text-white); font-family: monospace; font-weight: 600; }
         
         .input-odds {
-            width: 55px;
+            width: 50px;
             background: #0b0e14;
             border: 1px solid var(--border);
             color: var(--accent-yellow);
             padding: 6px;
             border-radius: 6px;
-            text-align: center;
+            text-align: center; /* Cuota casa centrada */
             font-size: 0.85rem;
             font-weight: bold;
             outline: none;
@@ -125,14 +146,14 @@
             font-weight: 900;
             font-size: 0.7rem;
             display: inline-block;
-            min-width: 40px;
+            min-width: 45px;
             text-align: center;
         }
         .positive-value { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); border: 1px solid rgba(81, 207, 102, 0.3); }
         .negative-value { background: rgba(255, 107, 107, 0.15); color: var(--accent-red); border: 1px solid rgba(255, 107, 107, 0.2); }
 
         .loading-text { color: var(--primary); text-align: center; font-size: 0.9rem; display: none; margin-top: 30px; font-weight: bold; letter-spacing: 1px;}
-        #xgPanel { display: none; animation: fadeIn 0.5s ease; }
+        #xgPanel { display: none; animation: fadeIn 0.5s ease; width: 100%; }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -167,7 +188,7 @@
     <div id="loading" class="loading-text">OBTENIENDO DATA REAL-TIME...</div>
 
     <div id="xgPanel">
-        <div class="section-title"><span>📈</span> PROBABILIDAD POR GOLES</div>
+        <div class="section-title"><span>📈</span> DISTRIBUCIÓN DE PROBABILIDAD</div>
         <div class="card">
             <div class="chart-container" id="golesChart"></div>
         </div>
@@ -191,7 +212,7 @@
         </div>
 
         <div class="section-title"><span>💰</span> ANÁLISIS DE VALOR (ROI)</div>
-        <div class="card" style="padding: 5px;">
+        <div class="card" style="padding: 10px 5px;">
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -312,7 +333,7 @@
             const group = document.createElement('div');
             group.className = 'bar-group';
             group.innerHTML = `
-                <div style="display:flex; gap:3px; height:100%; align-items:flex-end; width:100%;">
+                <div style="display:flex; gap:3px; height:100%; align-items:flex-end; width:100%; justify-content:center;">
                     <div class="bar" style="height: ${pL[i]*150}%"></div>
                     <div class="bar away" style="height: ${pV[i]*150}%"></div>
                 </div>
