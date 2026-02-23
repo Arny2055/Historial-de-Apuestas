@@ -45,14 +45,16 @@
         .nav-header {
             display: flex;
             justify-content: center;
+            gap: 10px; /* Espacio entre botones */
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         
-        .btn-nav-roi {
+        .btn-nav-roi, .btn-nav-xg {
             background: rgba(77, 171, 247, 0.1);
             color: var(--primary);
             border: 1px solid var(--primary);
-            padding: 8px 20px;
+            padding: 8px 15px;
             border-radius: 20px;
             text-decoration: none;
             font-size: 0.75rem;
@@ -63,8 +65,19 @@
             transition: all 0.3s ease;
         }
 
+        .btn-nav-xg {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            background: rgba(81, 207, 102, 0.1);
+        }
+
         .btn-nav-roi:hover {
             background: var(--primary);
+            color: var(--bg-dark);
+        }
+
+        .btn-nav-xg:hover {
+            background: var(--accent-green);
             color: var(--bg-dark);
         }
 
@@ -212,7 +225,10 @@
     
     <div class="nav-header">
         <a href="roi.html" class="btn-nav-roi">
-            <span>🧮</span> CALCULADORA ROI
+            <span>🧮</span> ROI CALC
+        </a>
+        <a href="xg.html" class="btn-nav-xg">
+            <span>⚽</span> XG ANALYTICS
         </a>
     </div>
 
