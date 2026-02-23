@@ -26,6 +26,7 @@
         .team-name { font-weight: 600; color: #0969da; min-width: 120px; }
         .highlight-pts { font-weight: bold; background-color: #dafbe1 !important; text-align: center; }
         .highlight-avg { font-weight: bold; background-color: #fff8c5 !important; text-align: center; }
+        .highlight-poisson { font-weight: bold; background-color: #ddf4ff !important; text-align: center; }
         
         .league-avg-container { width: 100%; max-width: 920px; margin: 20px auto; background: #24292f; color: white; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
         .league-avg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
@@ -137,6 +138,36 @@
             <tbody id="avgBodyVisitante"></tbody>
         </table>
     </div>
+
+    <div class="table-wrapper">
+        <h2>Fuerza Relativa (Local)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Equipo</th>
+                    <th>Ataque (Local)</th>
+                    <th>Defensa (Local)</th>
+                </tr>
+            </thead>
+            <tbody id="poissonBodyLocal"></tbody>
+        </table>
+    </div>
+
+    <div class="table-wrapper">
+        <h2>Fuerza Relativa (Visitante)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Equipo</th>
+                    <th>Ataque (Vis.)</th>
+                    <th>Defensa (Vis.)</th>
+                </tr>
+            </thead>
+            <tbody id="poissonBodyVisitante"></tbody>
+        </table>
+    </div>
 </div>
 
 <div class="league-avg-container">
@@ -186,13 +217,20 @@
                 }
             });
 
+            // 1. Calcular promedios de liga primero para usarlos en las nuevas tablas
+            const liga = calcularPromediosLiga(locales, visitantes);
+
+            // 2. Renderizar todas las tablas
             renderizarTabla('bodyLocal', locales, 'posicion');
             renderizarTabla('bodyVisitante', visitantes, 'posicion');
             renderizarTabla('avgBodyLocal', locales, 'promedio');
             renderizarTabla('avgBodyVisitante', visitantes, 'promedio');
             
+            // 3. Renderizar las nuevas tablas de Fuerza (Poisson)
+            renderizarTablaFuerza('poissonBodyLocal', locales, liga.gfl, liga.gal);
+            renderizarTablaFuerza('poissonBodyVisitante', visitantes, liga.gfv, liga.gav);
+            
             actualizarSelectoresEquipos(locales);
-            calcularPromediosLiga(locales, visitantes);
 
         } catch (error) {
             console.error("Error:", error);
@@ -204,55 +242,42 @@
     function actualizarSelectoresEquipos(locales) {
         const homeSelect = document.getElementById('homeTeamSelect');
         const awaySelect = document.getElementById('awayTeamSelect');
-        
-        // Limpiamos y añadimos la opción por defecto
         homeSelect.innerHTML = '<option value="">Selecciona local...</option>';
         awaySelect.innerHTML = '<option value="">Selecciona visitante...</option>';
-
-        // Ordenamos alfabéticamente para facilitar la búsqueda
         const nombresOrdenados = locales.map(e => e.nombre).sort();
-
         nombresOrdenados.forEach(nombre => {
-            const optHome = document.createElement('option');
-            optHome.value = nombre;
-            optHome.textContent = nombre;
-            homeSelect.appendChild(optHome);
-
-            const optAway = document.createElement('option');
-            optAway.value = nombre;
-            optAway.textContent = nombre;
-            awaySelect.appendChild(optAway);
+            const optHome = document.createElement('option'); optHome.value = nombre; optHome.textContent = nombre; homeSelect.appendChild(optHome);
+            const optAway = document.createElement('option'); optAway.value = nombre; optAway.textContent = nombre; awaySelect.appendChild(optAway);
         });
     }
 
     function renderizarTabla(idBody, datos, tipo) {
         const tbody = document.getElementById(idBody);
         tbody.innerHTML = ''; 
-
         datos.forEach((e, i) => {
             const tr = document.createElement('tr');
             if (tipo === 'posicion') {
-                tr.innerHTML = `
-                    <td class="rank">${i + 1}</td>
-                    <td class="team-name">${e.nombre}</td>
-                    <td style="text-align:center">${e.gp}</td>
-                    <td style="text-align:center">${e.w}</td>
-                    <td style="text-align:center">${e.d}</td>
-                    <td style="text-align:center">${e.l}</td>
-                    <td style="text-align:center">${e.gf}</td>
-                    <td style="text-align:center">${e.ga}</td>
-                    <td style="text-align:center">${e.gd}</td>
-                    <td class="highlight-pts">${e.pts}</td>
-                `;
+                tr.innerHTML = `<td class="rank">${i + 1}</td><td class="team-name">${e.nombre}</td><td style="text-align:center">${e.gp}</td><td style="text-align:center">${e.w}</td><td style="text-align:center">${e.d}</td><td style="text-align:center">${e.l}</td><td style="text-align:center">${e.gf}</td><td style="text-align:center">${e.ga}</td><td style="text-align:center">${e.gd}</td><td class="highlight-pts">${e.pts}</td>`;
             } else {
-                tr.innerHTML = `
-                    <td class="rank">${i + 1}</td>
-                    <td class="team-name">${e.nombre}</td>
-                    <td style="text-align:center">${e.gp}</td>
-                    <td class="highlight-avg">${(e.gf / e.gp).toFixed(2)}</td>
-                    <td class="highlight-avg">${(e.ga / e.gp).toFixed(2)}</td>
-                `;
+                tr.innerHTML = `<td class="rank">${i + 1}</td><td class="team-name">${e.nombre}</td><td style="text-align:center">${e.gp}</td><td class="highlight-avg">${(e.gf / e.gp).toFixed(2)}</td><td class="highlight-avg">${(e.ga / e.gp).toFixed(2)}</td>`;
             }
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderizarTablaFuerza(idBody, datos, avgLigaAtaque, avgLigaDefensa) {
+        const tbody = document.getElementById(idBody);
+        tbody.innerHTML = '';
+        datos.forEach((e, i) => {
+            const ataqueRelativo = (e.gf / e.gp) / avgLigaAtaque;
+            const defensaRelativa = (e.ga / e.gp) / avgLigaDefensa;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="rank">${i + 1}</td>
+                <td class="team-name">${e.nombre}</td>
+                <td class="highlight-poisson">${ataqueRelativo.toFixed(4)}</td>
+                <td class="highlight-poisson">${defensaRelativa.toFixed(4)}</td>
+            `;
             tbody.appendChild(tr);
         });
     }
@@ -264,10 +289,19 @@
         locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
         visitantes.forEach(e => { sumaGFV += e.gf; sumaGAV += e.ga; sumaPJV += e.gp; });
 
-        document.getElementById('avgLigaGFL').innerText = (sumaGFL / sumaPJL).toFixed(4);
-        document.getElementById('avgLigaGAL').innerText = (sumaGAL / sumaPJL).toFixed(4);
-        document.getElementById('avgLigaGFV').innerText = (sumaGFV / sumaPJV).toFixed(4);
-        document.getElementById('avgLigaGAV').innerText = (sumaGAV / sumaPJV).toFixed(4);
+        const res = {
+            gfl: sumaGFL / sumaPJL,
+            gal: sumaGAL / sumaPJL,
+            gfv: sumaGFV / sumaPJV,
+            gav: sumaGAV / sumaPJV
+        };
+
+        document.getElementById('avgLigaGFL').innerText = res.gfl.toFixed(4);
+        document.getElementById('avgLigaGAL').innerText = res.gal.toFixed(4);
+        document.getElementById('avgLigaGFV').innerText = res.gfv.toFixed(4);
+        document.getElementById('avgLigaGAV').innerText = res.gav.toFixed(4);
+        
+        return res;
     }
 
     window.onload = cargarDatosLiga;
