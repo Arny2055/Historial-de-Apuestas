@@ -9,6 +9,12 @@
         .selector-container { text-align: center; margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #d0d7de; display: inline-block; width: 100%; box-sizing: border-box; }
         select { padding: 10px 20px; font-size: 16px; border-radius: 6px; border: 1px solid #d0d7de; cursor: pointer; background: #fff; }
         
+        /* Estilos para los selectores de equipos */
+        .match-selector { margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .match-field { display: flex; flex-direction: column; align-items: flex-start; }
+        .match-field label { font-size: 14px; font-weight: bold; color: #57606a; margin-bottom: 5px; }
+        .match-field select { width: 200px; }
+
         .tables-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
         .table-wrapper { background: white; border: 1px solid #d0d7de; border-radius: 6px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 45%; min-width: 400px; margin-bottom: 20px; }
         h2 { color: #24292f; border-bottom: 1px solid #d0d7de; padding-bottom: 8px; font-size: 1.25rem; text-align: center; }
@@ -21,7 +27,6 @@
         .highlight-pts { font-weight: bold; background-color: #dafbe1 !important; text-align: center; }
         .highlight-avg { font-weight: bold; background-color: #fff8c5 !important; text-align: center; }
         
-        /* Estilos para la tabla de promedios de la liga */
         .league-avg-container { width: 100%; max-width: 920px; margin: 20px auto; background: #24292f; color: white; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
         .league-avg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
         .avg-box { background: #32383f; padding: 10px; border-radius: 6px; }
@@ -41,6 +46,21 @@
         <option value="GER">Alemania (Bundesliga)</option>
         <option value="FRA">Francia (Ligue 1)</option>
     </select>
+
+    <div class="match-selector">
+        <div class="match-field">
+            <label>Equipo Local</label>
+            <select id="homeTeamSelect">
+                <option value="">Selecciona local...</option>
+            </select>
+        </div>
+        <div class="match-field">
+            <label>Equipo Visitante</label>
+            <select id="awayTeamSelect">
+                <option value="">Selecciona visitante...</option>
+            </select>
+        </div>
+    </div>
 </div>
 
 <div class="tables-container" id="mainContainer">
@@ -171,6 +191,7 @@
             renderizarTabla('avgBodyLocal', locales, 'promedio');
             renderizarTabla('avgBodyVisitante', visitantes, 'promedio');
             
+            actualizarSelectoresEquipos(locales);
             calcularPromediosLiga(locales, visitantes);
 
         } catch (error) {
@@ -178,6 +199,30 @@
         } finally {
             container.classList.remove('loading');
         }
+    }
+
+    function actualizarSelectoresEquipos(locales) {
+        const homeSelect = document.getElementById('homeTeamSelect');
+        const awaySelect = document.getElementById('awayTeamSelect');
+        
+        // Limpiamos y añadimos la opción por defecto
+        homeSelect.innerHTML = '<option value="">Selecciona local...</option>';
+        awaySelect.innerHTML = '<option value="">Selecciona visitante...</option>';
+
+        // Ordenamos alfabéticamente para facilitar la búsqueda
+        const nombresOrdenados = locales.map(e => e.nombre).sort();
+
+        nombresOrdenados.forEach(nombre => {
+            const optHome = document.createElement('option');
+            optHome.value = nombre;
+            optHome.textContent = nombre;
+            homeSelect.appendChild(optHome);
+
+            const optAway = document.createElement('option');
+            optAway.value = nombre;
+            optAway.textContent = nombre;
+            awaySelect.appendChild(optAway);
+        });
     }
 
     function renderizarTabla(idBody, datos, tipo) {
@@ -225,7 +270,6 @@
         document.getElementById('avgLigaGAV').innerText = (sumaGAV / sumaPJV).toFixed(4);
     }
 
-    // Carga automática inicial
     window.onload = cargarDatosLiga;
 </script>
 
