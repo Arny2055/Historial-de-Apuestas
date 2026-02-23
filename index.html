@@ -444,18 +444,24 @@
         const leagues = getSavedLeagues();
         
         if (leagues.length === 0) {
-            select.innerHTML = '<option value="">AÑADE UNA HOJA PARA EMPEZAR</option>';
+            select.innerHTML = '<option value="">AÑADE UNA HOJA PARA EMPEATAR</option>';
             return;
         }
+
+        // Ordenar alfabéticamente antes de renderizar
+        leagues.sort((a, b) => a.name.localeCompare(b.name));
         
         select.innerHTML = leagues.map(l => `<option value="${l.sheet}">${l.name}</option>`).join('');
     }
 
     function agregarNuevaLiga() {
         const input = document.getElementById('newSheetName');
-        const sheetName = input.value.trim().toUpperCase();
+        let sheetName = input.value.trim().toUpperCase();
 
         if (!sheetName) return;
+
+        // Limpiar "HOJA:" si el usuario lo escribe manualmente
+        sheetName = sheetName.replace(/^HOJA:\s*/i, '');
 
         const leagues = getSavedLeagues();
         
@@ -464,8 +470,11 @@
             return;
         }
 
-        const newLeague = { name: `HOJA: ${sheetName}`, sheet: sheetName };
+        const newLeague = { name: sheetName, sheet: sheetName };
         leagues.push(newLeague);
+        
+        // Ordenar antes de guardar
+        leagues.sort((a, b) => a.name.localeCompare(b.name));
         
         localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
         renderLeagueSelect();
