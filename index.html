@@ -352,7 +352,7 @@
     let dataGlobal = { locales: [], visitantes: [], liga: {} };
     let currentMarkets = [];
 
-    // Cargar ligas desde localStorage (ahora sin lista predeterminada)
+    // Cargar ligas desde localStorage. Retorna array vacío para forzar solo las del usuario.
     function getSavedLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
         return saved ? JSON.parse(saved) : [];
@@ -361,10 +361,12 @@
     function renderLeagueSelect() {
         const select = document.getElementById('leagueSelect');
         const leagues = getSavedLeagues();
+        
         if (leagues.length === 0) {
-            select.innerHTML = '<option value="">SIN LIGAS GUARDADAS</option>';
+            select.innerHTML = '<option value="">AÑADE UNA HOJA PARA EMPEZAR</option>';
             return;
         }
+        
         select.innerHTML = leagues.map(l => `<option value="${l.sheet}">${l.name}</option>`).join('');
     }
 
@@ -376,6 +378,7 @@
 
         const leagues = getSavedLeagues();
         
+        // Evitar duplicados
         if (leagues.some(l => l.sheet === sheetName)) {
             alert("Esta hoja ya existe en la lista.");
             return;
@@ -396,20 +399,20 @@
         const select = document.getElementById('leagueSelect');
         const sheetToDelete = select.value;
         
-        if (!sheetToDelete) return;
+        if (!sheetToDelete || sheetToDelete === "") return;
 
-        if (confirm(`¿Eliminar la hoja "${sheetToDelete}" de la lista?`)) {
+        if (confirm(`¿Estás seguro de que deseas eliminar la hoja "${sheetToDelete}"?`)) {
             let leagues = getSavedLeagues();
             leagues = leagues.filter(l => l.sheet !== sheetToDelete);
             
             localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
             renderLeagueSelect();
             
-            // Limpiar datos si no quedan ligas
+            // Si después de borrar no quedan ligas, ocultamos el panel
             if (leagues.length === 0) {
+                document.getElementById('xgPanel').style.display = 'none';
                 document.getElementById('homeTeamSelect').innerHTML = '<option value="">EQUIPO LOCAL...</option>';
                 document.getElementById('awayTeamSelect').innerHTML = '<option value="">EQUIPO VISITANTE...</option>';
-                document.getElementById('xgPanel').style.display = 'none';
             } else {
                 cargarDatosLiga();
             }
@@ -429,7 +432,7 @@
 
     async function cargarDatosLiga() {
         const sheetKey = document.getElementById('leagueSelect').value;
-        if (!sheetKey) return;
+        if (!sheetKey || sheetKey === "") return;
 
         const loading = document.getElementById('loading');
         loading.style.display = 'block';
@@ -456,7 +459,7 @@
                 }
             });
 
-            if (dataGlobal.locales.length === 0) throw new Error("No data");
+            if(dataGlobal.locales.length === 0) throw new Error("Sin datos");
 
             let sumaGFL = 0, sumaGAL = 0, sumaPJL = 0, sumaGFV = 0, sumaGAV = 0, sumaPJV = 0;
             dataGlobal.locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
@@ -466,7 +469,7 @@
             actualizarSelectoresEquipos();
         } catch (error) {
             console.error("Error al cargar datos:", error);
-            alert("No se pudo obtener datos de '" + sheetKey + "'. Verifica que la pestaña exista en Google Sheets.");
+            alert("No se encontró la hoja '" + sheetKey + "'. Asegúrate de que el nombre sea idéntico al de la pestaña en el archivo.");
         } finally {
             loading.style.display = 'none';
         }
