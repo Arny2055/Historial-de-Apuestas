@@ -210,6 +210,8 @@
         .positive-value { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); }
         .negative-value { background: rgba(255, 107, 107, 0.1); color: var(--accent-red); }
 
+        .insufficient-data { color: var(--text-muted); font-style: italic; opacity: 0.7; }
+
         .btn-send-bet {
             background: var(--accent-green);
             color: var(--bg-dark);
@@ -507,12 +509,16 @@
                         for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
                         for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
                         
+                        // VALIDACIÓN DE MUESTRA (Mínimo 5 partidos cada uno en su posición)
+                        const hasSample = (lData.gp >= 5 && vData.gp >= 5);
+
                         matchesToday.push({
                             league: leagueName,
                             home, away, xGL, xGV,
                             ov25: 1 - u25,
                             btts: 1 - (pL[0] + pV[0] - (pL[0]*pV[0])),
-                            probHT: 1 - Math.exp(-(xGL + xGV) * 0.45)
+                            probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
+                            hasSample: hasSample
                         });
                         break;
                     }
@@ -532,10 +538,14 @@
 
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
-        body.innerHTML = matchesToday.map((m, idx) => `
-            <tr>
+        body.innerHTML = matchesToday.map((m, idx) => {
+            const statusClass = m.hasSample ? "" : "insufficient-data";
+            const statusLabel = m.hasSample ? "" : "⚠️ [DATA INSUF.]<br>";
+            
+            return `
+            <tr class="${statusClass}">
                 <td><span class="league-tag">${m.league}</span></td>
-                <td style="font-weight:bold">${m.home}<br>${m.away}</td>
+                <td style="font-weight:bold">${statusLabel}${m.home}<br>${m.away}</td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
                 <td>${(m.ov25*100).toFixed(0)}%</td>
                 <td>${(m.btts*100).toFixed(0)}%</td>
@@ -543,7 +553,7 @@
                 <td id="val_multi_${idx}">--</td>
                 <td><button class="btn-open-match" onclick="abrirDetalle(${idx})">OPEN</button></td>
             </tr>
-        `).join('');
+        `}).join('');
     }
 
     function validaValueMulti(idx, odd) {
@@ -563,7 +573,8 @@
 
     function abrirDetalle(idx) {
         const m = matchesToday[idx];
-        document.getElementById('currentMatchLabel').innerText = `${m.home} vs ${m.away}`;
+        const warning = m.hasSample ? "" : "⚠️ [MUESTRA BAJA] ";
+        document.getElementById('currentMatchLabel').innerText = `${warning}${m.home} vs ${m.away}`;
         
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
         document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
