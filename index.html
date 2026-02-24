@@ -162,7 +162,6 @@
         }
         .btn-analyze-day:active { transform: scale(0.98); }
 
-        /* Estilos de Tabla de Análisis Global */
         .global-analysis-table {
             width: 100%;
             border-collapse: collapse;
@@ -191,7 +190,6 @@
             margin-bottom: 3px;
         }
 
-        /* Gráfico y xG */
         .chart-container {
             width: 100%;
             height: 160px;
@@ -379,9 +377,7 @@
 <script>
     const DEFAULT_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
     let dataGlobal = { locales: [], visitantes: [], liga: {} };
-    let allLeaguesData = {}; // Cache para análisis global
 
-    // --- SISTEMA DE GESTIÓN DE LIGAS ---
     function getSavedLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
         return saved ? JSON.parse(saved) : [];
@@ -422,11 +418,9 @@
         }
     }
 
-    // --- MATEMÁTICAS ---
     function poisson(k, lambda) { return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k); }
     function factorial(n) { let res = 1; for (let i = 2; i <= n; i++) res *= i; return res; }
 
-    // --- CARGA DE DATOS ---
     async function fetchSheetData(sheetName) {
         const url = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=${sheetName}&range=A1:W50`;
         const response = await fetch(url);
@@ -473,13 +467,11 @@
         });
     }
 
-    // --- ANÁLISIS GLOBAL MULTI-LIGA ---
     async function analisisGlobalMultiLiga() {
         const loading = document.getElementById('loading');
         const panel = document.getElementById('globalAnalysisPanel');
         const tableBody = document.getElementById('globalTableBody');
         const leagues = getSavedLeagues();
-        
         if (leagues.length === 0) return alert("No tienes ligas configuradas.");
 
         loading.style.display = 'block';
@@ -487,16 +479,13 @@
         tableBody.innerHTML = '';
 
         try {
-            // 1. Obtener partidos del día
             const urlPdD = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F100`;
             const respPdD = await fetch(urlPdD);
             const csvPdD = await respPdD.text();
             const partidosHoy = csvPdD.split('\n').map(l => l.split(',').map(c => c.replace(/^"(.*)"$/, '$1').trim()));
 
-            // 2. Procesar cada liga guardada
             for (const leagueInfo of leagues) {
                 const data = await fetchSheetData(leagueInfo.sheet);
-                
                 partidosHoy.forEach(partido => {
                     const hName = partido[0];
                     const vName = partido[2];
@@ -509,7 +498,6 @@
                         const xGL = ((loc.gf/loc.gp)/data.liga.gfl) * ((vis.ga/vis.gp)/data.liga.gav) * data.liga.gfl;
                         const xGV = ((vis.gf/vis.gp)/data.liga.gfv) * ((loc.ga/loc.gp)/data.liga.gal) * data.liga.gfv;
                         
-                        // Calculos Poisson Rápidos
                         let pL = [], pV = [];
                         for(let i=0; i<=5; i++) { pL[i] = poisson(i, xGL); pV[i] = poisson(i, xGV); }
                         
@@ -518,19 +506,13 @@
                         const bttsY = 1 - (pL[0] + pV[0] - (pL[0]*pV[0]));
                         const ov25 = 1 - u25;
 
-                        // Insertar Filas (Over y BTTS)
                         appendGlobalRow(tableBody, leagueInfo.name, hName, vName, "OVER 2.5", ov25, xGL, xGV);
                         appendGlobalRow(tableBody, leagueInfo.name, hName, vName, "BTTS YES", bttsY, xGL, xGV);
                     }
                 });
             }
             panel.style.display = 'block';
-        } catch (e) {
-            console.error(e);
-            alert("Error en el escaneo global.");
-        } finally {
-            loading.style.display = 'none';
-        }
+        } catch (e) { alert("Error en el escaneo global."); } finally { loading.style.display = 'none'; }
     }
 
     function appendGlobalRow(container, liga, h, v, mercado, prob, xGL, xGV) {
@@ -558,37 +540,28 @@
         cell.innerHTML = `<span class="value-badge ${color}">${(edge*100).toFixed(1)}%</span>`;
     }
 
-    // --- CÁLCULO INDIVIDUAL ---
     function calcularXG() {
         const hName = document.getElementById('homeTeamSelect').value;
         const vName = document.getElementById('awayTeamSelect').value;
         if (!hName || !vName) return;
-
         const loc = dataGlobal.locales.find(e => e.nombre === hName);
         const vis = dataGlobal.visitantes.find(e => e.nombre === vName);
-
         if (loc && vis) {
             const xGL = ((loc.gf/loc.gp)/dataGlobal.liga.gfl) * ((vis.ga/vis.gp)/dataGlobal.liga.gav) * dataGlobal.liga.gfl;
             const xGV = ((vis.gf/vis.gp)/dataGlobal.liga.gfv) * ((loc.ga/loc.gp)/dataGlobal.liga.gal) * dataGlobal.liga.gfv;
-
             document.getElementById('xg_local_val').innerText = xGL.toFixed(2);
             document.getElementById('xg_away_val').innerText = xGV.toFixed(2);
-
             let pL = [], pV = [];
             for(let i=0; i<=6; i++) { pL[i] = poisson(i, xGL); pV[i] = poisson(i, xGV); }
             renderChart(pL, pV);
-
             let u25 = 0;
             for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
-            
             const ov25 = 1 - u25;
             const bttsY = 1 - (pL[0] + pV[0] - (pL[0]*pV[0]));
             const ov05ht = 1 - Math.exp(-(xGL + xGV) * 0.45);
-
             document.getElementById('ov05ht_val').innerText = (ov05ht*100).toFixed(1) + '%';
             document.getElementById('ov25ft_val').innerText = (ov25*100).toFixed(1) + '%';
             document.getElementById('btts_val').innerText = (bttsY*100).toFixed(1) + '%';
-
             renderMarketsTable(ov05ht, ov25, u25, bttsY, (1-bttsY));
             document.getElementById('xgPanel').style.display = 'block';
         }
@@ -600,33 +573,16 @@
         for(let i=0; i<=6; i++) {
             const group = document.createElement('div');
             group.className = 'bar-group';
-            group.innerHTML = `
-                <div style="display:flex; gap:3px; height:100%; align-items:flex-end;">
-                    <div class="bar" style="height: ${pL[i]*150}%"></div>
-                    <div class="bar away" style="height: ${pV[i]*150}%"></div>
-                </div>
-                <div class="bar-label">${i}</div>
-            `;
+            group.innerHTML = `<div style="display:flex; gap:3px; height:100%; align-items:flex-end;"><div class="bar" style="height: ${pL[i]*150}%"></div><div class="bar away" style="height: ${pV[i]*150}%"></div></div><div class="bar-label">${i}</div>`;
             container.appendChild(group);
         }
     }
 
     function renderMarketsTable(ov05ht, ov25, u25, bttsY, bttsN) {
-        const markets = [
-            {n: 'OVER 0.5 HT', p: ov05ht}, {n: 'OVER 2.5 FT', p: ov25}, 
-            {n: 'UNDER 2.5 FT', p: u25}, {n: 'BTTS YES', p: bttsY}, {n: 'BTTS NO', p: bttsN}
-        ];
+        const markets = [{n: 'OVER 0.5 HT', p: ov05ht}, {n: 'OVER 2.5 FT', p: ov25}, {n: 'UNDER 2.5 FT', p: u25}, {n: 'BTTS YES', p: bttsY}, {n: 'BTTS NO', p: bttsN}];
         document.getElementById('marketsTable').innerHTML = markets.map((m, i) => {
             const fair = (1/m.p).toFixed(2);
-            return `
-            <tr>
-                <td><b>${m.n}</b></td>
-                <td style="color:var(--primary)">${(m.p*100).toFixed(0)}%</td>
-                <td>${fair}</td>
-                <td><input type="number" class="input-odds" id="ind_odd_${i}" oninput="calcIndVal(${i}, ${m.p})" placeholder="0.00"></td>
-                <td id="ind_val_${i}">--</td>
-                <td><button class="btn-send" onclick="sendIndividual('${m.n}', ${m.p}, ${fair}, ${i})">SEND</button></td>
-            </tr>`;
+            return `<tr><td><b>${m.n}</b></td><td style="color:var(--primary)">${(m.p*100).toFixed(0)}%</td><td>${fair}</td><td><input type="number" class="input-odds" id="ind_odd_${i}" oninput="calcIndVal(${i}, ${m.p})" placeholder="0.00"></td><td id="ind_val_${i}">--</td><td><button class="btn-send" onclick="sendIndividual('${m.n}', ${m.p}, ${fair}, ${i})">SEND</button></td></tr>`;
         }).join('');
     }
 
@@ -639,11 +595,10 @@
         cell.innerHTML = `<span class="value-badge ${color}">${(edge*100).toFixed(1)}%</span>`;
     }
 
-    // --- SISTEMA DE ENVÍO (STAKE 1) ---
     function sendGlobal(rowId, teams, market, prob, fair) {
         const odd = parseFloat(document.getElementById('odd_'+rowId).value);
         if (!odd) return alert("Pon la cuota");
-        saveBet(teams, market, prob, fair, odd);
+        saveBet(teams, market, parseFloat(prob), fair, odd);
     }
 
     function sendIndividual(market, prob, fair, index) {
@@ -652,22 +607,24 @@
         const h = document.getElementById('homeTeamSelect').value;
         const v = document.getElementById('awayTeamSelect').value;
         if (!odd) return alert("Pon la cuota");
-        saveBet(`${league}: ${h} vs ${v}`, market, prob, fair, odd);
+        saveBet(`${league}: ${h} vs ${v}`, market, parseFloat(prob), fair, odd);
     }
 
     function saveBet(teams, market, prob, fair, odd) {
         const STORAGE_KEY = 'betags_pre_match';
         let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        // Aseguramos que 'prob' sea un número antes de calcular
+        const numericProb = parseFloat(prob);
         const newPick = {
             id: Date.now(),
             date: new Date().toLocaleString(),
             teams: teams,
             market: market,
-            prob: (prob * 100).toFixed(1) + '%',
-            fair_odd: fair,
-            odd: odd,
-            edge: ((prob * odd - 1) * 100).toFixed(1) + '%',
-            stake: 1, // REQUISITO: Stake siempre 1
+            prob: (numericProb * 100).toFixed(1) + '%',
+            fair_odd: parseFloat(fair).toFixed(2),
+            odd: parseFloat(odd).toFixed(2),
+            edge: ((numericProb * odd - 1) * 100).toFixed(1) + '%',
+            stake: 1,
             status: 'pending',
             profit: 0
         };
@@ -676,10 +633,7 @@
         alert("¡Apuesta enviada al ROI con Stake 1!");
     }
 
-    window.onload = () => {
-        renderLeagueSelect();
-        cargarDatosLiga();
-    };
+    window.onload = () => { renderLeagueSelect(); cargarDatosLiga(); };
 </script>
 </body>
 </html>
