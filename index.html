@@ -18,7 +18,7 @@
             --glass: rgba(255, 255, 255, 0.03);
         }
 
-        /* Estilos Base - No cansan la vista */
+        /* Estilos Base */
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             background-color: var(--bg-dark); 
@@ -67,7 +67,6 @@
         .btn-nav-xg { border-color: var(--accent-green); color: var(--accent-green); }
         .btn-nav-roi:hover { background: var(--primary); color: var(--bg-dark); }
 
-        /* Títulos de Sección */
         .section-title { 
             font-size: 0.75rem; 
             color: var(--primary); 
@@ -80,7 +79,6 @@
             letter-spacing: 1px;
         }
         
-        /* Cards */
         .card {
             background: var(--bg-card);
             border-radius: 16px;
@@ -104,7 +102,6 @@
             box-sizing: border-box;
         }
 
-        /* Botón Maestro */
         .btn-analyze-master {
             width: 100%;
             background: linear-gradient(135deg, #4dabf7, #228be6);
@@ -124,7 +121,6 @@
         }
         .btn-analyze-master:active { transform: scale(0.98); }
 
-        /* Panel de Resultados Multiliga */
         .multi-results-table {
             width: 100%;
             border-collapse: collapse;
@@ -154,7 +150,6 @@
             border: 1px solid var(--border);
         }
 
-        /* Gráfico xG */
         .chart-container {
             width: 100%;
             height: 180px;
@@ -168,7 +163,6 @@
         .bar.away { background: var(--accent-green); }
         .bar-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; font-weight: bold; }
 
-        /* Probs Summary */
         .probs-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .summary-box { 
             background: var(--glass);
@@ -184,7 +178,6 @@
         .summary-val { font-size: 1.2rem; font-weight: 900; margin: 5px 0; }
         .summary-odds { font-size: 0.65rem; color: var(--accent-green); font-family: monospace; }
 
-        /* Tablas de Valor */
         .table-wrapper { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th { font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); padding: 12px; border-bottom: 1px solid var(--border); }
@@ -224,7 +217,6 @@
             display: none;
         }
 
-        /* Botón Open siempre visible */
         .btn-open-match {
             background: var(--primary);
             color: var(--bg-dark);
@@ -237,7 +229,6 @@
             display: inline-block;
         }
 
-        /* Loading */
         #loadingOverlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -260,7 +251,6 @@
         #multiAnalysisPanel, #singleAnalysisPanel { display: none; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Notificación Toast */
         #betToast {
             position: fixed;
             bottom: 20px;
@@ -282,7 +272,7 @@
 
 <div id="loadingOverlay">
     <div class="spinner"></div>
-    <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">PROCESANDO TODAS LAS LIGAS...</p>
+    <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">ANALIZANDO TODAS LAS HOJAS...</p>
 </div>
 
 <div id="betToast">🚀 APUESTA ENVIADA (STAKE 1)</div>
@@ -323,12 +313,12 @@
                         <tr>
                             <th>LIGA</th>
                             <th>PARTIDO</th>
-                            <th>xG</th>
+                            <th>xG (L/V)</th>
                             <th>O 2.5</th>
                             <th>BTTS Y</th>
                             <th>CUOTA</th>
                             <th>VALUE</th>
-                            <th>ACCION</th>
+                            <th>DETALLE</th>
                         </tr>
                     </thead>
                     <tbody id="multiResultsBody"></tbody>
@@ -382,7 +372,7 @@
                             <th>JUSTA</th>
                             <th>CASA</th>
                             <th>VALUE</th>
-                            <th>SEND</th>
+                            <th>ACCION</th>
                         </tr>
                     </thead>
                     <tbody id="individualMarketsTable"></tbody>
@@ -397,7 +387,7 @@
     let database = {}; 
     let matchesToday = [];
 
-    // --- SISTEMA DE LIGAS ---
+    // --- GESTIÓN DE LIGAS (HOJAS) ---
     function getLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
         return saved ? JSON.parse(saved) : [];
@@ -407,7 +397,7 @@
         const select = document.getElementById('leagueSelect');
         const leagues = getLeagues();
         if (leagues.length === 0) {
-            select.innerHTML = '<option value="">SIN LIGAS</option>';
+            select.innerHTML = '<option value="">SIN HOJAS CARGADAS</option>';
             return;
         }
         leagues.sort((a,b) => a.name.localeCompare(b.name));
@@ -418,7 +408,7 @@
         const name = document.getElementById('newSheetName').value.trim().toUpperCase();
         if (!name) return;
         const leagues = getLeagues();
-        if (leagues.some(l => l.sheet === name)) return alert("Ya existe");
+        if (leagues.some(l => l.sheet === name)) return alert("Esta hoja ya está en la lista.");
         leagues.push({name, sheet: name});
         localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
         document.getElementById('newSheetName').value = "";
@@ -441,16 +431,18 @@
         let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
     }
 
-    // --- CORE DE ANÁLISIS ---
+    // --- CARGA DE DATOS POR HOJA ---
     async function fetchDataForSheet(sheetName) {
-        const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=${sheetName}&range=A1:W50`;
+        const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&range=A1:W60`;
         try {
             const res = await fetch(url);
+            if (!res.ok) return null;
             const text = await res.text();
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
             
             let data = { locales: [], visitantes: [] };
             rows.forEach((cols, i) => {
+                // Validación de columnas de rendimiento Local (B) y Visita (N)
                 if (i > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
                     data.locales.push({ n: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7]) });
                     data.visitantes.push({ n: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19]) });
@@ -471,19 +463,28 @@
         } catch (e) { return null; }
     }
 
+    // --- PROCESAMIENTO MULTILIGA ---
     async function analizarTodoMultiliga() {
         const loader = document.getElementById('loadingOverlay');
         loader.style.display = 'flex';
         
         const leagues = getLeagues();
+        if(leagues.length === 0) {
+            alert("No hay hojas configuradas para analizar.");
+            loader.style.display = 'none';
+            return;
+        }
+
         database = {};
         matchesToday = [];
 
+        // 1. Cargamos datos de todas las hojas activas
         for (let l of leagues) {
             const data = await fetchDataForSheet(l.sheet);
             if (data) database[l.sheet] = data;
         }
 
+        // 2. Buscamos partidos del día
         try {
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F100`;
             const res = await fetch(url);
@@ -495,12 +496,14 @@
                 const away = cols[2];
                 if (!home || home === "LOCAL") return;
 
+                // Buscamos a qué liga pertenecen estos equipos
                 for (let leagueName in database) {
                     const db = database[leagueName];
                     const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
                     const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
 
                     if (lData && vData) {
+                        // Cálculo de xG basado en promedios de esa hoja específica
                         const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl;
                         const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv;
                         
@@ -509,18 +512,15 @@
                         for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
                         for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
                         
-                        // VALIDACIÓN DE MUESTRA (Mínimo 5 partidos cada uno en su posición)
-                        const hasSample = (lData.gp >= 5 && vData.gp >= 5);
-
                         matchesToday.push({
                             league: leagueName,
                             home, away, xGL, xGV,
                             ov25: 1 - u25,
                             btts: 1 - (pL[0] + pV[0] - (pL[0]*pV[0])),
                             probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
-                            hasSample: hasSample
+                            hasSample: (lData.gp >= 5 && vData.gp >= 5)
                         });
-                        break;
+                        break; // Si lo encuentra en una liga, no sigue buscando en las demás
                     }
                 }
             });
@@ -530,7 +530,7 @@
             document.getElementById('singleAnalysisPanel').style.display = 'none';
 
         } catch (e) {
-            alert("Error al procesar partidos del día.");
+            alert("Error al conectar con la hoja de PARTIDOS DEL DIA.");
         } finally {
             loader.style.display = 'none';
         }
@@ -538,6 +538,10 @@
 
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
+        if(matchesToday.length === 0) {
+            body.innerHTML = '<tr><td colspan="8">No se encontraron equipos de PARTIDOS DEL DIA en tus hojas configuradas.</td></tr>';
+            return;
+        }
         body.innerHTML = matchesToday.map((m, idx) => {
             const statusClass = m.hasSample ? "" : "insufficient-data";
             const statusLabel = m.hasSample ? "" : "⚠️ [DATA INSUF.]<br>";
@@ -566,8 +570,9 @@
             return;
         }
 
-        const prob = m.ov25 > m.btts ? m.ov25 : m.btts; 
-        const edge = (prob * houseOdd) - 1;
+        // Usamos la probabilidad más alta para el cálculo rápido del value en tabla general
+        const maxProb = Math.max(m.ov25, m.btts);
+        const edge = (maxProb * houseOdd) - 1;
         resCell.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
     }
 
@@ -583,9 +588,6 @@
         for(let i=0; i<=6; i++) { pL[i] = poisson(i, m.xGL); pV[i] = poisson(i, m.xGV); }
         renderSingleChart(pL, pV);
 
-        const u25 = 1 - m.ov25;
-        const bttsN = 1 - m.btts;
-
         document.getElementById('ov05ht_val').innerText = (m.probHT*100).toFixed(1) + '%';
         document.getElementById('ov05ht_odds').innerText = 'JUSTA: ' + (1/m.probHT).toFixed(2);
         document.getElementById('ov25ft_val').innerText = (m.ov25*100).toFixed(1) + '%';
@@ -596,9 +598,9 @@
         const markets = [
             {n: 'OVER 0.5 HT', p: m.probHT},
             {n: 'OVER 2.5 FT', p: m.ov25},
-            {n: 'UNDER 2.5 FT', p: u25},
+            {n: 'UNDER 2.5 FT', p: 1 - m.ov25},
             {n: 'BTTS YES', p: m.btts},
-            {n: 'BTTS NO', p: bttsN}
+            {n: 'BTTS NO', p: 1 - m.btts}
         ];
 
         const table = document.getElementById('individualMarketsTable');
@@ -649,17 +651,9 @@
         if(edge > 0) btn.style.display = "block"; else btn.style.display = "none";
     }
 
-    function showToast() {
-        const toast = document.getElementById('betToast');
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2500);
-    }
-
-    // --- ENVÍO DE APUESTA (SIN SALIR DE LA PÁGINA) ---
     function enviarBet(liga, partido, mercado, prob, justa, inputIdx) {
         const houseOddInputs = document.querySelectorAll('#individualMarketsTable .input-odds');
-        const houseOddInput = houseOddInputs[inputIdx];
-        const houseOdd = parseFloat(houseOddInput.value);
+        const houseOdd = parseFloat(houseOddInputs[inputIdx].value);
         
         const pick = {
             id: Date.now(),
@@ -671,17 +665,18 @@
             odd: houseOdd,
             edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%',
             stake: 1, 
-            status: 'pending',
-            profit: 0
+            status: 'pending'
         };
 
         let historial = JSON.parse(localStorage.getItem('betags_pre_match')) || [];
         historial.push(pick);
         localStorage.setItem('betags_pre_match', JSON.stringify(historial));
         
-        showToast();
+        const toast = document.getElementById('betToast');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
         
-        houseOddInput.value = "";
+        houseOddInputs[inputIdx].value = "";
         document.getElementById(`s_val_${inputIdx}`).innerHTML = "--";
         document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
     }
