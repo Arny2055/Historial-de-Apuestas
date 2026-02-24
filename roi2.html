@@ -381,24 +381,51 @@
         let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let bChart;
 
+        // FUNCIÓN AUXILIAR PARA LIMPIAR EL NOMBRE DE LA LIGA
+        function extractLeagueName(teamsStr) {
+            if (!teamsStr) return 'General';
+            
+            // Caso 1: [LIGA]
+            if (teamsStr.includes('[') && teamsStr.includes(']')) {
+                const match = teamsStr.match(/\[(.*?)\]/);
+                return match ? match[0].trim() : 'General';
+            }
+            
+            // Caso 2: PAÍS-LIGA (Detecta guion si no hay corchetes)
+            // Ejemplo: UKR-UCRANIA PREMIER -> Tomamos todo lo anterior al nombre del equipo o la fecha
+            // Si tus datos vienen como "PAIS-LIGA EQUIPO A VS EQUIPO B", esta lógica lo extrae.
+            if (teamsStr.includes('-')) {
+                // Suponiendo que la liga está al principio y termina en el primer espacio después del guion
+                const parts = teamsStr.split(' ');
+                if (parts[0].includes('-')) return parts[0].trim();
+            }
+
+            // Fallback: Si usabas dos puntos antes
+            if (teamsStr.includes(':')) {
+                return teamsStr.split(':')[0].trim();
+            }
+
+            return 'General';
+        }
+
         function updateLeagueFilter() {
             const leagueSelect = document.getElementById('f_league');
             const currentValue = leagueSelect.value;
             const leagues = new Set();
             
             bets.forEach(b => {
-                if (b.teams && b.teams.includes(':')) {
-                    leagues.add(b.teams.split(':')[0].trim());
-                }
+                leagues.add(extractLeagueName(b.teams));
             });
 
             leagueSelect.innerHTML = '<option value="">Todas las Ligas</option>';
             Array.from(leagues).sort().forEach(league => {
-                const opt = document.createElement('option');
-                opt.value = league;
-                opt.innerText = league;
-                if(league === currentValue) opt.selected = true;
-                leagueSelect.appendChild(opt);
+                if(league !== 'General') {
+                    const opt = document.createElement('option');
+                    opt.value = league;
+                    opt.innerText = league;
+                    if(league === currentValue) opt.selected = true;
+                    leagueSelect.appendChild(opt);
+                }
             });
         }
 
@@ -408,7 +435,7 @@
             const marketStats = {};
 
             resolved.forEach(b => {
-                const league = b.teams && b.teams.includes(':') ? b.teams.split(':')[0].trim() : 'General';
+                const league = extractLeagueName(b.teams);
                 const market = b.market || 'Unknown';
                 const profit = Number(b.profit) || 0;
 
@@ -535,7 +562,10 @@
                 const matchM = selectedMarkets.length === 0 || (b.market && selectedMarkets.includes(b.market.toString().toUpperCase()));
                 const matchS = !f_status || (b.status === f_status);
                 const matchSource = !f_source || (b.teams && b.teams.toUpperCase().includes(f_source.toUpperCase()));
-                const matchLeague = !f_league || (b.teams && b.teams.startsWith(f_league));
+                
+                // MEJORA: Filtrado por nombre exacto extraído
+                const currentItemLeague = extractLeagueName(b.teams);
+                const matchLeague = !f_league || (currentItemLeague === f_league);
                 
                 const probVal = (Number(b.prob) * 100) || 0;
                 const odd = Number(b.odd) || 0;
@@ -662,7 +692,7 @@
             displayData.forEach(b => {
                 const tr = document.createElement('tr');
                 const status = b.status || 'pending';
-                const league = b.teams && b.teams.includes(':') ? b.teams.split(':')[0].trim() : 'General';
+                const league = extractLeagueName(b.teams);
                 const market = b.market || 'Unknown';
                 
                 const isProfitableLeague = tops.leagues.includes(league);
