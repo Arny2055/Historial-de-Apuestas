@@ -243,6 +243,23 @@
 
         #multiAnalysisPanel, #singleAnalysisPanel { display: none; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Notificación Toast */
+        #betToast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-green);
+            color: var(--bg-dark);
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-weight: 900;
+            font-size: 0.8rem;
+            display: none;
+            z-index: 2000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
     </style>
 </head>
 <body>
@@ -251,6 +268,8 @@
     <div class="spinner"></div>
     <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">PROCESANDO TODAS LAS LIGAS...</p>
 </div>
+
+<div id="betToast">🚀 APUESTA ENVIADA (STAKE 1)</div>
 
 <div class="container">
     <h1>BETA<span>GS</span> ANALYTICS</h1>
@@ -264,7 +283,7 @@
     <div class="card">
         <div class="input-grid">
             <div style="display: flex; gap: 10px;">
-                <select id="leagueSelect" onchange="cargarDatosLigaUnica()"></select>
+                <select id="leagueSelect"></select>
                 <button class="btn-nav-roi" onclick="borrarLigaSeleccionada()" style="border-color: var(--accent-red); color: var(--accent-red);">🗑️</button>
             </div>
             
@@ -359,7 +378,7 @@
 
 <script>
     const SHEETS_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
-    let database = {}; // Almacena datos de todas las ligas: { 'LIGA': {locales, visitantes, promedioLigas} }
+    let database = {}; 
     let matchesToday = [];
 
     // --- SISTEMA DE LIGAS ---
@@ -444,13 +463,11 @@
         database = {};
         matchesToday = [];
 
-        // 1. Cargar todas las ligas en memoria
         for (let l of leagues) {
             const data = await fetchDataForSheet(l.sheet);
             if (data) database[l.sheet] = data;
         }
 
-        // 2. Cargar Partidos del Día
         try {
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F100`;
             const res = await fetch(url);
@@ -462,7 +479,6 @@
                 const away = cols[2];
                 if (!home || home === "LOCAL") return;
 
-                // Buscar a qué liga pertenecen estos equipos
                 for (let leagueName in database) {
                     const db = database[leagueName];
                     const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
@@ -528,7 +544,7 @@
             return;
         }
 
-        const prob = m.ov25 > m.btts ? m.ov25 : m.btts; // Referencia rápida
+        const prob = m.ov25 > m.btts ? m.ov25 : m.btts; 
         const edge = (prob * houseOdd) - 1;
         resCell.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
         btn.style.display = "inline-block";
@@ -538,7 +554,6 @@
         const m = matchesToday[idx];
         document.getElementById('currentMatchLabel').innerText = `${m.home} vs ${m.away}`;
         
-        // Cargar UI de detalle
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
         document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
         
@@ -612,9 +627,16 @@
         if(edge > 0) btn.style.display = "block"; else btn.style.display = "none";
     }
 
-    // --- ENVÍO DE APUESTA (REQUISITO: STAKE 1) ---
+    function showToast() {
+        const toast = document.getElementById('betToast');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
+
+    // --- ENVÍO DE APUESTA (SIN SALIR DE LA PÁGINA) ---
     function enviarBet(liga, partido, mercado, prob, justa, inputIdx) {
-        const houseOdd = parseFloat(document.querySelectorAll('#individualMarketsTable .input-odds')[inputIdx].value);
+        const houseOddInput = document.querySelectorAll('#individualMarketsTable .input-odds')[inputIdx];
+        const houseOdd = parseFloat(houseOddInput.value);
         
         const pick = {
             id: Date.now(),
@@ -625,7 +647,7 @@
             fair_odd: justa,
             odd: houseOdd,
             edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%',
-            stake: 1, // STAKE 1 SEGÚN TU ORDEN
+            stake: 1, 
             status: 'pending',
             profit: 0
         };
@@ -634,8 +656,13 @@
         historial.push(pick);
         localStorage.setItem('betags_pre_match', JSON.stringify(historial));
         
-        alert("✅ APUESTA ENVIADA AL ROI CON STAKE 1");
-        window.location.href = 'roi2.html';
+        // Notificamos el éxito sin recargar ni navegar
+        showToast();
+        
+        // Opcional: Limpiamos el input y el botón después de enviar
+        houseOddInput.value = "";
+        document.getElementById(`s_val_${inputIdx}`).innerHTML = "--";
+        document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
     }
 
     window.onload = () => {
