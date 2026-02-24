@@ -298,22 +298,16 @@
             width: 100%;
             margin-top: 10px;
         }
-        .poisson-row {
-            background: rgba(255,255,255,0.03);
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid var(--border);
-            font-size: 0.75rem;
+        
+        /* Ajuste de tabla para el análisis global */
+        .poisson-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.65rem;
         }
-        .poisson-teams { text-align: left; flex: 1; font-weight: bold; }
-        .poisson-metrics { display: flex; gap: 10px; }
-        .metric-item { display: flex; flex-direction: column; align-items: center; min-width: 45px;}
-        .metric-item span:first-child { font-size: 0.55rem; color: var(--text-muted); margin-bottom: 2px; }
-        .metric-item span:last-child { color: var(--accent-yellow); font-weight: 900; }
+        .poisson-table th { padding: 8px 2px; }
+        .poisson-table td { padding: 8px 2px; border-bottom: 1px solid var(--border); }
+        .league-tag { font-size: 0.55rem; color: var(--primary); display: block; font-weight: bold; }
 
         .loading-text { color: var(--primary); text-align: center; font-size: 0.9rem; display: none; margin-top: 30px; font-weight: bold; letter-spacing: 1px;}
         #xgPanel { display: none; animation: fadeIn 0.5s ease; width: 100%; }
@@ -350,8 +344,8 @@
                 <button class="btn-delete-sheet" onclick="borrarLigaSeleccionada()" title="Borrar liga seleccionada">🗑️</button>
             </div>
 
-            <button class="btn-analyze-day" onclick="analizarPartidosDelDia()">
-                🚀 ANALIZAR PARTIDOS DEL DÍA (POISSON)
+            <button class="btn-analyze-day" onclick="analizarPartidosGlobal()">
+                🚀 ANALIZAR TODAS LAS LIGAS (HOY)
             </button>
 
             <select id="homeTeamSelect" onchange="calcularXG()">
@@ -366,9 +360,24 @@
     <div id="loading" class="loading-text">OBTENIENDO DATA REAL-TIME...</div>
 
     <div id="poissonResultsPanel">
-        <div class="section-title"><span>📅</span> PARTIDOS DEL DÍA - ANÁLISIS POISSON</div>
-        <div class="card" id="poissonItemsContainer">
+        <div class="section-title"><span>📅</span> ANÁLISIS MULTI-LIGA DE HOY</div>
+        <div class="card" style="padding: 10px 5px;">
+            <div class="table-wrapper">
+                <table class="poisson-table">
+                    <thead>
+                        <tr>
+                            <th>LIGA/PARTIDO</th>
+                            <th>MÉTRICA</th>
+                            <th>PROB</th>
+                            <th>CASA</th>
+                            <th>VAL</th>
+                            <th>SEND</th>
+                        </tr>
+                    </thead>
+                    <tbody id="poissonItemsContainer"></tbody>
+                </table>
             </div>
+        </div>
     </div>
 
     <div id="xgPanel">
@@ -448,37 +457,25 @@
             return;
         }
 
-        // Ordenar alfabéticamente antes de renderizar
         leagues.sort((a, b) => a.name.localeCompare(b.name));
-        
         select.innerHTML = leagues.map(l => `<option value="${l.sheet}">${l.name}</option>`).join('');
     }
 
     function agregarNuevaLiga() {
         const input = document.getElementById('newSheetName');
         let sheetName = input.value.trim().toUpperCase();
-
         if (!sheetName) return;
-
-        // Limpiar "HOJA:" si el usuario lo escribe manualmente
         sheetName = sheetName.replace(/^HOJA:\s*/i, '');
-
         const leagues = getSavedLeagues();
-        
         if (leagues.some(l => l.sheet === sheetName)) {
             alert("Esta hoja ya existe en la lista.");
             return;
         }
-
         const newLeague = { name: sheetName, sheet: sheetName };
         leagues.push(newLeague);
-        
-        // Ordenar antes de guardar
         leagues.sort((a, b) => a.name.localeCompare(b.name));
-        
         localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
         renderLeagueSelect();
-        
         input.value = "";
         document.getElementById('leagueSelect').value = sheetName;
         cargarDatosLiga();
@@ -487,16 +484,12 @@
     function borrarLigaSeleccionada() {
         const select = document.getElementById('leagueSelect');
         const sheetToDelete = select.value;
-        
         if (!sheetToDelete || sheetToDelete === "") return;
-
         if (confirm(`¿Estás seguro de que deseas eliminar la hoja "${sheetToDelete}"?`)) {
             let leagues = getSavedLeagues();
             leagues = leagues.filter(l => l.sheet !== sheetToDelete);
-            
             localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
             renderLeagueSelect();
-            
             if (leagues.length === 0) {
                 document.getElementById('xgPanel').style.display = 'none';
                 document.getElementById('homeTeamSelect').innerHTML = '<option value="">EQUIPO LOCAL...</option>';
@@ -518,50 +511,43 @@
         return res;
     }
 
+    async function fetchSheetData(sheetKey) {
+        const url = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetKey)}&range=A1:W50`;
+        const response = await fetch(url);
+        const csvText = await response.text();
+        const filas = csvText.split('\n').map(linea => 
+            linea.split(',').map(celda => celda.replace(/^"(.*)"$/, '$1').trim())
+        );
+
+        let locales = [], visitantes = [];
+        filas.forEach((cols, index) => {
+            if (index > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
+                locales.push({ nombre: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7]) });
+                if (cols[13] && !isNaN(parseFloat(cols[14]))) {
+                    visitantes.push({ nombre: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19]) });
+                }
+            }
+        });
+
+        let sumaGFL = 0, sumaGAL = 0, sumaPJL = 0, sumaGFV = 0, sumaGAV = 0, sumaPJV = 0;
+        locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
+        visitantes.forEach(e => { sumaGFV += e.gf; sumaGAV += e.ga; sumaPJV += e.gp; });
+        
+        return {
+            locales, visitantes,
+            liga: { gfl: sumaGFL/sumaPJL, gal: sumaGAL/sumaPJL, gfv: sumaGFV/sumaPJV, gav: sumaGAV/sumaPJV }
+        };
+    }
+
     async function cargarDatosLiga() {
         const sheetKey = document.getElementById('leagueSelect').value;
-        if (!sheetKey || sheetKey === "") return;
-
-        const loading = document.getElementById('loading');
-        loading.style.display = 'block';
-        document.getElementById('xgPanel').style.display = 'none';
-        document.getElementById('poissonResultsPanel').style.display = 'none';
-
-        const url = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=${sheetKey}&range=A1:W50`;
-
+        if (!sheetKey) return;
+        document.getElementById('loading').style.display = 'block';
         try {
-            const response = await fetch(url);
-            const csvText = await response.text();
-            const filas = csvText.split('\n').map(linea => 
-                linea.split(',').map(celda => celda.replace(/^"(.*)"$/, '$1').trim())
-            );
-
-            dataGlobal.locales = [];
-            dataGlobal.visitantes = [];
-
-            filas.forEach((cols, index) => {
-                if (index > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
-                    dataGlobal.locales.push({ nombre: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7]) });
-                    if (cols[13] && !isNaN(parseFloat(cols[14]))) {
-                        dataGlobal.visitantes.push({ nombre: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19]) });
-                    }
-                }
-            });
-
-            if(dataGlobal.locales.length === 0) throw new Error("Sin datos");
-
-            let sumaGFL = 0, sumaGAL = 0, sumaPJL = 0, sumaGFV = 0, sumaGAV = 0, sumaPJV = 0;
-            dataGlobal.locales.forEach(e => { sumaGFL += e.gf; sumaGAL += e.ga; sumaPJL += e.gp; });
-            dataGlobal.visitantes.forEach(e => { sumaGFV += e.gf; sumaGAV += e.ga; sumaPJV += e.gp; });
-            dataGlobal.liga = { gfl: sumaGFL / sumaPJL, gal: sumaGAL / sumaPJL, gfv: sumaGFV / sumaPJV, gav: sumaGAV / sumaPJV };
-
+            dataGlobal = await fetchSheetData(sheetKey);
             actualizarSelectoresEquipos();
-        } catch (error) {
-            console.error("Error al cargar datos:", error);
-            alert("No se encontró la hoja '" + sheetKey + "'.");
-        } finally {
-            loading.style.display = 'none';
-        }
+        } catch (e) { alert("Error al cargar liga"); }
+        document.getElementById('loading').style.display = 'none';
     }
 
     function actualizarSelectoresEquipos() {
@@ -576,79 +562,87 @@
         });
     }
 
-    /** 🚀 NUEVA FUNCIÓN: ANALIZAR PARTIDOS DEL DIA */
-    async function analizarPartidosDelDia() {
+    /** 🚀 ANALIZAR TODAS LAS LIGAS */
+    async function analizarPartidosGlobal() {
         const loading = document.getElementById('loading');
-        const resultsPanel = document.getElementById('poissonResultsPanel');
         const container = document.getElementById('poissonItemsContainer');
+        const leagues = getSavedLeagues();
         
+        if (leagues.length === 0) { alert("No hay ligas configuradas."); return; }
+
         loading.style.display = 'block';
-        resultsPanel.style.display = 'none';
+        document.getElementById('poissonResultsPanel').style.display = 'none';
         container.innerHTML = '';
 
-        // Consultamos la hoja PARTIDOS DEL DIA, columnas D (Local) y F (Visitante)
-        const url = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F100`;
-
         try {
-            const response = await fetch(url);
-            const csvText = await response.text();
-            const filas = csvText.split('\n').map(linea => 
-                linea.split(',').map(celda => celda.replace(/^"(.*)"$/, '$1').trim())
-            );
+            // 1. Obtener partidos del día
+            const urlHoy = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F100`;
+            const respHoy = await fetch(urlHoy);
+            const csvHoy = await respHoy.text();
+            const partidosHoy = csvHoy.split('\n').map(l => l.split(',').map(c => c.replace(/^"(.*)"$/, '$1').trim()));
 
-            let matchesFound = 0;
+            let matchCount = 0;
 
-            filas.forEach((cols, index) => {
-                const homeName = cols[0]; // Columna D
-                const awayName = cols[2]; // Columna F
+            // 2. Por cada liga guardada, procesar
+            for (const l of leagues) {
+                const db = await fetchSheetData(l.sheet);
+                
+                partidosHoy.forEach((cols, idx) => {
+                    const homeName = cols[0];
+                    const awayName = cols[2];
+                    if (!homeName || homeName === "LOCAL") return;
 
-                if (!homeName || !awayName || homeName === "LOCAL" || homeName === "") return;
+                    const loc = db.locales.find(e => e.nombre.toUpperCase() === homeName.toUpperCase());
+                    const vis = db.visitantes.find(e => e.nombre.toUpperCase() === awayName.toUpperCase());
 
-                const localData = dataGlobal.locales.find(e => e.nombre.toUpperCase() === homeName.toUpperCase());
-                const visitData = dataGlobal.visitantes.find(e => e.nombre.toUpperCase() === awayName.toUpperCase());
+                    if (loc && vis) {
+                        matchCount++;
+                        const xGL = ((loc.gf/loc.gp)/db.liga.gfl) * ((vis.ga/vis.gp)/db.liga.gav) * db.liga.gfl;
+                        const xGV = ((vis.gf/vis.gp)/db.liga.gfv) * ((loc.ga/loc.gp)/db.liga.gal) * db.liga.gfv;
 
-                if (localData && visitData) {
-                    matchesFound++;
-                    const xGL = ((localData.gf/localData.gp)/dataGlobal.liga.gfl) * ((visitData.ga/visitData.gp)/dataGlobal.liga.gav) * dataGlobal.liga.gfl;
-                    const xGV = ((visitData.gf/visitData.gp)/dataGlobal.liga.gfv) * ((localData.ga/localData.gp)/dataGlobal.liga.gal) * dataGlobal.liga.gfv;
+                        let pL = [], pV = [];
+                        for(let i=0; i<=6; i++) { pL[i] = poisson(i, xGL); pV[i] = poisson(i, xGV); }
+                        const bttsY = 1 - (pL[0] + pV[0] - (pL[0]*pV[0]));
+                        const fair = (1/bttsY).toFixed(2);
+                        const rowId = `row_${matchCount}`;
 
-                    // Cálculo de métricas rápidas
-                    let u25 = 0;
-                    let pL = [], pV = [];
-                    for(let i=0; i<=6; i++) { pL[i] = poisson(i, xGL); pV[i] = poisson(i, xGV); }
-                    for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
-                    
-                    const bttsY = 1 - (pL[0] + pV[0] - (pL[0]*pV[0]));
-                    const ov25 = 1 - u25;
-
-                    // Crear elemento visual
-                    const div = document.createElement('div');
-                    div.className = 'poisson-row';
-                    div.innerHTML = `
-                        <div class="poisson-teams">${homeName} vs ${awayName}</div>
-                        <div class="poisson-metrics">
-                            <div class="metric-item"><span>+2.5</span><span>${(ov25*100).toFixed(0)}%</span></div>
-                            <div class="metric-item"><span>BTTS</span><span>${(bttsY*100).toFixed(0)}%</span></div>
-                            <div class="metric-item"><span>xG L/V</span><span>${xGL.toFixed(1)}/${xGV.toFixed(1)}</span></div>
-                        </div>
-                    `;
-                    container.appendChild(div);
-                }
-            });
-
-            if(matchesFound === 0) {
-                container.innerHTML = '<div style="padding:20px; color:var(--text-muted)">No se encontraron equipos de esta liga en la hoja de hoy.</div>';
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td style="text-align:left"><span class="league-tag">${l.name}</span>${homeName} vs ${awayName}</td>
+                            <td>BTTS YES</td>
+                            <td class="prob-cell">${(bttsY*100).toFixed(0)}%</td>
+                            <td><input type="number" class="input-odds" id="in_${rowId}" oninput="calculateValueGlobal('${rowId}', ${bttsY})" placeholder="${fair}"></td>
+                            <td id="val_${rowId}">--</td>
+                            <td><button onclick="sendToROI('${rowId}', 'BTTS YES', ${bttsY}, ${fair}, '${l.name}', '${homeName}', '${awayName}')" class="btn-roi" id="btn_${rowId}">SEND</button></td>
+                        `;
+                        container.appendChild(tr);
+                    }
+                });
             }
 
-            resultsPanel.style.display = 'block';
-            resultsPanel.scrollIntoView({ behavior: 'smooth' });
+            if (matchCount === 0) container.innerHTML = '<tr><td colspan="6">No se hallaron coincidencias.</td></tr>';
+            document.getElementById('poissonResultsPanel').style.display = 'block';
+            document.getElementById('poissonResultsPanel').scrollIntoView({ behavior: 'smooth' });
 
         } catch (error) {
-            console.error("Error analizando jornada:", error);
-            alert("Error al conectar con 'PARTIDOS DEL DIA'. Revisa el nombre de la hoja.");
+            console.error(error);
+            alert("Error en el análisis global.");
         } finally {
             loading.style.display = 'none';
         }
+    }
+
+    function calculateValueGlobal(id, prob) {
+        const input = document.getElementById('in_' + id);
+        const valCell = document.getElementById('val_' + id);
+        const btn = document.getElementById('btn_' + id);
+        const odds = parseFloat(input.value);
+
+        if(!odds || odds <= 1) { valCell.innerText = '--'; btn.style.display = 'none'; return; }
+
+        const edge = (prob * odds) - 1;
+        valCell.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
+        btn.style.display = edge > 0 ? 'inline-block' : 'none';
     }
 
     function calcularXG() {
@@ -656,12 +650,12 @@
         const awayName = document.getElementById('awayTeamSelect').value;
         if (!homeName || !awayName) return;
 
-        const localData = dataGlobal.locales.find(e => e.nombre === homeName);
-        const visitData = dataGlobal.visitantes.find(e => e.nombre === awayName);
+        const loc = dataGlobal.locales.find(e => e.nombre === homeName);
+        const vis = dataGlobal.visitantes.find(e => e.nombre === awayName);
 
-        if (localData && visitData) {
-            const xGL = ((localData.gf/localData.gp)/dataGlobal.liga.gfl) * ((visitData.ga/visitData.gp)/dataGlobal.liga.gav) * dataGlobal.liga.gfl;
-            const xGV = ((visitData.gf/visitData.gp)/dataGlobal.liga.gfv) * ((localData.ga/localData.gp)/dataGlobal.liga.gal) * dataGlobal.liga.gfv;
+        if (loc && vis) {
+            const xGL = ((loc.gf/loc.gp)/dataGlobal.liga.gfl) * ((vis.ga/vis.gp)/dataGlobal.liga.gav) * dataGlobal.liga.gfl;
+            const xGV = ((vis.gf/vis.gp)/dataGlobal.liga.gfv) * ((loc.ga/loc.gp)/dataGlobal.liga.gal) * dataGlobal.liga.gfv;
 
             document.getElementById('xg_local_val').innerText = xGL.toFixed(2);
             document.getElementById('xg_away_val').innerText = xGV.toFixed(2);
@@ -673,7 +667,6 @@
 
             let u25 = 0, bttsNo = pL[0] + pV[0] - (pL[0]*pV[0]);
             for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
-            
             let probHT = 1 - Math.exp(-(xGL + xGV) * 0.45);
 
             updateUI(probHT, 1-u25, 1-bttsNo, u25, bttsNo);
@@ -687,13 +680,10 @@
         for(let i=0; i<=6; i++) {
             const group = document.createElement('div');
             group.className = 'bar-group';
-            group.innerHTML = `
-                <div style="display:flex; gap:3px; height:100%; align-items:flex-end; width:100%; justify-content:center;">
-                    <div class="bar" style="height: ${pL[i]*150}%"></div>
-                    <div class="bar away" style="height: ${pV[i]*150}%"></div>
-                </div>
-                <div class="bar-label">${i}</div>
-            `;
+            group.innerHTML = `<div style="display:flex; gap:3px; height:100%; align-items:flex-end; width:100%; justify-content:center;">
+                <div class="bar" style="height: ${pL[i]*150}%"></div>
+                <div class="bar away" style="height: ${pV[i]*150}%"></div>
+            </div><div class="bar-label">${i}</div>`;
             container.appendChild(group);
         }
     }
@@ -713,55 +703,41 @@
             {id: 'm4', n: 'BTTS YES', p: bttsY},
             {id: 'm5', n: 'BTTS NO', p: bttsN}
         ];
-
         renderMarketsTable();
     }
 
     function renderMarketsTable() {
         document.getElementById('marketsTable').innerHTML = currentMarkets.map(m => {
-            const fairOdds = (1/m.p).toFixed(2);
-            return `
-            <tr>
+            const fair = (1/m.p).toFixed(2);
+            return `<tr>
                 <td><strong>${m.n}</strong></td>
                 <td class="prob-cell">${(m.p*100).toFixed(0)}%</td>
-                <td class="odds-cell">${fairOdds}</td>
+                <td class="odds-cell">${fair}</td>
                 <td><input type="number" step="0.01" class="input-odds" id="input_${m.id}" oninput="calculateValue('${m.id}', ${m.p})" placeholder="0.00"></td>
                 <td id="val_${m.id}"><span class="value-badge">--</span></td>
-                <td><button onclick="sendToROI('${m.id}', '${m.n}', ${m.p}, ${fairOdds})" class="btn-roi" id="btn_roi_${m.id}">SEND</button></td>
-            </tr>
-        `}).join('');
+                <td><button onclick="sendToROI('${m.id}', '${m.n}', ${m.p}, ${fair})" class="btn-roi" id="btn_roi_${m.id}">SEND</button></td>
+            </tr>`}).join('');
     }
 
     function calculateValue(id, prob) {
         const input = document.getElementById('input_' + id);
         const valCell = document.getElementById('val_' + id);
-        const roiBtn = document.getElementById('btn_roi_' + id);
-        const houseOdds = parseFloat(input.value);
-
-        if(!houseOdds || houseOdds <= 1) {
-            valCell.innerHTML = '<span class="value-badge">--</span>';
-            roiBtn.style.display = 'none';
-            return;
-        }
-
-        const edge = (prob * houseOdds) - 1;
-        const edgePercent = (edge * 100).toFixed(1);
-        
-        const className = edge > 0 ? 'positive-value' : 'negative-value';
-        valCell.innerHTML = `<span class="value-badge ${className}">${edgePercent}%</span>`;
-
-        if (edge > 0) {
-            roiBtn.style.display = 'inline-block';
-        } else {
-            roiBtn.style.display = 'none';
-        }
+        const btn = document.getElementById('btn_roi_' + id);
+        const odds = parseFloat(input.value);
+        if(!odds || odds <= 1) { valCell.innerHTML = '--'; btn.style.display = 'none'; return; }
+        const edge = (prob * odds) - 1;
+        valCell.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
+        btn.style.display = edge > 0 ? 'inline-block' : 'none';
     }
 
-    function sendToROI(id, marketName, prob, fair) {
-        const league = document.getElementById('leagueSelect').value;
-        const home = document.getElementById('homeTeamSelect').value;
-        const away = document.getElementById('awayTeamSelect').value;
-        const houseOdds = parseFloat(document.getElementById('input_' + id).value);
+    function sendToROI(id, marketName, prob, fair, leagueManual, homeManual, awayManual) {
+        const league = leagueManual || document.getElementById('leagueSelect').value;
+        const home = homeManual || document.getElementById('homeTeamSelect').value;
+        const away = awayManual || document.getElementById('awayTeamSelect').value;
+        
+        // Identificar si viene de la tabla global o individual
+        const inputId = id.startsWith('row_') ? 'in_' + id : 'input_' + id;
+        const houseOdds = parseFloat(document.getElementById(inputId).value);
         
         if (!houseOdds) return;
 
@@ -792,9 +768,7 @@
     window.onload = () => {
         renderLeagueSelect();
         const leagues = getSavedLeagues();
-        if (leagues.length > 0) {
-            cargarDatosLiga();
-        }
+        if (leagues.length > 0) cargarDatosLiga();
     };
 </script>
 </body>
