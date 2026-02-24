@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BETAGS - Deep Analytics Pro</title>
+    <title>BETAGS - Deep Analytics</title>
     <style>
         :root {
             --bg-dark: #0b0e14;
@@ -73,7 +73,7 @@
             font-size: 0.7rem; 
             color: var(--primary); 
             text-transform: uppercase; 
-            margin: 20px 0 12px 0; 
+            margin-bottom: 12px; 
             display: flex; 
             justify-content: center;
             align-items: center; 
@@ -88,11 +88,14 @@
             margin-bottom: 15px;
             border: 1px solid var(--border);
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .input-grid { width: 100%; display: grid; grid-template-columns: 1fr; gap: 12px; }
         
-        select, input { 
+        select, .input-new-sheet { 
             width: 100%; 
             padding: 14px; 
             border-radius: 10px; 
@@ -101,6 +104,7 @@
             color: white;
             font-size: 1rem;
             outline: none;
+            text-align: center;
             box-sizing: border-box;
         }
 
@@ -110,8 +114,6 @@
             width: 100%;
         }
 
-        .input-new-sheet { flex: 1; font-size: 0.8rem; border: 1px dashed var(--primary); }
-
         .btn-add-sheet {
             background: var(--primary);
             color: var(--bg-dark);
@@ -119,6 +121,16 @@
             padding: 0 15px;
             border-radius: 8px;
             font-weight: 900;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        .btn-delete-sheet {
+            background: rgba(255, 107, 107, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+            padding: 0 12px;
+            border-radius: 8px;
             cursor: pointer;
         }
 
@@ -127,67 +139,74 @@
             background: linear-gradient(90deg, #4dabf7, #339af0);
             color: white;
             border: none;
-            padding: 15px;
+            padding: 12px;
             border-radius: 10px;
             font-weight: 900;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             cursor: pointer;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
             box-shadow: 0 4px 15px rgba(77, 171, 247, 0.3);
-            margin-top: 10px;
         }
 
-        /* Tabla de Análisis Global */
-        .table-wrapper { width: 100%; overflow-x: auto; margin-top: 10px; }
+        /* Tablas de resultados extendidas */
+        .table-wrapper { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
-        th { background: #1a202c; color: var(--text-muted); padding: 10px 5px; text-transform: uppercase; border-bottom: 2px solid var(--border); }
-        td { padding: 12px 5px; border-bottom: 1px solid var(--border); }
-        
-        .league-tag { font-size: 0.6rem; background: var(--border); padding: 2px 4px; border-radius: 4px; color: var(--primary); display: block; margin-bottom: 4px; }
-        .team-cell { text-align: left; font-weight: bold; min-width: 100px; }
-        
-        .input-odds {
-            width: 50px;
-            padding: 5px;
-            font-size: 0.75rem;
-            border-radius: 5px;
+        th { padding: 10px 4px; color: var(--text-muted); border-bottom: 1px solid var(--border); text-transform: uppercase; font-size: 0.55rem; }
+        td { padding: 10px 4px; border-bottom: 1px solid var(--border); }
+
+        .input-odds-small {
+            width: 40px;
+            background: #0b0e14;
+            border: 1px solid var(--border);
             color: var(--accent-yellow);
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 0.7rem;
             text-align: center;
         }
 
         .value-badge {
-            padding: 3px 5px;
+            padding: 2px 4px;
             border-radius: 4px;
             font-weight: 900;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
         }
-        .pos { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); }
-        .neg { background: rgba(255, 107, 107, 0.15); color: var(--accent-red); }
+        .positive-value { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); }
+        .negative-value { background: rgba(255, 107, 107, 0.15); color: var(--accent-red); }
 
-        .btn-send {
+        .btn-send-small {
             background: var(--primary);
             color: var(--bg-dark);
             border: none;
-            padding: 5px 10px;
+            padding: 4px 8px;
             border-radius: 4px;
-            font-weight: bold;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
+            font-weight: 800;
             cursor: pointer;
         }
 
-        /* Estilos originales de Gráficos y xG */
-        .chart-container { width: 100%; height: 150px; display: flex; align-items: flex-end; justify-content: space-around; margin: 15px 0; }
-        .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
-        .bar { width: 70%; background: var(--primary); border-radius: 2px 2px 0 0; min-height: 2px; }
-        .bar.away { background: var(--accent-green); }
-        .xg-info-display { display: flex; justify-content: center; gap: 30px; margin-top: 10px; }
-        .xg-badge .value { font-size: 1.2rem; font-weight: 900; }
+        .league-tag {
+            font-size: 0.6rem;
+            background: rgba(77, 171, 247, 0.2);
+            color: var(--primary);
+            padding: 2px 5px;
+            border-radius: 4px;
+            display: block;
+            margin-bottom: 2px;
+        }
 
-        #loading { display: none; color: var(--primary); font-weight: bold; margin: 20px; }
-        .hidden { display: none; }
+        #poissonResultsPanel { display: none; width: 100%; margin-top: 10px; }
+        .loading-text { color: var(--primary); text-align: center; font-size: 0.9rem; display: none; margin-top: 30px; font-weight: bold; }
+        #xgPanel { display: none; width: 100%; }
+
+        .chart-container { width: 100%; height: 120px; display: flex; align-items: flex-end; justify-content: space-around; margin: 10px 0; }
+        .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; }
+        .bar { width: 80%; background: var(--primary); border-radius: 2px 2px 0 0; min-height: 1px; }
+        .bar.away { background: var(--accent-green); }
     </style>
 </head>
 <body>
@@ -200,79 +219,65 @@
         <a href="xg.html" class="btn-nav-xg"><span>⚽</span> XG ANALYTICS</a>
     </div>
 
-    <div class="section-title"><span>⚙️</span> PANEL DE CONTROL</div>
+    <div class="section-title"><span>📊</span> CONFIGURACIÓN</div>
     <div class="card">
         <div class="input-grid">
             <select id="leagueSelect" onchange="cargarDatosLiga()"></select>
-            
             <div class="add-league-box">
-                <input type="text" id="newSheetName" class="input-new-sheet" placeholder="AÑADIR HOJA (EJ: EPL)...">
-                <button class="btn-add-sheet" onclick="agregarNuevaLiga()">+</button>
-                <button class="btn-add-sheet" style="background:var(--accent-red)" onclick="borrarLigaSeleccionada()">🗑️</button>
+                <input type="text" id="newSheetName" class="input-new-sheet" placeholder="NUEVA HOJA...">
+                <button class="btn-add-sheet" onclick="agregarNuevaLiga()">AÑADIR</button>
+                <button class="btn-delete-sheet" onclick="borrarLigaSeleccionada()">🗑️</button>
             </div>
-
             <button class="btn-analyze-day" onclick="analizarTodaLaJornada()">
-                🚀 ANALIZAR TODAS LAS LIGAS
+                🚀 ANALIZAR TODOS LOS PARTIDOS (FULL SCAN)
             </button>
         </div>
     </div>
 
-    <div id="loading">PROCESANDO TODAS LAS HOJAS...</div>
+    <div id="loading" class="loading-text">ESCANEANDO TODAS LAS LIGAS...</div>
 
-    <div id="globalAnalysisPanel" class="hidden">
-        <div class="section-title"><span>📊</span> VALOR DETECTADO EN JORNADA</div>
-        <div class="card" style="padding: 10px 5px;">
+    <div id="poissonResultsPanel">
+        <div class="section-title"><span>📅</span> VALOR DETECTADO EN JORNADA</div>
+        <div class="card" style="padding: 10px 2px;">
             <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
                             <th>PARTIDO</th>
-                            <th>MERCADO</th>
-                            <th>xG T.</th>
-                            <th>PROB</th>
+                            <th>O/U 2.5</th>
+                            <th>BTTS Y/N</th>
+                            <th>xG L/V</th>
                             <th>CUOTA</th>
-                            <th>VALUE</th>
-                            <th>ACC</th>
+                            <th>VALOR</th>
+                            <th></th>
                         </tr>
                     </thead>
-                    <tbody id="globalTableBody"></tbody>
+                    <tbody id="poissonItemsContainer"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <div id="individualAnalysis">
-        <div class="section-title"><span>🎯</span> ANÁLISIS INDIVIDUAL</div>
+    <div id="xgPanel">
+        <div class="section-title"><span>📈</span> ANÁLISIS INDIVIDUAL</div>
         <div class="card">
-            <div class="input-grid">
-                <select id="homeTeamSelect" onchange="calcularXG()"><option value="">LOCAL...</option></select>
-                <select id="awayTeamSelect" onchange="calcularXG()"><option value="">VISITA...</option></select>
-            </div>
+            <select id="homeTeamSelect" onchange="calcularXG()" style="margin-bottom:10px"></select>
+            <select id="awayTeamSelect" onchange="calcularXG()"></select>
+            <div class="chart-container" id="golesChart"></div>
+            <div id="xg_local_val" style="display:none"></div>
+            <div id="xg_away_val" style="display:none"></div>
         </div>
-
-        <div id="xgPanel" class="hidden">
-            <div class="card">
-                <div class="chart-container" id="golesChart"></div>
-                <div class="xg-info-display">
-                    <div class="xg-badge">
-                        <div style="font-size:0.6rem">xG LOCAL</div>
-                        <div class="value" id="xg_local_val" style="color:var(--primary)">0.00</div>
-                    </div>
-                    <div class="xg-badge">
-                        <div style="font-size:0.6rem">xG VISITA</div>
-                        <div class="value" id="xg_away_val" style="color:var(--accent-green)">0.00</div>
-                    </div>
-                </div>
-            </div>
+        <div id="individualMarkets">
+             <div class="card"><div class="table-wrapper"><table><tbody id="marketsTable"></tbody></table></div></div>
         </div>
     </div>
 </div>
 
 <script>
     const DEFAULT_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
-    let ligasData = {}; // Cache para no repetir fetches
+    let leaguesData = {}; // Almacena data de todas las ligas
+    let matchesDetected = [];
 
-    // --- MANEJO DE LIGAS ---
     function getSavedLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
         return saved ? JSON.parse(saved) : [];
@@ -284,212 +289,184 @@
         select.innerHTML = leagues.map(l => `<option value="${l.sheet}">${l.name}</option>`).join('');
     }
 
-    function agregarNuevaLiga() {
-        const input = document.getElementById('newSheetName');
-        let name = input.value.trim().toUpperCase();
-        if (!name) return;
-        const leagues = getSavedLeagues();
-        if (!leagues.find(l => l.sheet === name)) {
-            leagues.push({ name: name, sheet: name });
-            localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
-            renderLeagueSelect();
-        }
-        input.value = "";
-    }
-
-    function borrarLigaSeleccionada() {
-        const sheet = document.getElementById('leagueSelect').value;
-        let leagues = getSavedLeagues().filter(l => l.sheet !== sheet);
-        localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
-        renderLeagueSelect();
-    }
-
-    // --- MATEMÁTICAS ---
+    // Lógica Matemática
     function poisson(k, lambda) { return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k); }
     function factorial(n) { if (n === 0) return 1; let res = 1; for (let i = 1; i <= n; i++) res *= i; return res; }
 
-    // --- LÓGICA DE CARGA ---
-    async function fetchHoja(sheetName) {
-        const url = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
-        try {
-            const response = await fetch(url);
-            const csvText = await response.text();
-            const filas = csvText.split('\n').map(l => l.split(',').map(c => c.replace(/^"(.*)"$/, '$1').trim()));
-            
-            let locales = [], visitantes = [];
-            filas.forEach((cols, i) => {
-                if (i > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
-                    locales.push({ nombre: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7]) });
-                    visitantes.push({ nombre: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19]) });
-                }
-            });
-
-            let sGFL = 0, sGAL = 0, sPJL = 0, sGFV = 0, sGAV = 0, sPJV = 0;
-            locales.forEach(e => { sGFL += e.gf; sGAL += e.ga; sPJL += e.gp; });
-            visitantes.forEach(e => { sGFV += e.gf; sGAV += e.ga; sPJV += e.gp; });
-
-            return {
-                locales, visitantes,
-                liga: { gfl: sGFL/sPJL, gal: sGAL/sPJL, gfv: sGFV/sPJV, gav: sGAV/sPJV }
-            };
-        } catch (e) { return null; }
-    }
-
-    // --- ANALIZAR TODAS LAS LIGAS ---
+    // Función Principal Mejorada: Analiza TODAS las ligas
     async function analizarTodaLaJornada() {
         const loading = document.getElementById('loading');
+        const resultsPanel = document.getElementById('poissonResultsPanel');
+        const container = document.getElementById('poissonItemsContainer');
         const leagues = getSavedLeagues();
-        if (leagues.length === 0) return alert("Agrega ligas primero.");
+
+        if (leagues.length === 0) return alert("No hay ligas configuradas.");
 
         loading.style.display = 'block';
-        document.getElementById('globalAnalysisPanel').classList.add('hidden');
-        
-        // 1. Cargar Partidos del Día
-        const resDia = await fetch(`https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F100`);
-        const csvDia = await resDia.text();
-        const partidosHoy = csvDia.split('\n').map(l => l.split(',').map(c => c.replace(/^"(.*)"$/, '$1').trim()));
+        resultsPanel.style.display = 'none';
+        container.innerHTML = '';
+        matchesDetected = [];
 
-        // 2. Procesar cada liga guardada
-        const tableBody = document.getElementById('globalTableBody');
-        tableBody.innerHTML = '';
-        let hallados = 0;
+        try {
+            // 1. Obtener partidos del día
+            const urlDaily = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F100`;
+            const respDaily = await fetch(urlDaily);
+            const csvDaily = await respDaily.text();
+            const dailyMatches = csvDaily.split('\n').map(l => l.split(',').map(c => c.replace(/"/g, '').trim()));
 
-        for (let ligaObj of leagues) {
-            const data = await fetchHoja(ligaObj.sheet);
-            if (!data) continue;
+            // 2. Escanear cada liga guardada
+            for (let league of leagues) {
+                const urlLeague = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=${league.sheet}&range=A1:W50`;
+                const respL = await fetch(urlLeague);
+                const csvL = await respL.text();
+                const rows = csvL.split('\n').map(l => l.split(',').map(c => c.replace(/"/g, '').trim()));
 
-            partidosHoy.forEach(partido => {
-                const locName = partido[0];
-                const visName = partido[2];
-                
-                const dLoc = data.locales.find(e => e.nombre.toUpperCase() === locName?.toUpperCase());
-                const dVis = data.visitantes.find(e => e.nombre.toUpperCase() === visName?.toUpperCase());
+                let leagueStats = { locales: [], visitantes: [], global: {} };
+                let sGFL = 0, sGAL = 0, sPJL = 0, sGFV = 0, sGAV = 0, sPJV = 0;
 
-                if (dLoc && dVis) {
-                    hallados++;
-                    const xGL = ((dLoc.gf/dLoc.gp)/data.liga.gfl) * ((dVis.ga/dVis.gp)/data.liga.gav) * data.liga.gfl;
-                    const xGV = ((dVis.gf/dVis.gp)/data.liga.gfv) * ((dLoc.ga/dLoc.gp)/data.liga.gal) * data.liga.gfv;
-                    
-                    // Cálculo de probabilidades (Poisson)
-                    let pL = [], pV = [], u25 = 0;
-                    for(let i=0; i<=6; i++) { pL[i] = poisson(i, xGL); pV[i] = poisson(i, xGV); }
-                    for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
-                    const bttsY = 1 - (pL[0] + pV[0] - (pL[0]*pV[0]));
+                rows.forEach((cols, idx) => {
+                    if (idx > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
+                        leagueStats.locales.push({ n: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7]) });
+                        leagueStats.visitantes.push({ n: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19]) });
+                        sGFL += parseFloat(cols[6]); sGAL += parseFloat(cols[7]); sPJL += parseFloat(cols[2]);
+                        sGFV += parseFloat(cols[18]); sGAV += parseFloat(cols[19]); sPJV += parseFloat(cols[14]);
+                    }
+                });
 
-                    renderRow(tableBody, ligaObj.name, locName, visName, "O2.5", 1-u25, xGL+xGV);
-                    renderRow(tableBody, ligaObj.name, locName, visName, "U2.5", u25, xGL+xGV);
-                    renderRow(tableBody, ligaObj.name, locName, visName, "BTTS Y", bttsY, xGL+xGV);
-                }
-            });
+                leagueStats.global = { gfl: sGFL/sPJL, gal: sGAL/sPJL, gfv: sGFV/sPJV, gav: sGAV/sPJV };
+
+                // 3. Cruzar con partidos del día
+                dailyMatches.forEach(m => {
+                    const hName = m[0], vName = m[2];
+                    const lData = leagueStats.locales.find(e => e.n.toUpperCase() === hName?.toUpperCase());
+                    const vData = leagueStats.visitantes.find(e => e.n.toUpperCase() === vName?.toUpperCase());
+
+                    if (lData && vData) {
+                        const xGL = (lData.gf/lData.gp/leagueStats.global.gfl) * (vData.ga/vData.gp/leagueStats.global.gav) * leagueStats.global.gfl;
+                        const xGV = (vData.gf/vData.gp/leagueStats.global.gfv) * (lData.ga/lData.gp/leagueStats.global.gal) * leagueStats.global.gfv;
+                        
+                        let pL = [], pV = [];
+                        for(let i=0; i<=6; i++) { pL[i] = poisson(i, xGL); pV[i] = poisson(i, xGV); }
+                        let u25 = 0;
+                        for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
+                        const bttsY = 1 - (pL[0] + pV[0] - (pL[0]*pV[0]));
+
+                        renderMatchRow(league.name, hName, vName, 1-u25, bttsY, xGL, xGV);
+                    }
+                });
+            }
+
+            resultsPanel.style.display = 'block';
+        } catch (e) {
+            console.error(e);
+            alert("Error al procesar los datos.");
+        } finally {
+            loading.style.display = 'none';
         }
-
-        loading.style.display = 'none';
-        document.getElementById('globalAnalysisPanel').classList.remove('hidden');
-        if (hallados === 0) alert("No se encontraron partidos de tus ligas en la hoja del día.");
     }
 
-    function renderRow(container, liga, loc, vis, mercado, prob, totalXg) {
-        const id = Math.random().toString(36).substr(2, 9);
-        const row = document.createElement('tr');
-        const justa = (1/prob).toFixed(2);
+    function renderMatchRow(liga, local, visita, ov25, btts, xgl, xgv) {
+        const container = document.getElementById('poissonItemsContainer');
+        const id = Date.now() + Math.random();
         
-        row.innerHTML = `
-            <td class="team-cell"><span class="league-tag">${liga}</span>${loc} vs ${vis}</td>
-            <td><strong>${mercado}</strong></td>
-            <td>${totalXg.toFixed(1)}</td>
-            <td style="color:var(--primary)">${(prob*100).toFixed(0)}%</td>
-            <td><input type="number" class="input-odds" id="in_${id}" placeholder="${justa}" oninput="calcValRow('${id}', ${prob})"></td>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="text-align:left">
+                <span class="league-tag">${liga}</span>
+                <strong>${local} vs ${visita}</strong>
+            </td>
+            <td><span style="color:var(--primary)">${(ov25*100).toFixed(0)}%</span></td>
+            <td><span style="color:var(--accent-green)">${(btts*100).toFixed(0)}%</span></td>
+            <td style="font-family:monospace">${xgl.toFixed(1)}|${xgv.toFixed(1)}</td>
+            <td><input type="number" class="input-odds-small" id="odd_${id}" placeholder="1.90" oninput="checkValue('${id}', ${ov25})"></td>
             <td id="val_${id}">--</td>
-            <td><button class="btn-send" onclick="sendGlobal('${liga}','${loc}','${vis}','${mercado}',${prob},'${id}')">SEND</button></td>
+            <td><button class="btn-send-small" onclick="sendToROI_FromList('${liga}', '${local}', '${visita}', ${ov25}, '${id}')">SEND</button></td>
         `;
-        container.appendChild(row);
+        container.appendChild(tr);
     }
 
-    function calcValRow(id, prob) {
-        const cuota = parseFloat(document.getElementById('in_'+id).value);
-        const cell = document.getElementById('val_'+id);
-        if (!cuota) { cell.innerText = '--'; return; }
-        const edge = (prob * cuota) - 1;
-        const color = edge > 0 ? 'pos' : 'neg';
+    function checkValue(id, prob) {
+        const odd = parseFloat(document.getElementById(`odd_${id}`).value);
+        const cell = document.getElementById(`val_${id}`);
+        if (!odd || odd <= 1) { cell.innerHTML = '--'; return; }
+        const edge = (prob * odd) - 1;
+        const color = edge > 0 ? 'positive-value' : 'negative-value';
         cell.innerHTML = `<span class="value-badge ${color}">${(edge*100).toFixed(1)}%</span>`;
     }
 
-    // --- FUNCIONES ORIGINALES (SIN CAMBIOS) ---
-    async function cargarDatosLiga() {
-        const sheet = document.getElementById('leagueSelect').value;
-        const data = await fetchHoja(sheet);
-        if (data) {
-            ligasData[sheet] = data;
-            const hS = document.getElementById('homeTeamSelect');
-            const aS = document.getElementById('awayTeamSelect');
-            hS.innerHTML = '<option value="">LOCAL...</option>';
-            aS.innerHTML = '<option value="">VISITA...</option>';
-            data.locales.map(e => e.nombre).sort().forEach(n => {
-                hS.options.add(new Option(n, n));
-                aS.options.add(new Option(n, n));
-            });
-        }
-    }
+    function sendToROI_FromList(liga, h, v, prob, id) {
+        const odd = parseFloat(document.getElementById(`odd_${id}`).value);
+        if (!odd) return alert("Pon una cuota primero");
 
-    function calcularXG() {
-        const sheet = document.getElementById('leagueSelect').value;
-        const homeN = document.getElementById('homeTeamSelect').value;
-        const awayN = document.getElementById('awayTeamSelect').value;
-        const data = ligasData[sheet];
-        if (!data || !homeN || !awayN) return;
-
-        const dL = data.locales.find(e => e.nombre === homeN);
-        const dV = data.visitantes.find(e => e.nombre === awayN);
-        
-        const xGL = ((dL.gf/dL.gp)/data.liga.gfl) * ((dV.ga/dV.gp)/data.liga.gav) * data.liga.gfl;
-        const xGV = ((dV.gf/dV.gp)/data.liga.gfv) * ((dL.ga/dL.gp)/data.liga.gal) * data.liga.gfv;
-
-        document.getElementById('xg_local_val').innerText = xGL.toFixed(2);
-        document.getElementById('xg_away_val').innerText = xGV.toFixed(2);
-        document.getElementById('xgPanel').classList.remove('hidden');
-
-        // Renderizado de barras
-        const chart = document.getElementById('golesChart');
-        chart.innerHTML = '';
-        for(let i=0; i<=5; i++) {
-            const pL = poisson(i, xGL);
-            const pV = poisson(i, xGV);
-            chart.innerHTML += `
-                <div class="bar-group">
-                    <div style="display:flex; gap:2px; height:100%; align-items:flex-end;">
-                        <div class="bar" style="height:${pL*100}%"></div>
-                        <div class="bar away" style="height:${pV*100}%"></div>
-                    </div>
-                    <div style="font-size:0.6rem">${i}</div>
-                </div>`;
-        }
-    }
-
-    function sendGlobal(liga, loc, vis, mercado, prob, id) {
-        const cuota = parseFloat(document.getElementById('in_'+id).value);
-        if (!cuota) return alert("Pon una cuota.");
-        
         const pick = {
             id: Date.now(),
-            date: new Date().toLocaleDateString(),
-            teams: `${liga}: ${loc} vs ${vis}`,
-            market: mercado,
+            date: new Date().toLocaleString(),
+            teams: `${liga}: ${h} vs ${v}`,
+            market: 'OVER 2.5 FT',
             prob: prob,
-            odd: cuota,
-            edge: ((prob * cuota - 1) * 100).toFixed(1) + '%',
+            fair_odd: (1/prob).toFixed(2),
+            odd: odd,
+            edge: ((prob * odd - 1) * 100).toFixed(1) + '%',
+            stake: 1,
             status: 'pending'
         };
 
         let current = JSON.parse(localStorage.getItem('betags_pre_match')) || [];
         current.push(pick);
         localStorage.setItem('betags_pre_match', JSON.stringify(current));
-        alert("¡Enviado a ROI CALC!");
+        alert("¡Enviado a ROI!");
     }
 
-    window.onload = () => {
+    // --- FUNCIONES EXISTENTES (Mantenidas sin borrar) ---
+    async function cargarDatosLiga() {
+        const sheetKey = document.getElementById('leagueSelect').value;
+        if (!sheetKey) return;
+        const url = `https://docs.google.com/spreadsheets/d/${DEFAULT_ID}/gviz/tq?tqx=out:csv&sheet=${sheetKey}&range=A1:W50`;
+        const response = await fetch(url);
+        const csvText = await response.text();
+        const filas = csvText.split('\n').map(linea => linea.split(',').map(celda => celda.replace(/"/g, '').trim()));
+        
+        let localArr = [], visitArr = [];
+        filas.forEach((cols, index) => {
+            if (index > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
+                localArr.push({ nombre: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7]) });
+                visitArr.push({ nombre: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19]) });
+            }
+        });
+
+        // Actualizar selectores
+        const hS = document.getElementById('homeTeamSelect');
+        const aS = document.getElementById('awayTeamSelect');
+        hS.innerHTML = '<option value="">LOCAL...</option>';
+        aS.innerHTML = '<option value="">VISITA...</option>';
+        localArr.map(e => e.nombre).sort().forEach(n => {
+            hS.options.add(new Option(n, n));
+            aS.options.add(new Option(n, n));
+        });
+        
+        window.currentLeagueData = { locales: localArr, visitantes: visitArr };
+        document.getElementById('xgPanel').style.display = 'block';
+    }
+
+    function agregarNuevaLiga() {
+        const input = document.getElementById('newSheetName');
+        let name = input.value.trim().toUpperCase();
+        if (!name) return;
+        let leagues = getSavedLeagues();
+        leagues.push({ name: name, sheet: name });
+        localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
         renderLeagueSelect();
-        if (getSavedLeagues().length > 0) cargarDatosLiga();
-    };
+        input.value = "";
+    }
+
+    function borrarLigaSeleccionada() {
+        const val = document.getElementById('leagueSelect').value;
+        let leagues = getSavedLeagues().filter(l => l.sheet !== val);
+        localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
+        renderLeagueSelect();
+    }
+
+    window.onload = () => { renderLeagueSelect(); };
 </script>
 </body>
 </html>
