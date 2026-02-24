@@ -154,6 +154,15 @@
             font-weight: 900;
             text-transform: uppercase;
         }
+        .kelly-badge {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            margin-left: 4px;
+        }
     </style>
 </head>
 <body>
@@ -363,7 +372,7 @@
                                     <th>Casa</th>
                                     <th>VAL %</th>
                                     <th>Edge</th>
-                                    <th>Stake</th>
+                                    <th>Stake (Plano vs Kelly)</th>
                                     <th>Resolución</th>
                                     <th></th>
                                 </tr>
@@ -392,10 +401,7 @@
             }
             
             // Caso 2: PAÍS-LIGA (Detecta guion si no hay corchetes)
-            // Ejemplo: UKR-UCRANIA PREMIER -> Tomamos todo lo anterior al nombre del equipo o la fecha
-            // Si tus datos vienen como "PAIS-LIGA EQUIPO A VS EQUIPO B", esta lógica lo extrae.
             if (teamsStr.includes('-')) {
-                // Suponiendo que la liga está al principio y termina en el primer espacio después del guion
                 const parts = teamsStr.split(' ');
                 if (parts[0].includes('-')) return parts[0].trim();
             }
@@ -562,8 +568,6 @@
                 const matchM = selectedMarkets.length === 0 || (b.market && selectedMarkets.includes(b.market.toString().toUpperCase()));
                 const matchS = !f_status || (b.status === f_status);
                 const matchSource = !f_source || (b.teams && b.teams.toUpperCase().includes(f_source.toUpperCase()));
-                
-                // MEJORA: Filtrado por nombre exacto extraído
                 const currentItemLeague = extractLeagueName(b.teams);
                 const matchLeague = !f_league || (currentItemLeague === f_league);
                 
@@ -720,6 +724,16 @@
                 const valCol = probNum - houseProb;
                 const betProfit = parseFloat(b.profit) || 0;
 
+                // MEJORA: Cálculo individual de Kelly para la tabla
+                let kellyStakeText = "0.00";
+                if (oddNum > 1 && b.prob > (1/oddNum)) {
+                    const b_f = oddNum - 1;
+                    const p = Number(b.prob);
+                    const q = 1 - p;
+                    const fullKelly = (b_f * p - q) / b_f;
+                    kellyStakeText = (fullKelly * 100).toFixed(1); // Muestra el % del bank
+                }
+
                 const tagClass = isComboTop 
                     ? "text-[8px] px-1 rounded font-black uppercase combo-top-flash" 
                     : "text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase";
@@ -742,7 +756,10 @@
                     <td class="font-black text-white">${oddNum.toFixed(2)}</td>
                     <td class="font-bold text-blue-400">${valCol.toFixed(1)}%</td>
                     <td class="${edgeVal > 0 ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${edgeVal.toFixed(1)}%</td>
-                    <td class="font-bold">${b.stake || '0'}u</td>
+                    <td>
+                        <span class="font-bold">${b.stake || '0'}u</span>
+                        <span class="kelly-badge" title="Sugerencia Kelly">${kellyStakeText}%</span>
+                    </td>
                     <td>
                         <div class="flex gap-1 items-center">
                             <button onclick="resolve('${b.id}', 'win')" class="btn-action btn-win">W</button>
