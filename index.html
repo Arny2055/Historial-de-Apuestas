@@ -221,6 +221,19 @@
             display: none;
         }
 
+        /* Botón Open siempre visible */
+        .btn-open-match {
+            background: var(--primary);
+            color: var(--bg-dark);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 900;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: inline-block;
+        }
+
         /* Loading */
         #loadingOverlay {
             position: fixed;
@@ -527,7 +540,7 @@
                 <td>${(m.btts*100).toFixed(0)}%</td>
                 <td><input type="number" step="0.01" class="input-odds" placeholder="0.00" oninput="validaValueMulti(${idx}, this.value)"></td>
                 <td id="val_multi_${idx}">--</td>
-                <td><button class="btn-send-bet" id="btn_multi_${idx}" onclick="abrirDetalle(${idx})">OPEN</button></td>
+                <td><button class="btn-open-match" onclick="abrirDetalle(${idx})">OPEN</button></td>
             </tr>
         `).join('');
     }
@@ -535,19 +548,16 @@
     function validaValueMulti(idx, odd) {
         const m = matchesToday[idx];
         const resCell = document.getElementById(`val_multi_${idx}`);
-        const btn = document.getElementById(`btn_multi_${idx}`);
         const houseOdd = parseFloat(odd);
         
         if(!houseOdd || houseOdd <= 1) {
             resCell.innerHTML = "--";
-            btn.style.display = "none";
             return;
         }
 
         const prob = m.ov25 > m.btts ? m.ov25 : m.btts; 
         const edge = (prob * houseOdd) - 1;
         resCell.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
-        btn.style.display = "inline-block";
     }
 
     function abrirDetalle(idx) {
@@ -635,7 +645,8 @@
 
     // --- ENVÍO DE APUESTA (SIN SALIR DE LA PÁGINA) ---
     function enviarBet(liga, partido, mercado, prob, justa, inputIdx) {
-        const houseOddInput = document.querySelectorAll('#individualMarketsTable .input-odds')[inputIdx];
+        const houseOddInputs = document.querySelectorAll('#individualMarketsTable .input-odds');
+        const houseOddInput = houseOddInputs[inputIdx];
         const houseOdd = parseFloat(houseOddInput.value);
         
         const pick = {
@@ -656,10 +667,8 @@
         historial.push(pick);
         localStorage.setItem('betags_pre_match', JSON.stringify(historial));
         
-        // Notificamos el éxito sin recargar ni navegar
         showToast();
         
-        // Opcional: Limpiamos el input y el botón después de enviar
         houseOddInput.value = "";
         document.getElementById(`s_val_${inputIdx}`).innerHTML = "--";
         document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
