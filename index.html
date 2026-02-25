@@ -18,7 +18,6 @@
             --glass: rgba(255, 255, 255, 0.03);
         }
 
-        /* Estilos Base */
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             background-color: var(--bg-dark); 
@@ -41,7 +40,6 @@
         h1 { font-size: 1.6rem; color: var(--primary); text-align: center; margin: 25px 0; letter-spacing: 4px; font-weight: 900; }
         h1 span { color: var(--text-white); }
 
-        /* Navegación */
         .nav-header {
             display: flex;
             justify-content: center;
@@ -119,7 +117,6 @@
             transition: transform 0.2s;
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
-        .btn-analyze-master:active { transform: scale(0.98); }
 
         .multi-results-table {
             width: 100%;
@@ -203,8 +200,6 @@
         .positive-value { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); }
         .negative-value { background: rgba(255, 107, 107, 0.1); color: var(--accent-red); }
 
-        .insufficient-data { color: var(--text-muted); font-style: italic; opacity: 0.7; }
-
         .btn-send-bet {
             background: var(--accent-green);
             color: var(--bg-dark);
@@ -265,6 +260,13 @@
             display: none;
             z-index: 2000;
             box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+        }
+
+        .league-indicator {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: block;
         }
     </style>
 </head>
@@ -368,9 +370,9 @@
                     <thead>
                         <tr>
                             <th>MERCADO</th>
-                            <th>PROB</th>
-                            <th>JUSTA</th>
-                            <th>CASA</th>
+                            <th>PARTIDO</th>
+                            <th>BASE LIGA</th>
+                            <th>CUOTA CASA</th>
                             <th>VALUE</th>
                             <th>ACCION</th>
                         </tr>
@@ -387,7 +389,6 @@
     let database = {}; 
     let matchesToday = [];
 
-    // --- GESTIÓN DE LIGAS (HOJAS) ---
     function getLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
         return saved ? JSON.parse(saved) : [];
@@ -423,15 +424,14 @@
         renderLeagueSelect();
     }
 
-    // --- MATEMÁTICAS ---
     function poisson(k, lambda) {
+        if (lambda <= 0) return k === 0 ? 1 : 0;
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
     }
     function factorial(n) {
         let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
     }
 
-    // --- CARGA DE DATOS POR HOJA ---
     async function fetchDataForSheet(sheetName) {
         const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&range=A1:W60`;
         try {
@@ -442,7 +442,6 @@
             
             let data = { locales: [], visitantes: [] };
             rows.forEach((cols, i) => {
-                // Validación de columnas de rendimiento Local (B) y Visita (N)
                 if (i > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
                     data.locales.push({ n: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7]) });
                     data.visitantes.push({ n: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19]) });
@@ -455,36 +454,57 @@
             data.locales.forEach(e => { sGFL += e.gf; sGAL += e.ga; sPJL += e.gp; });
             data.visitantes.forEach(e => { sGFV += e.gf; sGAV += e.ga; sPJV += e.gp; });
             
+            // Promedios reales de la liga
+            const avgGFL = sGFL / sPJL;
+            const avgGAL = sGAL / sPJL;
+            const avgGFV = sGFV / sPJV;
+            const avgGAV = sGAV / sPJV;
+
+            // Frecuencia estadística base de la liga para mercados
+            let totalOv25 = 0, totalBTTS = 0, totalOv05HT = 0;
+            const nLoc = data.locales.length;
+            const nVis = data.visitantes.length;
+            const totalComb = nLoc * nVis;
+
+            // Cálculo matricial de probabilidad esperada de la liga (Poisson Probabilístico)
+            data.locales.forEach(l => {
+                data.visitantes.forEach(v => {
+                    const xL = (l.gf/l.gp/avgGFL) * (v.ga/v.gp/avgGAV) * avgGFL;
+                    const xV = (v.gf/v.gp/avgGFV) * (l.ga/l.gp/avgGAL) * avgGFV;
+                    
+                    let pL0 = poisson(0, xL), pV0 = poisson(0, xV);
+                    totalBTTS += (1 - (pL0 + pV0 - (pL0 * pV0)));
+                    totalOv05HT += (1 - Math.exp(-(xL + xV) * 0.45));
+                    
+                    let u25 = 0;
+                    for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += poisson(i, xL) * poisson(j, xV);
+                    totalOv25 += (1 - u25);
+                });
+            });
+
             data.avg = { 
-                gfl: sGFL / sPJL, gal: sGAL / sPJL, 
-                gfv: sGFV / sPJV, gav: sGAV / sPJV 
+                gfl: avgGFL, gal: avgGAL, gfv: avgGFV, gav: avgGAV,
+                l_o25: totalOv25 / totalComb,
+                l_btts: totalBTTS / totalComb,
+                l_o05ht: totalOv05HT / totalComb
             };
             return data;
         } catch (e) { return null; }
     }
 
-    // --- PROCESAMIENTO MULTILIGA ---
     async function analizarTodoMultiliga() {
         const loader = document.getElementById('loadingOverlay');
         loader.style.display = 'flex';
-        
         const leagues = getLeagues();
-        if(leagues.length === 0) {
-            alert("No hay hojas configuradas para analizar.");
-            loader.style.display = 'none';
-            return;
-        }
+        if(leagues.length === 0) { alert("No hay hojas configuradas."); loader.style.display = 'none'; return; }
 
         database = {};
         matchesToday = [];
-
-        // 1. Cargamos datos de todas las hojas activas
         for (let l of leagues) {
             const data = await fetchDataForSheet(l.sheet);
             if (data) database[l.sheet] = data;
         }
 
-        // 2. Buscamos partidos del día
         try {
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F1000`;
             const res = await fetch(url);
@@ -492,18 +512,15 @@
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
 
             rows.forEach(cols => {
-                const home = cols[0];
-                const away = cols[2];
+                const home = cols[0], away = cols[2];
                 if (!home || home === "LOCAL") return;
 
-                // Buscamos a qué liga pertenecen estos equipos
                 for (let leagueName in database) {
                     const db = database[leagueName];
                     const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
                     const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
 
                     if (lData && vData) {
-                        // Cálculo de xG basado en promedios de esa hoja específica
                         const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl;
                         const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv;
                         
@@ -513,14 +530,14 @@
                         for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
                         
                         matchesToday.push({
-                            league: leagueName,
-                            home, away, xGL, xGV,
+                            league: leagueName, home, away, xGL, xGV,
                             ov25: 1 - u25,
                             btts: 1 - (pL[0] + pV[0] - (pL[0]*pV[0])),
                             probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
-                            hasSample: (lData.gp >= 5 && vData.gp >= 5)
+                            hasSample: (lData.gp >= 5 && vData.gp >= 5),
+                            l_o25: db.avg.l_o25, l_btts: db.avg.l_btts, l_o05ht: db.avg.l_o05ht
                         });
-                        break; // Si lo encuentra en una liga, no sigue buscando en las demás
+                        break;
                     }
                 }
             });
@@ -528,59 +545,36 @@
             renderMultiTable();
             document.getElementById('multiAnalysisPanel').style.display = 'block';
             document.getElementById('singleAnalysisPanel').style.display = 'none';
-
-        } catch (e) {
-            alert("Error al conectar con la hoja de PARTIDOS DEL DIA.");
-        } finally {
-            loader.style.display = 'none';
-        }
+        } catch (e) { alert("Error al conectar."); } finally { loader.style.display = 'none'; }
     }
 
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
-        if(matchesToday.length === 0) {
-            body.innerHTML = '<tr><td colspan="8">No se encontraron equipos de PARTIDOS DEL DIA en tus hojas configuradas.</td></tr>';
-            return;
-        }
-        body.innerHTML = matchesToday.map((m, idx) => {
-            const statusClass = m.hasSample ? "" : "insufficient-data";
-            const statusLabel = m.hasSample ? "" : "⚠️ [DATA INSUF.]<br>";
-            
-            return `
-            <tr class="${statusClass}">
+        if(matchesToday.length === 0) { body.innerHTML = '<tr><td colspan="8">Sin partidos hoy.</td></tr>'; return; }
+        body.innerHTML = matchesToday.map((m, idx) => `
+            <tr class="${m.hasSample ? "" : "insufficient-data"}">
                 <td><span class="league-tag">${m.league}</span></td>
-                <td style="font-weight:bold">${statusLabel}${m.home}<br>${m.away}</td>
+                <td style="font-weight:bold">${m.home}<br>${m.away}</td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
                 <td>${(m.ov25*100).toFixed(0)}%</td>
                 <td>${(m.btts*100).toFixed(0)}%</td>
-                <td><input type="number" step="0.01" class="input-odds" placeholder="0.00" oninput="validaValueMulti(${idx}, this.value)"></td>
+                <td><input type="number" step="0.01" class="input-odds" oninput="validaValueMulti(${idx}, this.value)"></td>
                 <td id="val_multi_${idx}">--</td>
                 <td><button class="btn-open-match" onclick="abrirDetalle(${idx})">OPEN</button></td>
             </tr>
-        `}).join('');
+        `).join('');
     }
 
     function validaValueMulti(idx, odd) {
-        const m = matchesToday[idx];
-        const resCell = document.getElementById(`val_multi_${idx}`);
-        const houseOdd = parseFloat(odd);
-        
-        if(!houseOdd || houseOdd <= 1) {
-            resCell.innerHTML = "--";
-            return;
-        }
-
-        // Usamos la probabilidad más alta para el cálculo rápido del value en tabla general
-        const maxProb = Math.max(m.ov25, m.btts);
-        const edge = (maxProb * houseOdd) - 1;
+        const m = matchesToday[idx], resCell = document.getElementById(`val_multi_${idx}`), houseOdd = parseFloat(odd);
+        if(!houseOdd || houseOdd <= 1) { resCell.innerHTML = "--"; return; }
+        const edge = (Math.max(m.ov25, m.btts) * houseOdd) - 1;
         resCell.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
     }
 
     function abrirDetalle(idx) {
         const m = matchesToday[idx];
-        const warning = m.hasSample ? "" : "⚠️ [MUESTRA BAJA] ";
-        document.getElementById('currentMatchLabel').innerText = `${warning}${m.home} vs ${m.away}`;
-        
+        document.getElementById('currentMatchLabel').innerText = `${m.home} vs ${m.away}`;
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
         document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
         
@@ -589,101 +583,61 @@
         renderSingleChart(pL, pV);
 
         document.getElementById('ov05ht_val').innerText = (m.probHT*100).toFixed(1) + '%';
-        document.getElementById('ov05ht_odds').innerText = 'JUSTA: ' + (1/m.probHT).toFixed(2);
         document.getElementById('ov25ft_val').innerText = (m.ov25*100).toFixed(1) + '%';
-        document.getElementById('ov25ft_odds').innerText = 'JUSTA: ' + (1/m.ov25).toFixed(2);
         document.getElementById('btts_val').innerText = (m.btts*100).toFixed(1) + '%';
-        document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
 
         const markets = [
-            {n: 'OVER 0.5 HT', p: m.probHT},
-            {n: 'OVER 2.5 FT', p: m.ov25},
-            {n: 'UNDER 2.5 FT', p: 1 - m.ov25},
-            {n: 'BTTS YES', p: m.btts},
-            {n: 'BTTS NO', p: 1 - m.btts}
+            {n: 'OVER 0.5 HT', p: m.probHT, l: m.l_o05ht},
+            {n: 'OVER 2.5 FT', p: m.ov25, l: m.l_o25},
+            {n: 'UNDER 2.5 FT', p: 1-m.ov25, l: 1-m.l_o25},
+            {n: 'BTTS YES', p: m.btts, l: m.l_btts},
+            {n: 'BTTS NO', p: 1-m.btts, l: 1-m.l_btts}
         ];
 
         const table = document.getElementById('individualMarketsTable');
-        table.innerHTML = markets.map((mk, i) => {
-            const fair = (1/mk.p).toFixed(2);
-            return `
-                <tr>
-                    <td><strong>${mk.n}</strong></td>
-                    <td>${(mk.p*100).toFixed(0)}%</td>
-                    <td style="color:var(--primary)">${fair}</td>
-                    <td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td>
-                    <td id="s_val_${i}">--</td>
-                    <td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td>
-                </tr>
-            `;
-        }).join('');
+        table.innerHTML = markets.map((mk, i) => `
+            <tr>
+                <td><strong>${mk.n}</strong></td>
+                <td>${(mk.p*100).toFixed(1)}% <span class="league-indicator">JUSTA: ${(1/mk.p).toFixed(2)}</span></td>
+                <td style="color:var(--text-muted); font-size:0.7rem;">${(mk.l*100).toFixed(1)}%</td>
+                <td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td>
+                <td id="s_val_${i}">--</td>
+                <td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${(1/mk.p).toFixed(2)}, ${i})">SEND</button></td>
+            </tr>
+        `).join('');
 
         document.getElementById('singleAnalysisPanel').style.display = 'block';
         document.getElementById('singleAnalysisPanel').scrollIntoView({behavior: 'smooth'});
     }
 
     function renderSingleChart(pL, pV) {
-        const container = document.getElementById('golesChart');
-        container.innerHTML = '';
+        const container = document.getElementById('golesChart'); container.innerHTML = '';
         for(let i=0; i<=6; i++) {
             const group = document.createElement('div');
             group.className = 'bar-group';
-            group.innerHTML = `
-                <div style="display:flex; gap:3px; height:100%; align-items:flex-end; width:100%; justify-content:center;">
-                    <div class="bar" style="height: ${pL[i]*150}%"></div>
-                    <div class="bar away" style="height: ${pV[i]*150}%"></div>
-                </div>
-                <div class="bar-label">${i}</div>
-            `;
+            group.innerHTML = `<div style="display:flex; gap:3px; height:100%; align-items:flex-end; width:100%; justify-content:center;"><div class="bar" style="height: ${pL[i]*150}%"></div><div class="bar away" style="height: ${pV[i]*150}%"></div></div><div class="bar-label">${i}</div>`;
             container.appendChild(group);
         }
     }
 
     function calcSingleVal(idx, prob, val) {
-        const houseOdd = parseFloat(val);
-        const res = document.getElementById(`s_val_${idx}`);
-        const btn = document.getElementById(`s_btn_${idx}`);
-        
+        const houseOdd = parseFloat(val), res = document.getElementById(`s_val_${idx}`), btn = document.getElementById(`s_btn_${idx}`);
         if(!houseOdd || houseOdd <= 1) { res.innerHTML = "--"; btn.style.display = "none"; return; }
-
         const edge = (prob * houseOdd) - 1;
         res.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
-        if(edge > 0) btn.style.display = "block"; else btn.style.display = "none";
+        btn.style.display = edge > 0 ? "block" : "none";
     }
 
     function enviarBet(liga, partido, mercado, prob, justa, inputIdx) {
-        const houseOddInputs = document.querySelectorAll('#individualMarketsTable .input-odds');
-        const houseOdd = parseFloat(houseOddInputs[inputIdx].value);
-        
-        const pick = {
-            id: Date.now(),
-            date: new Date().toLocaleString(),
-            teams: `[${liga}] ${partido}`,
-            market: mercado,
-            prob: prob,
-            fair_odd: justa,
-            odd: houseOdd,
-            edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%',
-            stake: 1, 
-            status: 'pending'
-        };
-
+        const houseOdd = parseFloat(document.querySelectorAll('#individualMarketsTable .input-odds')[inputIdx].value);
         let historial = JSON.parse(localStorage.getItem('betags_pre_match')) || [];
-        historial.push(pick);
+        historial.push({ id: Date.now(), date: new Date().toLocaleString(), teams: `[${liga}] ${partido}`, market: mercado, prob, fair_odd: justa, odd: houseOdd, edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%', stake: 1, status: 'pending' });
         localStorage.setItem('betags_pre_match', JSON.stringify(historial));
-        
-        const toast = document.getElementById('betToast');
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2500);
-        
-        houseOddInputs[inputIdx].value = "";
-        document.getElementById(`s_val_${inputIdx}`).innerHTML = "--";
-        document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
+        document.getElementById('betToast').style.display = 'block';
+        setTimeout(() => { document.getElementById('betToast').style.display = 'none'; }, 2500);
     }
 
-    window.onload = () => {
-        renderLeagueSelect();
-    };
+    window.onload = renderLeagueSelect;
 </script>
 </body>
 </html>
