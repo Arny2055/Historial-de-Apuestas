@@ -266,18 +266,6 @@
             z-index: 2000;
             box-shadow: 0 5px 15px rgba(0,0,0,0.4);
         }
-
-        .league-avg-info {
-            background: rgba(77, 171, 247, 0.1);
-            border: 1px solid var(--primary);
-            border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 20px;
-            font-size: 0.7rem;
-            display: flex;
-            justify-content: space-around;
-            text-align: center;
-        }
     </style>
 </head>
 <body>
@@ -342,9 +330,6 @@
     <div id="singleAnalysisPanel">
         <div class="section-title"><span>📊</span> ANÁLISIS DETALLADO: <span id="currentMatchLabel"></span></div>
         
-        <div class="league-avg-info" id="leagueAvgDisplay">
-            </div>
-
         <div class="card">
             <div class="chart-container" id="golesChart"></div>
             <div style="display: flex; justify-content: center; gap: 40px; border-top: 1px solid var(--border); padding-top: 15px;">
@@ -383,9 +368,9 @@
                     <thead>
                         <tr>
                             <th>MERCADO</th>
-                            <th>PROB PARTIDO</th>
-                            <th>PROB LIGA</th>
-                            <th>CUOTA CASA</th>
+                            <th>PROB</th>
+                            <th>JUSTA</th>
+                            <th>CASA</th>
                             <th>VALUE</th>
                             <th>ACCION</th>
                         </tr>
@@ -440,7 +425,6 @@
 
     // --- MATEMÁTICAS ---
     function poisson(k, lambda) {
-        if (lambda <= 0) return k === 0 ? 1 : 0;
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
     }
     function factorial(n) {
@@ -458,6 +442,7 @@
             
             let data = { locales: [], visitantes: [] };
             rows.forEach((cols, i) => {
+                // Validación de columnas de rendimiento Local (B) y Visita (N)
                 if (i > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
                     data.locales.push({ n: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7]) });
                     data.visitantes.push({ n: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19]) });
@@ -470,25 +455,9 @@
             data.locales.forEach(e => { sGFL += e.gf; sGAL += e.ga; sPJL += e.gp; });
             data.visitantes.forEach(e => { sGFV += e.gf; sGAV += e.ga; sPJV += e.gp; });
             
-            // Promedios generales de la liga
-            const avgGFL = sGFL / sPJL;
-            const avgGFV = sGFV / sPJV;
-            
-            // Probabilidad Poisson base de la liga (Over 2.5 y BTTS)
-            let probL_U25 = 0;
-            let pL_base = [], pV_base = [];
-            for(let i=0; i<=6; i++) { 
-                pL_base[i] = poisson(i, avgGFL); 
-                pV_base[i] = poisson(i, avgGFV); 
-            }
-            for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) probL_U25 += pL_base[i]*pV_base[j];
-
             data.avg = { 
-                gfl: avgGFL, gal: sGAL / sPJL, 
-                gfv: avgGFV, gav: sGAV / sPJV,
-                league_ov25: 1 - probL_U25,
-                league_btts: 1 - (pL_base[0] + pV_base[0] - (pL_base[0]*pV_base[0])),
-                league_ov05ht: 1 - Math.exp(-(avgGFL + avgGFV) * 0.45)
+                gfl: sGFL / sPJL, gal: sGAL / sPJL, 
+                gfv: sGFV / sPJV, gav: sGAV / sPJV 
             };
             return data;
         } catch (e) { return null; }
@@ -509,11 +478,13 @@
         database = {};
         matchesToday = [];
 
+        // 1. Cargamos datos de todas las hojas activas
         for (let l of leagues) {
             const data = await fetchDataForSheet(l.sheet);
             if (data) database[l.sheet] = data;
         }
 
+        // 2. Buscamos partidos del día
         try {
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F1000`;
             const res = await fetch(url);
@@ -525,12 +496,14 @@
                 const away = cols[2];
                 if (!home || home === "LOCAL") return;
 
+                // Buscamos a qué liga pertenecen estos equipos
                 for (let leagueName in database) {
                     const db = database[leagueName];
                     const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
                     const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
 
                     if (lData && vData) {
+                        // Cálculo de xG basado en promedios de esa hoja específica
                         const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl;
                         const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv;
                         
@@ -545,10 +518,9 @@
                             ov25: 1 - u25,
                             btts: 1 - (pL[0] + pV[0] - (pL[0]*pV[0])),
                             probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
-                            hasSample: (lData.gp >= 5 && vData.gp >= 5),
-                            leagueAvg: db.avg // Pasamos los promedios de liga al objeto de partido
+                            hasSample: (lData.gp >= 5 && vData.gp >= 5)
                         });
-                        break;
+                        break; // Si lo encuentra en una liga, no sigue buscando en las demás
                     }
                 }
             });
@@ -598,6 +570,7 @@
             return;
         }
 
+        // Usamos la probabilidad más alta para el cálculo rápido del value en tabla general
         const maxProb = Math.max(m.ov25, m.btts);
         const edge = (maxProb * houseOdd) - 1;
         resCell.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
@@ -608,13 +581,6 @@
         const warning = m.hasSample ? "" : "⚠️ [MUESTRA BAJA] ";
         document.getElementById('currentMatchLabel').innerText = `${warning}${m.home} vs ${m.away}`;
         
-        // Mostrar promedios de liga
-        document.getElementById('leagueAvgDisplay').innerHTML = `
-            <div><strong>PROM. GOL LIGA</strong><br>${(m.leagueAvg.gfl + m.leagueAvg.gfv).toFixed(2)}</div>
-            <div><strong>POISSON LIGA O2.5</strong><br>${(m.leagueAvg.league_ov25*100).toFixed(1)}%</div>
-            <div><strong>POISSON LIGA BTTS</strong><br>${(m.leagueAvg.league_btts*100).toFixed(1)}%</div>
-        `;
-
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
         document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
         
@@ -630,11 +596,11 @@
         document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
 
         const markets = [
-            {n: 'OVER 0.5 HT', p: m.probHT, pl: m.leagueAvg.league_ov05ht},
-            {n: 'OVER 2.5 FT', p: m.ov25, pl: m.leagueAvg.league_ov25},
-            {n: 'UNDER 2.5 FT', p: 1 - m.ov25, pl: 1 - m.leagueAvg.league_ov25},
-            {n: 'BTTS YES', p: m.btts, pl: m.leagueAvg.league_btts},
-            {n: 'BTTS NO', p: 1 - m.btts, pl: 1 - m.leagueAvg.league_btts}
+            {n: 'OVER 0.5 HT', p: m.probHT},
+            {n: 'OVER 2.5 FT', p: m.ov25},
+            {n: 'UNDER 2.5 FT', p: 1 - m.ov25},
+            {n: 'BTTS YES', p: m.btts},
+            {n: 'BTTS NO', p: 1 - m.btts}
         ];
 
         const table = document.getElementById('individualMarketsTable');
@@ -643,8 +609,8 @@
             return `
                 <tr>
                     <td><strong>${mk.n}</strong></td>
-                    <td>${(mk.p*100).toFixed(1)}%</td>
-                    <td style="color:var(--text-muted)">${(mk.pl*100).toFixed(1)}%</td>
+                    <td>${(mk.p*100).toFixed(0)}%</td>
+                    <td style="color:var(--primary)">${fair}</td>
                     <td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td>
                     <td id="s_val_${i}">--</td>
                     <td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td>
