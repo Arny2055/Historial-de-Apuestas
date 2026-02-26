@@ -205,6 +205,41 @@
             </div>
         </div>
 
+        <div class="glass-card p-6 rounded-2xl mb-8 border-emerald-500/20">
+            <div class="flex items-center gap-3 mb-6">
+                <i class="fa-solid fa-ranking-star text-emerald-500"></i>
+                <h2 class="text-xs font-black uppercase text-white tracking-widest">League Performance Analytics & Teams</h2>
+            </div>
+            <div class="overflow-x-auto scroll-custom">
+                <table class="excel-table mb-6">
+                    <thead>
+                        <tr>
+                            <th>Liga</th>
+                            <th>Principal Mercado</th>
+                            <th>Prob % Prom.</th>
+                            <th>Cuota Casa Prom.</th>
+                            <th>Valor % Prom.</th>
+                            <th>Yield</th>
+                            <th>ROI</th>
+                            <th>P-Value</th>
+                        </tr>
+                    </thead>
+                    <tbody id="league-performance-body"></tbody>
+                </table>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-slate-800">
+                <div>
+                    <h3 class="text-[10px] font-black text-emerald-400 uppercase mb-3">Ranking Equipos: Más Rentables</h3>
+                    <div id="top-teams-profit" class="space-y-2 max-h-[250px] overflow-y-auto pr-2 scroll-custom"></div>
+                </div>
+                <div>
+                    <h3 class="text-[10px] font-black text-red-400 uppercase mb-3">Ranking Equipos: Menos Rentables</h3>
+                    <div id="bottom-teams-profit" class="space-y-2 max-h-[250px] overflow-y-auto pr-2 scroll-custom"></div>
+                </div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div class="glass-card p-4 rounded-xl border-blue-500/20">
                 <div class="flex items-center gap-2 mb-2">
@@ -390,28 +425,32 @@
         let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let bChart;
 
-        // FUNCIÓN AUXILIAR PARA LIMPIAR EL NOMBRE DE LA LIGA
         function extractLeagueName(teamsStr) {
             if (!teamsStr) return 'General';
-            
-            // Caso 1: [LIGA]
             if (teamsStr.includes('[') && teamsStr.includes(']')) {
                 const match = teamsStr.match(/\[(.*?)\]/);
-                return match ? match[0].trim() : 'General';
+                return match ? match[1].trim() : 'General';
             }
-            
-            // Caso 2: PAÍS-LIGA (Detecta guion si no hay corchetes)
             if (teamsStr.includes('-')) {
                 const parts = teamsStr.split(' ');
                 if (parts[0].includes('-')) return parts[0].trim();
             }
-
-            // Fallback: Si usabas dos puntos antes
             if (teamsStr.includes(':')) {
                 return teamsStr.split(':')[0].trim();
             }
-
             return 'General';
+        }
+
+        // NUEVA FUNCIÓN: Extraer equipo local y visitante (Suponiendo formato "Local vs Visitante")
+        function extractTeams(teamsStr) {
+            let matchText = teamsStr;
+            if (matchText.includes(']')) matchText = matchText.split(']')[1].trim();
+            
+            let teams = [];
+            if (matchText.includes(' vs ')) teams = matchText.split(' vs ');
+            else if (matchText.includes(' - ')) teams = matchText.split(' - ');
+            
+            return teams.map(t => t.trim());
         }
 
         function updateLeagueFilter() {
@@ -432,6 +471,98 @@
                     if(league === currentValue) opt.selected = true;
                     leagueSelect.appendChild(opt);
                 }
+            });
+        }
+
+        // FUNCIÓN MEJORADA: Calcula el rendimiento detallado por liga y equipo
+        function updateLeaguePerformanceTable() {
+            const resolved = bets.filter(b => b.status === 'win' || b.status === 'loss');
+            const leagueAnalysis = {};
+            const teamAnalysis = {};
+
+            resolved.forEach(b => {
+                const league = extractLeagueName(b.teams);
+                const teams = extractTeams(b.teams);
+                const profit = Number(b.profit) || 0;
+                const stake = Number(b.stake) || 0;
+                const prob = Number(b.prob) * 100;
+                const odd = Number(b.odd) || 0;
+                const market = b.market || 'Unknown';
+                const houseProb = odd > 0 ? (1/odd)*100 : 0;
+                const val = prob - houseProb;
+
+                // Estadísticas por Liga
+                if (!leagueAnalysis[league]) {
+                    leagueAnalysis[league] = { 
+                        profit: 0, staked: 0, count: 0, markets: {}, 
+                        totalProb: 0, totalOdd: 0, totalVal: 0, avgOddSum: 0 
+                    };
+                }
+                const l = leagueAnalysis[league];
+                l.profit += profit;
+                l.staked += stake;
+                l.count += 1;
+                l.totalProb += prob;
+                l.totalOdd += odd;
+                l.totalVal += val;
+                l.markets[market] = (l.markets[market] || 0) + 1;
+
+                // Estadísticas por Equipo
+                teams.forEach(t => {
+                    if (!teamAnalysis[t]) teamAnalysis[t] = { profit: 0, count: 0 };
+                    teamAnalysis[t].profit += (profit / 2); // Se divide el profit del match entre ambos equipos implicados
+                    teamAnalysis[t].count += 1;
+                });
+            });
+
+            const tbody = document.getElementById('league-performance-body');
+            tbody.innerHTML = '';
+
+            Object.entries(leagueAnalysis).forEach(([name, data]) => {
+                const yieldVal = data.staked > 0 ? (data.profit / data.staked * 100) : 0;
+                const roi = data.staked > 0 ? ((data.staked + data.profit) / data.staked * 100) : 0;
+                const avgProb = data.totalProb / data.count;
+                const avgOdd = data.totalOdd / data.count;
+                const avgVal = data.totalVal / data.count;
+                const mainMarket = Object.entries(data.markets).sort((a,b) => b[1]-a[1])[0][0];
+                const pVal = calculatePValue(data.count, yieldVal, avgOdd);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold text-white">${name}</td>
+                    <td class="text-emerald-400 font-bold text-[9px]">${mainMarket}</td>
+                    <td>${avgProb.toFixed(1)}%</td>
+                    <td>${avgOdd.toFixed(2)}</td>
+                    <td class="${avgVal > 0 ? 'text-blue-400' : 'text-slate-500'}">${avgVal.toFixed(1)}%</td>
+                    <td class="font-bold ${yieldVal >= 0 ? 'text-emerald-400' : 'text-red-400'}">${yieldVal.toFixed(1)}%</td>
+                    <td class="text-slate-300">${roi.toFixed(1)}%</td>
+                    <td class="font-mono ${pVal < 0.05 ? 'text-emerald-500' : 'text-slate-500'}">${pVal ? (pVal*100).toFixed(2)+'%' : '--'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Ranking Equipos
+            const sortedTeams = Object.entries(teamAnalysis).sort((a,b) => b[1].profit - a[1].profit);
+            const topContainer = document.getElementById('top-teams-profit');
+            const bottomContainer = document.getElementById('bottom-teams-profit');
+            
+            topContainer.innerHTML = '';
+            bottomContainer.innerHTML = '';
+
+            sortedTeams.slice(0, 10).forEach(([name, data]) => {
+                topContainer.innerHTML += `
+                    <div class="flex justify-between items-center bg-emerald-500/5 p-2 rounded border border-emerald-500/10">
+                        <span class="text-[10px] font-bold text-slate-200">${name}</span>
+                        <span class="text-[10px] font-black text-emerald-400">+${data.profit.toFixed(2)}u</span>
+                    </div>`;
+            });
+
+            [...sortedTeams].reverse().slice(0, 10).forEach(([name, data]) => {
+                bottomContainer.innerHTML += `
+                    <div class="flex justify-between items-center bg-red-500/5 p-2 rounded border border-red-500/10">
+                        <span class="text-[10px] font-bold text-slate-200">${name}</span>
+                        <span class="text-[10px] font-black text-red-400">${data.profit.toFixed(2)}u</span>
+                    </div>`;
             });
         }
 
@@ -511,7 +642,8 @@
                 const z = yieldDec / sd;
                 const t = 1 / (1 + 0.5 * Math.abs(z));
                 const ans = 1 - t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
-                return z >= 0 ? 1 - (ans + 1) / 2 : (ans + 1) / 2;
+                const p = z >= 0 ? 1 - (ans + 1) / 2 : (ans + 1) / 2;
+                return p;
             } catch (e) { return null; }
         }
 
@@ -542,6 +674,7 @@
         function updateStats() {
             updateLeagueFilter();
             const tops = updatePerformanceTops();
+            updateLeaguePerformanceTable();
             
             const selectedMarkets = Array.from(document.querySelectorAll('#f_market_group input:checked')).map(cb => cb.value.toUpperCase());
             const f_status = document.getElementById('f_status').value;
@@ -724,14 +857,13 @@
                 const valCol = probNum - houseProb;
                 const betProfit = parseFloat(b.profit) || 0;
 
-                // MEJORA: Cálculo individual de Kelly para la tabla
                 let kellyStakeText = "0.00";
                 if (oddNum > 1 && b.prob > (1/oddNum)) {
                     const b_f = oddNum - 1;
                     const p = Number(b.prob);
                     const q = 1 - p;
                     const fullKelly = (b_f * p - q) / b_f;
-                    kellyStakeText = (fullKelly * 100).toFixed(1); // Muestra el % del bank
+                    kellyStakeText = (fullKelly * 100).toFixed(1); 
                 }
 
                 const tagClass = isComboTop 
