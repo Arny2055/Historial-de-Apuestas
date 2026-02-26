@@ -493,18 +493,24 @@
         }
 
         try {
-            // Ampliamos el rango para capturar la columna E (Resultados)
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F1000`;
             const res = await fetch(url);
             const text = await res.text();
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
 
+            let liveResults = {};
+
             rows.forEach(cols => {
                 const home = cols[0];
                 const away = cols[2];
-                const score = cols[1]; // Columna E (Índice 1 en el rango D:F)
+                const score = cols[1];
 
                 if (!home || home === "LOCAL") return;
+                
+                // Guardar resultado para sincronizar con ROI
+                if(score && score.includes('-')) {
+                    liveResults[`${home} vs ${away}`] = score;
+                }
 
                 for (let leagueName in database) {
                     const db = database[leagueName];
@@ -533,6 +539,9 @@
                 }
             });
 
+            // Guardar resultados en LocalStorage para que ROI2 los consuma
+            localStorage.setItem('betags_live_scores', JSON.stringify(liveResults));
+
             renderMultiTable();
             document.getElementById('multiAnalysisPanel').style.display = 'block';
             document.getElementById('singleAnalysisPanel').style.display = 'none';
@@ -554,7 +563,6 @@
             const statusClass = m.hasSample ? "" : "insufficient-data";
             const statusLabel = m.hasSample ? "" : "⚠️ [DATA INSUF.]<br>";
             
-            // Lógica para mostrar marcador o VS
             const displayScore = (m.score && m.score !== "" && m.score !== "vs") 
                 ? `<span class="score-badge">${m.score}</span>` 
                 : " vs ";
@@ -695,8 +703,15 @@
         document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
     }
 
+    // MEJORA: Sincronización automática en segundo plano cada 5 mins
+    setInterval(() => {
+        analizarTodoMultiliga();
+    }, 300000);
+
     window.onload = () => {
         renderLeagueSelect();
+        // Carga inicial al abrir
+        analizarTodoMultiliga();
     };
 </script>
 </body>
