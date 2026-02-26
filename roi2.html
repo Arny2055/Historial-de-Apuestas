@@ -441,7 +441,6 @@
             return 'General';
         }
 
-        // NUEVA FUNCIÓN: Extraer equipo local y visitante (Suponiendo formato "Local vs Visitante")
         function extractTeams(teamsStr) {
             let matchText = teamsStr;
             if (matchText.includes(']')) matchText = matchText.split(']')[1].trim();
@@ -474,7 +473,6 @@
             });
         }
 
-        // FUNCIÓN MEJORADA: Calcula el rendimiento detallado por liga y equipo
         function updateLeaguePerformanceTable() {
             const resolved = bets.filter(b => b.status === 'win' || b.status === 'loss');
             const leagueAnalysis = {};
@@ -491,7 +489,6 @@
                 const houseProb = odd > 0 ? (1/odd)*100 : 0;
                 const val = prob - houseProb;
 
-                // Estadísticas por Liga
                 if (!leagueAnalysis[league]) {
                     leagueAnalysis[league] = { 
                         profit: 0, staked: 0, count: 0, markets: {}, 
@@ -507,10 +504,9 @@
                 l.totalVal += val;
                 l.markets[market] = (l.markets[market] || 0) + 1;
 
-                // Estadísticas por Equipo
                 teams.forEach(t => {
                     if (!teamAnalysis[t]) teamAnalysis[t] = { profit: 0, count: 0 };
-                    teamAnalysis[t].profit += (profit / 2); // Se divide el profit del match entre ambos equipos implicados
+                    teamAnalysis[t].profit += (profit / 2);
                     teamAnalysis[t].count += 1;
                 });
             });
@@ -541,7 +537,6 @@
                 tbody.appendChild(tr);
             });
 
-            // Ranking Equipos
             const sortedTeams = Object.entries(teamAnalysis).sort((a,b) => b[1].profit - a[1].profit);
             const topContainer = document.getElementById('top-teams-profit');
             const bottomContainer = document.getElementById('bottom-teams-profit');
@@ -601,16 +596,12 @@
             if(topLeagues.length > 0) {
                 leaguesListElem.innerHTML = '<i class="fa-solid fa-flag mr-1"></i> ' + 
                     topLeagues.map(l => `<span class="font-bold text-emerald-400">${l[0]}</span>`).join(', ');
-            } else {
-                leaguesListElem.innerHTML = 'Sin datos de ligas top aún';
-            }
+            } else { leaguesListElem.innerHTML = 'Sin datos de ligas top aún'; }
 
             if(topMarkets.length > 0) {
                 marketsListElem.innerHTML = '<i class="fa-solid fa-chart-line mr-1"></i> ' + 
                     topMarkets.map(m => `<span class="font-bold text-blue-400">${m[0]}</span>`).join(', ');
-            } else {
-                marketsListElem.innerHTML = 'Sin datos de mercados top aún';
-            }
+            } else { marketsListElem.innerHTML = 'Sin datos de mercados top aún'; }
 
             return { 
                 leagues: topLeagues.map(l => l[0]), 
@@ -719,11 +710,8 @@
 
             const checkedIds = Array.from(document.querySelectorAll('.bet-item-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
             const btnDeleteBulk = document.getElementById('btn-delete-bulk');
-            if(checkedIds.length > 0) {
-                btnDeleteBulk.classList.remove('hidden');
-            } else {
-                btnDeleteBulk.classList.add('hidden');
-            }
+            if(checkedIds.length > 0) btnDeleteBulk.classList.remove('hidden');
+            else btnDeleteBulk.classList.add('hidden');
 
             let statsData = (checkedIds.length > 0) 
                 ? filtered.filter(b => checkedIds.includes(b.id.toString())) 
@@ -790,21 +778,16 @@
             
             if (checkboxes.length > 0) {
                 let total = 0;
-                checkboxes.forEach(cb => {
-                    total += parseFloat(cb.getAttribute('data-profit')) || 0;
-                });
+                checkboxes.forEach(cb => { total += parseFloat(cb.getAttribute('data-profit')) || 0; });
                 profitText.innerText = (total >= 0 ? "+" : "") + total.toFixed(2) + "u";
                 profitText.className = total >= 0 ? "text-[10px] font-bold text-emerald-400" : "text-[10px] font-bold text-red-400";
                 summary.classList.remove('hidden');
-            } else {
-                summary.classList.add('hidden');
-            }
+            } else { summary.classList.add('hidden'); }
         }
 
         function deleteSelectedBets() {
             const checkboxes = document.querySelectorAll('.bet-item-checkbox:checked');
             if (checkboxes.length === 0) return;
-            
             if (confirm(`¿Estás seguro de que quieres eliminar las ${checkboxes.length} apuestas seleccionadas?`)) {
                 const idsToDelete = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
                 bets = bets.filter(b => !idsToDelete.includes(b.id.toString()));
@@ -816,7 +799,6 @@
         function renderHistory(data, tops) {
             const tbody = document.getElementById('history-body'); 
             const currentCheckedIds = Array.from(document.querySelectorAll('.bet-item-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
-            
             tbody.innerHTML = '';
             
             if (data.length === 0) {
@@ -831,30 +813,22 @@
                 const status = b.status || 'pending';
                 const league = extractLeagueName(b.teams);
                 const market = b.market || 'Unknown';
-                
                 const isProfitableLeague = tops.leagues.includes(league);
                 const isProfitableMarket = tops.markets.includes(market);
                 const profitableClass = (status === 'pending' && (isProfitableLeague || isProfitableMarket)) ? 'profitable-alert' : '';
-                
                 tr.className = `row-${status} ${profitableClass}`;
                 
                 let tag = '';
                 let isComboTop = false;
                 if (status === 'pending') {
-                    if (isProfitableLeague && isProfitableMarket) {
-                        tag = 'COMBO TOP 🔥';
-                        isComboTop = true;
-                    }
+                    if (isProfitableLeague && isProfitableMarket) { tag = 'COMBO TOP 🔥'; isComboTop = true; }
                     else if (isProfitableLeague) tag = 'LIGA TOP 🔥';
                     else if (isProfitableMarket) tag = 'MERCADO TOP 🔥';
                 }
 
                 const probNum = (Number(b.prob) * 100) || 0;
-                const fairDisp = b.fair_odd ? Number(b.fair_odd).toFixed(2) : (b.prob ? (1/Number(b.prob)).toFixed(2) : "0.00");
-                const edgeVal = parseFloat(b.edge?.toString().replace('%','')) || 0;
                 const oddNum = Number(b.odd) || 0;
-                const houseProb = oddNum > 0 ? (1 / oddNum) * 100 : 0;
-                const valCol = probNum - houseProb;
+                const edgeVal = parseFloat(b.edge?.toString().replace('%','')) || 0;
                 const betProfit = parseFloat(b.profit) || 0;
 
                 let kellyStakeText = "0.00";
@@ -862,21 +836,14 @@
                     const b_f = oddNum - 1;
                     const p = Number(b.prob);
                     const q = 1 - p;
-                    const fullKelly = (b_f * p - q) / b_f;
-                    kellyStakeText = (fullKelly * 100).toFixed(1); 
+                    kellyStakeText = (((b_f * p - q) / b_f) * 100).toFixed(1); 
                 }
 
-                const tagClass = isComboTop 
-                    ? "text-[8px] px-1 rounded font-black uppercase combo-top-flash" 
-                    : "text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase";
-
+                const tagClass = isComboTop ? "text-[8px] px-1 rounded font-black uppercase combo-top-flash" : "text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase";
                 const isChecked = currentCheckedIds.includes(b.id.toString()) ? 'checked' : '';
 
                 tr.innerHTML = `
-                    <td>
-                        <input type="checkbox" class="select-bet-checkbox bet-item-checkbox" 
-                               data-profit="${betProfit}" data-id="${b.id}" ${isChecked} onchange="updateStats()">
-                    </td>
+                    <td><input type="checkbox" class="select-bet-checkbox bet-item-checkbox" data-profit="${betProfit}" data-id="${b.id}" ${isChecked} onchange="updateStats()"></td>
                     <td>
                         <div class="font-bold text-slate-100">${b.teams || 'Evento'}</div>
                         <div class="text-[9px] text-slate-500 font-mono tracking-tighter uppercase">${b.date || ''}</div>
@@ -884,24 +851,13 @@
                     </td>
                     <td class="font-bold text-emerald-500">${market}</td>
                     <td class="text-slate-400">${probNum.toFixed(1)}%</td>
-                    <td class="text-slate-400">${fairDisp}</td>
+                    <td class="text-slate-400">${b.fair_odd ? Number(b.fair_odd).toFixed(2) : (b.prob ? (1/Number(b.prob)).toFixed(2) : "0.00")}</td>
                     <td class="font-black text-white">${oddNum.toFixed(2)}</td>
-                    <td class="font-bold text-blue-400">${valCol.toFixed(1)}%</td>
+                    <td class="font-bold text-blue-400">${(probNum - (oddNum > 0 ? (1/oddNum)*100 : 0)).toFixed(1)}%</td>
                     <td class="${edgeVal > 0 ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${edgeVal.toFixed(1)}%</td>
-                    <td>
-                        <span class="font-bold">${b.stake || '0'}u</span>
-                        <span class="kelly-badge" title="Sugerencia Kelly">${kellyStakeText}%</span>
-                    </td>
-                    <td>
-                        <div class="flex gap-1 items-center">
-                            <button onclick="resolve('${b.id}', 'win')" class="btn-action btn-win">W</button>
-                            <button onclick="resolve('${b.id}', 'loss')" class="btn-action btn-loss">L</button>
-                            <button onclick="resolve('${b.id}', 'pending')" class="btn-action btn-pending">P</button>
-                        </div>
-                    </td>
-                    <td>
-                        <button onclick="deleteBet('${b.id}')" class="text-slate-700 hover:text-red-500 px-2"><i class="fa-solid fa-trash-can"></i></button>
-                    </td>
+                    <td><span class="font-bold">${b.stake || '0'}u</span><span class="kelly-badge" title="Sugerencia Kelly">${kellyStakeText}%</span></td>
+                    <td><div class="flex gap-1 items-center"><button onclick="resolve('${b.id}', 'win')" class="btn-action btn-win">W</button><button onclick="resolve('${b.id}', 'loss')" class="btn-action btn-loss">L</button><button onclick="resolve('${b.id}', 'pending')" class="btn-action btn-pending">P</button></div></td>
+                    <td><button onclick="deleteBet('${b.id}')" class="text-slate-700 hover:text-red-500 px-2"><i class="fa-solid fa-trash-can"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -929,9 +885,7 @@
                 data: { 
                     labels: chartData.map((_,i)=>i), 
                     datasets: [{ 
-                        data: chartData, 
-                        borderColor: '#10b981', 
-                        borderWidth: 2,
+                        data: chartData, borderColor: '#10b981', borderWidth: 2,
                         backgroundColor: (context) => {
                             const chart = context.chart;
                             const {ctx, chartArea} = chart;
@@ -941,18 +895,18 @@
                             gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
                             return gradient;
                         },
-                        fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 4
+                        fill: true, tension: 0.4, pointRadius: 0
                     }] 
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, tooltip: { enabled: true, mode: 'index', intersect: false } },
-                    scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)', drawBorder: false }, ticks: { color: '#475569', font: { size: 9, weight: 'bold' } } } }
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 9 } } } }
                 }
             });
         }
 
-        function deleteBet(id) { if(confirm('¿Eliminar esta entrada?')) { bets = bets.filter(x => x.id.toString() !== id.toString()); saveAndRefresh(); } }
+        function deleteBet(id) { if(confirm('¿Eliminar?')) { bets = bets.filter(x => x.id.toString() !== id.toString()); saveAndRefresh(); } }
         function saveAndRefresh() { localStorage.setItem(STORAGE_KEY, JSON.stringify(bets)); updateStats(); }
         function clearHistory() { if(confirm('¿BORRAR TODO?')) { bets = []; saveAndRefresh(); } }
         function sendToBacktesting() { alert('Enviando datos filtrados al simulador...'); }
@@ -963,7 +917,7 @@
             const blob = new Blob([headers + csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.setAttribute('hidden', ''); a.setAttribute('href', url); a.setAttribute('download', 'historial_betags.csv');
+            a.setAttribute('href', url); a.setAttribute('download', 'historial_betags.csv');
             document.body.appendChild(a); a.click(); document.body.removeChild(a);
         }
         window.onload = updateStats;
