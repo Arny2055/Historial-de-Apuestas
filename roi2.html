@@ -163,6 +163,16 @@
             border: 1px solid rgba(139, 92, 246, 0.3);
             margin-left: 4px;
         }
+        /* Estilo para Stake PID */
+        .pid-badge {
+            background: rgba(0, 242, 255, 0.15);
+            color: #00f2ff;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            margin-left: 4px;
+        }
     </style>
 </head>
 <body>
@@ -407,7 +417,7 @@
                                     <th>Casa</th>
                                     <th>VAL %</th>
                                     <th>Edge</th>
-                                    <th>Stake (Plano vs Kelly)</th>
+                                    <th>Stake (Plano vs Kelly vs PID)</th>
                                     <th>Resolución</th>
                                     <th></th>
                                 </tr>
@@ -424,6 +434,34 @@
         const STORAGE_KEY = 'betags_pre_match'; 
         let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let bChart;
+
+        // Configuración PID
+        const PID_CONFIG = {
+            Kp: 0.1,  // Proporcional: Reacción al error actual
+            Ki: 0.01, // Integral: Reacción al error acumulado (sesgo histórico)
+            Kd: 0.05, // Derivativo: Reacción a la velocidad del cambio
+            TargetBank: 150, // Objetivo de Bankroll para cálculo de error
+            integral: 0,
+            lastError: 0
+        };
+
+        function calculatePIDStake(currentBank, edge) {
+            const error = PID_CONFIG.TargetBank - currentBank;
+            PID_CONFIG.integral += error;
+            const derivative = error - PID_CONFIG.lastError;
+            
+            // Fórmula PID básica
+            let output = (PID_CONFIG.Kp * error) + (PID_CONFIG.Ki * PID_CONFIG.integral) + (PID_CONFIG.Kd * derivative);
+            
+            // Ajuste basado en el Edge (valor) de la apuesta
+            const edgeFactor = Math.max(0.5, edge / 5); 
+            let finalStake = Math.abs(output) * edgeFactor;
+            
+            PID_CONFIG.lastError = error;
+            
+            // Limitar stake PID entre 0.5% y 5% por seguridad
+            return Math.min(Math.max(finalStake, 0.5), 5).toFixed(1);
+        }
 
         function extractLeagueName(teamsStr) {
             if (!teamsStr) return 'General';
@@ -706,7 +744,11 @@
                 return matchM && matchS && matchSource && matchLeague && (probVal >= pMin && probVal <= pMax) && (fair >= fjMin && fair <= fjMax) && (odd >= ocMin && odd <= ocMax) && (edge >= eMin && edge <= eMax) && (stake >= sMin && stake <= sMax) && (valColumn >= vMin && vMax >= valColumn);
             });
 
-            renderHistory(filtered, tops);
+            // Obtener bankroll actual para el PID
+            let currentBankTotal = 100;
+            bets.filter(b => b.status === 'win' || b.status === 'loss').forEach(b => currentBankTotal += Number(b.profit));
+
+            renderHistory(filtered, tops, currentBankTotal);
 
             const checkedIds = Array.from(document.querySelectorAll('.bet-item-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
             const btnDeleteBulk = document.getElementById('btn-delete-bulk');
@@ -796,7 +838,7 @@
             }
         }
 
-        function renderHistory(data, tops) {
+        function renderHistory(data, tops, currentBankTotal) {
             const tbody = document.getElementById('history-body'); 
             const currentCheckedIds = Array.from(document.querySelectorAll('.bet-item-checkbox:checked')).map(cb => cb.getAttribute('data-id'));
             tbody.innerHTML = '';
@@ -831,6 +873,7 @@
                 const edgeVal = parseFloat(b.edge?.toString().replace('%','')) || 0;
                 const betProfit = parseFloat(b.profit) || 0;
 
+                // Cálculo Kelly
                 let kellyStakeText = "0.00";
                 if (oddNum > 1 && b.prob > (1/oddNum)) {
                     const b_f = oddNum - 1;
@@ -838,6 +881,9 @@
                     const q = 1 - p;
                     kellyStakeText = (((b_f * p - q) / b_f) * 100).toFixed(1); 
                 }
+
+                // Cálculo PID
+                const pidStake = calculatePIDStake(currentBankTotal, edgeVal);
 
                 const tagClass = isComboTop ? "text-[8px] px-1 rounded font-black uppercase combo-top-flash" : "text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase";
                 const isChecked = currentCheckedIds.includes(b.id.toString()) ? 'checked' : '';
@@ -855,7 +901,11 @@
                     <td class="font-black text-white">${oddNum.toFixed(2)}</td>
                     <td class="font-bold text-blue-400">${(probNum - (oddNum > 0 ? (1/oddNum)*100 : 0)).toFixed(1)}%</td>
                     <td class="${edgeVal > 0 ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${edgeVal.toFixed(1)}%</td>
-                    <td><span class="font-bold">${b.stake || '0'}u</span><span class="kelly-badge" title="Sugerencia Kelly">${kellyStakeText}%</span></td>
+                    <td>
+                        <span class="font-bold">${b.stake || '0'}u</span>
+                        <span class="kelly-badge" title="Sugerencia Kelly">${kellyStakeText}%</span>
+                        <span class="pid-badge" title="Sugerencia PID (Control de Error)">${pidStake}%</span>
+                    </td>
                     <td><div class="flex gap-1 items-center"><button onclick="resolve('${b.id}', 'win')" class="btn-action btn-win">W</button><button onclick="resolve('${b.id}', 'loss')" class="btn-action btn-loss">L</button><button onclick="resolve('${b.id}', 'pending')" class="btn-action btn-pending">P</button></div></td>
                     <td><button onclick="deleteBet('${b.id}')" class="text-slate-700 hover:text-red-500 px-2"><i class="fa-solid fa-trash-can"></i></button></td>
                 `;
