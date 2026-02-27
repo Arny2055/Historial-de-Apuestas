@@ -459,8 +459,8 @@
             
             PID_CONFIG.lastError = error;
             
-            // Limitar stake PID entre 0.5% y 5% por seguridad
-            return Math.min(Math.max(finalStake, 0.5), 5).toFixed(1);
+            // Limitar stake PID entre 0.5u y 5u por seguridad
+            return Math.min(Math.max(finalStake, 0.5), 5).toFixed(2);
         }
 
         function extractLeagueName(teamsStr) {
@@ -873,16 +873,18 @@
                 const edgeVal = parseFloat(b.edge?.toString().replace('%','')) || 0;
                 const betProfit = parseFloat(b.profit) || 0;
 
-                // Cálculo Kelly
-                let kellyStakeText = "0.00";
+                // Cálculo Kelly en UNIDADES (Basado en Bankroll de 100u)
+                let kellyStakeUnits = "0.00";
                 if (oddNum > 1 && b.prob > (1/oddNum)) {
                     const b_f = oddNum - 1;
                     const p = Number(b.prob);
                     const q = 1 - p;
-                    kellyStakeText = (((b_f * p - q) / b_f) * 100).toFixed(1); 
+                    // Sugerimos 1/4 Kelly como estándar en unidades (Fractional Kelly)
+                    const fullKellyPerc = ((b_f * p - q) / b_f);
+                    kellyStakeUnits = (fullKellyPerc * 0.25 * 100).toFixed(2); 
                 }
 
-                // Cálculo PID
+                // Cálculo PID en UNIDADES
                 const pidStake = calculatePIDStake(currentBankTotal, edgeVal);
 
                 const tagClass = isComboTop ? "text-[8px] px-1 rounded font-black uppercase combo-top-flash" : "text-[8px] bg-emerald-500/20 text-emerald-400 px-1 rounded animate-pulse font-black uppercase";
@@ -903,8 +905,8 @@
                     <td class="${edgeVal > 0 ? 'text-emerald-400 font-bold' : 'text-slate-500'}">${edgeVal.toFixed(1)}%</td>
                     <td>
                         <span class="font-bold">${b.stake || '0'}u</span>
-                        <span class="kelly-badge" title="Sugerencia Kelly">${kellyStakeText}%</span>
-                        <span class="pid-badge" title="Sugerencia PID (Control de Error)">${pidStake}%</span>
+                        <span class="kelly-badge" title="Sugerencia 1/4 Kelly en Unidades">${kellyStakeUnits}u</span>
+                        <span class="pid-badge" title="Sugerencia PID en Unidades">${pidStake}u</span>
                     </td>
                     <td><div class="flex gap-1 items-center"><button onclick="resolve('${b.id}', 'win')" class="btn-action btn-win">W</button><button onclick="resolve('${b.id}', 'loss')" class="btn-action btn-loss">L</button><button onclick="resolve('${b.id}', 'pending')" class="btn-action btn-pending">P</button></div></td>
                     <td><button onclick="deleteBet('${b.id}')" class="text-slate-700 hover:text-red-500 px-2"><i class="fa-solid fa-trash-can"></i></button></td>
