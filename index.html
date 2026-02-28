@@ -16,6 +16,7 @@
             --text-muted: #adb5bd;
             --border: #2c3440;
             --glass: rgba(255, 255, 255, 0.03);
+            --row-select: rgba(77, 171, 247, 0.15); /* Color para resaltar fila seleccionada */
         }
 
         /* Estilos Base */
@@ -138,6 +139,12 @@
             padding: 12px 5px;
             border-bottom: 1px solid var(--border);
             text-align: center;
+        }
+
+        /* Clase para resaltar fila seleccionada */
+        .row-active {
+            background-color: var(--row-select) !important;
+            border-left: 4px solid var(--primary);
         }
 
         .league-tag {
@@ -554,7 +561,6 @@
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
         
-        // MEJORA: Filtrar partidos con Probabilidad >= 55% en Over 2.5 o BTTS Yes
         const filteredMatches = matchesToday.filter(m => m.ov25 >= 0.55 || m.btts >= 0.55);
 
         if(filteredMatches.length === 0) {
@@ -571,7 +577,7 @@
                 : " vs ";
 
             return `
-            <tr class="${statusClass}">
+            <tr class="${statusClass}" id="row_match_${originalIdx}">
                 <td><span class="league-tag">${m.league}</span></td>
                 <td style="font-weight:bold">${statusLabel}${m.home} ${displayScore} ${m.away}</td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
@@ -600,6 +606,11 @@
     }
 
     function abrirDetalle(idx) {
+        // MEJORA: Resaltar la fila seleccionada en la tabla multiliga
+        document.querySelectorAll('.multi-results-table tr').forEach(row => row.classList.remove('row-active'));
+        const activeRow = document.getElementById(`row_match_${idx}`);
+        if(activeRow) activeRow.classList.add('row-active');
+
         const m = matchesToday[idx];
         const warning = m.hasSample ? "" : "⚠️ [MUESTRA BAJA] ";
         const displayScore = (m.score && m.score !== "" && m.score !== "vs") ? ` [${m.score}] ` : " vs ";
@@ -708,7 +719,6 @@
 
     window.onload = () => {
         renderLeagueSelect();
-        // El análisis ahora solo se ejecuta cuando presionas el botón "🚀 ANALIZAR TODAS LAS LIGAS"
     };
 </script>
 </body>
