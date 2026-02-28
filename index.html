@@ -507,7 +507,6 @@
 
                 if (!home || home === "LOCAL") return;
                 
-                // Guardar resultado para sincronizar con ROI
                 if(score && score.includes('-')) {
                     liveResults[`${home} vs ${away}`] = score;
                 }
@@ -539,7 +538,6 @@
                 }
             });
 
-            // Guardar resultados en LocalStorage para que ROI2 los consuma
             localStorage.setItem('betags_live_scores', JSON.stringify(liveResults));
 
             renderMultiTable();
@@ -555,11 +553,19 @@
 
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
-        if(matchesToday.length === 0) {
-            body.innerHTML = '<tr><td colspan="8">No se encontraron equipos de PARTIDOS DEL DIA en tus hojas configuradas.</td></tr>';
+        
+        // MEJORA: Filtrar partidos con Probabilidad >= 55% en Over 2.5 o BTTS Yes
+        const filteredMatches = matchesToday.filter(m => m.ov25 >= 0.55 || m.btts >= 0.55);
+
+        if(filteredMatches.length === 0) {
+            body.innerHTML = '<tr><td colspan="8">No hay partidos con Over 2.5 o BTTS Yes ≥ 55% en este momento.</td></tr>';
             return;
         }
-        body.innerHTML = matchesToday.map((m, idx) => {
+
+        body.innerHTML = filteredMatches.map((m) => {
+            // Buscamos el índice original en matchesToday para que abrirDetalle y validaValue funcionen
+            const originalIdx = matchesToday.findIndex(orig => orig.home === m.home && orig.away === m.away);
+            
             const statusClass = m.hasSample ? "" : "insufficient-data";
             const statusLabel = m.hasSample ? "" : "⚠️ [DATA INSUF.]<br>";
             
@@ -574,9 +580,9 @@
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
                 <td>${(m.ov25*100).toFixed(0)}%</td>
                 <td>${(m.btts*100).toFixed(0)}%</td>
-                <td><input type="number" step="0.01" class="input-odds" placeholder="0.00" oninput="validaValueMulti(${idx}, this.value)"></td>
-                <td id="val_multi_${idx}">--</td>
-                <td><button class="btn-open-match" onclick="abrirDetalle(${idx})">OPEN</button></td>
+                <td><input type="number" step="0.01" class="input-odds" placeholder="0.00" oninput="validaValueMulti(${originalIdx}, this.value)"></td>
+                <td id="val_multi_${originalIdx}">--</td>
+                <td><button class="btn-open-match" onclick="abrirDetalle(${originalIdx})">OPEN</button></td>
             </tr>
         `}).join('');
     }
@@ -703,14 +709,12 @@
         document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
     }
 
-    // MEJORA: Sincronización automática en segundo plano cada 5 mins
     setInterval(() => {
         analizarTodoMultiliga();
     }, 300000);
 
     window.onload = () => {
         renderLeagueSelect();
-        // Carga inicial al abrir
         analizarTodoMultiliga();
     };
 </script>
