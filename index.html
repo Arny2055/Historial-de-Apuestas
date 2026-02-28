@@ -563,12 +563,9 @@
         }
 
         body.innerHTML = filteredMatches.map((m) => {
-            // Buscamos el índice original en matchesToday para que abrirDetalle y validaValue funcionen
             const originalIdx = matchesToday.findIndex(orig => orig.home === m.home && orig.away === m.away);
-            
             const statusClass = m.hasSample ? "" : "insufficient-data";
             const statusLabel = m.hasSample ? "" : "⚠️ [DATA INSUF.]<br>";
-            
             const displayScore = (m.score && m.score !== "" && m.score !== "vs") 
                 ? `<span class="score-badge">${m.score}</span>` 
                 : " vs ";
@@ -709,13 +706,9 @@
         document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
     }
 
-    setInterval(() => {
-        analizarTodoMultiliga();
-    }, 300000);
-
     window.onload = () => {
         renderLeagueSelect();
-        analizarTodoMultiliga();
+        // El análisis ahora solo se ejecuta cuando presionas el botón "🚀 ANALIZAR TODAS LAS LIGAS"
     };
 </script>
 </body>
