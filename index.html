@@ -120,7 +120,6 @@
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
 
-        /* MEJORA: Resaltado de apuestas recomendadas */
         .bet-alert {
             border-left: 5px solid var(--accent-yellow) !important;
             background: rgba(252, 196, 25, 0.05) !important;
@@ -178,10 +177,11 @@
         }
 
         .trend-badge {
-            font-size: 0.8rem;
+            font-size: 1.1rem;
             display: flex;
             flex-direction: column;
             line-height: 1;
+            cursor: help;
         }
 
         .chart-container {
@@ -251,7 +251,6 @@
             display: none;
         }
 
-        /* Animación para el botón con Value alto */
         .btn-pulse {
             animation: pulse-green 1.5s infinite;
         }
@@ -310,6 +309,39 @@
             z-index: 2000;
             box-shadow: 0 5px 15px rgba(0,0,0,0.4);
         }
+
+        /* MODAL DE CONSEJO TÁCTICO */
+        #tacticalModal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(77, 171, 247, 0.3);
+        }
+        .modal-content h3 { color: var(--accent-yellow); margin-top: 0; }
+        .modal-content p { font-size: 0.9rem; line-height: 1.5; color: var(--text-white); }
+        .btn-close-modal {
+            background: var(--primary);
+            border: none;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 900;
+            margin-top: 15px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -320,6 +352,15 @@
 </div>
 
 <div id="betToast">🚀 APUESTA ENVIADA (STAKE 1)</div>
+
+<div id="tacticalModal" onclick="this.style.display='none'">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div id="modalIcon" style="font-size: 3rem; margin-bottom: 10px;"></div>
+        <h3 id="modalTitle">CONSEJO TÁCTICO</h3>
+        <p id="modalText"></p>
+        <button class="btn-close-modal" onclick="document.getElementById('tacticalModal').style.display='none'">ENTENDIDO</button>
+    </div>
+</div>
 
 <div class="container">
     <h1>BETA<span>GS</span> ANALYTICS</h1>
@@ -433,7 +474,7 @@
     let database = {}; 
     let matchesToday = [];
 
-    // --- GESTIÓN DE LIGAS (HOJAS) ---
+    // --- GESTIÓN DE LIGAS ---
     function getLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
         return saved ? JSON.parse(saved) : [];
@@ -488,7 +529,7 @@
         return (poissonProb * 0.4) + (probability * 0.6);
     }
 
-    // --- CARGA DE DATOS POR HOJA ---
+    // --- CARGA DE DATOS ---
     async function fetchDataForSheet(sheetName) {
         const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&range=A1:W60`;
         try {
@@ -531,7 +572,6 @@
         } catch (e) { return null; }
     }
 
-    // --- PROCESAMIENTO MULTILIGA ---
     async function analizarTodoMultiliga() {
         const loader = document.getElementById('loadingOverlay');
         loader.style.display = 'flex';
@@ -608,10 +648,45 @@
         } catch (e) { alert("Error de conexión."); } finally { loader.style.display = 'none'; }
     }
 
+    // --- LÓGICA DE ICONOS DE TREND ---
     function getTrendIcon(delta) {
-        if (delta > 0.3) return '<span title="Racha Suerte" style="color:var(--accent-red)">🚀</span>';
-        if (delta < -0.3) return '<span title="Mala Suerte" style="color:var(--primary)">📉</span>';
-        return '<span title="Eficiente" style="color:var(--accent-green)">🎯</span>';
+        if (delta > 0.3) return '🚀';
+        if (delta < -0.3) return '📉';
+        return '🎯';
+    }
+
+    function showTacticalAdvice(idx) {
+        const m = matchesToday[idx];
+        const iconL = getTrendIcon(m.deltaL);
+        const iconV = getTrendIcon(m.deltaV);
+        const modal = document.getElementById('tacticalModal');
+        const mTitle = document.getElementById('modalTitle');
+        const mText = document.getElementById('modalText');
+        const mIcon = document.getElementById('modalIcon');
+
+        mIcon.innerHTML = `${iconL} ${iconV}`;
+        modal.style.display = 'flex';
+
+        // LÓGICA DE CONSEJOS SEGÚN COMBINACIÓN
+        if (iconL === '🚀' && iconV === '🚀') {
+            mTitle.innerText = "BURBUJA DE GOLES";
+            mText.innerText = "Ambos equipos están en racha de suerte extrema. La cuota del Over suele estar muy baja e inflada. ¡CUIDADO! La regresión a la media dice que hoy alguno se queda seco. Mejor buscar el Under 3.5 o alejarse.";
+        } else if (iconL === '📉' && iconV === '📉') {
+            mTitle.innerText = "BOMBA DE GOLES";
+            mText.innerText = "Ambos equipos deben goles a la estadística. Han generado mucho pero no han marcado. Es el escenario ideal para el Over 2.5 o Ambos Marcan, ya que la suerte se equilibrará hoy.";
+        } else if (iconL === '🎯' && iconV === '🎯') {
+            mTitle.innerText = "PRECISIÓN QUIRÚRGICA";
+            mText.innerText = "Escenario de alta fiabilidad. No hay rachas de suerte. Sigue los números de xG al pie de la letra. Si el modelo da favorito al local, es una apuesta muy sólida.";
+        } else if (iconL === '🎯' && iconV === '🚀') {
+            mTitle.innerText = "REALISMO VS SUERTE";
+            mText.innerText = "El Local es fiable, el Visitante está inflado por la suerte. Hay valor en el 'Gana Local' o 'Local Over 1.5' porque la suerte del visitante suele cortarse ante equipos eficientes.";
+        } else if (iconL === '🚀' && iconV === '📉') {
+            mTitle.innerText = "REVERSIÓN DE ROLES";
+            mText.innerText = "El visitante viene con hambre de gol (mala suerte) y el local está saturado de suerte. Ojo con la sorpresa del visitante o el hándicap a su favor.";
+        } else {
+            mTitle.innerText = "ANÁLISIS DE TENDENCIA";
+            mText.innerText = "Existe una asimetría en el rendimiento. Revisa el xG detallado en el botón OPEN para confirmar si el equipo eficiente (🎯) tiene ventaja suficiente.";
+        }
     }
 
     function renderMultiTable() {
@@ -621,20 +696,29 @@
             body.innerHTML = '<tr><td colspan="8">No hay partidos detectados.</td></tr>';
             return;
         }
-        body.innerHTML = filteredMatches.map((m) => {
+        body.innerHTML = filteredMatches.map((m, i) => {
             const originalIdx = matchesToday.findIndex(orig => orig.home === m.home && orig.away === m.away);
             const statusClass = m.hasSample ? "" : "insufficient-data";
             const displayScore = (m.score && m.score !== "" && m.score !== "vs") ? `<span class="score-badge">${m.score}</span>` : " vs ";
             
-            // Lógica de resaltado inteligente (Bomba de goles: ambos equipos con tendencia negativa xG)
             const isHotMatch = m.deltaL < -0.2 && m.deltaV < -0.2;
             const rowHighlight = isHotMatch ? "bet-alert" : "";
             
+            const iconL = getTrendIcon(m.deltaL);
+            const iconV = getTrendIcon(m.deltaV);
+            const colorL = m.deltaL > 0.3 ? 'var(--accent-red)' : (m.deltaL < -0.3 ? 'var(--primary)' : 'var(--accent-green)');
+            const colorV = m.deltaV > 0.3 ? 'var(--accent-red)' : (m.deltaV < -0.3 ? 'var(--primary)' : 'var(--accent-green)');
+
             return `
             <tr class="${statusClass} ${rowHighlight}" id="row_match_${originalIdx}">
                 <td><span class="league-tag">${m.league}</span></td>
                 <td style="font-weight:bold">${m.home} ${displayScore} ${m.away}</td>
-                <td><div class="trend-badge">${getTrendIcon(m.deltaL)} ${getTrendIcon(m.deltaV)}</div></td>
+                <td>
+                    <div class="trend-badge" onclick="showTacticalAdvice(${originalIdx})">
+                        <span style="color:${colorL}">${iconL}</span>
+                        <span style="color:${colorV}">${iconV}</span>
+                    </div>
+                </td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
                 <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${(m.ov25*100).toFixed(0)}%</td>
                 <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${(m.btts*100).toFixed(0)}%</td>
@@ -668,8 +752,8 @@
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
         document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
         
-        const deltaLCol = m.deltaL > 0 ? 'var(--accent-red)' : 'var(--primary)';
-        const deltaVCol = m.deltaV > 0 ? 'var(--accent-red)' : 'var(--primary)';
+        const deltaLCol = m.deltaL > 0.3 ? 'var(--accent-red)' : 'var(--primary)';
+        const deltaVCol = m.deltaV > 0.3 ? 'var(--accent-red)' : 'var(--primary)';
         document.getElementById('delta_l_label').innerHTML = `<span style="color:${deltaLCol}">Delta: ${m.deltaL.toFixed(2)}</span>`;
         document.getElementById('delta_v_label').innerHTML = `<span style="color:${deltaVCol}">Delta: ${m.deltaV.toFixed(2)}</span>`;
 
@@ -714,7 +798,6 @@
         
         if(edge > 0) {
             btn.style.display = "block";
-            // MEJORA: Resaltado de acción si el valor es > 10%
             if(edge > 0.1) btn.classList.add('btn-pulse'); else btn.classList.remove('btn-pulse');
         } else {
             btn.style.display = "none";
