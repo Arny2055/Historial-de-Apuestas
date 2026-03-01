@@ -414,7 +414,7 @@
                             <th>TREND</th>
                             <th>xG (L/V)</th>
                             <th>O 2.5</th>
-                            <th>BTTS Y</th>
+                            <th>BTTS</th>
                             <th>VALUE</th>
                             <th>DETALLE</th>
                         </tr>
@@ -525,6 +525,7 @@
 
     // --- MATEMÁTICAS ---
     function poisson(k, lambda) {
+        if(lambda <= 0) return k === 0 ? 1 : 0;
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
     }
     function factorial(n) {
@@ -635,7 +636,7 @@
                         let u25Poisson = 0;
                         let pL = [], pV = [];
                         for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
-                        for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
+                        for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
                         
                         const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xGL, xGV, 'ov25');
                         const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xGL, xGV, 'btts');
@@ -798,30 +799,44 @@
         document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
         
         // --- Cálculo de prob para nuevos mercados ---
-        let probO15 = 0, probO35 = 0, probLocalO15 = 0, probVisitaO15 = 0;
+        let probO15 = 0, probU15 = 0, probO35 = 0, probU35 = 0, probU25 = 0, probLocalO15 = 0, probVisitaO15 = 0;
         for(let i=0; i<=6; i++){
             for(let j=0; j<=6; j++){
                 if(i+j > 1.5) probO15 += pL[i]*pV[j];
+                if(i+j < 1.5) probU15 += pL[i]*pV[j];
+                if(i+j > 2.5) {} else { probU25 += pL[i]*pV[j]; }
                 if(i+j > 3.5) probO35 += pL[i]*pV[j];
+                if(i+j < 3.5) probU35 += pL[i]*pV[j];
                 if(i > 1.5) probLocalO15 += pL[i]*pV[j];
                 if(j > 1.5) probVisitaO15 += pL[i]*pV[j];
             }
         }
+        
+        // Ajuste LOGISTICO para U/O también
+        probU25 = logisticRegressionAdjust(probU25, m.xGL, m.xGV, 'ov25'); // Reutilizamos lógica inversa
+        probU25 = 1 - probU25; // Revertir para obtener prob ajustada de OVER
+        // Para simplificar, usaremos la Poisson ajustada para los nuevos mercados
+        const adjU15 = 1 - logisticRegressionAdjust(probO15, m.xGL, m.xGV, 'ov25');
+        const adjU35 = 1 - logisticRegressionAdjust(probO35, m.xGL, m.xGV, 'ov25');
 
         const markets = [
             {n: 'OVER 0.5 HT', p: m.probHT},
             {n: 'OVER 1.5 FT', p: probO15},
+            {n: 'UNDER 1.5 FT', p: probU15},
             {n: 'OVER 2.5 FT', p: m.ov25},
+            {n: 'UNDER 2.5 FT', p: probU25},
             {n: 'OVER 3.5 FT', p: probO35},
-            {n: 'LOCAL OVER 1.5', p: probLocalO15},
-            {n: 'VISITANTE OVER 1.5', p: probVisitaO15},
-            {n: 'BTTS YES', p: m.btts}
+            {n: 'UNDER 3.5 FT', p: probU35},
+            {n: 'BTTS YES', p: m.btts},
+            {n: 'BTTS NO', p: 1-m.btts}
         ];
+        
         const table = document.getElementById('individualMarketsTable');
         table.innerHTML = markets.map((mk, i) => {
             const fair = (1/mk.p).toFixed(2);
             return `<tr><td><strong>${mk.n}</strong></td><td>${(mk.p*100).toFixed(0)}%</td><td style="color:var(--primary)">${fair}</td><td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td><td id="s_val_${i}">--</td><td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td></tr>`;
         }).join('');
+        
         document.getElementById('singleAnalysisPanel').style.display = 'block';
         document.getElementById('singleAnalysisPanel').scrollIntoView({behavior: 'smooth'});
     }
