@@ -404,6 +404,43 @@
             </button>
         </div>
     </div>
+    
+    <div class="section-title"><span>🔬</span> CALCULADORA MANUAL DE xG</div>
+    <div class="card">
+        <div class="input-grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px;">
+            <input type="number" id="calc_xg_l" placeholder="xG Loc" step="0.1">
+            <input type="number" id="calc_gf_l" placeholder="GF Loc" step="1">
+            <input type="number" id="calc_xg_v" placeholder="xG Vis" step="0.1">
+            <input type="number" id="calc_gf_v" placeholder="GF Vis" step="1">
+        </div>
+        <button class="btn-nav-xg" onclick="calcularManual()" style="width: 100%; margin-top: 15px; justify-content: center;">
+            CALCULAR MANUAL
+        </button>
+        
+        <div id="manualResultPanel" style="display:none; margin-top:15px; padding-top:15px; border-top: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-around; text-align: center; font-size: 0.8rem;">
+                <div>Delta Local: <span id="res_delta_l" style="font-weight:bold;"></span></div>
+                <div>Delta Visita: <span id="res_delta_v" style="font-weight:bold;"></span></div>
+            </div>
+            <div style="text-align: center; font-size: 1.2rem; margin: 10px 0; font-weight: 900;">
+                Tendencia: <span id="res_trend"></span>
+            </div>
+            <div class="probs-summary" style="margin-top:10px;">
+                <div class="summary-box blue">
+                    <div style="font-size: 0.55rem; font-weight: 800;">O2.5</div>
+                    <div class="summary-val" id="res_o25" style="font-size:1rem;">0%</div>
+                </div>
+                <div class="summary-box green">
+                    <div style="font-size: 0.55rem; font-weight: 800;">BTTS</div>
+                    <div class="summary-val" id="res_btts" style="font-size:1rem;">0%</div>
+                </div>
+                <div class="summary-box yellow">
+                    <div style="font-size: 0.55rem; font-weight: 800;">O0.5 HT</div>
+                    <div class="summary-val" id="res_o05ht" style="font-size:1rem;">0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="multiAnalysisPanel">
         <div class="section-title"><span>🌍</span> PARTIDOS DETECTADOS (TODAS LAS LIGAS)</div>
@@ -544,6 +581,45 @@
         const logit = b0 + (b1 * xGTotal) + (b2 * poissonProb);
         const probability = 1 / (1 + Math.exp(-logit));
         return (poissonProb * 0.4) + (probability * 0.6);
+    }
+
+    // --- MEJORA: LÓGICA CALCULADORA MANUAL ---
+    function calcularManual() {
+        const xG_L = parseFloat(document.getElementById('calc_xg_l').value);
+        const GF_L = parseFloat(document.getElementById('calc_gf_l').value);
+        const xG_V = parseFloat(document.getElementById('calc_xg_v').value);
+        const GF_V = parseFloat(document.getElementById('calc_gf_v').value);
+
+        if(isNaN(xG_L) || isNaN(GF_L) || isNaN(xG_V) || isNaN(GF_V)) {
+            return alert("Por favor rellena todos los campos con números válidos.");
+        }
+
+        const deltaL = GF_L - xG_L;
+        const deltaV = GF_V - xG_V;
+
+        document.getElementById('res_delta_l').innerText = deltaL.toFixed(2);
+        document.getElementById('res_delta_v').innerText = deltaV.toFixed(2);
+        document.getElementById('res_delta_l').style.color = deltaL > 0.3 ? 'var(--accent-red)' : (deltaL < -0.3 ? 'var(--accent-green)' : 'white');
+        document.getElementById('res_delta_v').style.color = deltaV > 0.3 ? 'var(--accent-red)' : (deltaV < -0.3 ? 'var(--accent-green)' : 'white');
+
+        const trendIconL = getTrendIcon(deltaL);
+        const trendIconV = getTrendIcon(deltaV);
+        document.getElementById('res_trend').innerHTML = `${trendIconL} ${trendIconV}`;
+
+        // Cálculo de probs usando los xG ingresados directamente
+        let u25Poisson = 0;
+        let pL = [], pV = [];
+        for(let i=0; i<=6; i++){ pL[i]=poisson(i, xG_L); pV[i]=poisson(i, xG_V); }
+        for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
+        
+        const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xG_L, xG_V, 'ov25');
+        const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xG_L, xG_V, 'btts');
+        const probHT = 1 - Math.exp(-(xG_L + xG_V) * 0.45);
+
+        document.getElementById('res_o25').innerText = (ov25_Final * 100).toFixed(0) + '%';
+        document.getElementById('res_btts').innerText = (btts_Final * 100).toFixed(0) + '%';
+        document.getElementById('res_o05ht').innerText = (probHT * 100).toFixed(0) + '%';
+        document.getElementById('manualResultPanel').style.display = 'block';
     }
 
     // --- CARGA DE DATOS ---
@@ -707,7 +783,7 @@
             rec = "Recomendación: LOCAL OVER 1.5";
         } else if (iconL === '🚀' && iconV === '📉') {
             mTitle.innerText = "⚖️ REVERSIÓN DE ROLES";
-            advice = "El visitante viene con hambre de gol (mala suerte) and el local está saturado de suerte. Ojo con la sorpresa.";
+            advice = "El visitante viene con hambre de gol (mala suerte) and the local está saturado de suerte. Ojo con la sorpresa.";
             rec = "Recomendación: VISITANTE OVER 0.5";
         } else {
             mTitle.innerText = "📊 ANÁLISIS DE TENDENCIA";
