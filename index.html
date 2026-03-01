@@ -120,6 +120,21 @@
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
 
+        /* ESTILO MEJORA AUTOMÁTICA */
+        .bet-alert {
+            border-left: 5px solid var(--accent-yellow) !important;
+            background: rgba(252, 196, 25, 0.05) !important;
+            box-shadow: var(--gold-glow);
+            border-top: 1px solid rgba(252, 196, 25, 0.2);
+            border-right: 1px solid rgba(252, 196, 25, 0.2);
+        }
+
+        .high-prob {
+            color: var(--accent-green) !important;
+            font-weight: 900;
+            text-shadow: 0 0 5px rgba(81, 207, 102, 0.5);
+        }
+
         .multi-results-table {
             width: 100%;
             border-collapse: collapse;
@@ -134,7 +149,7 @@
             border-bottom: 2px solid var(--border);
         }
         .multi-results-table td {
-            padding: 10px 5px;
+            padding: 12px 5px;
             border-bottom: 1px solid var(--border);
             text-align: center;
         }
@@ -164,17 +179,26 @@
             margin: 0 4px;
         }
 
-        .input-xg-manual {
-            width: 50px;
-            padding: 6px;
-            border-radius: 6px;
-            text-align: center;
-            border: 1px solid var(--primary);
-            background: #0b0e14;
-            color: var(--primary);
-            font-weight: bold;
-            font-size: 0.7rem;
+        .trend-badge {
+            font-size: 1.1rem;
+            display: flex;
+            flex-direction: column;
+            line-height: 1;
+            cursor: pointer;
         }
+
+        .chart-container {
+            width: 100%;
+            height: 180px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            margin: 15px 0;
+        }
+        .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+        .bar { width: 70%; background: var(--primary); border-radius: 4px 4px 0 0; min-height: 2px; transition: 0.5s ease-out; }
+        .bar.away { background: var(--accent-green); }
+        .bar-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; font-weight: bold; }
 
         .probs-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .summary-box { 
@@ -193,8 +217,8 @@
 
         .table-wrapper { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); padding: 10px; border-bottom: 1px solid var(--border); }
-        td { padding: 10px 5px; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-align: center;}
+        th { font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); padding: 12px; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-align: center;}
 
         .input-odds {
             width: 55px;
@@ -215,6 +239,8 @@
         }
         .positive-value { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); }
         .negative-value { background: rgba(255, 107, 107, 0.1); color: var(--accent-red); }
+
+        .insufficient-data { color: var(--text-muted); font-style: italic; opacity: 0.7; }
 
         .btn-send-bet {
             background: var(--accent-green);
@@ -286,22 +312,78 @@
             z-index: 2000;
             box-shadow: 0 5px 15px rgba(0,0,0,0.4);
         }
+
+        /* MODAL DE CONSEJO TÁCTICO */
+        #tacticalModal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(77, 171, 247, 0.3);
+        }
+        .modal-content h3 { color: var(--accent-yellow); margin-top: 0; }
+        .modal-content p { font-size: 0.9rem; line-height: 1.5; color: var(--text-white); }
+        .modal-rec {
+            background: rgba(81, 207, 102, 0.1);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: 900;
+            margin: 15px 0;
+            font-size: 1rem;
+        }
+        .btn-close-modal {
+            background: var(--primary);
+            border: none;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 900;
+            margin-top: 15px;
+            cursor: pointer;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
 
 <div id="loadingOverlay">
     <div class="spinner"></div>
-    <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">CARGANDO DATOS...</p>
+    <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">ANALIZANDO CON DELTA xG...</p>
 </div>
 
 <div id="betToast">🚀 APUESTA ENVIADA (STAKE 1)</div>
+
+<div id="tacticalModal" onclick="this.style.display='none'">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div id="modalIcon" style="font-size: 3rem; margin-bottom: 10px;"></div>
+        <h3 id="modalTitle">CONSEJO TÁCTICO</h3>
+        <p id="modalText"></p>
+        <div id="modalRec" class="modal-rec"></div>
+        <button class="btn-close-modal" onclick="document.getElementById('tacticalModal').style.display='none'">ENTENDIDO</button>
+    </div>
+</div>
 
 <div class="container">
     <h1>BETA<span>GS</span> ANALYTICS</h1>
     
     <div class="nav-header">
         <a href="roi2.html" class="btn-nav-roi"><span>🧮</span> ROI CALC</a>
+        <a href="xg.html" class="btn-nav-xg"><span>⚽</span> XG ANALYTICS</a>
     </div>
 
     <div class="section-title"><span>⚙️</span> CONTROL DE DATOS</div>
@@ -318,7 +400,7 @@
             </div>
 
             <button class="btn-analyze-master" onclick="analizarTodoMultiliga()">
-                🔍 CARGAR PARTIDOS Y PROMEDIOS
+                🚀 ANALIZAR TODAS LAS LIGAS (FULL SEARCH)
             </button>
         </div>
     </div>
@@ -361,19 +443,79 @@
     </div>
 
     <div id="multiAnalysisPanel">
-        <div class="section-title"><span>🌍</span> PARTIDOS DETECTADOS</div>
+        <div class="section-title"><span>🌍</span> PARTIDOS DETECTADOS (TODAS LAS LIGAS)</div>
         <div class="card" style="padding: 10px;">
             <div class="table-wrapper">
                 <table class="multi-results-table">
                     <thead>
                         <tr>
+                            <th>LIGA</th>
                             <th>PARTIDO / RES</th>
-                            <th>AVG GF (L/V)</th>
-                            <th>xG MANUAL (L/V)</th>
-                            <th>ACTION</th>
+                            <th>TREND</th>
+                            <th>xG (L/V)</th>
+                            <th>O 2.5</th>
+                            <th>BTTS</th>
+                            <th>VALUE</th>
+                            <th>DETALLE</th>
                         </tr>
                     </thead>
                     <tbody id="multiResultsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="singleAnalysisPanel">
+        <div class="section-title"><span>📊</span> ANÁLISIS DETALLADO: <span id="currentMatchLabel"></span></div>
+        
+        <div class="card">
+            <div class="chart-container" id="golesChart"></div>
+            <div style="display: flex; justify-content: center; gap: 40px; border-top: 1px solid var(--border); padding-top: 15px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 0.6rem; color: var(--text-muted); font-weight: 800;">xG LOCAL</div>
+                    <div id="xg_l_val" style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">0.00</div>
+                    <div id="delta_l_label" style="font-size: 0.6rem; font-weight: bold;"></div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.6rem; color: var(--text-muted); font-weight: 800;">xG VISITA</div>
+                    <div id="xg_v_val" style="font-size: 1.5rem; font-weight: 900; color: var(--accent-green);">0.00</div>
+                    <div id="delta_v_label" style="font-size: 0.6rem; font-weight: bold;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="probs-summary">
+            <div class="summary-box blue">
+                <div style="font-size: 0.55rem; font-weight: 800;">OVER 0.5 HT</div>
+                <div class="summary-val" id="ov05ht_val">0%</div>
+                <div class="summary-odds" id="ov05ht_odds">1.00</div>
+            </div>
+            <div class="summary-box green">
+                <div style="font-size: 0.55rem; font-weight: 800;">OVER 2.5 FT</div>
+                <div class="summary-val" id="ov25ft_val">0%</div>
+                <div class="summary-odds" id="ov25ft_odds">1.00</div>
+            </div>
+            <div class="summary-box yellow">
+                <div style="font-size: 0.55rem; font-weight: 800;">BTTS YES</div>
+                <div class="summary-val" id="btts_val">0%</div>
+                <div class="summary-odds" id="btts_odds">1.00</div>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 10px;">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>MERCADO</th>
+                            <th>PROB</th>
+                            <th>JUSTA</th>
+                            <th>CASA</th>
+                            <th>VALUE</th>
+                            <th>ACCION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="individualMarketsTable"></tbody>
                 </table>
             </div>
         </div>
@@ -382,6 +524,7 @@
 
 <script>
     const SHEETS_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
+    let database = {}; 
     let matchesToday = [];
 
     // --- GESTIÓN DE LIGAS ---
@@ -429,6 +572,17 @@
         let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
     }
 
+    function logisticRegressionAdjust(poissonProb, xGL, xGV, marketType) {
+        let b0, b1, b2;
+        if (marketType === 'ov25') { b0 = -2.85; b1 = 0.65; b2 = 3.5; } 
+        else if (marketType === 'btts') { b0 = -1.95; b1 = 0.45; b2 = 2.8; } 
+        else { return poissonProb; }
+        const xGTotal = xGL + xGV;
+        const logit = b0 + (b1 * xGTotal) + (b2 * poissonProb);
+        const probability = 1 / (1 + Math.exp(-logit));
+        return (poissonProb * 0.4) + (probability * 0.6);
+    }
+
     // --- MEJORA: LÓGICA CALCULADORA MANUAL ---
     function calcularManual() {
         const xG_L = parseFloat(document.getElementById('calc_xg_l').value);
@@ -448,14 +602,18 @@
         document.getElementById('res_delta_l').style.color = deltaL > 0.3 ? 'var(--accent-red)' : (deltaL < -0.3 ? 'var(--accent-green)' : 'white');
         document.getElementById('res_delta_v').style.color = deltaV > 0.3 ? 'var(--accent-red)' : (deltaV < -0.3 ? 'var(--accent-green)' : 'white');
 
+        const trendIconL = getTrendIcon(deltaL);
+        const trendIconV = getTrendIcon(deltaV);
+        document.getElementById('res_trend').innerHTML = `${trendIconL} ${trendIconV}`;
+
         // Cálculo de probs usando los xG ingresados directamente
         let u25Poisson = 0;
         let pL = [], pV = [];
         for(let i=0; i<=6; i++){ pL[i]=poisson(i, xG_L); pV[i]=poisson(i, xG_V); }
         for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
         
-        const ov25_Final = (1 - u25Poisson);
-        const btts_Final = (1 - (pL[0] + pV[0] - (pL[0]*pV[0])));
+        const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xG_L, xG_V, 'ov25');
+        const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xG_L, xG_V, 'btts');
         const probHT = 1 - Math.exp(-(xG_L + xG_V) * 0.45);
 
         document.getElementById('res_o25').innerText = (ov25_Final * 100).toFixed(0) + '%';
@@ -473,33 +631,59 @@
             const text = await res.text();
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
             
-            let equipos = {};
+            let data = { locales: [], visitantes: [] };
             rows.forEach((cols, i) => {
                 if (i > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
-                    equipos[cols[1].toUpperCase()] = { 
+                    data.locales.push({ 
+                        n: cols[1], 
                         gp: parseFloat(cols[2]), 
-                        gf: parseFloat(cols[6])
-                    };
-                    equipos[cols[13].toUpperCase()] = { 
+                        gf: parseFloat(cols[6]), 
+                        ga: parseFloat(cols[7]),
+                        xG_generado: parseFloat(cols[8]) || parseFloat(cols[6])
+                    });
+                    data.visitantes.push({ 
+                        n: cols[13], 
                         gp: parseFloat(cols[14]), 
-                        gf: parseFloat(cols[18])
-                    };
+                        gf: parseFloat(cols[18]), 
+                        ga: parseFloat(cols[19]),
+                        xG_generado: parseFloat(cols[20]) || parseFloat(cols[18])
+                    });
                 }
             });
-            return equipos;
+
+            if (data.locales.length === 0) return null;
+
+            let sGFL = 0, sGAL = 0, sPJL = 0, sGFV = 0, sGAV = 0, sPJV = 0;
+            data.locales.forEach(e => { sGFL += e.gf; sGAL += e.ga; sPJL += e.gp; });
+            data.visitantes.forEach(e => { sGFV += e.gf; sGAV += e.ga; sPJV += e.gp; });
+            
+            data.avg = { 
+                gfl: sGFL / sPJL, gal: sGAL / sPJL, 
+                gfv: sGFV / sPJV, gav: sGAV / sPJV 
+            };
+            return data;
         } catch (e) { return null; }
     }
 
     async function analizarTodoMultiliga() {
         const loader = document.getElementById('loadingOverlay');
-        const selectedLeague = document.getElementById('leagueSelect').value;
-        if(!selectedLeague) return alert("Selecciona una hoja de liga primero.");
-        
         loader.style.display = 'flex';
+        
+        const leagues = getLeagues();
+        if(leagues.length === 0) {
+            alert("No hay hojas configuradas.");
+            loader.style.display = 'none';
+            return;
+        }
+
+        database = {};
         matchesToday = [];
 
-        const teamData = await fetchDataForSheet(selectedLeague);
-        
+        for (let l of leagues) {
+            const data = await fetchDataForSheet(l.sheet);
+            if (data) database[l.sheet] = data;
+        }
+
         try {
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F1000`;
             const res = await fetch(url);
@@ -511,75 +695,300 @@
                 const away = cols[2];
                 const score = cols[1];
 
-                if (!home || home === "LOCAL" || !teamData[home.toUpperCase()] || !teamData[away.toUpperCase()]) return;
+                if (!home || home === "LOCAL") return;
                 
-                const dataL = teamData[home.toUpperCase()];
-                const dataV = teamData[away.toUpperCase()];
+                for (let leagueName in database) {
+                    const db = database[leagueName];
+                    const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
+                    const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
 
-                matchesToday.push({
-                    home, away, score,
-                    avgL: (dataL.gf / dataL.gp).toFixed(2),
-                    avgV: (dataV.gf / dataV.gp).toFixed(2)
-                });
+                    if (lData && vData) {
+                        const deltaL = (lData.gf / lData.gp) - (lData.xG_generado / lData.gp);
+                        const deltaV = (vData.gf / vData.gp) - (vData.xG_generado / vData.gp);
+
+                        const factorL = 1 - (deltaL * 0.08);
+                        const factorV = 1 - (deltaV * 0.08);
+
+                        const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl * factorL;
+                        const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv * factorV;
+                        
+                        let u25Poisson = 0;
+                        let pL = [], pV = [];
+                        for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
+                        for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
+                        
+                        const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xGL, xGV, 'ov25');
+                        const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xGL, xGV, 'btts');
+
+                        matchesToday.push({
+                            league: leagueName,
+                            home, away, xGL, xGV, score,
+                            ov25: ov25_Final,
+                            btts: btts_Final,
+                            deltaL, deltaV,
+                            probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
+                            hasSample: (lData.gp >= 5 && vData.gp >= 5)
+                        });
+                        break;
+                    }
+                }
             });
 
             renderMultiTable();
+            automaticMarketSuggestion(); // MEJORA: Sugerencia automática
             document.getElementById('multiAnalysisPanel').style.display = 'block';
+            document.getElementById('singleAnalysisPanel').style.display = 'none';
 
         } catch (e) { alert("Error de conexión."); } finally { loader.style.display = 'none'; }
     }
 
+    // --- LÓGICA DE ICONOS DE TREND ---
+    function getTrendIcon(delta) {
+        if (delta > 0.3) return '🚀'; // Suerte extrema a favor
+        if (delta < -0.3) return '📉'; // Mala suerte extrema (debe goles)
+        return '🎯'; // Rango normal
+    }
+
+    function showTacticalAdvice(idx) {
+        const m = matchesToday[idx];
+        const iconL = getTrendIcon(m.deltaL);
+        const iconV = getTrendIcon(m.deltaV);
+        const modal = document.getElementById('tacticalModal');
+        const mTitle = document.getElementById('modalTitle');
+        const mText = document.getElementById('modalText');
+        const mIcon = document.getElementById('modalIcon');
+        const mRec = document.getElementById('modalRec');
+
+        mIcon.innerHTML = `${iconL} ${iconV}`;
+        
+        // LÓGICA DE CONSEJOS Y RECOMENDACIÓN DIRECTA
+        let advice = "";
+        let rec = "";
+
+        if (iconL === '🚀' && iconV === '🚀') {
+            mTitle.innerText = "🚨 BURBUJA DE GOLES";
+            advice = "Ambos equipos están en racha de suerte extrema. La cuota del Over está inflada. La regresión a la media dice que hoy alguno se queda seco.";
+            rec = "Recomendación: UNDER 3.5";
+        } else if (iconL === '📉' && iconV === '📉') {
+            mTitle.innerText = "🔥 BOMBA DE GOLES";
+            advice = "Ambos equipos deben goles a la estadística. Escenario ideal para el Over 2.5, ya que la suerte se equilibrará hoy.";
+            rec = "Recomendación: OVER 2.5";
+        } else if (iconL === '🎯' && iconV === '🎯') {
+            mTitle.innerText = "✅ PRECISIÓN QUIRÚRGICA";
+            advice = "Alta fiabilidad. Sigue los números de xG al pie de la letra. Escenario neutro.";
+            rec = m.ov25 > 0.65 ? "Recomendación: OVER 2.5" : "Recomendación: BTTS NO";
+        } else if (iconL === '🎯' && iconV === '🚀') {
+            mTitle.innerText = "⚖️ REALISMO VS SUERTE";
+            advice = "El Local es fiable, el Visitante está inflado por la suerte. La suerte del visitante suele cortarse ante equipos eficientes.";
+            rec = "Recomendación: LOCAL OVER 1.5";
+        } else if (iconL === '🚀' && iconV === '📉') {
+            mTitle.innerText = "⚖️ REVERSIÓN DE ROLES";
+            advice = "El visitante viene con hambre de gol (mala suerte) and the local está saturado de suerte. Ojo con la sorpresa.";
+            rec = "Recomendación: VISITANTE OVER 0.5";
+        } else {
+            mTitle.innerText = "📊 ANÁLISIS DE TENDENCIA";
+            advice = "Existe una asimetría en el rendimiento. Revisa el xG detallado para confirmar la ventaja.";
+            rec = m.btts > 0.6 ? "Recomendación: BTTS YES" : "Recomendación: Analizar OPEN";
+        }
+
+        mText.innerText = advice;
+        mRec.innerText = rec;
+        modal.style.display = 'flex';
+    }
+
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
-        if(matchesToday.length === 0) {
-            body.innerHTML = '<tr><td colspan="4">No hay partidos detectados para esta liga.</td></tr>';
+        // SE ELIMINÓ LA REGLA DE PROBABILIDAD MÍNIMA
+        const filteredMatches = matchesToday; 
+        if(filteredMatches.length === 0) {
+            body.innerHTML = '<tr><td colspan="8">No hay partidos detectados.</td></tr>';
             return;
         }
-        body.innerHTML = matchesToday.map((m, i) => {
+        body.innerHTML = filteredMatches.map((m, i) => {
+            const originalIdx = matchesToday.findIndex(orig => orig.home === m.home && orig.away === m.away);
+            const statusClass = m.hasSample ? "" : "insufficient-data";
             const displayScore = (m.score && m.score !== "" && m.score !== "vs") ? `<span class="score-badge">${m.score}</span>` : " vs ";
             
+            const isHotMatch = (m.deltaL < -0.2 && m.deltaV < -0.2) || (m.deltaL > 0.2 && m.deltaV > 0.2);
+            const rowHighlight = isHotMatch ? "bet-alert" : "";
+            
+            const iconL = getTrendIcon(m.deltaL);
+            const iconV = getTrendIcon(m.deltaV);
+            const colorL = m.deltaL > 0.3 ? 'var(--accent-red)' : (m.deltaL < -0.3 ? 'var(--accent-green)' : 'var(--text-white)');
+            const colorV = m.deltaV > 0.3 ? 'var(--accent-red)' : (m.deltaV < -0.3 ? 'var(--accent-green)' : 'var(--text-white)');
+
             return `
-            <tr>
+            <tr class="${statusClass} ${rowHighlight}" id="row_match_${originalIdx}">
+                <td><span class="league-tag">${m.league}</span></td>
                 <td style="font-weight:bold">${m.home} ${displayScore} ${m.away}</td>
-                <td><span style="color:var(--primary)">${m.avgL}</span> / <span style="color:var(--accent-green)">${m.avgV}</span></td>
                 <td>
-                    <div style="display:flex; gap:5px; justify-content:center;">
-                        <input type="number" id="xg_l_${i}" class="input-xg-manual" placeholder="L">
-                        <input type="number" id="xg_v_${i}" class="input-xg-manual" placeholder="V">
+                    <div class="trend-badge" onclick="showTacticalAdvice(${originalIdx})" title="Ver consejo táctico">
+                        <span style="color:${colorL}">${iconL}</span>
+                        <span style="color:${colorV}">${iconV}</span>
                     </div>
                 </td>
-                <td><button class="btn-open-match" onclick="enviarAnalisis(${i})">📊 ANALIZAR</button></td>
+                <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
+                <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${(m.ov25*100).toFixed(0)}%</td>
+                <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${(m.btts*100).toFixed(0)}%</td>
+                <td id="val_multi_${originalIdx}">
+                   <input type="number" step="0.01" class="input-odds" placeholder="0.00" oninput="validaValueMulti(${originalIdx}, this.value)">
+                </td>
+                <td><button class="btn-open-match" onclick="abrirDetalle(${originalIdx})">OPEN</button></td>
             </tr>`;
         }).join('');
     }
 
-    function enviarAnalisis(idx) {
-        const xGL = parseFloat(document.getElementById(`xg_l_${idx}`).value);
-        const xGV = parseFloat(document.getElementById(`xg_v_${idx}`).value);
+    // --- MEJORA: Sugerencia automática de mercado ---
+    function automaticMarketSuggestion() {
+        matchesToday.forEach((m, idx) => {
+            const row = document.getElementById(`row_match_${idx}`);
+            if (!row) return;
 
-        if(isNaN(xGL) || isNaN(xGV)) {
-            return alert("Por favor ingresa ambos xG manualmente.");
+            // Definir cuota mínima teórica para que sea rentable (ej: valor > 10%)
+            const minProb = 0.55;
+            let bestMarket = null;
+
+            if (m.ov25 >= minProb && m.ov25 > m.btts) {
+                bestMarket = `🔥 O2.5: ${(m.ov25*100).toFixed(0)}%`;
+            } else if (m.btts >= minProb) {
+                bestMarket = `✅ BTTS: ${(m.btts*100).toFixed(0)}%`;
+            }
+
+            if (bestMarket) {
+                row.classList.add('bet-alert'); // Aplica el estilo dorado
+                // Opcional: Añadir tag de sugerencia
+                const tdMarket = row.cells[5];
+                tdMarket.innerHTML = `${tdMarket.innerText} <br> <span style="color:var(--accent-yellow); font-size:0.6rem;">${bestMarket}</span>`;
+            }
+        });
+    }
+
+    function validaValueMulti(idx, odd) {
+        const m = matchesToday[idx];
+        const resCell = document.getElementById(`val_multi_${idx}`);
+        const houseOdd = parseFloat(odd);
+        if(!houseOdd || houseOdd <= 1) {
+            let existingBadge = resCell.querySelector('.value-badge');
+            if(existingBadge) existingBadge.remove();
+            return;
         }
+        const maxProb = Math.max(m.ov25, m.btts);
+        const edge = (maxProb * houseOdd) - 1;
+        const badge = `<br><span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
+        let existingBadge = resCell.querySelector('.value-badge');
+        if(existingBadge) existingBadge.remove();
+        resCell.insertAdjacentHTML('beforeend', badge);
+    }
 
-        // --- ENVIAR A ROI2 ---
-        const pick = { 
-            id: Date.now(), 
-            date: new Date().toLocaleString(), 
-            teams: matchesToday[idx].home + " vs " + matchesToday[idx].away, 
-            market: "Analisis Manual", 
-            xGL: xGL, 
-            xGV: xGV,
-            status: 'pending' 
-        };
+    function abrirDetalle(idx) {
+        document.querySelectorAll('.multi-results-table tr').forEach(row => row.classList.remove('row-active'));
+        const activeRow = document.getElementById(`row_match_${idx}`);
+        if(activeRow) activeRow.classList.add('row-active');
+        const m = matchesToday[idx];
+        document.getElementById('currentMatchLabel').innerText = `${m.home} vs ${m.away}`;
+        document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
+        document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
         
-        let historial = JSON.parse(localStorage.getItem('betags_roi2')) || [];
+        const deltaLCol = m.deltaL > 0.3 ? 'var(--accent-red)' : (m.deltaL < -0.3 ? 'var(--accent-green)' : 'var(--text-white)');
+        const deltaVCol = m.deltaV > 0.3 ? 'var(--accent-red)' : (m.deltaV < -0.3 ? 'var(--accent-green)' : 'var(--text-white)');
+        document.getElementById('delta_l_label').innerHTML = `<span style="color:${deltaLCol}">Delta: ${m.deltaL.toFixed(2)}</span>`;
+        document.getElementById('delta_v_label').innerHTML = `<span style="color:${deltaVCol}">Delta: ${m.deltaV.toFixed(2)}</span>`;
+
+        let pL = [], pV = [];
+        for(let i=0; i<=6; i++) { pL[i] = poisson(i, m.xGL); pV[i] = poisson(i, m.xGV); }
+        renderSingleChart(pL, pV);
+        document.getElementById('ov05ht_val').innerText = (m.probHT*100).toFixed(1) + '%';
+        document.getElementById('ov05ht_odds').innerText = 'JUSTA: ' + (1/m.probHT).toFixed(2);
+        document.getElementById('ov25ft_val').innerText = (m.ov25*100).toFixed(1) + '%';
+        document.getElementById('ov25ft_odds').innerText = 'JUSTA: ' + (1/m.ov25).toFixed(2);
+        document.getElementById('btts_val').innerText = (m.btts*100).toFixed(1) + '%';
+        document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
+        
+        // --- Cálculo de prob para nuevos mercados ---
+        let probO15 = 0, probU15 = 0, probO35 = 0, probU35 = 0, probU25 = 0, probLocalO15 = 0, probVisitaO15 = 0;
+        for(let i=0; i<=6; i++){
+            for(let j=0; j<=6; j++){
+                if(i+j > 1.5) probO15 += pL[i]*pV[j];
+                if(i+j < 1.5) probU15 += pL[i]*pV[j];
+                if(i+j > 2.5) {} else { probU25 += pL[i]*pV[j]; }
+                if(i+j > 3.5) probO35 += pL[i]*pV[j];
+                if(i+j < 3.5) probU35 += pL[i]*pV[j];
+                if(i > 1.5) probLocalO15 += pL[i]*pV[j];
+                if(j > 1.5) probVisitaO15 += pL[i]*pV[j];
+            }
+        }
+        
+        // Ajuste LOGISTICO para U/O también
+        probU25 = logisticRegressionAdjust(probU25, m.xGL, m.xGV, 'ov25'); // Reutilizamos lógica inversa
+        probU25 = 1 - probU25; // Revertir para obtener prob ajustada de OVER
+        // Para simplificar, usaremos la Poisson ajustada para los nuevos mercados
+        const adjU15 = 1 - logisticRegressionAdjust(probO15, m.xGL, m.xGV, 'ov25');
+        const adjU35 = 1 - logisticRegressionAdjust(probO35, m.xGL, m.xGV, 'ov25');
+
+        const markets = [
+            {n: 'OVER 0.5 HT', p: m.probHT},
+            {n: 'OVER 1.5 FT', p: probO15},
+            {n: 'UNDER 1.5 FT', p: probU15},
+            {n: 'LOCAL OVER 1.5', p: probLocalO15},
+            {n: 'VISITA OVER 1.5', p: probVisitaO15},
+            {n: 'OVER 2.5 FT', p: m.ov25},
+            {n: 'UNDER 2.5 FT', p: probU25},
+            {n: 'OVER 3.5 FT', p: probO35},
+            {n: 'UNDER 3.5 FT', p: probU35},
+            {n: 'BTTS YES', p: m.btts},
+            {n: 'BTTS NO', p: 1-m.btts}
+        ];
+        
+        const table = document.getElementById('individualMarketsTable');
+        table.innerHTML = markets.map((mk, i) => {
+            const fair = (1/mk.p).toFixed(2);
+            return `<tr><td><strong>${mk.n}</strong></td><td>${(mk.p*100).toFixed(0)}%</td><td style="color:var(--primary)">${fair}</td><td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td><td id="s_val_${i}">--</td><td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td></tr>`;
+        }).join('');
+        
+        document.getElementById('singleAnalysisPanel').style.display = 'block';
+        document.getElementById('singleAnalysisPanel').scrollIntoView({behavior: 'smooth'});
+    }
+
+    function renderSingleChart(pL, pV) {
+        const container = document.getElementById('golesChart');
+        container.innerHTML = '';
+        for(let i=0; i<=6; i++) {
+            const group = document.createElement('div');
+            group.className = 'bar-group';
+            group.innerHTML = `<div style="display:flex; gap:3px; height:100%; align-items:flex-end; width:100%; justify-content:center;"><div class="bar" style="height: ${pL[i]*150}%"></div><div class="bar away" style="height: ${pV[i]*150}%"></div></div><div class="bar-label">${i}</div>`;
+            container.appendChild(group);
+        }
+    }
+
+    function calcSingleVal(idx, prob, val) {
+        const houseOdd = parseFloat(val);
+        const res = document.getElementById(`s_val_${idx}`);
+        const btn = document.getElementById(`s_btn_${idx}`);
+        if(!houseOdd || houseOdd <= 1) { res.innerHTML = "--"; btn.style.display = "none"; return; }
+        const edge = (prob * houseOdd) - 1;
+        res.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
+        
+        if(edge > 0) {
+            btn.style.display = "block";
+            if(edge > 0.1) btn.classList.add('btn-pulse'); else btn.classList.remove('btn-pulse');
+        } else {
+            btn.style.display = "none";
+        }
+    }
+
+    function enviarBet(liga, partido, mercado, prob, justa, inputIdx) {
+        const houseOddInputs = document.querySelectorAll('#individualMarketsTable .input-odds');
+        const houseOdd = parseFloat(houseOddInputs[inputIdx].value);
+        const pick = { id: Date.now(), date: new Date().toLocaleString(), teams: `[${liga}] ${partido}`, market: mercado, prob, fair_odd: justa, odd: houseOdd, edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%', stake: 1, status: 'pending' };
+        let historial = JSON.parse(localStorage.getItem('betags_pre_match')) || [];
         historial.push(pick);
-        localStorage.setItem('betags_roi2', JSON.stringify(historial));
-        
+        localStorage.setItem('betags_pre_match', JSON.stringify(historial));
         const toast = document.getElementById('betToast');
-        toast.innerText = "📊 ANÁLISIS ENVIADO A ROI";
         toast.style.display = 'block';
         setTimeout(() => { toast.style.display = 'none'; }, 2500);
+        houseOddInputs[inputIdx].value = "";
+        document.getElementById(`s_val_${inputIdx}`).innerHTML = "--";
+        document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
     }
 
     window.onload = () => { renderLeagueSelect(); };
