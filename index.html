@@ -672,17 +672,16 @@
         
         const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xG_L, xG_V, 'ov25');
         const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xG_L, xG_V, 'btts');
-        const probHT = 1 - Math.exp(-(xG_L + xG_V) * 0.45);
 
-        // --- MEJORA: LLENAR TABLA MANUAL + CALCULAR ALTA CONFIANZA ---
+        // --- SOLICITUD: SOLO CUATRO MERCADOS ESPECÍFICOS ---
         const markets = [
             {n: 'O2.5 FT', p: ov25_Final},
             {n: 'U2.5 FT', p: 1 - ov25_Final},
             {n: 'BTTS Y', p: btts_Final},
-            {n: 'O0.5 HT', p: probHT}
+            {n: 'BTTS N', p: 1 - btts_Final}
         ];
 
-        // Encontrar el mercado con mayor probabilidad
+        // Encontrar el mercado con mayor probabilidad para destacar
         let maxProb = 0;
         let bestMarketIdx = -1;
         markets.forEach((m, idx) => {
