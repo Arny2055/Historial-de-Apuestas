@@ -153,6 +153,10 @@
             border-bottom: 1px solid var(--border);
             text-align: center;
         }
+        
+        /* MEJORA: Cursor pointer para indicar interactividad */
+        .multi-results-table tbody tr { cursor: pointer; }
+        .multi-results-table tbody tr:hover { background-color: rgba(255,255,255,0.02); }
 
         .row-active {
             background-color: var(--row-select) !important;
@@ -786,11 +790,11 @@
         }
         body.innerHTML = matchesToday.map((m, i) => {
             return `
-            <tr id="row_match_${i}">
+            <tr id="row_match_${i}" onclick="seleccionarPartido(${i})">
                 <td style="font-size:0.6rem; color:var(--text-muted);">${m.league}</td>
                 <td style="font-weight:bold; text-align:left;">${m.home}<br>${m.away}</td>
                 <td>
-                    <div class="trend-badge" onclick="showTacticalAdvice(${i})" title="Ver consejo">📊</div>
+                    <div class="trend-badge" onclick="event.stopPropagation(); showTacticalAdvice(${i})" title="Ver consejo">📊</div>
                 </td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
                 <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${(m.ov25*100).toFixed(0)}%</td>
@@ -801,7 +805,7 @@
                         <span class="gf-badge" style="font-weight:bold; font-size:0.75rem; background: rgba(81, 207, 102, 0.15); color: var(--accent-green); border-color: rgba(81, 207, 102, 0.3);" title="Promedio GF Visita">${m.gfV} <span style="font-size:0.5rem; opacity:0.7;">V</span></span>
                    </div>
                 </td>
-                <td><button class="btn-open-match" onclick="abrirDetalle(${i})">OPEN</button></td>
+                <td><button class="btn-open-match" onclick="event.stopPropagation(); abrirDetalle(${i})">OPEN</button></td>
             </tr>`;
         }).join('');
     }
@@ -828,11 +832,32 @@
             }
         });
     }
-
-    function abrirDetalle(idx) {
+    
+    // --- MEJORA: Función para seleccionar partido y actualizar calculadora ---
+    function seleccionarPartido(idx) {
+        // Resaltar fila
         document.querySelectorAll('.multi-results-table tr').forEach(row => row.classList.remove('row-active'));
         const activeRow = document.getElementById(`row_match_${idx}`);
         if(activeRow) activeRow.classList.add('row-active');
+        
+        const m = matchesToday[idx];
+        
+        // Actualizar valores de promedios de goles en la calculadora manual
+        document.getElementById('calc_gf_l').value = m.gfL;
+        document.getElementById('calc_gf_v').value = m.gfV;
+        document.getElementById('calc_xg_l').value = m.xGL.toFixed(2);
+        document.getElementById('calc_xg_v').value = m.xGV.toFixed(2);
+        
+        // Ocultar resultados previos de la calculadora
+        document.getElementById('manualResultPanel').style.display = 'none';
+        
+        // Opcional: Hacer scroll a la calculadora
+        document.querySelector('.section-title + .card').scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+
+    function abrirDetalle(idx) {
+        seleccionarPartido(idx);
+        
         const m = matchesToday[idx];
         document.getElementById('currentMatchLabel').innerText = `${m.home} vs ${m.away}`;
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
@@ -887,12 +912,6 @@
             return `<tr><td><strong>${mk.n}</strong></td><td>${(mk.p*100).toFixed(0)}%</td><td style="color:var(--primary)">${fair}</td><td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td><td id="s_val_${i}">--</td><td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td></tr>`;
         }).join('');
         
-        // --- MEJORA: ACOMPAÑAR GF A PANEL MANUAL ---
-        document.getElementById('calc_gf_l').value = m.gfL;
-        document.getElementById('calc_gf_v').value = m.gfV;
-        document.getElementById('calc_xg_l').value = m.xGL.toFixed(2);
-        document.getElementById('calc_xg_v').value = m.xGV.toFixed(2);
-
         document.getElementById('singleAnalysisPanel').style.display = 'block';
         document.getElementById('singleAnalysisPanel').scrollIntoView({behavior: 'smooth'});
     }
