@@ -33,7 +33,7 @@
 
         .container { 
             width: 100%; 
-            max-width: 900px; /* Aumentado un poco para dar espacio a los nuevos inputs */
+            max-width: 900px; 
             padding: 20px; 
             box-sizing: border-box;
             padding-bottom: 60px;
@@ -120,24 +120,10 @@
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
 
-        .bet-alert {
-            border-left: 5px solid var(--accent-yellow) !important;
-            background: rgba(252, 196, 25, 0.05) !important;
-            box-shadow: var(--gold-glow);
-            border-top: 1px solid rgba(252, 196, 25, 0.2);
-            border-right: 1px solid rgba(252, 196, 25, 0.2);
-        }
-
-        .high-prob {
-            color: var(--accent-green) !important;
-            font-weight: 900;
-            text-shadow: 0 0 5px rgba(81, 207, 102, 0.5);
-        }
-
         .multi-results-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.65rem; /* Reducido para encajar mas datos */
+            font-size: 0.65rem;
             margin-top: 10px;
         }
         .multi-results-table th {
@@ -153,11 +139,6 @@
             text-align: center;
         }
 
-        .row-active {
-            background-color: var(--row-select) !important;
-            border-left: 4px solid var(--primary);
-        }
-
         .league-tag {
             background: #000000;
             color: #ffffff;
@@ -167,57 +148,6 @@
             font-size: 0.6rem;
             border: 1px solid var(--border);
         }
-
-        .score-badge {
-            background: var(--accent-yellow);
-            color: #000;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 900;
-            font-size: 0.7rem;
-            margin: 0 4px;
-        }
-
-        .trend-badge {
-            font-size: 1.1rem;
-            display: flex;
-            flex-direction: column;
-            line-height: 1;
-            cursor: pointer;
-        }
-
-        .chart-container {
-            width: 100%;
-            height: 180px;
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-around;
-            margin: 15px 0;
-        }
-        .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
-        .bar { width: 70%; background: var(--primary); border-radius: 4px 4px 0 0; min-height: 2px; transition: 0.5s ease-out; }
-        .bar.away { background: var(--accent-green); }
-        .bar-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; font-weight: bold; }
-
-        .probs-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .summary-box { 
-            background: var(--glass);
-            border-radius: 14px; 
-            padding: 15px 5px; 
-            text-align: center;
-            border: 1px solid var(--border);
-        }
-        .summary-box.blue { border-top: 3px solid var(--primary); }
-        .summary-box.green { border-top: 3px solid var(--accent-green); }
-        .summary-box.yellow { border-top: 3px solid var(--accent-yellow); }
-
-        .summary-val { font-size: 1.2rem; font-weight: 900; margin: 5px 0; }
-        .summary-odds { font-size: 0.65rem; color: var(--accent-green); font-family: monospace; }
-
-        .table-wrapper { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { font-size: 0.65rem; text-transform: uppercase; color: var(--text-muted); padding: 12px; border-bottom: 1px solid var(--border); }
-        td { padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 0.8rem; text-align: center;}
 
         .input-odds {
             width: 55px;
@@ -230,42 +160,11 @@
             font-weight: bold;
         }
 
-        /* Input específico para xG Manual en tabla */
         .input-xg-manual {
             width: 40px;
             padding: 4px;
             font-size: 0.7rem;
             color: var(--primary);
-        }
-
-        .value-badge {
-            padding: 5px 8px;
-            border-radius: 6px;
-            font-weight: 900;
-            font-size: 0.7rem;
-        }
-        .positive-value { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); }
-        .negative-value { background: rgba(255, 107, 107, 0.1); color: var(--accent-red); }
-
-        .btn-send-bet {
-            background: var(--accent-green);
-            color: var(--bg-dark);
-            border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-weight: 900;
-            font-size: 0.7rem;
-            cursor: pointer;
-            display: none;
-        }
-
-        .btn-pulse {
-            animation: pulse-green 1.5s infinite;
-        }
-        @keyframes pulse-green {
-            0% { box-shadow: 0 0 0 0 rgba(81, 207, 102, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(81, 207, 102, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(81, 207, 102, 0); }
         }
 
         .btn-open-match {
@@ -299,87 +198,16 @@
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        #multiAnalysisPanel, #singleAnalysisPanel { display: none; animation: fadeIn 0.4s ease; }
+        #multiAnalysisPanel { display: none; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        #betToast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--accent-green);
-            color: var(--bg-dark);
-            padding: 12px 25px;
-            border-radius: 30px;
-            font-weight: 900;
-            font-size: 0.8rem;
-            display: none;
-            z-index: 2000;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-        }
-
-        #tacticalModal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 3000;
-            padding: 20px;
-            backdrop-filter: blur(5px);
-        }
-        .modal-content {
-            background: var(--bg-card);
-            border: 2px solid var(--primary);
-            border-radius: 20px;
-            padding: 25px;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(77, 171, 247, 0.3);
-        }
-        .modal-content h3 { color: var(--accent-yellow); margin-top: 0; }
-        .modal-content p { font-size: 0.9rem; line-height: 1.5; color: var(--text-white); }
-        .modal-rec {
-            background: rgba(81, 207, 102, 0.1);
-            border: 1px solid var(--accent-green);
-            color: var(--accent-green);
-            padding: 10px;
-            border-radius: 10px;
-            font-weight: 900;
-            margin: 15px 0;
-            font-size: 1rem;
-        }
-        .btn-close-modal {
-            background: var(--primary);
-            border: none;
-            color: black;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 900;
-            margin-top: 15px;
-            cursor: pointer;
-            width: 100%;
-        }
     </style>
 </head>
 <body>
 
 <div id="loadingOverlay">
     <div class="spinner"></div>
-    <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">CARGANDO PARTIDOS...</p>
-</div>
-
-<div id="betToast">🚀 ANÁLISIS APLICADO</div>
-
-<div id="tacticalModal" onclick="this.style.display='none'">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <div id="modalIcon" style="font-size: 3rem; margin-bottom: 10px;"></div>
-        <h3 id="modalTitle">CONSEJO TÁCTICO</h3>
-        <p id="modalText"></p>
-        <div id="modalRec" class="modal-rec"></div>
-        <button class="btn-close-modal" onclick="document.getElementById('tacticalModal').style.display='none'">ENTENDIDO</button>
-    </div>
+    <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">FILTRANDO PARTIDOS...</p>
 </div>
 
 <div class="container">
@@ -404,13 +232,13 @@
             </div>
 
             <button class="btn-analyze-master" onclick="analizarTodoMultiliga()">
-                🔍 CARGAR PARTIDOS Y PROMEDIOS
+                🔍 FILTRAR PARTIDOS
             </button>
         </div>
     </div>
     
     <div id="multiAnalysisPanel">
-        <div class="section-title"><span>🌍</span> PARTIDOS Y PROMEDIOS GF</div>
+        <div class="section-title"><span>🌍</span> PARTIDOS DETECTADOS</div>
         <div class="card" style="padding: 10px;">
             <div class="table-wrapper">
                 <table class="multi-results-table">
@@ -490,21 +318,19 @@
             const text = await res.text();
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
             
-            let data = { teams: [] };
+            let teams = [];
             rows.forEach((cols, i) => {
                 if (i > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
-                    // Mapeo básico de equipos para obtener sus promedios
-                    data.teams.push({ 
+                    teams.push({ 
                         n: cols[1], 
                         gp: parseFloat(cols[2]), 
-                        gf: parseFloat(cols[6]) // Goles a Favor totales
+                        gf: parseFloat(cols[6]) 
                     });
                 }
             });
 
-            if (data.teams.length === 0) return null;
-            return data;
-        } catch (e) { return null; }
+            return teams;
+        } catch (e) { return []; }
     }
 
     async function analizarTodoMultiliga() {
@@ -521,10 +347,10 @@
         database = {};
         matchesToday = [];
 
-        // Cargar promedios de todas las ligas
+        // Cargar equipos de todas las hojas configuradas
         for (let l of leagues) {
-            const data = await fetchDataForSheet(l.sheet);
-            if (data) database[l.sheet] = data;
+            const teams = await fetchDataForSheet(l.sheet);
+            if (teams.length > 0) database[l.sheet] = teams;
         }
 
         try {
@@ -538,30 +364,28 @@
                 const away = cols[2];
                 if (!home || home === "LOCAL") return;
                 
-                // Buscar equipos en las bases de datos cargadas
-                let gfL = 0, gpL = 0, gfV = 0, gpV = 0, leagueFound = "";
+                // --- FILTRO: Buscar equipos solo en las ligas cargadas ---
+                let matchData = null;
 
                 for (let leagueName in database) {
-                    const db = database[leagueName];
-                    const lData = db.teams.find(e => e.n.toUpperCase() === home.toUpperCase());
-                    const vData = db.teams.find(e => e.n.toUpperCase() === away.toUpperCase());
+                    const teams = database[leagueName];
+                    const lData = teams.find(e => e.n.toUpperCase() === home.toUpperCase());
+                    const vData = teams.find(e => e.n.toUpperCase() === away.toUpperCase());
 
                     if (lData && vData) {
-                        gfL = lData.gf; gpL = lData.gp;
-                        gfV = vData.gf; gpV = vData.gp;
-                        leagueFound = leagueName;
-                        break;
+                        matchData = {
+                            league: leagueName,
+                            home, away,
+                            avgGFL: lData.gp > 0 ? (lData.gf/lData.gp).toFixed(2) : "0.00",
+                            avgGFV: vData.gp > 0 ? (vData.gf/vData.gp).toFixed(2) : "0.00",
+                            xGL: 0, xGV: 0,
+                            ov25: 0, btts: 0
+                        };
+                        break; // Partido encontrado en una liga, salir del bucle
                     }
                 }
-
-                matchesToday.push({
-                    league: leagueFound,
-                    home, away,
-                    avgGFL: gpL > 0 ? (gfL/gpL).toFixed(2) : "0.00",
-                    avgGFV: gpV > 0 ? (gfV/gpV).toFixed(2) : "0.00",
-                    xGL: 0, xGV: 0, // Inician en 0 para ingreso manual
-                    ov25: 0, btts: 0
-                });
+                
+                if (matchData) matchesToday.push(matchData);
             });
 
             renderMultiTable();
@@ -573,14 +397,14 @@
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
         if(matchesToday.length === 0) {
-            body.innerHTML = '<tr><td colspan="8">No hay partidos detectados.</td></tr>';
+            body.innerHTML = '<tr><td colspan="8">Ningún partido coincide con las ligas cargadas.</td></tr>';
             return;
         }
         body.innerHTML = matchesToday.map((m, i) => {
             return `
             <tr id="row_match_${i}">
                 <td><span class="league-tag">${m.league}</span></td>
-                <td style="font-weight:bold; font-size:0.75rem;">${m.home} vs ${m.away}</td>
+                <td style="font-weight:bold; font-size:0.75rem; text-align:left;">${m.home} vs ${m.away}</td>
                 <td style="color:var(--text-muted)">${m.avgGFL} / ${m.avgGFV}</td>
                 <td>
                     <input type="number" step="0.1" class="input-xg-manual" id="xgL_${i}" placeholder="L" oninput="actualizarAnalisis(${i})">
@@ -601,7 +425,6 @@
         
         if (isNaN(xGL) || isNaN(xGV)) return;
 
-        // Calcular Poisson básico
         let u25Poisson = 0;
         let pL = [], pV = [];
         for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
@@ -610,17 +433,18 @@
         const ov25 = (1 - u25Poisson) * 100;
         const btts = (1 - (pL[0] + pV[0] - (pL[0]*pV[0]))) * 100;
 
-        document.getElementById(`ov25_${idx}`).innerText = ov25.toFixed(0) + '%';
-        document.getElementById(`btts_${idx}`).innerText = btts.toFixed(0) + '%';
+        const ovEl = document.getElementById(`ov25_${idx}`);
+        const bttsEl = document.getElementById(`btts_${idx}`);
+
+        ovEl.innerText = ov25.toFixed(0) + '%';
+        bttsEl.innerText = btts.toFixed(0) + '%';
         
-        // Colores para destacar alta probabilidad
-        document.getElementById(`ov25_${idx}`).style.color = ov25 > 65 ? 'var(--accent-green)' : 'white';
-        document.getElementById(`btts_${idx}`).style.color = btts > 60 ? 'var(--accent-green)' : 'white';
+        ovEl.style.color = ov25 > 65 ? 'var(--accent-green)' : 'white';
+        bttsEl.style.color = btts > 60 ? 'var(--accent-green)' : 'white';
     }
 
     function analizarPoisson(idx) {
-        // Esta función podría usarse para guardar el análisis o enviar a otra pantalla
-        alert("Análisis realizado con los datos ingresados.");
+        alert("Análisis realizado para: " + matchesToday[idx].home + " vs " + matchesToday[idx].away);
     }
 
     window.onload = () => { renderLeagueSelect(); };
