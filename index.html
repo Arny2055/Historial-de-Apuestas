@@ -412,7 +412,7 @@
             </div>
 
             <button class="btn-analyze-master" onclick="analizarTodoMultiliga()">
-                🚀 ANALIZAR HOJA Y PARTIDOS
+                🚀 ANALIZAR TODAS LAS HOJAS
             </button>
         </div>
     </div>
@@ -455,12 +455,13 @@
     </div>
 
     <div id="multiAnalysisPanel">
-        <div class="section-title"><span>🌍</span> PARTIDOS DETECTADOS (LIGA SELECCIONADA)</div>
+        <div class="section-title"><span>🌍</span> PARTIDOS DETECTADOS (TODAS LAS HOJAS)</div>
         <div class="card" style="padding: 10px;">
             <div class="table-wrapper">
                 <table class="multi-results-table">
                     <thead>
                         <tr>
+                            <th>LIGA</th>
                             <th>PARTIDO</th>
                             <th>TREND</th>
                             <th>xG (L/V)</th>
@@ -676,13 +677,14 @@
         } catch (e) { return null; }
     }
 
+    // --- MEJORA: BUSCAR EN TODAS LAS HOJAS ---
     async function analizarTodoMultiliga() {
         const loader = document.getElementById('loadingOverlay');
         loader.style.display = 'flex';
         
-        const selectedLeague = document.getElementById('leagueSelect').value;
-        if(!selectedLeague) {
-            alert("Selecciona una liga primero.");
+        const leagues = getLeagues();
+        if(leagues.length === 0) {
+            alert("Agrega al menos una hoja primero.");
             loader.style.display = 'none';
             return;
         }
@@ -690,9 +692,13 @@
         database = {};
         matchesToday = [];
 
-        const data = await fetchDataForSheet(selectedLeague);
-        if (data) database[selectedLeague] = data;
+        // 1. Cargar datos de todas las ligas configuradas
+        for (const league of leagues) {
+            const data = await fetchDataForSheet(league.sheet);
+            if (data) database[league.sheet] = data;
+        }
 
+        // 2. Cargar partidos del día
         try {
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F1000`;
             const res = await fetch(url);
@@ -706,35 +712,36 @@
 
                 if (!home || home === "LOCAL") return;
                 
-                const db = database[selectedLeague];
-                if (!db) return;
-                
-                const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
-                const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
+                // Buscar el partido en alguna de las bases de datos cargadas
+                for (const leagueName in database) {
+                    const db = database[leagueName];
+                    const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
+                    const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
 
-                if (lData && vData) {
-                    // Cálculo de xG basado en promedios de la hoja
-                    const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl;
-                    const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv;
-                    
-                    let u25Poisson = 0;
-                    let pL = [], pV = [];
-                    for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
-                    for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
-                    
-                    const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xGL, xGV, 'ov25');
-                    const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xGL, xGV, 'btts');
+                    if (lData && vData) {
+                        // Cálculo de xG basado en promedios de la hoja encontrada
+                        const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl;
+                        const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv;
+                        
+                        let u25Poisson = 0;
+                        let pL = [], pV = [];
+                        for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
+                        for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
+                        
+                        const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xGL, xGV, 'ov25');
+                        const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xGL, xGV, 'btts');
 
-                    matchesToday.push({
-                        league: selectedLeague,
-                        home, away, xGL, xGV, score,
-                        ov25: ov25_Final,
-                        btts: btts_Final,
-                        probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
-                        // Datos crudos para la mejora VALUE(GF)
-                        gfL: (lData.gf/lData.gp).toFixed(1),
-                        gfV: (vData.gf/vData.gp).toFixed(1)
-                    });
+                        matchesToday.push({
+                            league: leagueName, // Guardamos la liga donde se encontró
+                            home, away, xGL, xGV, score,
+                            ov25: ov25_Final,
+                            btts: btts_Final,
+                            probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
+                            gfL: (lData.gf/lData.gp).toFixed(1),
+                            gfV: (vData.gf/vData.gp).toFixed(1)
+                        });
+                        break; // Partido encontrado, no buscar en otras ligas
+                    }
                 }
             });
 
@@ -743,7 +750,7 @@
             document.getElementById('multiAnalysisPanel').style.display = 'block';
             document.getElementById('singleAnalysisPanel').style.display = 'none';
 
-        } catch (e) { alert("Error de conexión."); } finally { loader.style.display = 'none'; }
+        } catch (e) { alert("Error al cargar partidos."); console.error(e); } finally { loader.style.display = 'none'; }
     }
 
     // --- LÓGICA DE ICONOS DE TREND (Basado en xG generado vs GF) ---
@@ -772,12 +779,13 @@
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
         if(matchesToday.length === 0) {
-            body.innerHTML = '<tr><td colspan="7">No hay partidos detectados para esta liga.</td></tr>';
+            body.innerHTML = '<tr><td colspan="8">No hay partidos detectados para las ligas configuradas.</td></tr>';
             return;
         }
         body.innerHTML = matchesToday.map((m, i) => {
             return `
             <tr id="row_match_${i}">
+                <td style="font-size:0.6rem; color:var(--text-muted);">${m.league}</td>
                 <td style="font-weight:bold; text-align:left;">${m.home}<br>${m.away}</td>
                 <td>
                     <div class="trend-badge" onclick="showTacticalAdvice(${i})" title="Ver consejo">📊</div>
@@ -813,7 +821,7 @@
 
             if (bestMarket) {
                 row.classList.add('bet-alert');
-                const tdMarket = row.cells[3]; 
+                const tdMarket = row.cells[4]; // Ajustado índice por la columna LIGA
                 tdMarket.innerHTML = `${tdMarket.innerText} <br> <span style="color:var(--accent-yellow); font-size:0.6rem;">${bestMarket}</span>`;
             }
         });
@@ -929,10 +937,7 @@
     // --- Carga automática al iniciar ---
     window.onload = () => { 
         renderLeagueSelect();
-        // Intentar cargar partidos automáticamente si ya hay una liga seleccionada
-        if(document.getElementById('leagueSelect').value) {
-            setTimeout(analizarTodoMultiliga, 500); // Pequeño delay para asegurar que los datos estén listos
-        }
+        // Ya no cargamos automáticamente por hoja individual
     };
 </script>
 </body>
