@@ -637,6 +637,13 @@
         const probability = 1 / (1 + Math.exp(-logit));
         return (poissonProb * 0.4) + (probability * 0.6);
     }
+    
+    // --- MEJORA: ICONOS DE CONFIANZA ---
+    function getConfIcon(prob) {
+        if (prob >= 0.70) return '🚀'; // Alta confianza
+        if (prob >= 0.55) return '🎯'; // Confianza media
+        return '📉'; // Baja confianza
+    }
 
     // --- LÓGICA CALCULADORA MANUAL ---
     function calcularManual() {
@@ -689,10 +696,11 @@
         tbody.innerHTML = markets.map((mk, i) => {
             const fair = (1/mk.p).toFixed(2);
             const isBest = i === bestMarketIdx;
+            const icon = getConfIcon(mk.p);
             return `
                 <tr class="${isBest ? 'high-conf-row' : ''}">
                     <td style="text-align:left; font-weight:bold;">
-                        ${mk.n}
+                        ${icon} ${mk.n}
                         ${isBest ? '<span class="high-conf-badge">🔥</span>' : ''}
                     </td>
                     <td>${(mk.p*100).toFixed(0)}%</td>
@@ -862,12 +870,6 @@
         } catch (e) { alert("Error al cargar partidos."); console.error(e); } finally { loader.style.display = 'none'; }
     }
 
-    function getTrendIcon(delta) {
-        if (delta > 0.3) return '🚀'; 
-        if (delta < -0.3) return '📉'; 
-        return '🎯'; 
-    }
-
     function showTacticalAdvice(idx) {
         const m = matchesToday[idx];
         const modal = document.getElementById('tacticalModal');
@@ -891,6 +893,7 @@
             return;
         }
         body.innerHTML = matchesToday.map((m, i) => {
+            // MEJORA: Añadir iconos de tendencia
             return `
             <tr id="row_match_${i}" onclick="seleccionarPartido(${i})">
                 <td style="font-size:0.6rem; color:var(--text-muted);">${m.league}</td>
@@ -899,8 +902,8 @@
                     <div class="trend-badge" onclick="event.stopPropagation(); showTacticalAdvice(${i})" title="Ver consejo">📊</div>
                 </td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
-                <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${(m.ov25*100).toFixed(0)}%</td>
-                <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${(m.btts*100).toFixed(0)}%</td>
+                <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${getConfIcon(m.ov25)} ${(m.ov25*100).toFixed(0)}%</td>
+                <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${getConfIcon(m.btts)} ${(m.btts*100).toFixed(0)}%</td>
                 <td>
                    <div style="display:flex; flex-direction:column; gap:3px; align-items:center;">
                         <span class="gf-badge" style="font-weight:bold; font-size:0.75rem;" title="Promedio GF Local">${m.gfL}</span>
@@ -919,11 +922,14 @@
 
             const minProb = 0.55;
             let bestMarket = null;
+            let icon = "";
 
             if (m.ov25 >= minProb && m.ov25 > m.btts) {
-                bestMarket = `🔥 O2.5: ${(m.ov25*100).toFixed(0)}%`;
+                icon = getConfIcon(m.ov25);
+                bestMarket = `${icon} O2.5: ${(m.ov25*100).toFixed(0)}%`;
             } else if (m.btts >= minProb) {
-                bestMarket = `✅ BTTS: ${(m.btts*100).toFixed(0)}%`;
+                icon = getConfIcon(m.btts);
+                bestMarket = `${icon} BTTS: ${(m.btts*100).toFixed(0)}%`;
             }
 
             if (bestMarket) {
@@ -1009,6 +1015,7 @@
         let uv25Adjusted = 1 - ov25Adjusted; 
         let bttsNoAdjusted = 1 - bttsAdjusted;
 
+        // --- MEJORA: AÑADIR ICONO DE TENDENCIA AL NOMBRE DEL MERCADO ---
         const markets = [
             {n: 'OVER 2.5 FT', p: ov25Adjusted},
             {n: 'UNDER 2.5 FT', p: uv25Adjusted},
@@ -1019,7 +1026,15 @@
         const table = document.getElementById('individualMarketsTable');
         table.innerHTML = markets.map((mk, i) => {
             const fair = (1/mk.p).toFixed(2);
-            return `<tr><td><strong>${mk.n}</strong></td><td>${(mk.p*100).toFixed(0)}%</td><td style="color:var(--primary)">${fair}</td><td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td><td id="s_val_${i}">--</td><td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td></tr>`;
+            const icon = getConfIcon(mk.p);
+            return `<tr>
+                <td style="text-align:left;"><strong>${icon} ${mk.n}</strong></td>
+                <td>${(mk.p*100).toFixed(0)}%</td>
+                <td style="color:var(--primary)">${fair}</td>
+                <td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td>
+                <td id="s_val_${i}">--</td>
+                <td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td>
+            </tr>`;
         }).join('');
         
         document.getElementById('singleAnalysisPanel').style.display = 'block';
