@@ -267,6 +267,21 @@
             font-size: 0.65rem;
             cursor: pointer;
         }
+        
+        /* BOTÓN MEJORA ENVÍO A ROI2 */
+        .btn-send-roi2 {
+            background: var(--accent-yellow);
+            color: #000;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 900;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            display: none;
+        }
 
         .btn-pulse {
             animation: pulse-green 1.5s infinite;
@@ -484,6 +499,7 @@
                     </thead>
                     <tbody id="multiResultsBody"></tbody>
                 </table>
+                <button id="btnSendRoi2" class="btn-send-roi2" onclick="enviarBetSeleccionada()">🚀 ENVIAR A ROI2</button>
             </div>
         </div>
     </div>
@@ -549,6 +565,7 @@
     const SHEETS_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
     let database = {}; 
     let matchesToday = [];
+    let selectedMatchIdx = null; // Para control de mejora
 
     // --- GESTIÓN DE LIGAS ---
     function getLeagues() {
@@ -894,6 +911,35 @@
         
         document.getElementById('manualResultPanel').style.display = 'none';
         document.querySelector('.section-title + .card').scrollIntoView({behavior: 'smooth', block: 'center'});
+
+        // MEJORA: Habilitar botón ROI2 y guardar índice seleccionado
+        selectedMatchIdx = idx;
+        document.getElementById('btnSendRoi2').style.display = 'block';
+    }
+
+    // --- MEJORA: ENVÍO A ROI2 ---
+    function enviarBetSeleccionada() {
+        if (selectedMatchIdx === null) return;
+        const m = matchesToday[selectedMatchIdx];
+        
+        // Aquí se define cómo se guarda el evento para roi2.html
+        const eventoRoi2 = {
+            id: Date.now(),
+            liga: m.league,
+            partido: `${m.home} vs ${m.away}`,
+            fecha: new Date().toLocaleDateString(),
+            type: 'match_selection'
+        };
+
+        // Guardar en localStorage para que roi2.html lo lea
+        let colaEventos = JSON.parse(localStorage.getItem('betags_roi2_queue')) || [];
+        colaEventos.push(eventoRoi2);
+        localStorage.setItem('betags_roi2_queue', JSON.stringify(colaEventos));
+
+        const toast = document.getElementById('betToast');
+        toast.innerText = "🚀 PARTIDO ENVIADO A ROI2";
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
     }
 
     function abrirDetalle(idx) {
