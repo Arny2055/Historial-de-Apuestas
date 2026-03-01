@@ -797,7 +797,26 @@
         document.getElementById('btts_val').innerText = (m.btts*100).toFixed(1) + '%';
         document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
         
-        const markets = [{n: 'OVER 0.5 HT', p: m.probHT}, {n: 'OVER 2.5 FT', p: m.ov25}, {n: 'UNDER 2.5 FT', p: 1 - m.ov25}, {n: 'BTTS YES', p: m.btts}, {n: 'BTTS NO', p: 1 - m.btts}];
+        // --- Cálculo de prob para nuevos mercados ---
+        let probO15 = 0, probO35 = 0, probLocalO15 = 0, probVisitaO15 = 0;
+        for(let i=0; i<=6; i++){
+            for(let j=0; j<=6; j++){
+                if(i+j > 1.5) probO15 += pL[i]*pV[j];
+                if(i+j > 3.5) probO35 += pL[i]*pV[j];
+                if(i > 1.5) probLocalO15 += pL[i]*pV[j];
+                if(j > 1.5) probVisitaO15 += pL[i]*pV[j];
+            }
+        }
+
+        const markets = [
+            {n: 'OVER 0.5 HT', p: m.probHT},
+            {n: 'OVER 1.5 FT', p: probO15},
+            {n: 'OVER 2.5 FT', p: m.ov25},
+            {n: 'OVER 3.5 FT', p: probO35},
+            {n: 'LOCAL OVER 1.5', p: probLocalO15},
+            {n: 'VISITANTE OVER 1.5', p: probVisitaO15},
+            {n: 'BTTS YES', p: m.btts}
+        ];
         const table = document.getElementById('individualMarketsTable');
         table.innerHTML = markets.map((mk, i) => {
             const fair = (1/mk.p).toFixed(2);
