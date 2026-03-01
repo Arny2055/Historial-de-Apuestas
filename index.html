@@ -887,7 +887,7 @@
             return `<tr><td><strong>${mk.n}</strong></td><td>${(mk.p*100).toFixed(0)}%</td><td style="color:var(--primary)">${fair}</td><td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td><td id="s_val_${i}">--</td><td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td></tr>`;
         }).join('');
         
-        // --- ACOMPAÑAR GF A PANEL MANUAL ---
+        // --- MEJORA: ACOMPAÑAR GF A PANEL MANUAL ---
         document.getElementById('calc_gf_l').value = m.gfL;
         document.getElementById('calc_gf_v').value = m.gfV;
         document.getElementById('calc_xg_l').value = m.xGL.toFixed(2);
