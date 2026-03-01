@@ -449,7 +449,7 @@
         <div class="input-grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px;">
             <input type="number" id="calc_xg_l" placeholder="xG Loc" step="0.01">
             <input type="number" id="calc_gf_l" placeholder="GF Loc" step="1">
-            <input type="number" id="calc_xg_v" placeholder="xG Vis" step="0.01">
+            <input type="number" id="calc_xg_v" placeholder="xG Vis" step="1">
             <input type="number" id="calc_gf_v" placeholder="GF Vis" step="1">
         </div>
         <button class="btn-nav-xg" onclick="calcularManual()" style="width: 100%; margin-top: 15px; justify-content: center;">
@@ -697,7 +697,14 @@
 
     function enviarBetManual(mercado, prob, justa, inputIdx) {
         const houseOdd = parseFloat(document.getElementById(`m_odd_${inputIdx}`).value);
-        const teams = "MANUAL CALC";
+        
+        // --- MEJORA: OBTENER PARTIDO SELECCIONADO ---
+        let teams = "MANUAL CALC";
+        if (selectedMatchIdx !== null && matchesToday[selectedMatchIdx]) {
+            const m = matchesToday[selectedMatchIdx];
+            teams = `[${m.league}] ${m.home} vs ${m.away}`;
+        }
+        
         const pick = { id: Date.now(), date: new Date().toLocaleString(), teams, market: mercado, prob, fair_odd: justa, odd: houseOdd, edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%', stake: 1, status: 'pending' };
         
         let historial = JSON.parse(localStorage.getItem('betags_pre_match')) || [];
