@@ -357,6 +357,16 @@
             cursor: pointer;
             width: 100%;
         }
+        /* Estilo específico para los goles en la columna value */
+        .gf-badge {
+            background: rgba(252, 196, 25, 0.15);
+            color: var(--accent-yellow);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.75rem;
+            border: 1px solid rgba(252, 196, 25, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -454,7 +464,7 @@
                             <th>xG (L/V)</th>
                             <th>O 2.5</th>
                             <th>BTTS</th>
-                            <th>VALUE</th>
+                            <th>VALUE(GF)</th>
                             <th>DETALLE</th>
                         </tr>
                     </thead>
@@ -718,7 +728,10 @@
                         home, away, xGL, xGV, score,
                         ov25: ov25_Final,
                         btts: btts_Final,
-                        probHT: 1 - Math.exp(-(xGL + xGV) * 0.45)
+                        probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
+                        // Guardar datos crudos para la mejora
+                        gfL: lData.gf,
+                        gfV: vData.gf
                     });
                 }
             });
@@ -771,7 +784,10 @@
                 <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${(m.ov25*100).toFixed(0)}%</td>
                 <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${(m.btts*100).toFixed(0)}%</td>
                 <td id="val_multi_${i}">
-                   <input type="number" step="0.01" class="input-odds" placeholder="0.00" oninput="validaValueMulti(${i}, this.value)">
+                   <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                        <span class="gf-badge" title="GF Local">${m.gfL}</span>
+                        <span class="gf-badge" style="background: rgba(81, 207, 102, 0.15); color: var(--accent-green); border-color: rgba(81, 207, 102, 0.3);" title="GF Visita">${m.gfV}</span>
+                   </div>
                 </td>
                 <td><button class="btn-open-match" onclick="abrirDetalle(${i})">OPEN</button></td>
             </tr>`;
@@ -799,23 +815,6 @@
                 tdMarket.innerHTML = `${tdMarket.innerText} <br> <span style="color:var(--accent-yellow); font-size:0.6rem;">${bestMarket}</span>`;
             }
         });
-    }
-
-    function validaValueMulti(idx, odd) {
-        const m = matchesToday[idx];
-        const resCell = document.getElementById(`val_multi_${idx}`);
-        const houseOdd = parseFloat(odd);
-        if(!houseOdd || houseOdd <= 1) {
-            let existingBadge = resCell.querySelector('.value-badge');
-            if(existingBadge) existingBadge.remove();
-            return;
-        }
-        const maxProb = Math.max(m.ov25, m.btts);
-        const edge = (maxProb * houseOdd) - 1;
-        const badge = `<br><span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
-        let existingBadge = resCell.querySelector('.value-badge');
-        if(existingBadge) existingBadge.remove();
-        resCell.insertAdjacentHTML('beforeend', badge);
     }
 
     function abrirDetalle(idx) {
