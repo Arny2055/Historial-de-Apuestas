@@ -163,6 +163,13 @@
             margin: 0 4px;
         }
 
+        .trend-badge {
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            line-height: 1;
+        }
+
         .chart-container {
             width: 100%;
             height: 180px;
@@ -326,10 +333,10 @@
                         <tr>
                             <th>LIGA</th>
                             <th>PARTIDO / RES</th>
+                            <th>TREND</th>
                             <th>xG (L/V)</th>
                             <th>O 2.5</th>
                             <th>BTTS Y</th>
-                            <th>CUOTA</th>
                             <th>VALUE</th>
                             <th>DETALLE</th>
                         </tr>
@@ -349,10 +356,12 @@
                 <div style="text-align: center;">
                     <div style="font-size: 0.6rem; color: var(--text-muted); font-weight: 800;">xG LOCAL</div>
                     <div id="xg_l_val" style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">0.00</div>
+                    <div id="delta_l_label" style="font-size: 0.6rem; font-weight: bold;"></div>
                 </div>
                 <div style="text-align: center;">
                     <div style="font-size: 0.6rem; color: var(--text-muted); font-weight: 800;">xG VISITA</div>
                     <div id="xg_v_val" style="font-size: 1.5rem; font-weight: 900; color: var(--accent-green);">0.00</div>
+                    <div id="delta_v_label" style="font-size: 0.6rem; font-weight: bold;"></div>
                 </div>
             </div>
         </div>
@@ -444,9 +453,6 @@
         let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
     }
 
-    /**
-     * MEJORA: REGRESIÓN LOGÍSTICA
-     */
     function logisticRegressionAdjust(poissonProb, xGL, xGV, marketType) {
         let b0, b1, b2;
         if (marketType === 'ov25') { b0 = -2.85; b1 = 0.65; b2 = 3.5; } 
@@ -470,13 +476,12 @@
             let data = { locales: [], visitantes: [] };
             rows.forEach((cols, i) => {
                 if (i > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
-                    // Mantenemos la estructura original pero extraemos gf (goles favor) y xG para el Delta
                     data.locales.push({ 
                         n: cols[1], 
                         gp: parseFloat(cols[2]), 
                         gf: parseFloat(cols[6]), 
                         ga: parseFloat(cols[7]),
-                        xG_generado: parseFloat(cols[8]) || parseFloat(cols[6]) // Si no hay xG, usamos GF como fallback
+                        xG_generado: parseFloat(cols[8]) || parseFloat(cols[6])
                     });
                     data.visitantes.push({ 
                         n: cols[13], 
@@ -541,17 +546,12 @@
                     const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
 
                     if (lData && vData) {
-                        // 1. CALCULAR DELTA xG (Goles Anotados - Goles Esperados)
-                        // Si el delta es alto (>0), significa que ha tenido suerte.
                         const deltaL = (lData.gf / lData.gp) - (lData.xG_generado / lData.gp);
                         const deltaV = (vData.gf / vData.gp) - (vData.xG_generado / vData.gp);
 
-                        // 2. AJUSTAR FUERZA DE ATAQUE (K=0.08 constante de regresión)
-                        // Si delta es positivo, multiplicamos por un factor < 1 para "castigar" la suerte.
                         const factorL = 1 - (deltaL * 0.08);
                         const factorV = 1 - (deltaV * 0.08);
 
-                        // 3. LAMBDA POISSON AJUSTADO CON DELTA
                         const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl * factorL;
                         const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv * factorV;
                         
@@ -568,6 +568,7 @@
                             home, away, xGL, xGV, score,
                             ov25: ov25_Final,
                             btts: btts_Final,
+                            deltaL, deltaV,
                             probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
                             hasSample: (lData.gp >= 5 && vData.gp >= 5)
                         });
@@ -581,6 +582,12 @@
             document.getElementById('singleAnalysisPanel').style.display = 'none';
 
         } catch (e) { alert("Error de conexión."); } finally { loader.style.display = 'none'; }
+    }
+
+    function getTrendIcon(delta) {
+        if (delta > 0.3) return '<span title="Racha Suerte" style="color:var(--accent-red)">🚀</span>';
+        if (delta < -0.3) return '<span title="Mala Suerte" style="color:var(--primary)">📉</span>';
+        return '<span title="Eficiente" style="color:var(--accent-green)">🎯</span>';
     }
 
     function renderMultiTable() {
@@ -598,11 +605,13 @@
             <tr class="${statusClass}" id="row_match_${originalIdx}">
                 <td><span class="league-tag">${m.league}</span></td>
                 <td style="font-weight:bold">${m.home} ${displayScore} ${m.away}</td>
+                <td><div class="trend-badge">${getTrendIcon(m.deltaL)} ${getTrendIcon(m.deltaV)}</div></td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
                 <td>${(m.ov25*100).toFixed(0)}%</td>
                 <td>${(m.btts*100).toFixed(0)}%</td>
-                <td><input type="number" step="0.01" class="input-odds" placeholder="0.00" oninput="validaValueMulti(${originalIdx}, this.value)"></td>
-                <td id="val_multi_${originalIdx}">--</td>
+                <td id="val_multi_${originalIdx}">
+                   <input type="number" step="0.01" class="input-odds" placeholder="0.00" oninput="validaValueMulti(${originalIdx}, this.value)">
+                </td>
                 <td><button class="btn-open-match" onclick="abrirDetalle(${originalIdx})">OPEN</button></td>
             </tr>`;
         }).join('');
@@ -612,10 +621,14 @@
         const m = matchesToday[idx];
         const resCell = document.getElementById(`val_multi_${idx}`);
         const houseOdd = parseFloat(odd);
-        if(!houseOdd || houseOdd <= 1) { resCell.innerHTML = "--"; return; }
+        if(!houseOdd || houseOdd <= 1) return;
         const maxProb = Math.max(m.ov25, m.btts);
         const edge = (maxProb * houseOdd) - 1;
-        resCell.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
+        const badge = `<br><span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
+        // No borramos el input, solo añadimos el badge si no existe
+        let existingBadge = resCell.querySelector('.value-badge');
+        if(existingBadge) existingBadge.remove();
+        resCell.insertAdjacentHTML('beforeend', badge);
     }
 
     function abrirDetalle(idx) {
@@ -626,6 +639,12 @@
         document.getElementById('currentMatchLabel').innerText = `${m.home} vs ${m.away}`;
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
         document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
+        
+        const deltaLCol = m.deltaL > 0 ? 'var(--accent-red)' : 'var(--primary)';
+        const deltaVCol = m.deltaV > 0 ? 'var(--accent-red)' : 'var(--primary)';
+        document.getElementById('delta_l_label').innerHTML = `<span style="color:${deltaLCol}">Delta: ${m.deltaL.toFixed(2)}</span>`;
+        document.getElementById('delta_v_label').innerHTML = `<span style="color:${deltaVCol}">Delta: ${m.deltaV.toFixed(2)}</span>`;
+
         let pL = [], pV = [];
         for(let i=0; i<=6; i++) { pL[i] = poisson(i, m.xGL); pV[i] = poisson(i, m.xGV); }
         renderSingleChart(pL, pV);
