@@ -925,7 +925,14 @@
         document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
     }
 
-    window.onload = () => { renderLeagueSelect(); };
+    // --- MEJORA: CARGA AUTOMÁTICA AL INICIAR ---
+    window.onload = () => { 
+        renderLeagueSelect();
+        // Intentar cargar partidos automáticamente si ya hay una liga seleccionada
+        if(document.getElementById('leagueSelect').value) {
+            setTimeout(analizarTodoMultiliga, 500); // Pequeño delay para asegurar que los datos estén listos
+        }
+    };
 </script>
 </body>
 </html>
