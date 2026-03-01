@@ -842,14 +842,13 @@
         
         const m = matchesToday[idx];
         
-        // --- AQUÍ ESTÁ EL CAMBIO SOLICITADO ---
-        // Rellenamos los GF (Goles a Favor) automáticamente
+        // --- Rellenamos los GF (Goles a Favor) automáticamente ---
         document.getElementById('calc_gf_l').value = m.gfL;
         document.getElementById('calc_gf_v').value = m.gfV;
         
-        // DEJAMOS LOS CAMPOS DE xG VACÍOS
-        document.getElementById('calc_xg_l').value = "";
-        document.getElementById('calc_xg_v').value = "";
+        // --- MEJORA: Opcional, si prefieres usar xG en vez de GF para el calculo manual ---
+        document.getElementById('calc_xg_l').value = m.xGL.toFixed(2);
+        document.getElementById('calc_xg_v').value = m.xGV.toFixed(2);
         
         // Ocultar resultados previos de la calculadora
         document.getElementById('manualResultPanel').style.display = 'none';
@@ -878,35 +877,25 @@
         document.getElementById('btts_val').innerText = (m.btts*100).toFixed(1) + '%';
         document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
         
-        let probO15 = 0, probU15 = 0, probO35 = 0, probU35 = 0, probU25 = 0, probLocalO15 = 0, probVisitaO15 = 0;
+        let probU25 = 0;
         for(let i=0; i<=6; i++){
             for(let j=0; j<=6; j++){
-                if(i+j > 1.5) probO15 += pL[i]*pV[j];
-                if(i+j < 1.5) probU15 += pL[i]*pV[j];
-                if(i+j > 2.5) {} else { probU25 += pL[i]*pV[j]; }
-                if(i+j > 3.5) probO35 += pL[i]*pV[j];
-                if(i+j < 3.5) probU35 += pL[i]*pV[j];
-                if(i > 1.5) probLocalO15 += pL[i]*pV[j];
-                if(j > 1.5) probVisitaO15 += pL[i]*pV[j];
+                if(i+j <= 2) probU25 += pL[i]*pV[j];
             }
         }
         
-        // Ajuste LOGISTICO para U/O también
-        probU25 = logisticRegressionAdjust(probU25, m.xGL, m.xGV, 'ov25'); // Reutilizamos lógica inversa
-        probU25 = 1 - probU25; 
+        // Ajuste LOGISTICO
+        let ov25Adjusted = logisticRegressionAdjust(m.ov25, m.xGL, m.xGV, 'ov25');
+        let bttsAdjusted = logisticRegressionAdjust(m.btts, m.xGL, m.xGV, 'btts');
+        let uv25Adjusted = 1 - ov25Adjusted; 
+        let bttsNoAdjusted = 1 - bttsAdjusted;
 
+        // --- MEJORA: Definir los 4 mercados solicitados ---
         const markets = [
-            {n: 'OVER 0.5 HT', p: m.probHT},
-            {n: 'OVER 1.5 FT', p: probO15},
-            {n: 'UNDER 1.5 FT', p: probU15},
-            {n: 'LOCAL OVER 1.5', p: probLocalO15},
-            {n: 'VISITA OVER 1.5', p: probVisitaO15},
-            {n: 'OVER 2.5 FT', p: m.ov25},
-            {n: 'UNDER 2.5 FT', p: probU25},
-            {n: 'OVER 3.5 FT', p: probO35},
-            {n: 'UNDER 3.5 FT', p: probU35},
-            {n: 'BTTS YES', p: m.btts},
-            {n: 'BTTS NO', p: 1-m.btts}
+            {n: 'OVER 2.5 FT', p: ov25Adjusted},
+            {n: 'UNDER 2.5 FT', p: uv25Adjusted},
+            {n: 'BTTS YES', p: bttsAdjusted},
+            {n: 'BTTS NO', p: bttsNoAdjusted}
         ];
         
         const table = document.getElementById('individualMarketsTable');
