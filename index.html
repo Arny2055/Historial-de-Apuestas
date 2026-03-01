@@ -17,6 +17,7 @@
             --border: #2c3440;
             --glass: rgba(255, 255, 255, 0.03);
             --row-select: rgba(77, 171, 247, 0.15); 
+            --gold-glow: 0 0 15px rgba(252, 196, 25, 0.4);
         }
 
         body { 
@@ -119,6 +120,19 @@
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
 
+        /* MEJORA: Resaltado de apuestas recomendadas */
+        .bet-alert {
+            border-left: 5px solid var(--accent-yellow) !important;
+            background: rgba(252, 196, 25, 0.05) !important;
+            box-shadow: var(--gold-glow);
+        }
+
+        .high-prob {
+            color: var(--accent-green) !important;
+            font-weight: 900;
+            text-shadow: 0 0 5px rgba(81, 207, 102, 0.5);
+        }
+
         .multi-results-table {
             width: 100%;
             border-collapse: collapse;
@@ -209,7 +223,7 @@
             border-radius: 8px;
             text-align: center;
             border: 1px solid var(--border);
-            background: #000;
+            background: #0b0e14;
             color: var(--accent-yellow);
             font-weight: bold;
         }
@@ -235,6 +249,16 @@
             font-size: 0.7rem;
             cursor: pointer;
             display: none;
+        }
+
+        /* Animación para el botón con Value alto */
+        .btn-pulse {
+            animation: pulse-green 1.5s infinite;
+        }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(81, 207, 102, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(81, 207, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(81, 207, 102, 0); }
         }
 
         .btn-open-match {
@@ -601,14 +625,19 @@
             const originalIdx = matchesToday.findIndex(orig => orig.home === m.home && orig.away === m.away);
             const statusClass = m.hasSample ? "" : "insufficient-data";
             const displayScore = (m.score && m.score !== "" && m.score !== "vs") ? `<span class="score-badge">${m.score}</span>` : " vs ";
+            
+            // Lógica de resaltado inteligente (Bomba de goles: ambos equipos con tendencia negativa xG)
+            const isHotMatch = m.deltaL < -0.2 && m.deltaV < -0.2;
+            const rowHighlight = isHotMatch ? "bet-alert" : "";
+            
             return `
-            <tr class="${statusClass}" id="row_match_${originalIdx}">
+            <tr class="${statusClass} ${rowHighlight}" id="row_match_${originalIdx}">
                 <td><span class="league-tag">${m.league}</span></td>
                 <td style="font-weight:bold">${m.home} ${displayScore} ${m.away}</td>
                 <td><div class="trend-badge">${getTrendIcon(m.deltaL)} ${getTrendIcon(m.deltaV)}</div></td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
-                <td>${(m.ov25*100).toFixed(0)}%</td>
-                <td>${(m.btts*100).toFixed(0)}%</td>
+                <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${(m.ov25*100).toFixed(0)}%</td>
+                <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${(m.btts*100).toFixed(0)}%</td>
                 <td id="val_multi_${originalIdx}">
                    <input type="number" step="0.01" class="input-odds" placeholder="0.00" oninput="validaValueMulti(${originalIdx}, this.value)">
                 </td>
@@ -625,7 +654,6 @@
         const maxProb = Math.max(m.ov25, m.btts);
         const edge = (maxProb * houseOdd) - 1;
         const badge = `<br><span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
-        // No borramos el input, solo añadimos el badge si no existe
         let existingBadge = resCell.querySelector('.value-badge');
         if(existingBadge) existingBadge.remove();
         resCell.insertAdjacentHTML('beforeend', badge);
@@ -654,6 +682,7 @@
         document.getElementById('ov25ft_odds').innerText = 'JUSTA: ' + (1/m.ov25).toFixed(2);
         document.getElementById('btts_val').innerText = (m.btts*100).toFixed(1) + '%';
         document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
+        
         const markets = [{n: 'OVER 0.5 HT', p: m.probHT}, {n: 'OVER 2.5 FT', p: m.ov25}, {n: 'UNDER 2.5 FT', p: 1 - m.ov25}, {n: 'BTTS YES', p: m.btts}, {n: 'BTTS NO', p: 1 - m.btts}];
         const table = document.getElementById('individualMarketsTable');
         table.innerHTML = markets.map((mk, i) => {
@@ -682,7 +711,14 @@
         if(!houseOdd || houseOdd <= 1) { res.innerHTML = "--"; btn.style.display = "none"; return; }
         const edge = (prob * houseOdd) - 1;
         res.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
-        if(edge > 0) btn.style.display = "block"; else btn.style.display = "none";
+        
+        if(edge > 0) {
+            btn.style.display = "block";
+            // MEJORA: Resaltado de acción si el valor es > 10%
+            if(edge > 0.1) btn.classList.add('btn-pulse'); else btn.classList.remove('btn-pulse');
+        } else {
+            btn.style.display = "none";
+        }
     }
 
     function enviarBet(liga, partido, mercado, prob, justa, inputIdx) {
