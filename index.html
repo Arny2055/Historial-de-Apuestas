@@ -120,10 +120,13 @@
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
 
+        /* ESTILO MEJORA AUTOMÁTICA */
         .bet-alert {
             border-left: 5px solid var(--accent-yellow) !important;
             background: rgba(252, 196, 25, 0.05) !important;
             box-shadow: var(--gold-glow);
+            border-top: 1px solid rgba(252, 196, 25, 0.2);
+            border-right: 1px solid rgba(252, 196, 25, 0.2);
         }
 
         .high-prob {
@@ -656,6 +659,7 @@
             });
 
             renderMultiTable();
+            automaticMarketSuggestion(); // MEJORA: Sugerencia automática
             document.getElementById('multiAnalysisPanel').style.display = 'block';
             document.getElementById('singleAnalysisPanel').style.display = 'none';
 
@@ -755,6 +759,31 @@
                 <td><button class="btn-open-match" onclick="abrirDetalle(${originalIdx})">OPEN</button></td>
             </tr>`;
         }).join('');
+    }
+
+    // --- MEJORA: Sugerencia automática de mercado ---
+    function automaticMarketSuggestion() {
+        matchesToday.forEach((m, idx) => {
+            const row = document.getElementById(`row_match_${idx}`);
+            if (!row) return;
+
+            // Definir cuota mínima teórica para que sea rentable (ej: valor > 10%)
+            const minProb = 0.55;
+            let bestMarket = null;
+
+            if (m.ov25 >= minProb && m.ov25 > m.btts) {
+                bestMarket = `🔥 O2.5: ${(m.ov25*100).toFixed(0)}%`;
+            } else if (m.btts >= minProb) {
+                bestMarket = `✅ BTTS: ${(m.btts*100).toFixed(0)}%`;
+            }
+
+            if (bestMarket) {
+                row.classList.add('bet-alert'); // Aplica el estilo dorado
+                // Opcional: Añadir tag de sugerencia
+                const tdMarket = row.cells[5];
+                tdMarket.innerHTML = `${tdMarket.innerText} <br> <span style="color:var(--accent-yellow); font-size:0.6rem;">${bestMarket}</span>`;
+            }
+        });
     }
 
     function validaValueMulti(idx, odd) {
