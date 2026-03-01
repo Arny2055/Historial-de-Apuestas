@@ -361,11 +361,13 @@
         .gf-badge {
             background: rgba(252, 196, 25, 0.15);
             color: var(--accent-yellow);
-            padding: 4px 8px;
-            border-radius: 6px;
+            padding: 2px 6px;
+            border-radius: 4px;
             font-weight: bold;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             border: 1px solid rgba(252, 196, 25, 0.3);
+            display: inline-block;
+            min-width: 25px;
         }
     </style>
 </head>
@@ -592,7 +594,7 @@
         return (poissonProb * 0.4) + (probability * 0.6);
     }
 
-    // --- MEJORA: LÓGICA CALCULADORA MANUAL Y CÁLCULO DE PROBS ---
+    // --- LÓGICA CALCULADORA MANUAL Y CÁLCULO DE PROBS ---
     function calcularManual() {
         const xG_L = parseFloat(document.getElementById('calc_xg_l').value);
         const GF_L = parseFloat(document.getElementById('calc_gf_l').value);
@@ -729,9 +731,9 @@
                         ov25: ov25_Final,
                         btts: btts_Final,
                         probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
-                        // Guardar datos crudos para la mejora
-                        gfL: lData.gf,
-                        gfV: vData.gf
+                        // Datos crudos para la mejora VALUE(GF)
+                        gfL: (lData.gf/lData.gp).toFixed(1),
+                        gfV: (vData.gf/vData.gp).toFixed(1)
                     });
                 }
             });
@@ -776,7 +778,7 @@
         body.innerHTML = matchesToday.map((m, i) => {
             return `
             <tr id="row_match_${i}">
-                <td style="font-weight:bold">${m.home} <br>vs<br> ${m.away}</td>
+                <td style="font-weight:bold; text-align:left;">${m.home}<br>${m.away}</td>
                 <td>
                     <div class="trend-badge" onclick="showTacticalAdvice(${i})" title="Ver consejo">📊</div>
                 </td>
@@ -784,9 +786,9 @@
                 <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${(m.ov25*100).toFixed(0)}%</td>
                 <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${(m.btts*100).toFixed(0)}%</td>
                 <td id="val_multi_${i}">
-                   <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-                        <span class="gf-badge" title="GF Local">${m.gfL}</span>
-                        <span class="gf-badge" style="background: rgba(81, 207, 102, 0.15); color: var(--accent-green); border-color: rgba(81, 207, 102, 0.3);" title="GF Visita">${m.gfV}</span>
+                   <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
+                        <span class="gf-badge" title="Promedio GF Local">${m.gfL}</span>
+                        <span class="gf-badge" style="background: rgba(81, 207, 102, 0.15); color: var(--accent-green); border-color: rgba(81, 207, 102, 0.3);" title="Promedio GF Visita">${m.gfV}</span>
                    </div>
                 </td>
                 <td><button class="btn-open-match" onclick="abrirDetalle(${i})">OPEN</button></td>
@@ -794,7 +796,7 @@
         }).join('');
     }
 
-    // --- MEJORA: Sugerencia automática de mercado ---
+    // --- Sugerencia automática de mercado ---
     function automaticMarketSuggestion() {
         matchesToday.forEach((m, idx) => {
             const row = document.getElementById(`row_match_${idx}`);
@@ -924,7 +926,7 @@
         document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
     }
 
-    // --- MEJORA: CARGA AUTOMÁTICA AL INICIAR ---
+    // --- Carga automática al iniciar ---
     window.onload = () => { 
         renderLeagueSelect();
         // Intentar cargar partidos automáticamente si ya hay una liga seleccionada
