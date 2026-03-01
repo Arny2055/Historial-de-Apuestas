@@ -842,16 +842,19 @@
         
         const m = matchesToday[idx];
         
-        // Actualizar valores de promedios de goles en la calculadora manual
+        // --- AQUÍ ESTÁ EL CAMBIO SOLICITADO ---
+        // Rellenamos los GF (Goles a Favor) automáticamente
         document.getElementById('calc_gf_l').value = m.gfL;
         document.getElementById('calc_gf_v').value = m.gfV;
-        document.getElementById('calc_xg_l').value = m.xGL.toFixed(2);
-        document.getElementById('calc_xg_v').value = m.xGV.toFixed(2);
+        
+        // DEJAMOS LOS CAMPOS DE xG VACÍOS
+        document.getElementById('calc_xg_l').value = "";
+        document.getElementById('calc_xg_v').value = "";
         
         // Ocultar resultados previos de la calculadora
         document.getElementById('manualResultPanel').style.display = 'none';
         
-        // Opcional: Hacer scroll a la calculadora
+        // Hacer scroll a la calculadora
         document.querySelector('.section-title + .card').scrollIntoView({behavior: 'smooth', block: 'center'});
     }
 
