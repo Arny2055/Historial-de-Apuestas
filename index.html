@@ -448,6 +448,33 @@
         let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
     }
 
+    /**
+     * MEJORA: REGRESIÓN LOGÍSTICA
+     * Esta función ajusta la probabilidad basada en xG combinados 
+     * utilizando coeficientes beta pre-entrenados para fútbol.
+     */
+    function logisticRegressionAdjust(poissonProb, xGL, xGV, marketType) {
+        // Coeficientes aproximados para mercados de fútbol (Over 2.5 y BTTS)
+        // beta0: intercepto, beta1: xG Total, beta2: Poisson Prob
+        let b0, b1, b2;
+        
+        if (marketType === 'ov25') {
+            b0 = -2.85; b1 = 0.65; b2 = 3.5;
+        } else if (marketType === 'btts') {
+            b0 = -1.95; b1 = 0.45; b2 = 2.8;
+        } else {
+            return poissonProb; // Por defecto para otros mercados
+        }
+
+        const xGTotal = xGL + xGV;
+        const logit = b0 + (b1 * xGTotal) + (b2 * poissonProb);
+        const probability = 1 / (1 + Math.exp(-logit));
+        
+        // Retornamos un promedio ponderado entre Poisson puro y Logística
+        // para suavizar variaciones extremas
+        return (poissonProb * 0.4) + (probability * 0.6);
+    }
+
     // --- CARGA DE DATOS POR HOJA ---
     async function fetchDataForSheet(sheetName) {
         const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&range=A1:W60`;
@@ -527,16 +554,23 @@
                         const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl;
                         const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv;
                         
-                        let u25 = 0;
+                        let u25Poisson = 0;
                         let pL = [], pV = [];
                         for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
-                        for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
+                        for(let i=0; i<=2; i++) for(let j=0; j<=2; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
                         
+                        // APLICAR REGRESIÓN LOGÍSTICA PARA AJUSTAR PROBABILIDADES
+                        const probOV25_Pure = 1 - u25Poisson;
+                        const probBTTS_Pure = 1 - (pL[0] + pV[0] - (pL[0]*pV[0]));
+                        
+                        const ov25_Final = logisticRegressionAdjust(probOV25_Pure, xGL, xGV, 'ov25');
+                        const btts_Final = logisticRegressionAdjust(probBTTS_Pure, xGL, xGV, 'btts');
+
                         matchesToday.push({
                             league: leagueName,
                             home, away, xGL, xGV, score,
-                            ov25: 1 - u25,
-                            btts: 1 - (pL[0] + pV[0] - (pL[0]*pV[0])),
+                            ov25: ov25_Final,
+                            btts: btts_Final,
                             probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
                             hasSample: (lData.gp >= 5 && vData.gp >= 5)
                         });
@@ -606,7 +640,6 @@
     }
 
     function abrirDetalle(idx) {
-        // MEJORA: Resaltar la fila seleccionada en la tabla multiliga
         document.querySelectorAll('.multi-results-table tr').forEach(row => row.classList.remove('row-active'));
         const activeRow = document.getElementById(`row_match_${idx}`);
         if(activeRow) activeRow.classList.add('row-active');
