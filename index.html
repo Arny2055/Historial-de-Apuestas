@@ -707,7 +707,7 @@
             rec = "Recomendación: LOCAL OVER 1.5";
         } else if (iconL === '🚀' && iconV === '📉') {
             mTitle.innerText = "⚖️ REVERSIÓN DE ROLES";
-            advice = "El visitante viene con hambre de gol (mala suerte) y el local está saturado de suerte. Ojo con la sorpresa.";
+            advice = "El visitante viene con hambre de gol (mala suerte) and el local está saturado de suerte. Ojo con la sorpresa.";
             rec = "Recomendación: VISITANTE OVER 0.5";
         } else {
             mTitle.innerText = "📊 ANÁLISIS DE TENDENCIA";
@@ -722,9 +722,10 @@
 
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
-        const filteredMatches = matchesToday.filter(m => m.ov25 >= 0.55 || m.btts >= 0.55);
+        // SE ELIMINÓ LA REGLA DE PROBABILIDAD MÍNIMA
+        const filteredMatches = matchesToday; 
         if(filteredMatches.length === 0) {
-            body.innerHTML = '<tr><td colspan="8">No hay partidos detectados con alta probabilidad.</td></tr>';
+            body.innerHTML = '<tr><td colspan="8">No hay partidos detectados.</td></tr>';
             return;
         }
         body.innerHTML = filteredMatches.map((m, i) => {
