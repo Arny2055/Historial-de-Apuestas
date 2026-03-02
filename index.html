@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Poisson Pro - xG & Delta</title>
+    <title>Calculadora Poisson Pro - xG & Delta Adjusted</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -13,6 +13,7 @@
             --border-color: #333;
             --input-bg: #2d2d2d;
             --success: #00ff88;
+            --warning: #ffcc00;
         }
 
         body {
@@ -30,7 +31,8 @@
             width: 100%;
         }
 
-        h1 { text-align: center; color: var(--accent-color); }
+        h1 { text-align: center; color: var(--accent-color); margin-bottom: 10px; }
+        .subtitle { text-align: center; font-size: 0.9em; color: #888; margin-bottom: 30px; }
 
         .grid-inputs {
             display: grid;
@@ -112,12 +114,30 @@
         }
 
         .kelly-info { font-size: 0.85em; color: #888; margin-top: 4px; }
+        
+        .adjustment-info {
+            font-size: 0.75em;
+            color: var(--accent-color);
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .suggestion-box {
+            margin-top: 15px;
+            padding: 10px;
+            background: #252525;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            border-left: 4px solid var(--warning);
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>⚽ Poisson Calculator & Kelly 1.8</h1>
+    <p class="subtitle">Ajuste Dinámico por Delta xG Activado</p>
 
     <div class="grid-inputs">
         <div class="card">
@@ -131,6 +151,7 @@
                 <input type="number" id="gfLocal" step="0.01" placeholder="Ej: 1.40">
             </div>
             <div id="deltaLocal" class="delta-box">-</div>
+            <div id="adjLocal" class="adjustment-info"></div>
         </div>
 
         <div class="card">
@@ -144,6 +165,7 @@
                 <input type="number" id="gfVisit" step="0.01" placeholder="Ej: 1.10">
             </div>
             <div id="deltaVisit" class="delta-box">-</div>
+            <div id="adjVisit" class="adjustment-info"></div>
         </div>
     </div>
 
@@ -155,9 +177,10 @@
             <input type="number" id="oddBTTSY" step="0.01" placeholder="Cuota BTTS Yes">
             <input type="number" id="oddBTTSN" step="0.01" placeholder="Cuota BTTS No">
         </div>
+        <div id="marketSuggestion" class="suggestion-box" style="display:none;"></div>
     </div>
 
-    <button onclick="calculateAll()">CALCULAR PROBABILIDADES</button>
+    <button onclick="calculateAll()">CALCULAR PROBABILIDADES AJUSTADAS</button>
 
     <div class="card" style="margin-top: 20px; overflow-x: auto;">
         <table class="results-table">
@@ -184,6 +207,7 @@
     }
 
     function poisson(k, lambda) {
+        if (lambda <= 0) return k === 0 ? 1 : 0;
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
     }
 
@@ -199,36 +223,59 @@
         let q = 1 - p;
         let b = odd - 1;
         let k = (b * p - q) / b;
-        let fraction = k / 1.8; // Kelly 1.8 solicitado
+        let fraction = k / 1.8; 
         return fraction > 0 ? (fraction * 100).toFixed(2) : 0;
     }
 
     function calculateAll() {
-        const xgL = parseFloat(document.getElementById('xgLocal').value) || 0;
+        const xgL_raw = parseFloat(document.getElementById('xgLocal').value) || 0;
         const gfL = parseFloat(document.getElementById('gfLocal').value) || 0;
-        const xgV = parseFloat(document.getElementById('xgVisit').value) || 0;
+        const xgV_raw = parseFloat(document.getElementById('xgVisit').value) || 0;
         const gfV = parseFloat(document.getElementById('gfVisit').value) || 0;
 
-        // Deltas
-        const dL = xgL - gfL;
-        const dV = xgV - gfV;
+        // Cálculo de Deltas
+        const dL = xgL_raw - gfL;
+        const dV = xgV_raw - gfV;
+        const totalDelta = dL + dV;
+
+        // Lógica de Influencia del Delta en Poisson
+        let adjL = xgL_raw + (dL * 0.1);
+        let adjV = xgV_raw + (dV * 0.1);
+
+        // Asegurar que xG no sea negativo
+        adjL = Math.max(0.01, adjL);
+        adjV = Math.max(0.01, adjV);
+
+        // Actualizar UI de Deltas y Avisos de Ajuste
         document.getElementById('deltaLocal').innerHTML = `${dL.toFixed(2)} ${getIcon(dL)}`;
         document.getElementById('deltaVisit').innerHTML = `${dV.toFixed(2)} ${getIcon(dV)}`;
+        document.getElementById('adjLocal').innerText = `xG Ajustado: ${adjL.toFixed(2)}`;
+        document.getElementById('adjVisit').innerText = `xG Ajustado: ${adjV.toFixed(2)}`;
 
-        // Probabilidades Poisson 0-10 goles
+        // --- NUEVA MEJORA: Sugerencia de Mercado ---
+        const suggestionBox = document.getElementById('marketSuggestion');
+        suggestionBox.style.display = 'block';
+        if (totalDelta > 0.5) {
+            suggestionBox.innerHTML = '⚡ Sugerencia: Buscar VALOR en <span style="color:var(--success)">OVER 2.5</span> (Tendencia ofensiva)';
+        } else if (totalDelta < -0.5) {
+            suggestionBox.innerHTML = '⚡ Sugerencia: Buscar VALOR en <span style="color:var(--success)">UNDER 2.5</span> (Tendencia defensiva)';
+        } else {
+            suggestionBox.innerHTML = '⚡ Sugerencia: Mercado equilibrado, buscar valor en cuotas altas.';
+        }
+        // ------------------------------------------
+
+        // Probabilidades Poisson 0-10 goles con xG AJUSTADO
         let probL = [];
         let probV = [];
         for (let i = 0; i <= 10; i++) {
-            probL.push(poisson(i, xgL));
-            probV.push(poisson(i, xgV));
+            probL.push(poisson(i, adjL));
+            probV.push(poisson(i, adjV));
         }
 
         // Mercados
         let o25 = 0, u25 = 0, bttsY = 0, bttsN = 0;
-        let probL_0 = probL[0];
-        let probV_0 = probV[0];
 
-        // Matriz
+        // Matriz 11x11
         for (let i = 0; i <= 10; i++) {
             for (let j = 0; j <= 10; j++) {
                 let p_score = probL[i] * probV[j];
