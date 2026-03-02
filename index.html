@@ -120,12 +120,6 @@
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
 
-        .high-prob {
-            color: var(--accent-green) !important;
-            font-weight: 900;
-            text-shadow: 0 0 5px rgba(81, 207, 102, 0.5);
-        }
-
         .probs-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .summary-box { 
             background: var(--glass);
@@ -140,22 +134,6 @@
 
         .summary-val { font-size: 1.2rem; font-weight: 900; margin: 5px 0; }
         .summary-odds { font-size: 0.65rem; color: var(--accent-green); font-family: monospace; }
-
-        .team-box {
-            padding: 15px;
-            border-radius: 12px;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border);
-        }
-        .team-box.local { border-left: 4px solid var(--primary); }
-        .team-box.away { border-left: 4px solid var(--accent-green); }
-        .team-label {
-            font-size: 0.7rem;
-            font-weight: 900;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
 
         #loadingOverlay {
             position: fixed;
@@ -189,15 +167,25 @@
             font-size: 0.8rem;
             display: none;
             z-index: 2000;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
+
+        .team-box {
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+        }
+        .team-box.local { border-left: 4px solid var(--primary); }
+        .team-box.away { border-left: 4px solid var(--accent-green); }
+        .team-label { font-size: 0.7rem; font-weight: 900; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+
     </style>
 </head>
 <body>
 
 <div id="loadingOverlay">
     <div class="spinner"></div>
-    <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">CARGANDO DATOS...</p>
+    <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">CARGANDO DATOS DE HOJA...</p>
 </div>
 
 <div id="betToast">🚀 ENVIADO A ROI2</div>
@@ -210,49 +198,34 @@
         <a href="xg.html" class="btn-nav-xg"><span>⚽</span> XG ANALYTICS</a>
     </div>
 
-    <div class="section-title"><span>🛠️</span> HERRAMIENTA MANUAL (INTELIGENTE)</div>
+    <div class="section-title"><span>🛠️</span> CALCULADORA INTELIGENTE (DELTA & POISSON)</div>
     <div class="card">
+        
         <div style="margin-bottom: 15px;">
-            <div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 800; margin-bottom: 5px;">SELECCIONAR LIGA GUARDADA:</div>
-            <select id="manual_league_select" onchange="cargarEquiposDeLiga()"></select>
+            <div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 800; margin-bottom: 5px;">1. SELECCIONAR LIGA GUARDADA:</div>
+            <select id="manual_league_select" onchange="cargarEquiposManual()"></select>
         </div>
 
         <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: 15px;">
             <div class="team-box local">
-                <div class="team-label" style="color: var(--primary);">Local</div>
-                <div style="margin-bottom: 10px;">
-                    <select id="manual_home_team" onchange="autoFillData('L')">
-                        <option value="">- Equipo -</option>
-                    </select>
-                </div>
+                <div class="team-label" style="color: var(--primary);">LOCAL</div>
+                <select id="select_home_team" onchange="autoFillData('L')" style="margin-bottom: 10px; font-size: 0.75rem; padding: 10px;">
+                    <option value="">- Equipo -</option>
+                </select>
                 <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                    <div style="width: 50%;">
-                        <div style="font-size: 0.5rem; color: var(--text-muted);">xG</div>
-                        <input type="number" id="calc_xg_l" placeholder="0.00" step="0.01" style="padding: 8px; font-size: 0.75rem;">
-                    </div>
-                    <div style="width: 50%;">
-                        <div style="font-size: 0.5rem; color: var(--text-muted);">GF</div>
-                        <input type="number" id="calc_gf_l" placeholder="0.00" step="0.01" style="padding: 8px; font-size: 0.75rem;">
-                    </div>
+                    <input type="number" id="calc_xg_l" placeholder="xG" step="0.01" style="padding: 8px; font-size: 0.8rem;">
+                    <input type="number" id="calc_gf_l" placeholder="GF" step="0.01" style="padding: 8px; font-size: 0.8rem;">
                 </div>
             </div>
 
             <div class="team-box away">
-                <div class="team-label" style="color: var(--accent-green);">Visita</div>
-                <div style="margin-bottom: 10px;">
-                    <select id="manual_away_team" onchange="autoFillData('V')">
-                        <option value="">- Equipo -</option>
-                    </select>
-                </div>
+                <div class="team-label" style="color: var(--accent-green);">VISITA</div>
+                <select id="select_away_team" onchange="autoFillData('V')" style="margin-bottom: 10px; font-size: 0.75rem; padding: 10px;">
+                    <option value="">- Equipo -</option>
+                </select>
                 <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                    <div style="width: 50%;">
-                        <div style="font-size: 0.5rem; color: var(--text-muted);">xG</div>
-                        <input type="number" id="calc_xg_v" placeholder="0.00" step="0.01" style="padding: 8px; font-size: 0.75rem;">
-                    </div>
-                    <div style="width: 50%;">
-                        <div style="font-size: 0.5rem; color: var(--text-muted);">GF</div>
-                        <input type="number" id="calc_gf_v" placeholder="0.00" step="0.01" style="padding: 8px; font-size: 0.75rem;">
-                    </div>
+                    <input type="number" id="calc_xg_v" placeholder="xG" step="0.01" style="padding: 8px; font-size: 0.8rem;">
+                    <input type="number" id="calc_gf_v" placeholder="GF" step="0.01" style="padding: 8px; font-size: 0.8rem;">
                 </div>
             </div>
         </div>
@@ -309,16 +282,16 @@
         </div>
     </div>
 
-    <div class="section-title"><span>⚙️</span> GESTIÓN DE LIGAS (HOJAS)</div>
+    <div class="section-title"><span>⚙️</span> CONFIGURACIÓN DE LIGAS (SHEETS)</div>
     <div class="card">
         <div class="input-grid">
             <div style="display: flex; gap: 10px;">
                 <select id="configLeagueSelect"></select>
-                <button class="btn-nav-roi" onclick="borrarLiga()" style="border-color: var(--accent-red); color: var(--accent-red);">🗑️</button>
+                <button class="btn-nav-roi" onclick="borrarLigaConfig()" style="border-color: var(--accent-red); color: var(--accent-red);">🗑️</button>
             </div>
             <div style="display: flex; gap: 8px;">
                 <input type="text" id="newSheetName" placeholder="NOMBRE HOJA (PREMIER, LALIGA...)">
-                <button class="btn-nav-xg" onclick="agregarLiga()">+ AÑADIR</button>
+                <button class="btn-nav-xg" onclick="agregarLigaConfig()">+ AÑADIR</button>
             </div>
         </div>
     </div>
@@ -326,29 +299,29 @@
 
 <script>
     const SHEETS_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
-    let leagueDataCache = {}; 
+    let database = { locales: {}, visitantes: {} }; 
     let currentManualData = {};
 
-    // --- LÓGICA DE LIGAS ---
+    // --- LÓGICA DE LIGAS (LocalStorage) ---
     function getSavedLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
         return saved ? JSON.parse(saved) : [];
     }
 
-    function renderLeagues() {
+    function updateLeagueSelectors() {
         const leagues = getSavedLeagues();
         const configSelect = document.getElementById('configLeagueSelect');
         const manualSelect = document.getElementById('manual_league_select');
         
         const options = leagues.length > 0 
             ? leagues.map(l => `<option value="${l.sheet}">${l.name}</option>`).join('')
-            : '<option value="">SIN HOJAS</option>';
+            : '<option value="">SIN LIGAS</option>';
         
         configSelect.innerHTML = options;
         manualSelect.innerHTML = '<option value="">- Selecciona Liga -</option>' + options;
     }
 
-    function agregarLiga() {
+    function agregarLigaConfig() {
         const name = document.getElementById('newSheetName').value.trim().toUpperCase();
         if (!name) return;
         const leagues = getSavedLeagues();
@@ -356,19 +329,19 @@
         leagues.push({name, sheet: name});
         localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
         document.getElementById('newSheetName').value = "";
-        renderLeagues();
+        updateLeagueSelectors();
     }
 
-    function borrarLiga() {
+    function borrarLigaConfig() {
         const val = document.getElementById('configLeagueSelect').value;
         if(!val) return;
         let leagues = getSavedLeagues().filter(l => l.sheet !== val);
         localStorage.setItem('betags_custom_leagues', JSON.stringify(leagues));
-        renderLeagues();
+        updateLeagueSelectors();
     }
 
     // --- CARGA DE DATOS DE EQUIPOS ---
-    async function cargarEquiposDeLiga() {
+    async function cargarEquiposManual() {
         const sheetName = document.getElementById('manual_league_select').value;
         if (!sheetName) return;
 
@@ -381,50 +354,40 @@
             const text = await res.text();
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
             
-            let data = { locales: {}, visitantes: {} };
+            database = { locales: {}, visitantes: {} };
             
             rows.forEach((cols, i) => {
                 if (i > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
                     const nameH = cols[1].toUpperCase();
                     const nameA = cols[13].toUpperCase();
                     
-                    data.locales[nameH] = { xg: parseFloat(cols[2]), gf: parseFloat(cols[6])/parseFloat(cols[2]) || 0, realGf: parseFloat(cols[6])/parseFloat(cols[2]) }; // Guardamos real para delta
-                    // Ajuste para facilitar: xG = cols[2]/pj, GF = cols[6]/pj
-                    const pjL = parseFloat(cols[2]);
-                    const pjV = parseFloat(cols[14]);
-                    
-                    data.locales[nameH] = { xg: parseFloat(cols[2])/pjL, gf: parseFloat(cols[6])/pjL };
-                    data.visitantes[nameA] = { xg: parseFloat(cols[18])/pjV, gf: parseFloat(cols[18])/pjV }; // Nota: Ajustado a tus columnas de la hoja
-                    
-                    // Basado en tu estructura previa: xG (cols[2]), GF (cols[6])
-                    data.locales[nameH] = { xg: (parseFloat(cols[2])/parseFloat(cols[2])).toFixed(2), gf: (parseFloat(cols[6])/parseFloat(cols[2])).toFixed(2) };
-                    // Re-mapeo correcto de columnas según tu script anterior:
-                    // Local: GP(2), GF(6). Visita: GP(14), GF(18)
-                    data.locales[nameH] = { 
-                        xg: (parseFloat(cols[2])/parseFloat(cols[2])).toFixed(2), // xG es complejo sin avg liga, usamos inputs directos o promedios
-                        avgXG: (parseFloat(cols[2])/parseFloat(cols[2])), 
-                        avgGF: (parseFloat(cols[6])/parseFloat(cols[2])) 
+                    // Basado en tus columnas: GP Local (cols[2]), GF Local (cols[6])
+                    // GP Visita (cols[14]), GF Visita (cols[18])
+                    const gpL = parseFloat(cols[2]) || 1;
+                    const gpV = parseFloat(cols[14]) || 1;
+
+                    database.locales[nameH] = {
+                        xg: (parseFloat(cols[2])/gpL).toFixed(2), // Simplificamos xG como promedio si no hay columna xG específica
+                        gf: (parseFloat(cols[6])/gpL).toFixed(2)
                     };
-                    data.visitantes[nameA] = { 
-                        avgXG: (parseFloat(cols[18])/parseFloat(cols[14])), 
-                        avgGF: (parseFloat(cols[18])/parseFloat(cols[14])) 
+                    database.visitantes[nameA] = {
+                        xg: (parseFloat(cols[18])/gpV).toFixed(2),
+                        gf: (parseFloat(cols[18])/gpV).toFixed(2) // Ajustar según tus columnas reales de xG si existen
                     };
                 }
             });
 
-            leagueDataCache = data;
+            const homeSelect = document.getElementById('select_home_team');
+            const awaySelect = document.getElementById('select_away_team');
             
-            const homeSelect = document.getElementById('manual_home_team');
-            const awaySelect = document.getElementById('manual_away_team');
+            const homeHtml = Object.keys(database.locales).sort().map(n => `<option value="${n}">${n}</option>`).join('');
+            const awayHtml = Object.keys(database.visitantes).sort().map(n => `<option value="${n}">${n}</option>`).join('');
             
-            const homeOptions = Object.keys(data.locales).sort().map(n => `<option value="${n}">${n}</option>`).join('');
-            const awayOptions = Object.keys(data.visitantes).sort().map(n => `<option value="${n}">${n}</option>`).join('');
-            
-            homeSelect.innerHTML = '<option value="">- Equipo -</option>' + homeOptions;
-            awaySelect.innerHTML = '<option value="">- Equipo -</option>' + awayOptions;
+            homeSelect.innerHTML = '<option value="">- Equipo -</option>' + homeHtml;
+            awaySelect.innerHTML = '<option value="">- Equipo -</option>' + awayHtml;
 
         } catch (e) {
-            alert("Error al conectar con la hoja de Google.");
+            alert("Error al cargar datos de la hoja.");
         } finally {
             document.getElementById('loadingOverlay').style.display = 'none';
         }
@@ -432,28 +395,26 @@
 
     function autoFillData(side) {
         if (side === 'L') {
-            const team = document.getElementById('manual_home_team').value;
-            if (leagueDataCache.locales[team]) {
-                document.getElementById('calc_xg_l').value = leagueDataCache.locales[team].avgXG.toFixed(2);
-                document.getElementById('calc_gf_l').value = leagueDataCache.locales[team].avgGF.toFixed(2);
+            const team = document.getElementById('select_home_team').value;
+            if (database.locales[team]) {
+                document.getElementById('calc_xg_l').value = database.locales[team].xg;
+                document.getElementById('calc_gf_l').value = database.locales[team].gf;
             }
         } else {
-            const team = document.getElementById('manual_away_team').value;
-            if (leagueDataCache.visitantes[team]) {
-                document.getElementById('calc_xg_v').value = leagueDataCache.visitantes[team].avgXG.toFixed(2);
-                document.getElementById('calc_gf_v').value = leagueDataCache.visitantes[team].avgGF.toFixed(2);
+            const team = document.getElementById('select_away_team').value;
+            if (database.visitantes[team]) {
+                document.getElementById('calc_xg_v').value = database.visitantes[team].xg;
+                document.getElementById('calc_gf_v').value = database.visitantes[team].gf;
             }
         }
     }
 
-    // --- LÓGICA DE CÁLCULO ---
+    // --- CÁLCULO MATEMÁTICO ---
     function poisson(k, lambda) {
         if(lambda <= 0) return k === 0 ? 1 : 0;
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
     }
-    function factorial(n) {
-        let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
-    }
+    function factorial(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
 
     function logisticAdjustment(poissonProb, xGL, xGV, market) {
         let b0 = market === 'ov25' ? -2.85 : -1.95;
@@ -503,23 +464,21 @@
     }
 
     function enviarManualAROI() {
-        const home = document.getElementById('manual_home_team').value || "Local";
-        const away = document.getElementById('manual_away_team').value || "Visita";
-        const league = document.getElementById('manual_league_select').value || "Manual";
+        const home = document.getElementById('select_home_team').value || "Local";
+        const away = document.getElementById('select_away_team').value || "Visita";
         const market = document.getElementById('manual_market_select').value;
         const odd = parseFloat(document.getElementById('manual_house_odd').value);
         
         if(!odd || odd <= 1) return alert("Ingresa cuota.");
 
-        let prob = 0;
-        if(market === 'OVER 2.5 FT') prob = currentManualData.o25;
+        let prob = currentManualData.o25;
         if(market === 'BTTS YES') prob = currentManualData.btts;
         if(market === 'OVER 0.5 HT') prob = currentManualData.o05ht;
 
         const pick = {
             id: Date.now(),
             date: new Date().toLocaleString(),
-            teams: `[${league}] ${home} vs ${away}`,
+            teams: `[MANUAL] ${home} vs ${away}`,
             market: market,
             prob: prob,
             fair_odd: (1/prob).toFixed(2),
@@ -534,10 +493,10 @@
         localStorage.setItem('betags_pre_match', JSON.stringify(historial));
 
         document.getElementById('betToast').style.display = 'block';
-        setTimeout(() => { document.getElementById('betToast').style.display = 'none'; }, 2000);
+        setTimeout(() => { document.getElementById('betToast').style.display = 'none'; }, 2500);
     }
 
-    window.onload = renderLeagues;
+    window.onload = updateLeagueSelectors;
 </script>
 </body>
 </html>
