@@ -400,6 +400,7 @@
         /* ESTILO MEJORA CONFIDENCIA ALTA */
         .high-conf-row {
             background: rgba(252, 196, 25, 0.03);
+            border: 1px solid var(--accent-yellow) !important;
         }
         .high-conf-badge {
             background: var(--accent-yellow);
@@ -410,6 +411,12 @@
             font-size: 0.6rem;
             margin-left: 5px;
             vertical-align: middle;
+        }
+        
+        /* ESTILO SANTO GRIAL */
+        .grial-alert {
+            border: 2px solid var(--accent-yellow) !important;
+            box-shadow: var(--gold-glow);
         }
     </style>
 </head>
@@ -464,7 +471,7 @@
         <div class="input-grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px;">
             <input type="number" id="calc_xg_l" placeholder="xG Loc" step="0.01">
             <input type="number" id="calc_gf_l" placeholder="GF Loc" step="1">
-            <input type="number" id="calc_xg_v" placeholder="xG Vis" step="1">
+            <input type="number" id="calc_xg_v" placeholder="xG Vis" step="0.01">
             <input type="number" id="calc_gf_v" placeholder="GF Vis" step="1">
         </div>
         <button class="btn-nav-xg" onclick="calcularManual()" style="width: 100%; margin-top: 15px; justify-content: center;">
@@ -847,6 +854,12 @@
                         const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xGL, xGV, 'ov25');
                         const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xGL, xGV, 'btts');
 
+                        // --- MEJORA: DETECCIÓN DE SANTO GRIAL (🎯 🎯) ---
+                        // Transparencia total: GF casi igual a xG generado (Margen 0.2)
+                        const isGrialHome = Math.abs((lData.gf/lData.gp) - (lData.xG_generado/lData.gp)) <= 0.2;
+                        const isGrialAway = Math.abs((vData.gf/vData.gp) - (vData.xG_generado/vData.gp)) <= 0.2;
+                        const isGrial = isGrialHome && isGrialAway;
+
                         matchesToday.push({
                             league: leagueName,
                             home, away, xGL, xGV,
@@ -854,7 +867,8 @@
                             btts: btts_Final,
                             probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
                             gfL: (lData.gf/lData.gp).toFixed(1),
-                            gfV: (vData.gf/vData.gp).toFixed(1)
+                            gfV: (vData.gf/vData.gp).toFixed(1),
+                            isGrial: isGrial // Guardamos el estado
                         });
                         break;
                     }
@@ -877,10 +891,23 @@
         const mIcon = document.getElementById('modalIcon');
         const mRec = document.getElementById('modalRec');
 
-        mIcon.innerHTML = `📊`;
-        mTitle.innerText = "ANÁLISIS TÁCTICO";
-        mText.innerText = `Partido de la liga ${m.league}. Basado en el promedio de goles de equipos en su posición.`;
-        mRec.innerText = m.ov25 > 0.6 ? "Recomendación: OVER 2.5" : "Recomendación: BTTS YES";
+        mIcon.innerHTML = m.isGrial ? `🎯` : `📊`;
+        mTitle.innerText = m.isGrial ? "SANTOGRIL DETECTADO" : "ANÁLISIS TÁCTICO";
+        
+        let adviceText = `Partido de la liga ${m.league}. `;
+        if(m.isGrial) {
+            adviceText += "¡Campo Químicamente Puro! La varianza es mínima. Los números reflejan la realidad.";
+        } else {
+            adviceText += "Basado en el promedio de goles de equipos en su posición.";
+        }
+        mText.innerText = adviceText;
+        
+        // Mejor recomendación según el tipo
+        let reco = m.ov25 > 0.6 ? "OVER 2.5" : "BTTS YES";
+        if(m.isGrial) {
+            reco = `Sigue los números: ${m.xGL+m.xGV > 2.7 ? 'Over 2.5' : 'Hándicap'}`;
+        }
+        mRec.innerText = `Recomendación: ${reco}`;
         
         modal.style.display = 'flex';
     }
@@ -893,12 +920,14 @@
         }
         body.innerHTML = matchesToday.map((m, i) => {
             // MEJORA: Añadir iconos de tendencia
+            const trendIcon = m.isGrial ? '🎯' : '📊';
+            const grialClass = m.isGrial ? 'grial-alert' : '';
             return `
-            <tr id="row_match_${i}" onclick="seleccionarPartido(${i})">
+            <tr id="row_match_${i}" onclick="seleccionarPartido(${i})" class="${grialClass}">
                 <td style="font-size:0.6rem; color:var(--text-muted);">${m.league}</td>
                 <td style="font-weight:bold; text-align:left;">${m.home}<br>${m.away}</td>
                 <td>
-                    <div class="trend-badge" onclick="event.stopPropagation(); showTacticalAdvice(${i})" title="Ver consejo">📊</div>
+                    <div class="trend-badge" onclick="event.stopPropagation(); showTacticalAdvice(${i})" title="Ver consejo">${trendIcon}</div>
                 </td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
                 <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${getConfIcon(m.ov25)} ${(m.ov25*100).toFixed(0)}%</td>
