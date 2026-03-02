@@ -668,6 +668,14 @@
 
         document.getElementById('res_delta_l').innerText = deltaL.toFixed(2);
         document.getElementById('res_delta_v').innerText = deltaV.toFixed(2);
+        
+        // --- SOLICITUD: ICONOS DELTA ---
+        let iconL = deltaL > 0.3 ? '🍀' : (deltaL < -0.3 ? '⚠️' : '⚖️');
+        let iconV = deltaV > 0.3 ? '🍀' : (deltaV < -0.3 ? '⚠️' : '⚖️');
+        
+        document.getElementById('res_delta_l').innerText = `${deltaL.toFixed(2)} ${iconL}`;
+        document.getElementById('res_delta_v').innerText = `${deltaV.toFixed(2)} ${iconV}`;
+        
         document.getElementById('res_delta_l').style.color = deltaL > 0.3 ? 'var(--accent-red)' : (deltaL < -0.3 ? 'var(--accent-green)' : 'white');
         document.getElementById('res_delta_v').style.color = deltaV > 0.3 ? 'var(--accent-red)' : (deltaV < -0.3 ? 'var(--accent-green)' : 'white');
 
