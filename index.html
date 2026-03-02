@@ -154,8 +154,8 @@
 <body>
 
 <div class="container">
-    <h1>⚽ Poisson Calculator & Kelly 1.8</h1>
-    <p class="subtitle">Ajuste Dinámico por Delta xG (Histórico vs Actual)</p>
+    <h1>⚽ Poisson Pro: Delta & Rendimiento</h1>
+    <p class="subtitle">Análisis dinámico de sobre/subrendimiento</p>
 
     <div class="grid-inputs">
         <div class="card">
@@ -188,7 +188,7 @@
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
-        <h3>Cuotas de Mercado (Para Cálculo de Valor)</h3>
+        <h3>Cuotas de Mercado (Para Validación)</h3>
         <div class="grid-inputs" style="margin-bottom: 0;">
             <input type="number" id="oddO25" step="0.01" placeholder="Cuota Over 2.5">
             <input type="number" id="oddU25" step="0.01" placeholder="Cuota Under 2.5">
@@ -198,7 +198,7 @@
         <div id="marketSuggestion" class="suggestion-box" style="display:none;"></div>
     </div>
 
-    <button onclick="calculateAll()">CALCULAR PICK INTELIGENTE (DELTA)</button>
+    <button onclick="calculateAll()">ANALIZAR PARTIDO Y RENDERIZAR</button>
 
     <div class="card" style="margin-top: 20px; overflow-x: auto;">
         <table class="results-table">
@@ -229,10 +229,12 @@
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
     }
 
-    function getIcon(delta) {
-        if (delta > 0.2) return '🚀 (Sobrerendimiento)';
-        if (delta < -0.2) return '📉 (Subrendimiento)';
-        return '🎯 (Estable)';
+    function getDeltaStatus(delta) {
+        if (delta > 0.3) return { icon: '🚀', text: 'Alto Sobrerendimiento' };
+        if (delta > 0.1) return { icon: '📈', text: 'Sobrerendimiento' };
+        if (delta < -0.3) return { icon: '📉', text: 'Alto Subrendimiento' };
+        if (delta < -0.1) return { icon: '📊', text: 'Subrendimiento' };
+        return { icon: '🎯', text: 'Estable' };
     }
 
     function calculateKelly(prob, odd) {
@@ -252,26 +254,26 @@
         const xgV_raw = parseFloat(document.getElementById('xgVisit').value) || 0;
         const gfV = parseFloat(document.getElementById('gfVisit').value) || 0;
 
-        // --- 2. Cálculo de Deltas (La mejora inteligente) ---
-        // Delta = Qué tan mejor/peor están jugando vs su promedio histórico
+        // --- 2. Cálculo de Deltas y Estado ---
         const dL = xgL_raw - gfL;
         const dV = xgV_raw - gfV;
+        const statusL = getDeltaStatus(dL);
+        const statusV = getDeltaStatus(dV);
 
         // --- 3. Ajuste de Poisson por Delta ---
-        // Aplicamos una pequeña parte del delta para no desvirtuar totalmente el histórico, 
-        // pero sí reflejar la tendencia actual.
-        let adjL = xgL_raw + (dL * 0.15); 
-        let adjV = xgV_raw + (dV * 0.15);
+        // La fórmula de ajuste ahora es más agresiva con el delta para reflejar el rendimiento actual
+        let adjL = xgL_raw + (dL * 0.2); 
+        let adjV = xgV_raw + (dV * 0.2);
 
         // Asegurar límites físicos
         adjL = Math.max(0.1, adjL);
         adjV = Math.max(0.1, adjV);
 
         // --- 4. Actualizar UI de Deltas ---
-        document.getElementById('deltaLocal').innerHTML = `${dL.toFixed(2)} ${getIcon(dL)}`;
-        document.getElementById('deltaVisit').innerHTML = `${dV.toFixed(2)} ${getIcon(dV)}`;
-        document.getElementById('adjLocal').innerText = `xG Final Ajustado: ${adjL.toFixed(2)}`;
-        document.getElementById('adjVisit').innerText = `xG Final Ajustado: ${adjV.toFixed(2)}`;
+        document.getElementById('deltaLocal').innerHTML = `${statusL.icon} ${dL.toFixed(2)}<br><small>${statusL.text}</small>`;
+        document.getElementById('deltaVisit').innerHTML = `${statusV.icon} ${dV.toFixed(2)}<br><small>${statusV.text}</small>`;
+        document.getElementById('adjLocal').innerText = `xG Ajustado: ${adjL.toFixed(2)}`;
+        document.getElementById('adjVisit').innerText = `xG Ajustado: ${adjV.toFixed(2)}`;
 
         // --- 5. Cálculo Poisson ---
         let probL = [];
@@ -294,7 +296,7 @@
             }
         }
 
-        // --- 7. Estructurar Datos para el Pick ---
+        // --- 7. Estructurar Datos ---
         const markets = [
             { name: 'Over 2.5 FT', p: o25 * 100, oddId: 'oddO25' },
             { name: 'Under 2.5 FT', p: u25 * 100, oddId: 'oddU25' },
@@ -302,42 +304,52 @@
             { name: 'BTTS No', p: bttsN * 100, oddId: 'oddBTTSN' }
         ];
 
-        // --- 8. Lógica de Pick por DELTA ---
-        let bestValueMarket = null;
-        let highestValue = -999;
+        // --- 8. Lógica Dinámica de Pick por DELTA ---
+        let suggestedMarket = null;
+        let totalDelta = dL + dV;
 
-        markets.forEach(m => {
-            const userOdd = parseFloat(document.getElementById(m.oddId).value);
-            if (!userOdd || userOdd <= 1) return;
+        // Interpretación dinámica del delta para elegir el tipo de mercado
+        if (totalDelta > 0.4) {
+            // Alta probabilidad de goles
+            suggestedMarket = markets[0]; // Over 2.5
+        } else if (totalDelta < -0.4) {
+            // Alta probabilidad de pocos goles
+            suggestedMarket = markets[1]; // Under 2.5
+        } else {
+            // Escenario mixto o estable, buscar el mercado con mejor valor relativo
+            let bestValue = -999;
+            markets.forEach(m => {
+                const userOdd = parseFloat(document.getElementById(m.oddId).value);
+                if (userOdd && userOdd > 1) {
+                    const fairOdd = (100 / m.p);
+                    const value = (userOdd / fairOdd) - 1;
+                    if (value > bestValue) {
+                        bestValue = value;
+                        suggestedMarket = m;
+                    }
+                }
+            });
+        }
 
-            const fairOdd = (100 / m.p);
-            // El valor se define por cuánto paga la casa vs la probabilidad justa
-            const value = (userOdd / fairOdd) - 1; 
-
-            if (value > highestValue && value > 0) {
-                highestValue = value;
-                bestValueMarket = {
-                    ...m,
-                    fairOdd: fairOdd.toFixed(2),
-                    userOdd: userOdd,
-                    value: (value * 100).toFixed(2)
-                };
-            }
-        });
-
-        // --- 9. Mostrar Sugerencia ---
+        // --- 9. Mostrar Sugerencia Dinámica ---
         const suggestionBox = document.getElementById('marketSuggestion');
         suggestionBox.style.display = 'block';
 
-        if (bestValueMarket) {
+        if (suggestedMarket) {
+            const userOdd = parseFloat(document.getElementById(suggestedMarket.oddId).value);
+            const fairOdd = (100 / suggestedMarket.p);
+            const value = userOdd ? ((userOdd / fairOdd) - 1) * 100 : 0;
+            const kelly = calculateKelly(suggestedMarket.p, userOdd);
+
             suggestionBox.innerHTML = `
-                <div class="suggestion-title">💡 Pick con mayor VALOR (Delta Adjusted)</div>
-                <div>Selección: <strong>${bestValueMarket.name}</strong></div>
-                <div>Probabilidad: ${bestValueMarket.p.toFixed(2)}% | Cuota Mercado: ${bestValueMarket.userOdd}</div>
-                <div>Cuota Justa: ${bestValueMarket.fairOdd} | <strong>Valor: +${bestValueMarket.value}%</strong></div>
+                <div class="suggestion-title">⚡ Pick Sugerido (Delta Analysis)</div>
+                <div>Selección: <strong>${suggestedMarket.name}</strong></div>
+                <div>Probabilidad: ${suggestedMarket.p.toFixed(2)}% | Cuota Mercado: ${userOdd || 'N/A'}</div>
+                <div>Cuota Justa: ${fairOdd.toFixed(2)} | <strong>Valor: ${value > 0 ? '+' : ''}${value.toFixed(2)}%</strong></div>
+                ${value > 0 ? `<div><span class="val-badge">Kelly: ${kelly}%</span></div>` : ''}
             `;
         } else {
-            suggestionBox.innerHTML = `<div>❌ No se encontró valor positivo en los mercados ingresados.</div>`;
+            suggestionBox.innerHTML = `<div>❌ Ingresa cuotas para validar el pick.</div>`;
         }
 
         // --- 10. Actualizar Tabla ---
