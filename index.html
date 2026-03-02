@@ -251,6 +251,7 @@
             font-size: 0.8rem;
             display: none;
             z-index: 2000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
 
         .gf-badge {
@@ -263,6 +264,23 @@
             border: 1px solid rgba(252, 196, 25, 0.3);
             display: inline-block;
             min-width: 25px;
+        }
+
+        /* Estilos específicos para la separación de equipos */
+        .team-box {
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+        }
+        .team-box.local { border-left: 4px solid var(--primary); }
+        .team-box.away { border-left: 4px solid var(--accent-green); }
+        .team-label {
+            font-size: 0.7rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
     </style>
 </head>
@@ -285,24 +303,45 @@
 
     <div class="section-title"><span>🛠️</span> HERRAMIENTA MANUAL (DELTA & POISSON)</div>
     <div class="card">
-        <div style="margin-bottom: 10px; font-size: 0.7rem; color: var(--text-muted); font-weight: bold;">NOMBRE DEL PARTIDO (OPCIONAL):</div>
-        <input type="text" id="manual_match_name" placeholder="Ej: Real Madrid vs Barcelona" style="margin-bottom: 15px;">
-        
-        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: 15px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
             <div>
-                <div style="font-size: 0.65rem; color: var(--primary); font-weight: 800; margin-bottom: 5px;">LOCAL</div>
-                <input type="number" id="calc_xg_l" placeholder="xG Promedio" step="0.01" style="margin-bottom: 8px;">
-                <input type="number" id="calc_gf_l" placeholder="GF Promedio" step="0.01">
+                <div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 800; margin-bottom: 5px;">PARTIDO:</div>
+                <input type="text" id="manual_match_name" placeholder="Ej: Madrid vs Barca" style="padding: 10px; font-size: 0.8rem;">
             </div>
             <div>
-                <div style="font-size: 0.65rem; color: var(--accent-green); font-weight: 800; margin-bottom: 5px;">VISITANTE</div>
-                <input type="number" id="calc_xg_v" placeholder="xG Promedio" step="0.01" style="margin-bottom: 8px;">
-                <input type="number" id="calc_gf_v" placeholder="GF Promedio" step="0.01">
+                <div style="font-size: 0.65rem; color: var(--text-muted); font-weight: 800; margin-bottom: 5px;">LIGA:</div>
+                <input type="text" id="manual_league_name" placeholder="Ej: LaLiga" style="padding: 10px; font-size: 0.8rem;">
+            </div>
+        </div>
+        
+        <div class="input-grid" style="grid-template-columns: repeat(2, 1fr); gap: 15px;">
+            <div class="team-box local">
+                <div class="team-label" style="color: var(--primary);">Equipo Local</div>
+                <div style="margin-bottom: 8px;">
+                    <div style="font-size: 0.55rem; color: var(--text-muted); margin-bottom: 3px;">XG PROMEDIO</div>
+                    <input type="number" id="calc_xg_l" placeholder="0.00" step="0.01" style="padding: 8px; font-size: 0.85rem;">
+                </div>
+                <div>
+                    <div style="font-size: 0.55rem; color: var(--text-muted); margin-bottom: 3px;">GF PROMEDIO</div>
+                    <input type="number" id="calc_gf_l" placeholder="0.00" step="0.01" style="padding: 8px; font-size: 0.85rem;">
+                </div>
+            </div>
+
+            <div class="team-box away">
+                <div class="team-label" style="color: var(--accent-green);">Equipo Visita</div>
+                <div style="margin-bottom: 8px;">
+                    <div style="font-size: 0.55rem; color: var(--text-muted); margin-bottom: 3px;">XG PROMEDIO</div>
+                    <input type="number" id="calc_xg_v" placeholder="0.00" step="0.01" style="padding: 8px; font-size: 0.85rem;">
+                </div>
+                <div>
+                    <div style="font-size: 0.55rem; color: var(--text-muted); margin-bottom: 3px;">GF PROMEDIO</div>
+                    <input type="number" id="calc_gf_v" placeholder="0.00" step="0.01" style="padding: 8px; font-size: 0.85rem;">
+                </div>
             </div>
         </div>
 
         <button class="btn-analyze-master" onclick="calcularManual()" style="margin-top: 20px; background: linear-gradient(135deg, #51cf66, #2b8a3e);">
-            CALCULAR DELTA Y POISSON
+            🔥 CALCULAR ANALYTICS
         </button>
         
         <div id="manualResultPanel" style="display:none; margin-top:20px; padding-top:20px; border-top: 1px dotted var(--border);">
@@ -342,12 +381,12 @@
             <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
                 <div style="font-size: 0.65rem; color: var(--accent-yellow); font-weight: 800; margin-bottom: 10px; text-align: center;">ENVIAR A ROI2 (HISTORIAL)</div>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <select id="manual_market_select" style="padding: 8px; font-size: 0.7rem;">
+                    <select id="manual_market_select" style="padding: 8px; font-size: 0.7rem; flex: 1;">
                         <option value="OVER 2.5 FT">OVER 2.5 FT</option>
                         <option value="BTTS YES">BTTS YES</option>
                         <option value="OVER 0.5 HT">OVER 0.5 HT</option>
                     </select>
-                    <input type="number" id="manual_house_odd" placeholder="Cuota Casa" step="0.01" style="padding: 8px; font-size: 0.7rem;">
+                    <input type="number" id="manual_house_odd" placeholder="Cuota" step="0.01" style="padding: 8px; font-size: 0.7rem; width: 80px;">
                     <button onclick="enviarManualAROI()" class="btn-nav-xg" style="padding: 8px 15px;">ENVIAR</button>
                 </div>
             </div>
@@ -415,7 +454,7 @@
         return (poissonProb * 0.4) + (prob * 0.6);
     }
 
-    // --- CÁLCULO MANUAL ---
+    // --- CÁLCULO MANUAL MEJORADO ---
     function calcularManual() {
         const xGL = parseFloat(document.getElementById('calc_xg_l').value);
         const GFL = parseFloat(document.getElementById('calc_gf_l').value);
@@ -423,13 +462,12 @@
         const GFV = parseFloat(document.getElementById('calc_gf_v').value);
 
         if(isNaN(xGL) || isNaN(GFL) || isNaN(xGV) || isNaN(GFV)) {
-            return alert("Por favor completa los 4 campos numéricos.");
+            return alert("Por favor completa los 4 campos de promedios.");
         }
 
         const deltaL = GFL - xGL;
         const deltaV = GFV - xGV;
 
-        // Mostrar Deltas
         const elL = document.getElementById('res_delta_l');
         const elV = document.getElementById('res_delta_v');
         elL.innerText = deltaL.toFixed(2);
@@ -439,7 +477,6 @@
         
         document.getElementById('res_trend').innerHTML = `${getTrendIcon(deltaL)} ${getTrendIcon(deltaV)}`;
 
-        // Poisson
         let u25 = 0;
         let pL = [], pV = [];
         for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
@@ -461,13 +498,14 @@
     }
 
     function getTrendIcon(delta) {
-        if (delta > 0.3) return '🚀'; // Sobre-eficiente (Peligro regrese a media)
-        if (delta < -0.3) return '📉'; // Sub-eficiente (Debe empezar a anotar)
+        if (delta > 0.3) return '🚀'; 
+        if (delta < -0.3) return '📉'; 
         return '🎯'; 
     }
 
     function enviarManualAROI() {
         const match = document.getElementById('manual_match_name').value || "PARTIDO MANUAL";
+        const league = document.getElementById('manual_league_name').value || "EXTERNA";
         const market = document.getElementById('manual_market_select').value;
         const odd = parseFloat(document.getElementById('manual_house_odd').value);
         
@@ -481,7 +519,7 @@
         const pick = {
             id: Date.now(),
             date: new Date().toLocaleString(),
-            teams: "[MANUAL] " + match,
+            teams: `[${league}] ${match}`,
             market: market,
             prob: prob,
             fair_odd: (1/prob).toFixed(2),
@@ -500,7 +538,7 @@
         setTimeout(() => { toast.style.display = 'none'; }, 2500);
     }
 
-    // --- LÓGICA AUTOMÁTICA (MANTENIDA) ---
+    // --- CARGA AUTOMÁTICA ---
     function getLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
         return saved ? JSON.parse(saved) : [];
