@@ -153,9 +153,6 @@
             border-bottom: 1px solid var(--border);
             text-align: center;
         }
-        
-        .multi-results-table tbody tr { cursor: pointer; }
-        .multi-results-table tbody tr:hover { background-color: rgba(255,255,255,0.02); }
 
         .row-active {
             background-color: var(--row-select) !important;
@@ -256,32 +253,6 @@
             cursor: pointer;
             display: none;
         }
-        
-        .btn-send-bet-manual {
-            background: var(--accent-green);
-            color: var(--bg-dark);
-            border: none;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-weight: 900;
-            font-size: 0.65rem;
-            cursor: pointer;
-        }
-        
-        /* BOTÓN MEJORA ENVÍO A ROI2 */
-        .btn-send-roi2 {
-            background: var(--accent-yellow);
-            color: #000;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 900;
-            font-size: 0.75rem;
-            cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
-            display: none;
-        }
 
         .btn-pulse {
             animation: pulse-green 1.5s infinite;
@@ -342,6 +313,7 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.4);
         }
 
+        /* MODAL DE CONSEJO TÁCTICO */
         #tacticalModal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -385,6 +357,7 @@
             cursor: pointer;
             width: 100%;
         }
+        /* Estilo específico para los goles en la columna value */
         .gf-badge {
             background: rgba(252, 196, 25, 0.15);
             color: var(--accent-yellow);
@@ -395,28 +368,6 @@
             border: 1px solid rgba(252, 196, 25, 0.3);
             display: inline-block;
             min-width: 25px;
-        }
-
-        /* ESTILO MEJORA CONFIDENCIA ALTA */
-        .high-conf-row {
-            background: rgba(252, 196, 25, 0.03);
-            border: 1px solid var(--accent-yellow) !important;
-        }
-        .high-conf-badge {
-            background: var(--accent-yellow);
-            color: #000;
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-weight: 900;
-            font-size: 0.6rem;
-            margin-left: 5px;
-            vertical-align: middle;
-        }
-        
-        /* ESTILO SANTO GRIAL */
-        .grial-alert {
-            border: 2px solid var(--accent-yellow) !important;
-            box-shadow: var(--gold-glow);
         }
     </style>
 </head>
@@ -479,25 +430,26 @@
         </button>
         
         <div id="manualResultPanel" style="display:none; margin-top:15px; padding-top:15px; border-top: 1px solid var(--border);">
-            <div style="display: flex; justify-content: space-around; text-align: center; font-size: 0.8rem; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-around; text-align: center; font-size: 0.8rem;">
                 <div>Delta Local: <span id="res_delta_l" style="font-weight:bold;"></span></div>
                 <div>Delta Visita: <span id="res_delta_v" style="font-weight:bold;"></span></div>
             </div>
-            
-            <div class="table-wrapper">
-                <table style="font-size: 0.75rem;">
-                    <thead>
-                        <tr>
-                            <th>MERCADO</th>
-                            <th>PROB</th>
-                            <th>CASA</th>
-                            <th>VALOR</th>
-                            <th>SEND</th>
-                        </tr>
-                    </thead>
-                    <tbody id="manualMarketsBody">
-                        </tbody>
-                </table>
+            <div style="text-align: center; font-size: 1.2rem; margin: 10px 0; font-weight: 900;">
+                Tendencia: <span id="res_trend"></span>
+            </div>
+            <div class="probs-summary" style="margin-top:10px;">
+                <div class="summary-box blue">
+                    <div style="font-size: 0.55rem; font-weight: 800;">O2.5</div>
+                    <div class="summary-val" id="res_o25" style="font-size:1rem;">0%</div>
+                </div>
+                <div class="summary-box green">
+                    <div style="font-size: 0.55rem; font-weight: 800;">BTTS</div>
+                    <div class="summary-val" id="res_btts" style="font-size:1rem;">0%</div>
+                </div>
+                <div class="summary-box yellow">
+                    <div style="font-size: 0.55rem; font-weight: 800;">O0.5 HT</div>
+                    <div class="summary-val" id="res_o05ht" style="font-size:1rem;">0%</div>
+                </div>
             </div>
         </div>
     </div>
@@ -515,13 +467,12 @@
                             <th>xG (L/V)</th>
                             <th>O 2.5</th>
                             <th>BTTS</th>
-                            <th>GF PROMEDIO</th>
+                            <th>VALUE(GF)</th>
                             <th>DETALLE</th>
                         </tr>
                     </thead>
                     <tbody id="multiResultsBody"></tbody>
                 </table>
-                <button id="btnSendRoi2" class="btn-send-roi2" onclick="enviarBetSeleccionada()">🚀 ENVIAR A ROI2</button>
             </div>
         </div>
     </div>
@@ -587,7 +538,6 @@
     const SHEETS_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
     let database = {}; 
     let matchesToday = [];
-    let selectedMatchIdx = null; // Para control de mejora
 
     // --- GESTIÓN DE LIGAS ---
     function getLeagues() {
@@ -644,15 +594,8 @@
         const probability = 1 / (1 + Math.exp(-logit));
         return (poissonProb * 0.4) + (probability * 0.6);
     }
-    
-    // --- MEJORA: ICONOS DE CONFIANZA ---
-    function getConfIcon(prob) {
-        if (prob >= 0.70) return '🚀'; // Alta confianza
-        if (prob >= 0.55) return '🎯'; // Confianza media
-        return '📉'; // Baja confianza
-    }
 
-    // --- LÓGICA CALCULADORA MANUAL ---
+    // --- LÓGICA CALCULADORA MANUAL Y CÁLCULO DE PROBS ---
     function calcularManual() {
         const xG_L = parseFloat(document.getElementById('calc_xg_l').value);
         const GF_L = parseFloat(document.getElementById('calc_gf_l').value);
@@ -668,18 +611,14 @@
 
         document.getElementById('res_delta_l').innerText = deltaL.toFixed(2);
         document.getElementById('res_delta_v').innerText = deltaV.toFixed(2);
-        
-        // --- SOLICITUD: ICONOS DELTA ---
-        let iconL = deltaL > 0.3 ? '🍀' : (deltaL < -0.3 ? '⚠️' : '⚖️');
-        let iconV = deltaV > 0.3 ? '🍀' : (deltaV < -0.3 ? '⚠️' : '⚖️');
-        
-        document.getElementById('res_delta_l').innerText = `${deltaL.toFixed(2)} ${iconL}`;
-        document.getElementById('res_delta_v').innerText = `${deltaV.toFixed(2)} ${iconV}`;
-        
         document.getElementById('res_delta_l').style.color = deltaL > 0.3 ? 'var(--accent-red)' : (deltaL < -0.3 ? 'var(--accent-green)' : 'white');
         document.getElementById('res_delta_v').style.color = deltaV > 0.3 ? 'var(--accent-red)' : (deltaV < -0.3 ? 'var(--accent-green)' : 'white');
 
-        // Cálculo de probs Poisson
+        const trendIconL = getTrendIcon(deltaL);
+        const trendIconV = getTrendIcon(deltaV);
+        document.getElementById('res_trend').innerHTML = `${trendIconL} ${trendIconV}`;
+
+        // Cálculo de probs usando los xG ingresados directamente
         let u25Poisson = 0;
         let pL = [], pV = [];
         for(let i=0; i<=6; i++){ pL[i]=poisson(i, xG_L); pV[i]=poisson(i, xG_V); }
@@ -687,89 +626,12 @@
         
         const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xG_L, xG_V, 'ov25');
         const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xG_L, xG_V, 'btts');
+        const probHT = 1 - Math.exp(-(xG_L + xG_V) * 0.45);
 
-        // --- SOLICITUD: SOLO CUATRO MERCADOS ESPECÍFICOS ---
-        const markets = [
-            {n: 'O2.5 FT', p: ov25_Final},
-            {n: 'U2.5 FT', p: 1 - ov25_Final},
-            {n: 'BTTS Y', p: btts_Final},
-            {n: 'BTTS N', p: 1 - btts_Final}
-        ];
-
-        // Encontrar el mercado con mayor probabilidad para destacar
-        let maxProb = 0;
-        let bestMarketIdx = -1;
-        markets.forEach((m, idx) => {
-            if (m.p > maxProb) {
-                maxProb = m.p;
-                bestMarketIdx = idx;
-            }
-        });
-
-        const tbody = document.getElementById('manualMarketsBody');
-        tbody.innerHTML = markets.map((mk, i) => {
-            const fair = (1/mk.p).toFixed(2);
-            const isBest = i === bestMarketIdx;
-            const icon = getConfIcon(mk.p);
-            return `
-                <tr class="${isBest ? 'high-conf-row' : ''}">
-                    <td style="text-align:left; font-weight:bold;">
-                        ${icon} ${mk.n}
-                        ${isBest ? '<span class="high-conf-badge">🔥</span>' : ''}
-                    </td>
-                    <td>${(mk.p*100).toFixed(0)}%</td>
-                    <td><input type="number" step="0.01" class="input-odds" id="m_odd_${i}" oninput="calcManualVal(${i}, ${mk.p})"></td>
-                    <td id="m_val_${i}">--</td>
-                    <td><button class="btn-send-bet-manual" id="m_btn_${i}" onclick="enviarBetManual('${mk.n}', ${mk.p}, ${fair}, ${i})" style="display:none;">Send</button></td>
-                </tr>
-            `;
-        }).join('');
-
+        document.getElementById('res_o25').innerText = (ov25_Final * 100).toFixed(0) + '%';
+        document.getElementById('res_btts').innerText = (btts_Final * 100).toFixed(0) + '%';
+        document.getElementById('res_o05ht').innerText = (probHT * 100).toFixed(0) + '%';
         document.getElementById('manualResultPanel').style.display = 'block';
-    }
-
-    // --- MEJORA: CALCULO DE VALOR Y ENVÍO MANUAL ---
-    function calcManualVal(idx, prob) {
-        const houseOdd = parseFloat(document.getElementById(`m_odd_${idx}`).value);
-        const res = document.getElementById(`m_val_${idx}`);
-        const btn = document.getElementById(`m_btn_${idx}`);
-        
-        if(!houseOdd || houseOdd <= 1) { res.innerHTML = "--"; btn.style.display = "none"; return; }
-        
-        const edge = (prob * houseOdd) - 1;
-        res.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
-        
-        if(edge > 0) {
-            btn.style.display = "inline-block";
-        } else {
-            btn.style.display = "none";
-        }
-    }
-
-    function enviarBetManual(mercado, prob, justa, inputIdx) {
-        const houseOdd = parseFloat(document.getElementById(`m_odd_${inputIdx}`).value);
-        
-        // --- MEJORA: OBTENER PARTIDO SELECCIONADO ---
-        let teams = "MANUAL CALC";
-        if (selectedMatchIdx !== null && matchesToday[selectedMatchIdx]) {
-            const m = matchesToday[selectedMatchIdx];
-            teams = `[${m.league}] ${m.home} vs ${m.away}`;
-        }
-        
-        const pick = { id: Date.now(), date: new Date().toLocaleString(), teams, market: mercado, prob, fair_odd: justa, odd: houseOdd, edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%', stake: 1, status: 'pending' };
-        
-        let historial = JSON.parse(localStorage.getItem('betags_pre_match')) || [];
-        historial.push(pick);
-        localStorage.setItem('betags_pre_match', JSON.stringify(historial));
-        
-        const toast = document.getElementById('betToast');
-        toast.innerText = "🚀 APUESTA MANUAL ENVIADA";
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2500);
-        
-        document.getElementById(`m_odd_${inputIdx}`).value = "";
-        document.getElementById(`m_val_${inputIdx}`).innerHTML = "--";
-        document.getElementById(`m_btn_${inputIdx}`).style.display = "none";
     }
 
     // --- CARGA DE DATOS ---
@@ -815,6 +677,7 @@
         } catch (e) { return null; }
     }
 
+    // --- MEJORA: BUSCAR EN TODAS LAS HOJAS ---
     async function analizarTodoMultiliga() {
         const loader = document.getElementById('loadingOverlay');
         loader.style.display = 'flex';
@@ -829,13 +692,15 @@
         database = {};
         matchesToday = [];
 
+        // 1. Cargar datos de todas las ligas configuradas
         for (const league of leagues) {
             const data = await fetchDataForSheet(league.sheet);
             if (data) database[league.sheet] = data;
         }
 
+        // 2. Cargar partidos del día
         try {
-            const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F2000`;
+            const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F1000`;
             const res = await fetch(url);
             const text = await res.text();
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
@@ -843,14 +708,18 @@
             rows.forEach(cols => {
                 const home = cols[0];
                 const away = cols[2];
+                const score = cols[1];
+
                 if (!home || home === "LOCAL") return;
                 
+                // Buscar el partido en alguna de las bases de datos cargadas
                 for (const leagueName in database) {
                     const db = database[leagueName];
                     const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
                     const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
 
                     if (lData && vData) {
+                        // Cálculo de xG basado en promedios de la hoja encontrada
                         const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl;
                         const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv;
                         
@@ -862,23 +731,16 @@
                         const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xGL, xGV, 'ov25');
                         const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xGL, xGV, 'btts');
 
-                        // --- MEJORA: DETECCIÓN DE SANTO GRIAL (🎯 🎯) ---
-                        // Transparencia total: GF casi igual a xG generado (Margen 0.2)
-                        const isGrialHome = Math.abs((lData.gf/lData.gp) - (lData.xG_generado/lData.gp)) <= 0.2;
-                        const isGrialAway = Math.abs((vData.gf/vData.gp) - (vData.xG_generado/vData.gp)) <= 0.2;
-                        const isGrial = isGrialHome && isGrialAway;
-
                         matchesToday.push({
-                            league: leagueName,
-                            home, away, xGL, xGV,
+                            league: leagueName, // Guardamos la liga donde se encontró
+                            home, away, xGL, xGV, score,
                             ov25: ov25_Final,
                             btts: btts_Final,
                             probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
                             gfL: (lData.gf/lData.gp).toFixed(1),
-                            gfV: (vData.gf/vData.gp).toFixed(1),
-                            isGrial: isGrial // Guardamos el estado
+                            gfV: (vData.gf/vData.gp).toFixed(1)
                         });
-                        break;
+                        break; // Partido encontrado, no buscar en otras ligas
                     }
                 }
             });
@@ -891,6 +753,13 @@
         } catch (e) { alert("Error al cargar partidos."); console.error(e); } finally { loader.style.display = 'none'; }
     }
 
+    // --- LÓGICA DE ICONOS DE TREND (Basado en xG generado vs GF) ---
+    function getTrendIcon(delta) {
+        if (delta > 0.3) return '🚀'; 
+        if (delta < -0.3) return '📉'; 
+        return '🎯'; 
+    }
+
     function showTacticalAdvice(idx) {
         const m = matchesToday[idx];
         const modal = document.getElementById('tacticalModal');
@@ -899,23 +768,10 @@
         const mIcon = document.getElementById('modalIcon');
         const mRec = document.getElementById('modalRec');
 
-        mIcon.innerHTML = m.isGrial ? `🎯` : `📊`;
-        mTitle.innerText = m.isGrial ? "SANTOGRIL DETECTADO" : "ANÁLISIS TÁCTICO";
-        
-        let adviceText = `Partido de la liga ${m.league}. `;
-        if(m.isGrial) {
-            adviceText += "¡Campo Químicamente Puro! La varianza es mínima. Los números reflejan la realidad.";
-        } else {
-            adviceText += "Basado en el promedio de goles de equipos en su posición.";
-        }
-        mText.innerText = adviceText;
-        
-        // Mejor recomendación según el tipo
-        let reco = m.ov25 > 0.6 ? "OVER 2.5" : "BTTS YES";
-        if(m.isGrial) {
-            reco = `Sigue los números: ${m.xGL+m.xGV > 2.7 ? 'Over 2.5' : 'Hándicap'}`;
-        }
-        mRec.innerText = `Recomendación: ${reco}`;
+        mIcon.innerHTML = `📊`;
+        mTitle.innerText = "ANÁLISIS TÁCTICO";
+        mText.innerText = `Partido de la liga ${m.league}. Basado en el promedio de goles de equipos en su posición.`;
+        mRec.innerText = m.ov25 > 0.6 ? "Recomendación: OVER 2.5" : "Recomendación: BTTS YES";
         
         modal.style.display = 'flex';
     }
@@ -927,30 +783,28 @@
             return;
         }
         body.innerHTML = matchesToday.map((m, i) => {
-            // MEJORA: Añadir iconos de tendencia
-            const trendIcon = m.isGrial ? '🎯' : '📊';
-            const grialClass = m.isGrial ? 'grial-alert' : '';
             return `
-            <tr id="row_match_${i}" onclick="seleccionarPartido(${i})" class="${grialClass}">
+            <tr id="row_match_${i}">
                 <td style="font-size:0.6rem; color:var(--text-muted);">${m.league}</td>
                 <td style="font-weight:bold; text-align:left;">${m.home}<br>${m.away}</td>
                 <td>
-                    <div class="trend-badge" onclick="event.stopPropagation(); showTacticalAdvice(${i})" title="Ver consejo">${trendIcon}</div>
+                    <div class="trend-badge" onclick="showTacticalAdvice(${i})" title="Ver consejo">📊</div>
                 </td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
-                <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${getConfIcon(m.ov25)} ${(m.ov25*100).toFixed(0)}%</td>
-                <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${getConfIcon(m.btts)} ${(m.btts*100).toFixed(0)}%</td>
-                <td>
-                   <div style="display:flex; flex-direction:column; gap:3px; align-items:center;">
-                        <span class="gf-badge" style="font-weight:bold; font-size:0.75rem;" title="Promedio GF Local">${m.gfL}</span>
-                        <span class="gf-badge" style="font-weight:bold; font-size:0.75rem; background: rgba(81, 207, 102, 0.15); color: var(--accent-green); border-color: rgba(81, 207, 102, 0.3);" title="Promedio GF Visita">${m.gfV}</span>
+                <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${(m.ov25*100).toFixed(0)}%</td>
+                <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${(m.btts*100).toFixed(0)}%</td>
+                <td id="val_multi_${i}">
+                   <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
+                        <span class="gf-badge" title="Promedio GF Local">${m.gfL}</span>
+                        <span class="gf-badge" style="background: rgba(81, 207, 102, 0.15); color: var(--accent-green); border-color: rgba(81, 207, 102, 0.3);" title="Promedio GF Visita">${m.gfV}</span>
                    </div>
                 </td>
-                <td><button class="btn-open-match" onclick="event.stopPropagation(); abrirDetalle(${i})">OPEN</button></td>
+                <td><button class="btn-open-match" onclick="abrirDetalle(${i})">OPEN</button></td>
             </tr>`;
         }).join('');
     }
 
+    // --- Sugerencia automática de mercado ---
     function automaticMarketSuggestion() {
         matchesToday.forEach((m, idx) => {
             const row = document.getElementById(`row_match_${idx}`);
@@ -958,76 +812,31 @@
 
             const minProb = 0.55;
             let bestMarket = null;
-            let icon = "";
 
             if (m.ov25 >= minProb && m.ov25 > m.btts) {
-                icon = getConfIcon(m.ov25);
-                bestMarket = `${icon} O2.5: ${(m.ov25*100).toFixed(0)}%`;
+                bestMarket = `🔥 O2.5: ${(m.ov25*100).toFixed(0)}%`;
             } else if (m.btts >= minProb) {
-                icon = getConfIcon(m.btts);
-                bestMarket = `${icon} BTTS: ${(m.btts*100).toFixed(0)}%`;
+                bestMarket = `✅ BTTS: ${(m.btts*100).toFixed(0)}%`;
             }
 
             if (bestMarket) {
                 row.classList.add('bet-alert');
-                const tdMarket = row.cells[4];
+                const tdMarket = row.cells[4]; // Ajustado índice por la columna LIGA
                 tdMarket.innerHTML = `${tdMarket.innerText} <br> <span style="color:var(--accent-yellow); font-size:0.6rem;">${bestMarket}</span>`;
             }
         });
     }
-    
-    function seleccionarPartido(idx) {
+
+    function abrirDetalle(idx) {
         document.querySelectorAll('.multi-results-table tr').forEach(row => row.classList.remove('row-active'));
         const activeRow = document.getElementById(`row_match_${idx}`);
         if(activeRow) activeRow.classList.add('row-active');
-        
-        const m = matchesToday[idx];
-        document.getElementById('calc_gf_l').value = m.gfL;
-        document.getElementById('calc_gf_v').value = m.gfV;
-        document.getElementById('calc_xg_l').value = m.xGL.toFixed(2);
-        document.getElementById('calc_xg_v').value = m.xGV.toFixed(2);
-        
-        document.getElementById('manualResultPanel').style.display = 'none';
-        document.querySelector('.section-title + .card').scrollIntoView({behavior: 'smooth', block: 'center'});
-
-        // MEJORA: Habilitar botón ROI2 y guardar índice seleccionado
-        selectedMatchIdx = idx;
-        document.getElementById('btnSendRoi2').style.display = 'block';
-    }
-
-    // --- MEJORA: ENVÍO A ROI2 ---
-    function enviarBetSeleccionada() {
-        if (selectedMatchIdx === null) return;
-        const m = matchesToday[selectedMatchIdx];
-        
-        // Aquí se define cómo se guarda el evento para roi2.html
-        const eventoRoi2 = {
-            id: Date.now(),
-            liga: m.league,
-            partido: `${m.home} vs ${m.away}`,
-            fecha: new Date().toLocaleDateString(),
-            type: 'match_selection'
-        };
-
-        // Guardar en localStorage para que roi2.html lo lea
-        let colaEventos = JSON.parse(localStorage.getItem('betags_roi2_queue')) || [];
-        colaEventos.push(eventoRoi2);
-        localStorage.setItem('betags_roi2_queue', JSON.stringify(colaEventos));
-
-        const toast = document.getElementById('betToast');
-        toast.innerText = "🚀 PARTIDO ENVIADO A ROI2";
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2500);
-    }
-
-    function abrirDetalle(idx) {
-        seleccionarPartido(idx);
-        
         const m = matchesToday[idx];
         document.getElementById('currentMatchLabel').innerText = `${m.home} vs ${m.away}`;
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
         document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
         
+        // --- Cálculo de prob para nuevos mercados ---
         let pL = [], pV = [];
         for(let i=0; i<=6; i++) { pL[i] = poisson(i, m.xGL); pV[i] = poisson(i, m.xGV); }
         renderSingleChart(pL, pV);
@@ -1039,38 +848,41 @@
         document.getElementById('btts_val').innerText = (m.btts*100).toFixed(1) + '%';
         document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
         
-        let probU25 = 0;
+        let probO15 = 0, probU15 = 0, probO35 = 0, probU35 = 0, probU25 = 0, probLocalO15 = 0, probVisitaO15 = 0;
         for(let i=0; i<=6; i++){
             for(let j=0; j<=6; j++){
-                if(i+j <= 2) probU25 += pL[i]*pV[j];
+                if(i+j > 1.5) probO15 += pL[i]*pV[j];
+                if(i+j < 1.5) probU15 += pL[i]*pV[j];
+                if(i+j > 2.5) {} else { probU25 += pL[i]*pV[j]; }
+                if(i+j > 3.5) probO35 += pL[i]*pV[j];
+                if(i+j < 3.5) probU35 += pL[i]*pV[j];
+                if(i > 1.5) probLocalO15 += pL[i]*pV[j];
+                if(j > 1.5) probVisitaO15 += pL[i]*pV[j];
             }
         }
         
-        let ov25Adjusted = logisticRegressionAdjust(m.ov25, m.xGL, m.xGV, 'ov25');
-        let bttsAdjusted = logisticRegressionAdjust(m.btts, m.xGL, m.xGV, 'btts');
-        let uv25Adjusted = 1 - ov25Adjusted; 
-        let bttsNoAdjusted = 1 - bttsAdjusted;
+        // Ajuste LOGISTICO para U/O también
+        probU25 = logisticRegressionAdjust(probU25, m.xGL, m.xGV, 'ov25'); // Reutilizamos lógica inversa
+        probU25 = 1 - probU25; 
 
-        // --- MEJORA: AÑADIR ICONO DE TENDENCIA AL NOMBRE DEL MERCADO ---
         const markets = [
-            {n: 'OVER 2.5 FT', p: ov25Adjusted},
-            {n: 'UNDER 2.5 FT', p: uv25Adjusted},
-            {n: 'BTTS YES', p: bttsAdjusted},
-            {n: 'BTTS NO', p: bttsNoAdjusted}
+            {n: 'OVER 0.5 HT', p: m.probHT},
+            {n: 'OVER 1.5 FT', p: probO15},
+            {n: 'UNDER 1.5 FT', p: probU15},
+            {n: 'LOCAL OVER 1.5', p: probLocalO15},
+            {n: 'VISITA OVER 1.5', p: probVisitaO15},
+            {n: 'OVER 2.5 FT', p: m.ov25},
+            {n: 'UNDER 2.5 FT', p: probU25},
+            {n: 'OVER 3.5 FT', p: probO35},
+            {n: 'UNDER 3.5 FT', p: probU35},
+            {n: 'BTTS YES', p: m.btts},
+            {n: 'BTTS NO', p: 1-m.btts}
         ];
         
         const table = document.getElementById('individualMarketsTable');
         table.innerHTML = markets.map((mk, i) => {
             const fair = (1/mk.p).toFixed(2);
-            const icon = getConfIcon(mk.p);
-            return `<tr>
-                <td style="text-align:left;"><strong>${icon} ${mk.n}</strong></td>
-                <td>${(mk.p*100).toFixed(0)}%</td>
-                <td style="color:var(--primary)">${fair}</td>
-                <td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td>
-                <td id="s_val_${i}">--</td>
-                <td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td>
-            </tr>`;
+            return `<tr><td><strong>${mk.n}</strong></td><td>${(mk.p*100).toFixed(0)}%</td><td style="color:var(--primary)">${fair}</td><td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td><td id="s_val_${i}">--</td><td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td></tr>`;
         }).join('');
         
         document.getElementById('singleAnalysisPanel').style.display = 'block';
@@ -1109,12 +921,12 @@
         const houseOdd = parseFloat(houseOddInputs[inputIdx].value);
         const pick = { id: Date.now(), date: new Date().toLocaleString(), teams: `[${liga}] ${partido}`, market: mercado, prob, fair_odd: justa, odd: houseOdd, edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%', stake: 1, status: 'pending' };
         
+        // --- MANTENER ROI2 ---
         let historial = JSON.parse(localStorage.getItem('betags_pre_match')) || [];
         historial.push(pick);
         localStorage.setItem('betags_pre_match', JSON.stringify(historial));
         
         const toast = document.getElementById('betToast');
-        toast.innerText = "🚀 APUESTA ENVIADA (STAKE 1)";
         toast.style.display = 'block';
         setTimeout(() => { toast.style.display = 'none'; }, 2500);
         houseOddInputs[inputIdx].value = "";
@@ -1122,8 +934,10 @@
         document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
     }
 
+    // --- Carga automática al iniciar ---
     window.onload = () => { 
         renderLeagueSelect();
+        // Ya no cargamos automáticamente por hoja individual
     };
 </script>
 </body>
