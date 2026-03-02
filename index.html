@@ -236,7 +236,6 @@
         // Cálculo de Deltas
         const dL = xgL_raw - gfL;
         const dV = xgV_raw - gfV;
-        const totalDelta = dL + dV;
 
         // Lógica de Influencia del Delta en Poisson
         let adjL = xgL_raw + (dL * 0.1);
@@ -251,18 +250,6 @@
         document.getElementById('deltaVisit').innerHTML = `${dV.toFixed(2)} ${getIcon(dV)}`;
         document.getElementById('adjLocal').innerText = `xG Ajustado: ${adjL.toFixed(2)}`;
         document.getElementById('adjVisit').innerText = `xG Ajustado: ${adjV.toFixed(2)}`;
-
-        // --- NUEVA MEJORA: Sugerencia de Mercado ---
-        const suggestionBox = document.getElementById('marketSuggestion');
-        suggestionBox.style.display = 'block';
-        if (totalDelta > 0.5) {
-            suggestionBox.innerHTML = '⚡ Sugerencia: Buscar VALOR en <span style="color:var(--success)">OVER 2.5</span> (Tendencia ofensiva)';
-        } else if (totalDelta < -0.5) {
-            suggestionBox.innerHTML = '⚡ Sugerencia: Buscar VALOR en <span style="color:var(--success)">UNDER 2.5</span> (Tendencia defensiva)';
-        } else {
-            suggestionBox.innerHTML = '⚡ Sugerencia: Mercado equilibrado, buscar valor en cuotas altas.';
-        }
-        // ------------------------------------------
 
         // Probabilidades Poisson 0-10 goles con xG AJUSTADO
         let probL = [];
@@ -294,6 +281,20 @@
             { name: 'BTTS Yes', p: bttsY * 100, oddId: 'oddBTTSY' },
             { name: 'BTTS No', p: bttsN * 100, oddId: 'oddBTTSN' }
         ];
+
+        // --- NUEVA MEJORA: Sugerencia Explícita ---
+        const suggestionBox = document.getElementById('marketSuggestion');
+        suggestionBox.style.display = 'block';
+
+        let bestMarket = markets[0];
+        markets.forEach(m => {
+            if (m.p > bestMarket.p) {
+                bestMarket = m;
+            }
+        });
+        
+        suggestionBox.innerHTML = `⚡ Probabilidad más alta: <span style="color:var(--success)">${bestMarket.name}</span> (${bestMarket.p.toFixed(2)}%)`;
+        // ------------------------------------------
 
         let html = '';
         markets.forEach(m => {
