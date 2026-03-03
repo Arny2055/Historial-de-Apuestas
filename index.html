@@ -288,6 +288,26 @@
             border-radius: 8px;
             border: 1px solid var(--primary);
         }
+        
+        /* Ajuste específico para el grid de la nueva calculadora */
+        .manual-avg-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .manual-avg-team-box {
+            background: rgba(255,255,255,0.03);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        .avg-display-mini {
+            font-size: 0.7rem;
+            color: var(--accent-yellow);
+            margin-top: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -370,19 +390,24 @@
 
     <div class="section-title"><span>📈</span> CALCULADORA DE PROMEDIO DE GOLES A FAVOR</div>
     <div class="card">
-        <div class="avg-calc-container" style="margin-top: 0; background: transparent; border: none; padding: 0;">
-            <div class="avg-input-group">
-                <label>Media GF Local</label>
-                <input type="number" id="manual_input_avg_l" step="0.01" oninput="calcularAvgGFManual()" placeholder="0.00">
+        <div class="manual-avg-grid">
+            <div class="manual-avg-team-box">
+                <div style="font-size: 0.55rem; color: var(--primary); font-weight: 800; margin-bottom: 8px; text-align: center;">EQUIPO LOCAL</div>
+                <input type="number" id="manual_gf_l" placeholder="Goles Favor" oninput="calcularAvgGFManual()" style="padding: 8px; margin-bottom: 5px; font-size: 0.8rem;">
+                <input type="number" id="manual_pj_l" placeholder="Partidos" oninput="calcularAvgGFManual()" style="padding: 8px; font-size: 0.8rem;">
+                <div class="avg-display-mini">Prom: <span id="val_avg_l">0.00</span></div>
             </div>
-            <div class="avg-input-group">
-                <label>Media GF Visita</label>
-                <input type="number" id="manual_input_avg_v" step="0.01" oninput="calcularAvgGFManual()" placeholder="0.00">
+            <div class="manual-avg-team-box">
+                <div style="font-size: 0.55rem; color: var(--accent-green); font-weight: 800; margin-bottom: 8px; text-align: center;">EQUIPO VISITA</div>
+                <input type="number" id="manual_gf_v" placeholder="Goles Favor" oninput="calcularAvgGFManual()" style="padding: 8px; margin-bottom: 5px; font-size: 0.8rem;">
+                <input type="number" id="manual_pj_v" placeholder="Partidos" oninput="calcularAvgGFManual()" style="padding: 8px; font-size: 0.8rem;">
+                <div class="avg-display-mini">Prom: <span id="val_avg_v">0.00</span></div>
             </div>
-            <div class="avg-result-box" style="margin-top: 10px;">
-                <div style="font-size: 0.6rem; color: var(--primary); font-weight: 800;">EXPECTATIVA TOTAL DE GOLES</div>
-                <div id="manual_res_avg_total" style="font-size: 1.5rem; font-weight: 900;">0.00</div>
-            </div>
+        </div>
+        
+        <div class="avg-result-box" style="margin-top: 15px; border-color: var(--accent-yellow);">
+            <div style="font-size: 0.6rem; color: var(--text-muted); font-weight: 800;">EXPECTATIVA TOTAL DE GOLES (COMBINADA)</div>
+            <div id="manual_res_avg_total" style="font-size: 1.6rem; font-weight: 900; color: var(--accent-yellow);">0.00</div>
         </div>
     </div>
 
@@ -425,11 +450,11 @@
             </div>
             <div class="avg-calc-container">
                 <div class="avg-input-group">
-                    <label>GF Local Auto</label>
+                    <label>Promedio Local</label>
                     <input type="number" id="input_avg_l" step="0.01" readonly style="opacity: 0.7;">
                 </div>
                 <div class="avg-input-group">
-                    <label>GF Visita Auto</label>
+                    <label>Promedio Visita</label>
                     <input type="number" id="input_avg_v" step="0.01" readonly style="opacity: 0.7;">
                 </div>
                 <div class="avg-result-box">
@@ -580,16 +605,30 @@
         });
     }
 
-    // Funciones para la calculadora de promedios
+    // NUEVA LÓGICA: Calculadora de promedio de goles manual (GF/PJ)
     function calcularAvgGFManual() {
-        const al = parseFloat(document.getElementById('manual_input_avg_l').value) || 0;
-        const av = parseFloat(document.getElementById('manual_input_avg_v').value) || 0;
-        const total = al + av;
+        const gfL = parseFloat(document.getElementById('manual_gf_l').value) || 0;
+        const pjL = parseFloat(document.getElementById('manual_pj_l').value) || 0;
+        const gfV = parseFloat(document.getElementById('manual_gf_v').value) || 0;
+        const pjV = parseFloat(document.getElementById('manual_pj_v').value) || 0;
+
+        const promL = pjL > 0 ? (gfL / pjL) : 0;
+        const promV = pjV > 0 ? (gfV / pjV) : 0;
+        const total = promL + promV;
+
+        document.getElementById('val_avg_l').innerText = promL.toFixed(2);
+        document.getElementById('val_avg_v').innerText = promV.toFixed(2);
+        
         const resEl = document.getElementById('manual_res_avg_total');
         resEl.innerText = total.toFixed(2);
-        resEl.style.color = total >= 2.8 ? 'var(--accent-green)' : (total <= 1.8 ? 'var(--accent-red)' : 'var(--accent-yellow)');
+        
+        // Colores según potencial
+        if (total >= 2.8) resEl.style.color = 'var(--accent-green)';
+        else if (total <= 1.8) resEl.style.color = 'var(--accent-red)';
+        else resEl.style.color = 'var(--accent-yellow)';
     }
 
+    // Promedio detectado automáticamente en análisis detallado
     function calcularAvgGF() {
         const al = parseFloat(document.getElementById('input_avg_l').value) || 0;
         const av = parseFloat(document.getElementById('input_avg_v').value) || 0;
@@ -681,13 +720,9 @@
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
         document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
         
-        // Autocompletar promedios en ambas calculadoras para consistencia
-        document.getElementById('manual_input_avg_l').value = m.gfL;
-        document.getElementById('manual_input_avg_v').value = m.gfV;
+        // En análisis automático ya recibimos el promedio calculado
         document.getElementById('input_avg_l').value = m.gfL;
         document.getElementById('input_avg_v').value = m.gfV;
-        
-        calcularAvgGFManual();
         calcularAvgGF();
 
         let pL = [], pV = [];
