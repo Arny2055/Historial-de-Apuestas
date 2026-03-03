@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Poisson Pro - xG & Delta Adjusted</title>
+    <title>Calculadora Poisson Pro - Mercados Específicos</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -125,16 +125,17 @@
 
         .target-info {
             font-size: 0.8em;
-            color: var(--warning);
+            color: #888;
             margin-bottom: 10px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>⚽ Poisson Pro: Filtro de Cuotas 1.7+</h1>
-    <p class="subtitle">Análisis de valor en mercados de rango medio-alto</p>
+    <h1>⚽ Poisson Pro: Selección Única</h1>
+    <p class="subtitle">Análisis de Probabilidad y Rendimiento</p>
 
     <div class="grid-inputs">
         <div class="card">
@@ -167,15 +168,15 @@
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
-        <h3>Validación de Valor</h3>
-        <p class="target-info">💡 Buscando mercados con probabilidad ≤ 58% (Cuota Justa ≥ 1.72)</p>
+        <h3>Validación de Cuota</h3>
+        <p class="target-info">Mercados analizados: O/U 2.5, BTTS Y/N, Team Over 1.5</p>
         <div class="grid-inputs" style="margin-bottom: 0;">
-            <input type="number" id="marketOdd" step="0.01" placeholder="Cuota Real de tu Casa de Apuestas">
+            <input type="number" id="marketOdd" step="0.01" placeholder="Cuota del Mercado (Ej: 1.85)">
         </div>
         <div id="marketSuggestion" class="suggestion-box" style="display:none;"></div>
     </div>
 
-    <button onclick="calculateAll()">ANALIZAR Y BUSCAR PICK 1.7+</button>
+    <button onclick="calculateAll()">GENERAR PICK ÓPTIMO</button>
 </div>
 
 <script>
@@ -221,8 +222,8 @@
         const statusL = getDeltaStatus(dL);
         const statusV = getDeltaStatus(dV);
 
-        let adjL = xgL_raw + (dL * 0.15); 
-        let adjV = xgV_raw + (dV * 0.15);
+        let adjL = xgL_raw + (dL * 0.2); 
+        let adjV = xgV_raw + (dV * 0.2);
         adjL = Math.max(0.1, adjL);
         adjV = Math.max(0.1, adjV);
 
@@ -231,68 +232,70 @@
         document.getElementById('adjLocal').innerText = `xG Ajustado: ${adjL.toFixed(2)}`;
         document.getElementById('adjVisit').innerText = `xG Ajustado: ${adjV.toFixed(2)}`;
 
-        let probMatrix = Array(11).fill(0).map(() => Array(11).fill(0));
+        // Probabilidades por equipo (hasta 10 goles)
+        let probL = [];
+        let probV = [];
+        for (let i = 0; i <= 10; i++) {
+            probL.push(poisson(i, adjL));
+            probV.push(poisson(i, adjV));
+        }
+
+        // --- Cálculo de los 6 mercados específicos ---
+        let o25 = 0, u25 = 0, bttsY = 0, bttsN = 0, localO15 = 0, visitaO15 = 0;
+
         for (let i = 0; i <= 10; i++) {
             for (let j = 0; j <= 10; j++) {
-                probMatrix[i][j] = poisson(i, adjL) * poisson(j, adjV);
+                let p_score = probL[i] * probV[j];
+                
+                // Over/Under 2.5
+                if (i + j > 2.5) o25 += p_score; else u25 += p_score;
+                
+                // BTTS
+                if (i > 0 && j > 0) bttsY += p_score; else bttsN += p_score;
+                
+                // Local Over 1.5 (i es goles local)
+                if (i > 1.5) localO15 += p_score;
+                
+                // Visita Over 1.5 (j es goles visita)
+                if (j > 1.5) visitaO15 += p_score;
             }
         }
 
-        let markets = [];
-        let winL = 0, draw = 0, winV = 0, o25 = 0, u25 = 0, o35 = 0, bttsY = 0, bttsN = 0;
+        // Lista de mercados solicitados
+        const markets = [
+            { name: 'Over 2.5 Goles', p: o25 },
+            { name: 'Under 2.5 Goles', p: u25 },
+            { name: 'Ambos Equipos Marcan: SÍ', p: bttsY },
+            { name: 'Ambos Equipos Marcan: NO', p: bttsN },
+            { name: 'Local - Over 1.5 Goles', p: localO15 },
+            { name: 'Visitante - Over 1.5 Goles', p: visitaO15 }
+        ];
 
-        for (let i = 0; i <= 10; i++) {
-            for (let j = 0; j <= 10; j++) {
-                let prob = probMatrix[i][j];
-                if (i > j) winL += prob; else if (i < j) winV += prob; else draw += prob;
-                if (i + j > 2.5) o25 += prob; else u25 += prob;
-                if (i + j > 3.5) o35 += prob;
-                if (i > 0 && j > 0) bttsY += prob; else bttsN += prob;
-            }
-        }
-
-        // Definimos mercados candidatos para cuotas 1.7+
-        // Solo incluimos los que matemáticamente suelen estar en ese rango (Prob < 60%)
-        markets.push({ name: 'Ganador: Local', p: winL });
-        markets.push({ name: 'Ganador: Visitante', p: winV });
-        markets.push({ name: 'Empate', p: draw });
-        markets.push({ name: 'Over 2.5 Goles', p: o25 });
-        markets.push({ name: 'Under 2.5 Goles', p: u25 });
-        markets.push({ name: 'Over 3.5 Goles', p: o35 });
-        markets.push({ name: 'Ambos Marcan: Sí', p: bttsY });
-        markets.push({ name: 'Ambos Marcan: No', p: bttsN });
-
-        // Filtrar mercados que tengan una probabilidad ideal para cuota 1.7+ (máximo 58%)
-        // Pero ordenamos para que elija el más "seguro" dentro de ese rango difícil
-        let candidates = markets.filter(m => m.p <= 0.58 && m.p >= 0.25);
-        
-        // Si no hay candidatos en ese rango, elegimos el que más se acerque por debajo
-        let selectedPick = candidates.length > 0 
-            ? candidates.reduce((prev, current) => (prev.p > current.p) ? prev : current)
-            : markets.reduce((prev, current) => (prev.p > current.p) ? prev : current);
+        // Selección del mercado con mayor probabilidad
+        let bestMarket = markets.reduce((prev, current) => (prev.p > current.p) ? prev : current);
 
         const suggestionBox = document.getElementById('marketSuggestion');
         suggestionBox.style.display = 'block';
 
-        const finalProb = selectedPick.p * 100;
+        const finalProb = bestMarket.p * 100;
         const fairOdd = (100 / finalProb);
         const value = userOdd ? ((userOdd / fairOdd) - 1) * 100 : 0;
         const kelly = calculateKelly(finalProb, userOdd);
 
         suggestionBox.innerHTML = `
-            <div class="suggestion-title">🎯 Pick Sugerido (Rango de Cuota 1.7+)</div>
-            <div>Mercado: <strong>${selectedPick.name}</strong></div>
-            <div>Probabilidad Poisson: ${finalProb.toFixed(2)}%</div>
-            <div>Cuota Justa Estimada: ${fairOdd.toFixed(2)}</div>
-            <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
+            <div class="suggestion-title">⚡ Pick Sugerido (Poisson Pro)</div>
+            <div>Mercado: <strong>${bestMarket.name}</strong></div>
+            <div>Probabilidad: ${finalProb.toFixed(2)}%</div>
+            <div>Cuota Justa: ${fairOdd.toFixed(2)}</div>
             ${userOdd ? `
+                <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
                 <div style="color: ${value > 0 ? 'var(--success)' : 'var(--danger)'}">
-                    <strong>Valor Detectado: ${value.toFixed(2)}%</strong><br>
-                    <span class="val-badge" style="background:${value > 0 ? 'var(--success)' : 'var(--danger)'}">
-                        Kelly: ${kelly}%
+                    <strong>Valor: ${value > 0 ? '+' : ''}${value.toFixed(2)}%</strong><br>
+                    <span class="val-badge" style="background:${value > 0 ? 'var(--success)' : 'var(--warning)'}">
+                        Kelly (Fracc. 1.8): ${kelly}%
                     </span>
                 </div>
-            ` : '<div style="font-size:0.8em; color:#888;">Ingresa la cuota de tu casa para calcular valor y Kelly.</div>'}
+            ` : ''}
         `;
     }
 </script>
