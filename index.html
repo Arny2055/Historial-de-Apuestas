@@ -120,7 +120,6 @@
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
 
-        /* ESTILO MEJORA AUTOMÁTICA */
         .bet-alert {
             border-left: 5px solid var(--accent-yellow) !important;
             background: rgba(252, 196, 25, 0.05) !important;
@@ -159,47 +158,6 @@
             border-left: 4px solid var(--primary);
         }
 
-        .league-tag {
-            background: #000000;
-            color: #ffffff;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 900;
-            font-size: 0.6rem;
-            border: 1px solid var(--border);
-        }
-
-        .score-badge {
-            background: var(--accent-yellow);
-            color: #000;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 900;
-            font-size: 0.7rem;
-            margin: 0 4px;
-        }
-
-        .trend-badge {
-            font-size: 1.1rem;
-            display: flex;
-            flex-direction: column;
-            line-height: 1;
-            cursor: pointer;
-        }
-
-        .chart-container {
-            width: 100%;
-            height: 180px;
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-around;
-            margin: 15px 0;
-        }
-        .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
-        .bar { width: 70%; background: var(--primary); border-radius: 4px 4px 0 0; min-height: 2px; transition: 0.5s ease-out; }
-        .bar.away { background: var(--accent-green); }
-        .bar-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; font-weight: bold; }
-
         .probs-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .summary-box { 
             background: var(--glass);
@@ -214,6 +172,24 @@
 
         .summary-val { font-size: 1.2rem; font-weight: 900; margin: 5px 0; }
         .summary-odds { font-size: 0.65rem; color: var(--accent-green); font-family: monospace; }
+        .summary-input-casa {
+            width: 90%;
+            padding: 5px;
+            margin-top: 8px;
+            border-radius: 6px;
+            background: #000;
+            border: 1px solid var(--border);
+            color: var(--accent-yellow);
+            font-weight: bold;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        .summary-value-badge {
+            display: block;
+            margin-top: 5px;
+            font-size: 0.65rem;
+            font-weight: 900;
+        }
 
         .table-wrapper { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -239,29 +215,6 @@
         }
         .positive-value { background: rgba(81, 207, 102, 0.2); color: var(--accent-green); }
         .negative-value { background: rgba(255, 107, 107, 0.1); color: var(--accent-red); }
-
-        .insufficient-data { color: var(--text-muted); font-style: italic; opacity: 0.7; }
-
-        .btn-send-bet {
-            background: var(--accent-green);
-            color: var(--bg-dark);
-            border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-weight: 900;
-            font-size: 0.7rem;
-            cursor: pointer;
-            display: none;
-        }
-
-        .btn-pulse {
-            animation: pulse-green 1.5s infinite;
-        }
-        @keyframes pulse-green {
-            0% { box-shadow: 0 0 0 0 rgba(81, 207, 102, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(81, 207, 102, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(81, 207, 102, 0); }
-        }
 
         .btn-open-match {
             background: var(--primary);
@@ -297,65 +250,6 @@
         #multiAnalysisPanel, #singleAnalysisPanel { display: none; animation: fadeIn 0.4s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        #betToast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--accent-green);
-            color: var(--bg-dark);
-            padding: 12px 25px;
-            border-radius: 30px;
-            font-weight: 900;
-            font-size: 0.8rem;
-            display: none;
-            z-index: 2000;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
-        }
-
-        #tacticalModal {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 3000;
-            padding: 20px;
-            backdrop-filter: blur(5px);
-        }
-        .modal-content {
-            background: var(--bg-card);
-            border: 2px solid var(--primary);
-            border-radius: 20px;
-            padding: 25px;
-            max-width: 400px;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(77, 171, 247, 0.3);
-        }
-        .modal-content h3 { color: var(--accent-yellow); margin-top: 0; }
-        .modal-content p { font-size: 0.9rem; line-height: 1.5; color: var(--text-white); }
-        .modal-rec {
-            background: rgba(81, 207, 102, 0.1);
-            border: 1px solid var(--accent-green);
-            color: var(--accent-green);
-            padding: 10px;
-            border-radius: 10px;
-            font-weight: 900;
-            margin: 15px 0;
-            font-size: 1rem;
-        }
-        .btn-close-modal {
-            background: var(--primary);
-            border: none;
-            color: black;
-            padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: 900;
-            margin-top: 15px;
-            cursor: pointer;
-            width: 100%;
-        }
         .gf-badge {
             background: rgba(252, 196, 25, 0.15);
             color: var(--accent-yellow);
@@ -367,6 +261,19 @@
             display: inline-block;
             min-width: 25px;
         }
+
+        .chart-container {
+            width: 100%;
+            height: 180px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            margin: 15px 0;
+        }
+        .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+        .bar { width: 70%; background: var(--primary); border-radius: 4px 4px 0 0; min-height: 2px; transition: 0.5s ease-out; }
+        .bar.away { background: var(--accent-green); }
+        .bar-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -374,18 +281,6 @@
 <div id="loadingOverlay">
     <div class="spinner"></div>
     <p style="margin-top: 15px; font-weight: 800; color: var(--primary);">ANALIZANDO DATOS...</p>
-</div>
-
-<div id="betToast">🚀 APUESTA ENVIADA (STAKE 1)</div>
-
-<div id="tacticalModal" onclick="this.style.display='none'">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <div id="modalIcon" style="font-size: 3rem; margin-bottom: 10px;"></div>
-        <h3 id="modalTitle">CONSEJO TÁCTICO</h3>
-        <p id="modalText"></p>
-        <div id="modalRec" class="modal-rec"></div>
-        <button class="btn-close-modal" onclick="document.getElementById('tacticalModal').style.display='none'">ENTENDIDO</button>
-    </div>
 </div>
 
 <div class="container">
@@ -435,18 +330,25 @@
             <div style="text-align: center; font-size: 1.2rem; margin: 10px 0; font-weight: 900;">
                 Tendencia: <span id="res_trend"></span>
             </div>
+            
             <div class="probs-summary" style="margin-top:10px;">
                 <div class="summary-box blue">
                     <div style="font-size: 0.55rem; font-weight: 800;">O2.5</div>
                     <div class="summary-val" id="res_o25" style="font-size:1rem;">0%</div>
+                    <input type="number" id="odd_casa_o25" class="summary-input-casa" placeholder="Cuota" oninput="calcularValueManual()">
+                    <span id="val_manual_o25" class="summary-value-badge">--</span>
                 </div>
                 <div class="summary-box green">
                     <div style="font-size: 0.55rem; font-weight: 800;">BTTS</div>
                     <div class="summary-val" id="res_btts" style="font-size:1rem;">0%</div>
+                    <input type="number" id="odd_casa_btts" class="summary-input-casa" placeholder="Cuota" oninput="calcularValueManual()">
+                    <span id="val_manual_btts" class="summary-value-badge">--</span>
                 </div>
                 <div class="summary-box yellow">
                     <div style="font-size: 0.55rem; font-weight: 800;">O0.5 HT</div>
                     <div class="summary-val" id="res_o05ht" style="font-size:1rem;">0%</div>
+                    <input type="number" id="odd_casa_ht" class="summary-input-casa" placeholder="Cuota" oninput="calcularValueManual()">
+                    <span id="val_manual_ht" class="summary-value-badge">--</span>
                 </div>
             </div>
         </div>
@@ -483,31 +385,11 @@
                 <div style="text-align: center;">
                     <div style="font-size: 0.6rem; color: var(--text-muted); font-weight: 800;">xG LOCAL</div>
                     <div id="xg_l_val" style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">0.00</div>
-                    <div id="delta_l_label" style="font-size: 0.6rem; font-weight: bold;"></div>
                 </div>
                 <div style="text-align: center;">
                     <div style="font-size: 0.6rem; color: var(--text-muted); font-weight: 800;">xG VISITA</div>
                     <div id="xg_v_val" style="font-size: 1.5rem; font-weight: 900; color: var(--accent-green);">0.00</div>
-                    <div id="delta_v_label" style="font-size: 0.6rem; font-weight: bold;"></div>
                 </div>
-            </div>
-        </div>
-
-        <div class="probs-summary">
-            <div class="summary-box blue">
-                <div style="font-size: 0.55rem; font-weight: 800;">OVER 0.5 HT</div>
-                <div class="summary-val" id="ov05ht_val">0%</div>
-                <div class="summary-odds" id="ov05ht_odds">1.00</div>
-            </div>
-            <div class="summary-box green">
-                <div style="font-size: 0.55rem; font-weight: 800;">OVER 2.5 FT</div>
-                <div class="summary-val" id="ov25ft_val">0%</div>
-                <div class="summary-odds" id="ov25ft_odds">1.00</div>
-            </div>
-            <div class="summary-box yellow">
-                <div style="font-size: 0.55rem; font-weight: 800;">BTTS YES</div>
-                <div class="summary-val" id="btts_val">0%</div>
-                <div class="summary-odds" id="btts_odds">1.00</div>
             </div>
         </div>
 
@@ -535,6 +417,7 @@
     const SHEETS_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
     let database = {}; 
     let matchesToday = [];
+    let manualProbs = { o25: 0, btts: 0, ht: 0 };
 
     function getLeagues() {
         const saved = localStorage.getItem('betags_custom_leagues');
@@ -597,7 +480,7 @@
         const GF_V = parseFloat(document.getElementById('calc_gf_v').value);
 
         if(isNaN(xG_L) || isNaN(GF_L) || isNaN(xG_V) || isNaN(GF_V)) {
-            return alert("Por favor rellena todos los campos con números válidos.");
+            return alert("Por favor rellena todos los campos.");
         }
 
         const deltaL = GF_L - xG_L;
@@ -608,83 +491,78 @@
         document.getElementById('res_delta_l').style.color = deltaL > 0.3 ? 'var(--accent-red)' : (deltaL < -0.3 ? 'var(--accent-green)' : 'white');
         document.getElementById('res_delta_v').style.color = deltaV > 0.3 ? 'var(--accent-red)' : (deltaV < -0.3 ? 'var(--accent-green)' : 'white');
 
-        const trendIconL = getTrendIcon(deltaL);
-        const trendIconV = getTrendIcon(deltaV);
-        document.getElementById('res_trend').innerHTML = `${trendIconL} ${trendIconV}`;
+        document.getElementById('res_trend').innerHTML = (deltaL > 0.3 ? '🚀' : '📉') + " " + (deltaV > 0.3 ? '🚀' : '📉');
 
         let u25Poisson = 0;
         let pL = [], pV = [];
         for(let i=0; i<=6; i++){ pL[i]=poisson(i, xG_L); pV[i]=poisson(i, xG_V); }
         for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
         
-        const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xG_L, xG_V, 'ov25');
-        const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xG_L, xG_V, 'btts');
-        const probHT = 1 - Math.exp(-(xG_L + xG_V) * 0.45);
+        manualProbs.o25 = logisticRegressionAdjust(1 - u25Poisson, xG_L, xG_V, 'ov25');
+        manualProbs.btts = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xG_L, xG_V, 'btts');
+        manualProbs.ht = 1 - Math.exp(-(xG_L + xG_V) * 0.45);
 
-        document.getElementById('res_o25').innerText = (ov25_Final * 100).toFixed(0) + '%';
-        document.getElementById('res_btts').innerText = (btts_Final * 100).toFixed(0) + '%';
-        document.getElementById('res_o05ht').innerText = (probHT * 100).toFixed(0) + '%';
+        document.getElementById('res_o25').innerText = (manualProbs.o25 * 100).toFixed(0) + '%';
+        document.getElementById('res_btts').innerText = (manualProbs.btts * 100).toFixed(0) + '%';
+        document.getElementById('res_o05ht').innerText = (manualProbs.ht * 100).toFixed(0) + '%';
+        
         document.getElementById('manualResultPanel').style.display = 'block';
+        calcularValueManual();
+    }
+
+    function calcularValueManual() {
+        const markets = [
+            { id: 'o25', prob: manualProbs.o25 },
+            { id: 'btts', prob: manualProbs.btts },
+            { id: 'ht', prob: manualProbs.ht }
+        ];
+
+        markets.forEach(m => {
+            const input = document.getElementById(`odd_casa_${m.id}`);
+            const badge = document.getElementById(`val_manual_${m.id}`);
+            const odd = parseFloat(input.value);
+
+            if(odd > 1 && m.prob > 0) {
+                const edge = (m.prob * odd) - 1;
+                const perc = (edge * 100).toFixed(1);
+                badge.innerText = `VAL: ${perc}%`;
+                badge.style.color = edge > 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+            } else {
+                badge.innerText = '--';
+                badge.style.color = 'var(--text-muted)';
+            }
+        });
     }
 
     async function fetchDataForSheet(sheetName) {
         const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&range=A1:W60`;
         try {
             const res = await fetch(url);
-            if (!res.ok) return null;
             const text = await res.text();
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
-            
             let data = { locales: [], visitantes: [] };
             rows.forEach((cols, i) => {
                 if (i > 0 && cols[1] && !isNaN(parseFloat(cols[2]))) {
-                    data.locales.push({ 
-                        n: cols[1], 
-                        gp: parseFloat(cols[2]), 
-                        gf: parseFloat(cols[6]), 
-                        ga: parseFloat(cols[7]),
-                        xG_generado: parseFloat(cols[8]) || parseFloat(cols[6])
-                    });
-                    data.visitantes.push({ 
-                        n: cols[13], 
-                        gp: parseFloat(cols[14]), 
-                        gf: parseFloat(cols[18]), 
-                        ga: parseFloat(cols[19]),
-                        xG_generado: parseFloat(cols[20]) || parseFloat(cols[18])
-                    });
+                    data.locales.push({ n: cols[1], gp: parseFloat(cols[2]), gf: parseFloat(cols[6]), ga: parseFloat(cols[7]) });
+                    data.visitantes.push({ n: cols[13], gp: parseFloat(cols[14]), gf: parseFloat(cols[18]), ga: parseFloat(cols[19]) });
                 }
             });
-
             if (data.locales.length === 0) return null;
-
             let sGFL = 0, sGAL = 0, sPJL = 0, sGFV = 0, sGAV = 0, sPJV = 0;
             data.locales.forEach(e => { sGFL += e.gf; sGAL += e.ga; sPJL += e.gp; });
             data.visitantes.forEach(e => { sGFV += e.gf; sGAV += e.ga; sPJV += e.gp; });
-            
-            data.avg = { 
-                gfl: sGFL / sPJL, gal: sGAL / sPJL, 
-                gfv: sGFV / sPJV, gav: sGAV / sPJV 
-            };
+            data.avg = { gfl: sGFL/sPJL, gal: sGAL/sPJL, gfv: sGFV/sPJV, gav: sGAV/sPJV };
             return data;
         } catch (e) { return null; }
     }
 
     async function analizarTodoMultiliga() {
-        const loader = document.getElementById('loadingOverlay');
-        loader.style.display = 'flex';
-        
+        document.getElementById('loadingOverlay').style.display = 'flex';
         const selectedLeague = document.getElementById('leagueSelect').value;
-        if(!selectedLeague) {
-            alert("Selecciona una liga primero.");
-            loader.style.display = 'none';
-            return;
-        }
+        if(!selectedLeague) { alert("Selecciona una liga."); document.getElementById('loadingOverlay').style.display = 'none'; return; }
 
-        database = {};
-        matchesToday = [];
-
-        const data = await fetchDataForSheet(selectedLeague);
-        if (data) database[selectedLeague] = data;
+        const db = await fetchDataForSheet(selectedLeague);
+        if (!db) { alert("Error cargando hoja."); document.getElementById('loadingOverlay').style.display = 'none'; return; }
 
         try {
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F1000`;
@@ -692,116 +570,47 @@
             const text = await res.text();
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
 
+            matchesToday = [];
             rows.forEach(cols => {
-                const home = cols[0];
-                const away = cols[2];
+                const home = cols[0], away = cols[2];
                 if (!home || home === "LOCAL") return;
-                
-                const db = database[selectedLeague];
-                if (!db) return;
-                
                 const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
                 const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
-
                 if (lData && vData) {
                     const xGL = ((lData.gf/lData.gp)/db.avg.gfl) * ((vData.ga/vData.gp)/db.avg.gav) * db.avg.gfl;
                     const xGV = ((vData.gf/vData.gp)/db.avg.gfv) * ((lData.ga/lData.gp)/db.avg.gal) * db.avg.gfv;
-                    
-                    let u25Poisson = 0;
-                    let pL = [], pV = [];
+                    let u25 = 0, pL = [], pV = [];
                     for(let i=0; i<=6; i++){ pL[i]=poisson(i, xGL); pV[i]=poisson(i, xGV); }
-                    for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j <= 2) u25Poisson += pL[i]*pV[j];
-                    
-                    const ov25_Final = logisticRegressionAdjust(1 - u25Poisson, xGL, xGV, 'ov25');
-                    const btts_Final = logisticRegressionAdjust(1 - (pL[0] + pV[0] - (pL[0]*pV[0])), xGL, xGV, 'btts');
-
+                    for(let i=0; i<=6; i++) for(let j=0; j<=6; j++) if(i+j <= 2) u25 += pL[i]*pV[j];
                     matchesToday.push({
-                        league: selectedLeague,
-                        home, away, xGL, xGV,
-                        ov25: ov25_Final,
-                        btts: btts_Final,
-                        probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
-                        gfL: (lData.gf/lData.gp).toFixed(1),
-                        gfV: (vData.gf/vData.gp).toFixed(1)
+                        league: selectedLeague, home, away, xGL, xGV,
+                        ov25: logisticRegressionAdjust(1-u25, xGL, xGV, 'ov25'),
+                        btts: logisticRegressionAdjust(1-(pL[0]+pV[0]-pL[0]*pV[0]), xGL, xGV, 'btts'),
+                        probHT: 1 - Math.exp(-(xGL+xGV)*0.45),
+                        gfL: (lData.gf/lData.gp).toFixed(1), gfV: (vData.gf/vData.gp).toFixed(1)
                     });
                 }
             });
-
             renderMultiTable();
-            automaticMarketSuggestion(); 
             document.getElementById('multiAnalysisPanel').style.display = 'block';
-            document.getElementById('singleAnalysisPanel').style.display = 'none';
-
-        } catch (e) { alert("Error de conexión."); } finally { loader.style.display = 'none'; }
-    }
-
-    function getTrendIcon(delta) {
-        if (delta > 0.3) return '🚀'; 
-        if (delta < -0.3) return '📉'; 
-        return '🎯'; 
-    }
-
-    function showTacticalAdvice(idx) {
-        const m = matchesToday[idx];
-        const modal = document.getElementById('tacticalModal');
-        const mTitle = document.getElementById('modalTitle');
-        const mText = document.getElementById('modalText');
-        const mIcon = document.getElementById('modalIcon');
-        const mRec = document.getElementById('modalRec');
-
-        mIcon.innerHTML = `📊`;
-        mTitle.innerText = "ANÁLISIS TÁCTICO";
-        mText.innerText = `Partido de la liga ${m.league}. Basado en el promedio de goles de equipos en su posición.`;
-        mRec.innerText = m.ov25 > 0.6 ? "Recomendación: OVER 2.5" : "Recomendación: BTTS YES";
-        
-        modal.style.display = 'flex';
+        } catch (e) { alert("Error de red."); } finally { document.getElementById('loadingOverlay').style.display = 'none'; }
     }
 
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
-        if(matchesToday.length === 0) {
-            body.innerHTML = '<tr><td colspan="7">No hay partidos detectados para esta liga.</td></tr>';
-            return;
-        }
-        body.innerHTML = matchesToday.map((m, i) => {
-            return `
+        body.innerHTML = matchesToday.map((m, i) => `
             <tr id="row_match_${i}">
-                <td style="font-weight:bold; text-align:left;">${m.home}<br>${m.away}</td>
-                <td><div class="trend-badge" onclick="showTacticalAdvice(${i})">📊</div></td>
+                <td style="text-align:left;"><b>${m.home}</b><br>${m.away}</td>
+                <td>🎯</td>
                 <td style="color:var(--accent-yellow)">${m.xGL.toFixed(1)} / ${m.xGV.toFixed(1)}</td>
-                <td class="${m.ov25 >= 0.7 ? 'high-prob' : ''}">${(m.ov25*100).toFixed(0)}%</td>
-                <td class="${m.btts >= 0.7 ? 'high-prob' : ''}">${(m.btts*100).toFixed(0)}%</td>
-                <td>
-                   <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
-                        <span class="gf-badge" title="GF Local">${m.gfL}</span>
-                        <span class="gf-badge" style="background: rgba(81, 207, 102, 0.15); color: var(--accent-green); border-color: rgba(81, 207, 102, 0.3);" title="GF Visita">${m.gfV}</span>
-                   </div>
-                </td>
+                <td class="${m.ov25>=0.7?'high-prob':''}">${(m.ov25*100).toFixed(0)}%</td>
+                <td class="${m.btts>=0.7?'high-prob':''}">${(m.btts*100).toFixed(0)}%</td>
+                <td><span class="gf-badge">${m.gfL}</span> <span class="gf-badge" style="color:var(--accent-green)">${m.gfV}</span></td>
                 <td><button class="btn-open-match" onclick="abrirDetalle(${i})">OPEN</button></td>
-            </tr>`;
-        }).join('');
-    }
-
-    function automaticMarketSuggestion() {
-        matchesToday.forEach((m, idx) => {
-            const row = document.getElementById(`row_match_${idx}`);
-            if (!row) return;
-            const minProb = 0.55;
-            let bestMarket = null;
-            if (m.ov25 >= minProb && m.ov25 > m.btts) bestMarket = `🔥 O2.5: ${(m.ov25*100).toFixed(0)}%`;
-            else if (m.btts >= minProb) bestMarket = `✅ BTTS: ${(m.btts*100).toFixed(0)}%`;
-            if (bestMarket) {
-                row.classList.add('bet-alert');
-                const tdMarket = row.cells[3]; 
-                tdMarket.innerHTML = `${tdMarket.innerText} <br> <span style="color:var(--accent-yellow); font-size:0.6rem;">${bestMarket}</span>`;
-            }
-        });
+            </tr>`).join('');
     }
 
     function abrirDetalle(idx) {
-        document.querySelectorAll('.multi-results-table tr').forEach(row => row.classList.remove('row-active'));
-        const activeRow = document.getElementById(`row_match_${idx}`);
-        if(activeRow) activeRow.classList.add('row-active');
         const m = matchesToday[idx];
         document.getElementById('currentMatchLabel').innerText = `${m.home} vs ${m.away}`;
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
@@ -809,101 +618,50 @@
         
         let pL = [], pV = [];
         for(let i=0; i<=6; i++) { pL[i] = poisson(i, m.xGL); pV[i] = poisson(i, m.xGV); }
-        renderSingleChart(pL, pV);
-        
-        document.getElementById('ov05ht_val').innerText = (m.probHT*100).toFixed(1) + '%';
-        document.getElementById('ov05ht_odds').innerText = 'JUSTA: ' + (1/m.probHT).toFixed(2);
-        document.getElementById('ov25ft_val').innerText = (m.ov25*100).toFixed(1) + '%';
-        document.getElementById('ov25ft_odds').innerText = 'JUSTA: ' + (1/m.ov25).toFixed(2);
-        document.getElementById('btts_val').innerText = (m.btts*100).toFixed(1) + '%';
-        document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
-        
-        let probO15 = 0, probU15 = 0, probO35 = 0, probU35 = 0, probU25 = 0, probLocalO15 = 0, probVisitaO15 = 0;
-        for(let i=0; i<=6; i++){
-            for(let j=0; j<=6; j++){
-                if(i+j > 1.5) probO15 += pL[i]*pV[j];
-                if(i+j < 1.5) probU15 += pL[i]*pV[j];
-                if(i+j <= 2.5) probU25 += pL[i]*pV[j];
-                if(i+j > 3.5) probO35 += pL[i]*pV[j];
-                if(i+j < 3.5) probU35 += pL[i]*pV[j];
-                if(i > 1.5) probLocalO15 += pL[i]*pV[j];
-                if(j > 1.5) probVisitaO15 += pL[i]*pV[j];
-            }
-        }
-        
-        probU25 = 1 - logisticRegressionAdjust(1 - probU25, m.xGL, m.xGV, 'ov25');
+        renderChart(pL, pV);
 
         const markets = [
             {n: 'OVER 0.5 HT', p: m.probHT},
-            {n: 'OVER 1.5 FT', p: probO15},
-            {n: 'UNDER 1.5 FT', p: probU15},
-            {n: 'LOCAL OVER 1.5', p: probLocalO15},
-            {n: 'VISITA OVER 1.5', p: probVisitaO15},
             {n: 'OVER 2.5 FT', p: m.ov25},
-            {n: 'UNDER 2.5 FT', p: probU25},
-            {n: 'OVER 3.5 FT', p: probO35},
-            {n: 'UNDER 3.5 FT', p: probU35},
-            {n: 'BTTS YES', p: m.btts},
-            {n: 'BTTS NO', p: 1-m.btts}
+            {n: 'BTTS YES', p: m.btts}
         ];
         
-        const table = document.getElementById('individualMarketsTable');
-        table.innerHTML = markets.map((mk, i) => {
+        document.getElementById('individualMarketsTable').innerHTML = markets.map((mk, i) => {
             const fair = (1/mk.p).toFixed(2);
             return `<tr>
-                <td><strong>${mk.n}</strong></td>
+                <td><b>${mk.n}</b></td>
                 <td>${(mk.p*100).toFixed(0)}%</td>
                 <td style="color:var(--primary)">${fair}</td>
-                <td><input type="number" step="0.01" class="input-odds" placeholder="Cuota" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td>
+                <td><input type="number" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td>
                 <td id="s_val_${i}">--</td>
-                <td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td>
+                <td><button class="btn-open-match" style="background:var(--accent-green)">SAVE</button></td>
             </tr>`;
         }).join('');
-        
         document.getElementById('singleAnalysisPanel').style.display = 'block';
-        document.getElementById('singleAnalysisPanel').scrollIntoView({behavior: 'smooth'});
+        document.getElementById('singleAnalysisPanel').scrollIntoView({behavior:'smooth'});
     }
 
-    function renderSingleChart(pL, pV) {
+    function renderChart(pL, pV) {
         const container = document.getElementById('golesChart');
         container.innerHTML = '';
         for(let i=0; i<=6; i++) {
             const group = document.createElement('div');
             group.className = 'bar-group';
-            group.innerHTML = `<div style="display:flex; gap:3px; height:100%; align-items:flex-end; width:100%; justify-content:center;"><div class="bar" style="height: ${pL[i]*150}%"></div><div class="bar away" style="height: ${pV[i]*150}%"></div></div><div class="bar-label">${i}</div>`;
+            group.innerHTML = `<div style="display:flex; gap:3px; height:100%; align-items:flex-end;"><div class="bar" style="height:${pL[i]*150}%"></div><div class="bar away" style="height:${pV[i]*150}%"></div></div><div class="bar-label">${i}</div>`;
             container.appendChild(group);
         }
     }
 
     function calcSingleVal(idx, prob, val) {
-        const houseOdd = parseFloat(val);
+        const odd = parseFloat(val);
         const res = document.getElementById(`s_val_${idx}`);
-        const btn = document.getElementById(`s_btn_${idx}`);
-        if(!houseOdd || houseOdd <= 1) { res.innerHTML = "--"; btn.style.display = "none"; return; }
-        const edge = (prob * houseOdd) - 1;
-        res.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
-        if(edge > 0) {
-            btn.style.display = "block";
-            if(edge > 0.1) btn.classList.add('btn-pulse'); else btn.classList.remove('btn-pulse');
-        } else btn.style.display = "none";
+        if(odd > 1) {
+            const edge = (prob * odd) - 1;
+            res.innerHTML = `<span class="value-badge ${edge > 0 ? 'positive-value' : 'negative-value'}">${(edge*100).toFixed(1)}%</span>`;
+        } else res.innerHTML = "--";
     }
 
-    function enviarBet(liga, partido, mercado, prob, justa, inputIdx) {
-        const houseOddInputs = document.querySelectorAll('#individualMarketsTable .input-odds');
-        const houseOdd = parseFloat(houseOddInputs[inputIdx].value);
-        const pick = { id: Date.now(), date: new Date().toLocaleString(), teams: `[${liga}] ${partido}`, market: mercado, prob, fair_odd: justa, odd: houseOdd, edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%', stake: 1, status: 'pending' };
-        let historial = JSON.parse(localStorage.getItem('betags_pre_match')) || [];
-        historial.push(pick);
-        localStorage.setItem('betags_pre_match', JSON.stringify(historial));
-        const toast = document.getElementById('betToast');
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 2500);
-        houseOddInputs[inputIdx].value = "";
-        document.getElementById(`s_val_${inputIdx}`).innerHTML = "--";
-        document.getElementById(`s_btn_${inputIdx}`).style.display = "none";
-    }
-
-    window.onload = () => { renderLeagueSelect(); };
+    window.onload = renderLeagueSelect;
 </script>
 </body>
 </html>
