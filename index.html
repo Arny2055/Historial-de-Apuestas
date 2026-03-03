@@ -306,47 +306,42 @@
 
         // --- 8. Lógica Dinámica de Pick por DELTA ---
         let suggestedMarket = null;
-        let totalDelta = dL + dV;
+        let highestValue = -999;
 
-        // Interpretación dinámica del delta para elegir el tipo de mercado
-        if (totalDelta > 0.4) {
-            // Alta probabilidad de goles
-            suggestedMarket = markets[0]; // Over 2.5
-        } else if (totalDelta < -0.4) {
-            // Alta probabilidad de pocos goles
-            suggestedMarket = markets[1]; // Under 2.5
-        } else {
-            // Escenario mixto o estable, buscar el mercado con mejor valor relativo
-            let bestValue = -999;
-            markets.forEach(m => {
-                const userOdd = parseFloat(document.getElementById(m.oddId).value);
-                if (userOdd && userOdd > 1) {
-                    const fairOdd = (100 / m.p);
-                    const value = (userOdd / fairOdd) - 1;
-                    if (value > bestValue) {
-                        bestValue = value;
-                        suggestedMarket = m;
-                    }
+        // 
+
+        // Iterar sobre los mercados para encontrar el que tenga mayor "valor" relativo
+        markets.forEach(m => {
+            const userOdd = parseFloat(document.getElementById(m.oddId).value);
+            if (userOdd && userOdd > 1) {
+                const fairOdd = (100 / m.p);
+                // El valor se define por cuánto paga la casa vs la probabilidad justa
+                const value = (userOdd / fairOdd) - 1; 
+
+                if (value > highestValue) {
+                    highestValue = value;
+                    suggestedMarket = {
+                        ...m,
+                        fairOdd: fairOdd.toFixed(2),
+                        userOdd: userOdd,
+                        value: (value * 100).toFixed(2),
+                        kelly: calculateKelly(m.p, userOdd)
+                    };
                 }
-            });
-        }
+            }
+        });
 
         // --- 9. Mostrar Sugerencia Dinámica ---
         const suggestionBox = document.getElementById('marketSuggestion');
         suggestionBox.style.display = 'block';
 
         if (suggestedMarket) {
-            const userOdd = parseFloat(document.getElementById(suggestedMarket.oddId).value);
-            const fairOdd = (100 / suggestedMarket.p);
-            const value = userOdd ? ((userOdd / fairOdd) - 1) * 100 : 0;
-            const kelly = calculateKelly(suggestedMarket.p, userOdd);
-
             suggestionBox.innerHTML = `
-                <div class="suggestion-title">⚡ Pick Sugerido (Delta Analysis)</div>
+                <div class="suggestion-title">⚡ Pick Sugerido (Mejor Valor/Delta)</div>
                 <div>Selección: <strong>${suggestedMarket.name}</strong></div>
-                <div>Probabilidad: ${suggestedMarket.p.toFixed(2)}% | Cuota Mercado: ${userOdd || 'N/A'}</div>
-                <div>Cuota Justa: ${fairOdd.toFixed(2)} | <strong>Valor: ${value > 0 ? '+' : ''}${value.toFixed(2)}%</strong></div>
-                ${value > 0 ? `<div><span class="val-badge">Kelly: ${kelly}%</span></div>` : ''}
+                <div>Probabilidad: ${suggestedMarket.p.toFixed(2)}% | Cuota Mercado: ${suggestedMarket.userOdd}</div>
+                <div>Cuota Justa: ${suggestedMarket.fairOdd} | <strong>Valor: ${highestValue > 0 ? '+' : ''}${suggestedMarket.value}%</strong></div>
+                ${highestValue > 0 ? `<div><span class="val-badge">Kelly (1.8): ${suggestedMarket.kelly}%</span></div>` : ''}
             `;
         } else {
             suggestionBox.innerHTML = `<div>❌ Ingresa cuotas para validar el pick.</div>`;
