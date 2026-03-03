@@ -120,14 +120,6 @@
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
 
-        .bet-alert {
-            border-left: 5px solid var(--accent-yellow) !important;
-            background: rgba(252, 196, 25, 0.05) !important;
-            box-shadow: var(--gold-glow);
-            border-top: 1px solid rgba(252, 196, 25, 0.2);
-            border-right: 1px solid rgba(252, 196, 25, 0.2);
-        }
-
         .high-prob {
             color: var(--accent-green) !important;
             font-weight: 900;
@@ -153,11 +145,6 @@
             text-align: center;
         }
 
-        .row-active {
-            background-color: var(--row-select) !important;
-            border-left: 4px solid var(--primary);
-        }
-
         .probs-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .summary-box { 
             background: var(--glass);
@@ -171,7 +158,6 @@
         .summary-box.yellow { border-top: 3px solid var(--accent-yellow); }
 
         .summary-val { font-size: 1.2rem; font-weight: 900; margin: 5px 0; }
-        .summary-odds { font-size: 0.65rem; color: var(--accent-green); font-family: monospace; }
         .summary-input-casa {
             width: 90%;
             padding: 5px;
@@ -274,6 +260,34 @@
         .bar { width: 70%; background: var(--primary); border-radius: 4px 4px 0 0; min-height: 2px; transition: 0.5s ease-out; }
         .bar.away { background: var(--accent-green); }
         .bar-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 5px; font-weight: bold; }
+
+        /* Estilos Calculadora de Promedios */
+        .avg-calc-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+            background: rgba(255,255,255,0.02);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px dashed var(--border);
+        }
+        .avg-input-group label {
+            display: block;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            font-weight: 800;
+        }
+        .avg-result-box {
+            grid-column: span 2;
+            text-align: center;
+            padding: 10px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -366,7 +380,7 @@
                             <th>xG (L/V)</th>
                             <th>O 2.5</th>
                             <th>BTTS</th>
-                            <th>VALUE(GF)</th>
+                            <th>AVG GF</th>
                             <th>DETALLE</th>
                         </tr>
                     </thead>
@@ -389,6 +403,21 @@
                 <div style="text-align: center;">
                     <div style="font-size: 0.6rem; color: var(--text-muted); font-weight: 800;">xG VISITA</div>
                     <div id="xg_v_val" style="font-size: 1.5rem; font-weight: 900; color: var(--accent-green);">0.00</div>
+                </div>
+            </div>
+
+            <div class="avg-calc-container">
+                <div class="avg-input-group">
+                    <label>Promedio GF Local</label>
+                    <input type="number" id="input_avg_l" step="0.01" oninput="calcularAvgGF()" placeholder="0.00">
+                </div>
+                <div class="avg-input-group">
+                    <label>Promedio GF Visita</label>
+                    <input type="number" id="input_avg_v" step="0.01" oninput="calcularAvgGF()" placeholder="0.00">
+                </div>
+                <div class="avg-result-box">
+                    <div style="font-size: 0.6rem; color: var(--primary); font-weight: 800;">POTENCIAL DE GOLES COMBINADO</div>
+                    <div id="res_avg_total" style="font-size: 1.2rem; font-weight: 900;">0.00</div>
                 </div>
             </div>
         </div>
@@ -616,6 +645,11 @@
         document.getElementById('xg_l_val').innerText = m.xGL.toFixed(2);
         document.getElementById('xg_v_val').innerText = m.xGV.toFixed(2);
         
+        // Autocompletar promedios en la calculadora
+        document.getElementById('input_avg_l').value = m.gfL;
+        document.getElementById('input_avg_v').value = m.gfV;
+        calcularAvgGF();
+
         let pL = [], pV = [];
         for(let i=0; i<=6; i++) { pL[i] = poisson(i, m.xGL); pV[i] = poisson(i, m.xGV); }
         renderChart(pL, pV);
@@ -650,6 +684,15 @@
             group.innerHTML = `<div style="display:flex; gap:3px; height:100%; align-items:flex-end;"><div class="bar" style="height:${pL[i]*150}%"></div><div class="bar away" style="height:${pV[i]*150}%"></div></div><div class="bar-label">${i}</div>`;
             container.appendChild(group);
         }
+    }
+
+    function calcularAvgGF() {
+        const al = parseFloat(document.getElementById('input_avg_l').value) || 0;
+        const av = parseFloat(document.getElementById('input_avg_v').value) || 0;
+        const total = al + av;
+        const resEl = document.getElementById('res_avg_total');
+        resEl.innerText = total.toFixed(2);
+        resEl.style.color = total >= 2.8 ? 'var(--accent-green)' : (total <= 1.8 ? 'var(--accent-red)' : 'var(--accent-yellow)');
     }
 
     function calcSingleVal(idx, prob, val) {
