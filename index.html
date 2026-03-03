@@ -193,10 +193,12 @@
     }
 
     function getDeltaStatus(delta) {
-        if (delta > 0.3) return { icon: '🚀', text: 'Alto Sobrerendimiento' };
-        if (delta > 0.1) return { icon: '📈', text: 'Sobrerendimiento' };
-        if (delta < -0.3) return { icon: '📉', text: 'Alto Subrendimiento' };
-        if (delta < -0.1) return { icon: '📊', text: 'Subrendimiento' };
+        // CORRECCIÓN: Si Delta (xG - GF) es POSITIVO, el equipo genera más de lo que anota -> SUBRENDIMIENTO
+        if (delta > 0.3) return { icon: '📉', text: 'Alto Subrendimiento' };
+        if (delta > 0.1) return { icon: '📊', text: 'Subrendimiento' };
+        // Si Delta es NEGATIVO, el equipo anota más de lo que genera -> SOBRERENDIMIENTO
+        if (delta < -0.3) return { icon: '🚀', text: 'Alto Sobrerendimiento' };
+        if (delta < -0.1) return { icon: '📈', text: 'Sobrerendimiento' };
         return { icon: '🎯', text: 'Estable' };
     }
 
@@ -217,22 +219,23 @@
         const gfV = parseFloat(document.getElementById('gfVisit').value) || 0;
         const userOdd = parseFloat(document.getElementById('marketOdd').value) || 0;
 
+        // Delta = xG - GF
         const dL = xgL_raw - gfL;
         const dV = xgV_raw - gfV;
         const statusL = getDeltaStatus(dL);
         const statusV = getDeltaStatus(dV);
 
+        // Ajuste λ: Se mantiene la esencia, el Delta influye en la proyección
         let adjL = xgL_raw + (dL * 0.2); 
         let adjV = xgV_raw + (dV * 0.2);
         adjL = Math.max(0.1, adjL);
         adjV = Math.max(0.1, adjV);
 
-        document.getElementById('deltaLocal').innerHTML = `${statusL.icon} ${dL.toFixed(2)}<br><small>${statusL.text}</small>`;
-        document.getElementById('deltaVisit').innerHTML = `${statusV.icon} ${dV.toFixed(2)}<br><small>${statusV.text}</small>`;
+        document.getElementById('deltaLocal').innerHTML = `${dL > 0 ? '+' : ''}${dL.toFixed(2)}<br><small>${statusL.text}</small>`;
+        document.getElementById('deltaVisit').innerHTML = `${dV > 0 ? '+' : ''}${dV.toFixed(2)}<br><small>${statusV.text}</small>`;
         document.getElementById('adjLocal').innerText = `xG Ajustado: ${adjL.toFixed(2)}`;
         document.getElementById('adjVisit').innerText = `xG Ajustado: ${adjV.toFixed(2)}`;
 
-        // Probabilidades por equipo (hasta 10 goles)
         let probL = [];
         let probV = [];
         for (let i = 0; i <= 10; i++) {
@@ -240,28 +243,18 @@
             probV.push(poisson(i, adjV));
         }
 
-        // --- Cálculo de los 6 mercados específicos ---
         let o25 = 0, u25 = 0, bttsY = 0, bttsN = 0, localO15 = 0, visitaO15 = 0;
 
         for (let i = 0; i <= 10; i++) {
             for (let j = 0; j <= 10; j++) {
                 let p_score = probL[i] * probV[j];
-                
-                // Over/Under 2.5
                 if (i + j > 2.5) o25 += p_score; else u25 += p_score;
-                
-                // BTTS
                 if (i > 0 && j > 0) bttsY += p_score; else bttsN += p_score;
-                
-                // Local Over 1.5 (i es goles local)
                 if (i > 1.5) localO15 += p_score;
-                
-                // Visita Over 1.5 (j es goles visita)
                 if (j > 1.5) visitaO15 += p_score;
             }
         }
 
-        // Lista de mercados solicitados
         const markets = [
             { name: 'Over 2.5 Goles', p: o25 },
             { name: 'Under 2.5 Goles', p: u25 },
@@ -271,7 +264,6 @@
             { name: 'Visitante - Over 1.5 Goles', p: visitaO15 }
         ];
 
-        // Selección del mercado con mayor probabilidad
         let bestMarket = markets.reduce((prev, current) => (prev.p > current.p) ? prev : current);
 
         const suggestionBox = document.getElementById('marketSuggestion');
