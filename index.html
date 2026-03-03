@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calculadora Poisson Pro - Mercados Específicos</title>
+    <title>Poisson AI - Motor de Decisión Pro</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -15,6 +15,7 @@
             --success: #00ff88;
             --warning: #ffcc00;
             --danger: #ff4444;
+            --ai-glow: 0 0 15px rgba(0, 173, 181, 0.4);
         }
 
         body {
@@ -32,7 +33,7 @@
             width: 100%;
         }
 
-        h1 { text-align: center; color: var(--accent-color); margin-bottom: 10px; }
+        h1 { text-align: center; color: var(--accent-color); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
         .subtitle { text-align: center; font-size: 0.9em; color: #888; margin-bottom: 30px; }
 
         .grid-inputs {
@@ -58,17 +59,20 @@
 
         input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background: var(--input-bg);
             border: 1px solid var(--border-color);
             color: white;
             border-radius: 5px;
             box-sizing: border-box;
+            outline: none;
         }
+        
+        input:focus { border-color: var(--accent-color); }
 
         button {
             width: 100%;
-            padding: 15px;
+            padding: 18px;
             background: var(--accent-color);
             border: none;
             color: white;
@@ -77,9 +81,10 @@
             cursor: pointer;
             font-size: 1.1em;
             transition: 0.3s;
+            box-shadow: var(--ai-glow);
         }
 
-        button:hover { background: #008c95; }
+        button:hover { background: #008c95; transform: translateY(-2px); }
 
         .delta-box {
             font-size: 1.5em;
@@ -93,10 +98,10 @@
 
         .val-badge {
             color: #000;
-            padding: 2px 6px;
+            padding: 4px 8px;
             border-radius: 4px;
             font-weight: bold;
-            font-size: 0.8em;
+            font-size: 0.85em;
         }
 
         .adjustment-info {
@@ -109,43 +114,53 @@
 
         .suggestion-box {
             margin-top: 15px;
-            padding: 15px;
-            background: #252525;
-            border-radius: 5px;
+            padding: 20px;
+            background: #1a2a2b;
+            border-radius: 8px;
             text-align: center;
-            border-left: 4px solid var(--accent-color);
+            border: 1px solid var(--accent-color);
+            animation: fadeIn 0.5s ease;
         }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
         .suggestion-title {
             color: var(--accent-color);
             font-weight: bold;
-            margin-bottom: 5px;
-            font-size: 1.1em;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        .target-info {
-            font-size: 0.8em;
-            color: #888;
-            margin-bottom: 10px;
-            text-align: center;
+        .ai-reasoning {
+            font-size: 0.85em;
+            color: #aaa;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            font-style: italic;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>⚽ Poisson Pro: Selección Única</h1>
-    <p class="subtitle">Análisis de Probabilidad y Rendimiento</p>
+    <h1>🤖 Poisson AI Decision Engine</h1>
+    <p class="subtitle">Análisis Multidimensional de Datos y Valor</p>
 
     <div class="grid-inputs">
         <div class="card">
             <h3>Local</h3>
             <div class="input-group">
-                <label>xG Proyectado (Actual)</label>
+                <label>xG Proyectado (Expectativa)</label>
                 <input type="number" id="xgLocal" step="0.01" placeholder="Ej: 1.65">
             </div>
             <div class="input-group">
-                <label>Promedio GF Histórico</label>
+                <label>Goles Reales (GF)</label>
                 <input type="number" id="gfLocal" step="0.01" placeholder="Ej: 1.40">
             </div>
             <div id="deltaLocal" class="delta-box">-</div>
@@ -155,11 +170,11 @@
         <div class="card">
             <h3>Visitante</h3>
             <div class="input-group">
-                <label>xG Proyectado (Actual)</label>
+                <label>xG Proyectado (Expectativa)</label>
                 <input type="number" id="xgVisit" step="0.01" placeholder="Ej: 1.20">
             </div>
             <div class="input-group">
-                <label>Promedio GF Histórico</label>
+                <label>Goles Reales (GF)</label>
                 <input type="number" id="gfVisit" step="0.01" placeholder="Ej: 1.10">
             </div>
             <div id="deltaVisit" class="delta-box">-</div>
@@ -168,15 +183,14 @@
     </div>
 
     <div class="card" style="margin-bottom: 20px;">
-        <h3>Validación de Cuota</h3>
-        <p class="target-info">Mercados analizados: O/U 2.5, BTTS Y/N, Team Over 1.5</p>
+        <h3>Validación de Mercado</h3>
         <div class="grid-inputs" style="margin-bottom: 0;">
-            <input type="number" id="marketOdd" step="0.01" placeholder="Cuota del Mercado (Ej: 1.85)">
+            <input type="number" id="marketOdd" step="0.01" placeholder="Ingresa Cuota de Referencia (Ej: 1.80)">
         </div>
         <div id="marketSuggestion" class="suggestion-box" style="display:none;"></div>
     </div>
 
-    <button onclick="calculateAll()">GENERAR PICK ÓPTIMO</button>
+    <button onclick="calculateAI()">EJECUTAR MOTOR DE DECISIÓN IA</button>
 </div>
 
 <script>
@@ -193,13 +207,11 @@
     }
 
     function getDeltaStatus(delta) {
-        // CORRECCIÓN: Si Delta (xG - GF) es POSITIVO, el equipo genera más de lo que anota -> SUBRENDIMIENTO
-        if (delta > 0.3) return { icon: '📉', text: 'Alto Subrendimiento' };
-        if (delta > 0.1) return { icon: '📊', text: 'Subrendimiento' };
-        // Si Delta es NEGATIVO, el equipo anota más de lo que genera -> SOBRERENDIMIENTO
-        if (delta < -0.3) return { icon: '🚀', text: 'Alto Sobrerendimiento' };
-        if (delta < -0.1) return { icon: '📈', text: 'Sobrerendimiento' };
-        return { icon: '🎯', text: 'Estable' };
+        if (delta > 0.3) return { icon: '📉', text: 'Alto Subrendimiento', score: -2 };
+        if (delta > 0.1) return { icon: '📊', text: 'Subrendimiento', score: -1 };
+        if (delta < -0.3) return { icon: '🚀', text: 'Alto Sobrerendimiento', score: 2 };
+        if (delta < -0.1) return { icon: '📈', text: 'Sobrerendimiento', score: 1 };
+        return { icon: '🎯', text: 'Estable', score: 0 };
     }
 
     function calculateKelly(prob, odd) {
@@ -208,86 +220,97 @@
         let q = 1 - p;
         let b = odd - 1;
         let k = (b * p - q) / b;
-        let fraction = k / 1.8; 
-        return fraction > 0 ? (fraction * 100).toFixed(2) : 0;
+        return k > 0 ? (k / 1.8 * 100).toFixed(2) : 0;
     }
 
-    function calculateAll() {
-        const xgL_raw = parseFloat(document.getElementById('xgLocal').value) || 0;
+    function calculateAI() {
+        const xgL = parseFloat(document.getElementById('xgLocal').value) || 0;
         const gfL = parseFloat(document.getElementById('gfLocal').value) || 0;
-        const xgV_raw = parseFloat(document.getElementById('xgVisit').value) || 0;
+        const xgV = parseFloat(document.getElementById('xgVisit').value) || 0;
         const gfV = parseFloat(document.getElementById('gfVisit').value) || 0;
         const userOdd = parseFloat(document.getElementById('marketOdd').value) || 0;
 
-        // Delta = xG - GF
-        const dL = xgL_raw - gfL;
-        const dV = xgV_raw - gfV;
-        const statusL = getDeltaStatus(dL);
-        const statusV = getDeltaStatus(dV);
+        const dL = xgL - gfL;
+        const dV = xgV - gfV;
+        const sL = getDeltaStatus(dL);
+        const sV = getDeltaStatus(dV);
 
-        // Ajuste λ: Se mantiene la esencia, el Delta influye en la proyección
-        let adjL = xgL_raw + (dL * 0.2); 
-        let adjV = xgV_raw + (dV * 0.2);
+        // Ajuste IA de Goles (Sensibilidad 0.25)
+        let adjL = xgL + (dL * 0.25);
+        let adjV = xgV + (dV * 0.25);
         adjL = Math.max(0.1, adjL);
         adjV = Math.max(0.1, adjV);
 
-        document.getElementById('deltaLocal').innerHTML = `${dL > 0 ? '+' : ''}${dL.toFixed(2)}<br><small>${statusL.text}</small>`;
-        document.getElementById('deltaVisit').innerHTML = `${dV > 0 ? '+' : ''}${dV.toFixed(2)}<br><small>${statusV.text}</small>`;
-        document.getElementById('adjLocal').innerText = `xG Ajustado: ${adjL.toFixed(2)}`;
-        document.getElementById('adjVisit').innerText = `xG Ajustado: ${adjV.toFixed(2)}`;
+        document.getElementById('deltaLocal').innerHTML = `${dL > 0 ? '+' : ''}${dL.toFixed(2)}<br><small>${sL.text}</small>`;
+        document.getElementById('deltaVisit').innerHTML = `${dV > 0 ? '+' : ''}${dV.toFixed(2)}<br><small>${sV.text}</small>`;
+        document.getElementById('adjLocal').innerText = `λ Dinámico: ${adjL.toFixed(2)}`;
+        document.getElementById('adjVisit').innerText = `λ Dinámico: ${adjV.toFixed(2)}`;
 
-        let probL = [];
-        let probV = [];
+        let probL = []; let probV = [];
         for (let i = 0; i <= 10; i++) {
             probL.push(poisson(i, adjL));
             probV.push(poisson(i, adjV));
         }
 
-        let o25 = 0, u25 = 0, bttsY = 0, bttsN = 0, localO15 = 0, visitaO15 = 0;
-
+        let o25 = 0, u25 = 0, bttsY = 0, bttsN = 0, locO15 = 0, visO15 = 0;
         for (let i = 0; i <= 10; i++) {
             for (let j = 0; j <= 10; j++) {
-                let p_score = probL[i] * probV[j];
-                if (i + j > 2.5) o25 += p_score; else u25 += p_score;
-                if (i > 0 && j > 0) bttsY += p_score; else bttsN += p_score;
-                if (i > 1.5) localO15 += p_score;
-                if (j > 1.5) visitaO15 += p_score;
+                let p = probL[i] * probV[j];
+                if (i + j > 2.5) o25 += p; else u25 += p;
+                if (i > 0 && j > 0) bttsY += p; else bttsN += p;
+                if (i > 1.5) locO15 += p;
+                if (j > 1.5) visO15 += p;
             }
         }
 
+        // --- SISTEMA DE PUNTUACIÓN DE IA (REASONING) ---
         const markets = [
-            { name: 'Over 2.5 Goles', p: o25 },
-            { name: 'Under 2.5 Goles', p: u25 },
-            { name: 'Ambos Equipos Marcan: SÍ', p: bttsY },
-            { name: 'Ambos Equipos Marcan: NO', p: bttsN },
-            { name: 'Local - Over 1.5 Goles', p: localO15 },
-            { name: 'Visitante - Over 1.5 Goles', p: visitaO15 }
+            { id: 'o25', name: 'Over 2.5 Goles', p: o25, type: 'over' },
+            { id: 'u25', name: 'Under 2.5 Goles', p: u25, type: 'under' },
+            { id: 'bttsY', name: 'Ambos Marcan: SÍ', p: bttsY, type: 'over' },
+            { id: 'bttsN', name: 'Ambos Marcan: NO', p: bttsN, type: 'under' },
+            { id: 'locO15', name: 'Local Over 1.5', p: locO15, type: 'over' },
+            { id: 'visO15', name: 'Visitante Over 1.5', p: visO15, type: 'over' }
         ];
 
-        let bestMarket = markets.reduce((prev, current) => (prev.p > current.p) ? prev : current);
+        // La IA puntúa cada mercado según el Delta y la Probabilidad
+        markets.forEach(m => {
+            m.aiScore = m.p * 100; // Base: Probabilidad
+            // Si es un mercado de 'over' y hay sobrerendimiento, sube la confianza
+            if (m.type === 'over') m.aiScore += (sL.score + sV.score) * 2;
+            // Si es un mercado de 'under' y hay subrendimiento, sube la confianza
+            if (m.type === 'under') m.aiScore -= (sL.score + sV.score) * 2;
+            
+            // FILTRO DE CUOTA 1.7+ (Busca probabilidad ideal entre 40% y 58%)
+            if (m.p >= 0.40 && m.p <= 0.58) m.aiScore += 15; // Bonus por rango de valor
+        });
 
-        const suggestionBox = document.getElementById('marketSuggestion');
-        suggestionBox.style.display = 'block';
+        let bestMarket = markets.reduce((prev, curr) => (prev.aiScore > curr.aiScore) ? prev : curr);
 
-        const finalProb = bestMarket.p * 100;
-        const fairOdd = (100 / finalProb);
-        const value = userOdd ? ((userOdd / fairOdd) - 1) * 100 : 0;
-        const kelly = calculateKelly(finalProb, userOdd);
+        const box = document.getElementById('marketSuggestion');
+        box.style.display = 'block';
+        const finalP = bestMarket.p * 100;
+        const fair = (100 / finalP);
+        const val = userOdd ? ((userOdd / fair) - 1) * 100 : 0;
+        const reason = (bestMarket.type === 'over' && (sL.score + sV.score) > 0) 
+            ? "Detectada tendencia de alta eficacia ofensiva (Delta Negativo)." 
+            : "Estadística de tendencia defensiva o baja generación detectada.";
 
-        suggestionBox.innerHTML = `
-            <div class="suggestion-title">⚡ Pick Sugerido (Poisson Pro)</div>
-            <div>Mercado: <strong>${bestMarket.name}</strong></div>
-            <div>Probabilidad: ${finalProb.toFixed(2)}%</div>
-            <div>Cuota Justa: ${fairOdd.toFixed(2)}</div>
+        box.innerHTML = `
+            <div class="suggestion-title">🧠 IA DECISION: ${bestMarket.name}</div>
+            <div style="font-size: 1.1em; margin: 10px 0;">
+                Confianza IA: <strong>${bestMarket.aiScore.toFixed(1)}pts</strong> | Prob: ${finalP.toFixed(2)}%
+            </div>
+            <div>Cuota Justa: ${fair.toFixed(2)}</div>
             ${userOdd ? `
-                <hr style="border:0; border-top:1px solid #444; margin:10px 0;">
-                <div style="color: ${value > 0 ? 'var(--success)' : 'var(--danger)'}">
-                    <strong>Valor: ${value > 0 ? '+' : ''}${value.toFixed(2)}%</strong><br>
-                    <span class="val-badge" style="background:${value > 0 ? 'var(--success)' : 'var(--warning)'}">
-                        Kelly (Fracc. 1.8): ${kelly}%
+                <div style="margin-top: 15px;">
+                    <span class="val-badge" style="background:${val > 0 ? 'var(--success)' : 'var(--warning)'}">
+                        Valor: ${val.toFixed(2)}%
                     </span>
+                    <span class="val-badge" style="background:white; margin-left:10px;">Kelly: ${calculateKelly(finalP, userOdd)}%</span>
                 </div>
             ` : ''}
+            <div class="ai-reasoning">"He seleccionado este mercado porque combina una probabilidad sólida con un ajuste Delta favorable. ${reason}"</div>
         `;
     }
 </script>
