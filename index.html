@@ -556,13 +556,11 @@
         database = {};
         matchesToday = [];
 
-        // 1. Cargar datos estadísticos de cada liga
         for (let l of leagues) {
             const data = await fetchDataForSheet(l.sheet);
             if (data) database[l.sheet] = data;
         }
 
-        // 2. Buscar partidos en "PARTIDOS DEL DIA"
         try {
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F1000`;
             const res = await fetch(url);
@@ -574,14 +572,12 @@
                 const away = cols[2];
                 if (!home || home === "LOCAL") return;
                 
-                // Buscar este partido en todas las bases de datos cargadas
                 for (let leagueName in database) {
                     const db = database[leagueName];
                     const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
                     const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
 
                     if (lData && vData) {
-                        // Cálculos Delta xG y Factores
                         const deltaL = (lData.gf / lData.gp) - (lData.xG_generado / lData.gp);
                         const deltaV = (vData.gf / vData.gp) - (vData.xG_generado / vData.gp);
                         const factorL = 1 - (deltaL * 0.08);
