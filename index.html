@@ -24,6 +24,7 @@
         
         .card { background: var(--bg-card); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
         h1 { color: var(--primary); text-align: center; letter-spacing: 2px; font-weight: 900; margin-bottom: 5px; }
+        h1 span { color: var(--accent-yellow); }
         .subtitle { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 25px; display: block; }
 
         .section-title { font-size: 0.7rem; color: var(--primary); text-transform: uppercase; font-weight: 800; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
@@ -64,6 +65,9 @@
         .no-value { background: var(--accent-red); color: white; }
 
         .chart-container { height: 250px; margin-top: 25px; }
+        
+        /* Nuevos estilos para mercados específicos */
+        .market-highlight { border: 1px solid var(--accent-blue); background: rgba(51, 154, 240, 0.05); }
     </style>
 </head>
 <body>
@@ -110,6 +114,8 @@
                         <option value="o25">Over 2.5 Goles</option>
                         <option value="u25">Under 2.5 Goles</option>
                         <option value="btts">Ambos Marcan (Sí)</option>
+                        <option value="ho15">Local Over 1.5</option>
+                        <option value="ao15">Visita Over 1.5</option>
                     </select>
                 </div>
                 <div>
@@ -154,6 +160,12 @@
             <div class="prob-box" id="box_o25"><span>Over 2.5</span><span class="val" id="pO25">0%</span></div>
             <div class="prob-box" id="box_btts"><span>Ambos Marcan</span><span class="val" id="pBTTS">0%</span></div>
             <div class="prob-box" id="box_u25"><span>Under 2.5</span><span class="val" id="pU25">0%</span></div>
+        </div>
+
+        <div class="prob-card">
+            <div class="prob-box market-highlight" id="box_ho15"><span>Local Over 1.5</span><span class="val" id="pHO15" style="color: var(--primary);">0%</span></div>
+            <div class="prob-box" style="opacity: 0.5; display: flex; align-items: center; justify-content: center; font-size: 0.6rem;">MARKET PRO</div>
+            <div class="prob-box market-highlight" id="box_ao15"><span>Visita Over 1.5</span><span class="val" id="pAO15" style="color: var(--primary);">0%</span></div>
         </div>
 
         <div id="valueAnalysisResult" style="text-align: center; margin-top: 15px; display: none;">
@@ -239,7 +251,7 @@ function parseTable(text) {
 }
 
 function parseTables() {
-    saveToStorage(); // Aseguramos guardar antes de procesar
+    saveToStorage(); 
     const homeInput = document.getElementById('homeTableInput').value;
     const awayInput = document.getElementById('awayTableInput').value;
 
@@ -296,6 +308,11 @@ function calculatePoisson() {
         probV[i] = poisson(i, lambdaV);
     }
 
+    // Cálculo de Local Over 1.5 y Visita Over 1.5
+    // Prob(O1.5) = 1 - Prob(0 goles) - Prob(1 gol)
+    const pHO15 = 1 - (probL[0] + probL[1]);
+    const pAO15 = 1 - (probV[0] + probV[1]);
+
     for (let i = 0; i <= 10; i++) {
         for (let j = 0; j <= 10; j++) {
             let p = probL[i] * probV[j];
@@ -310,7 +327,8 @@ function calculatePoisson() {
 
     currentProbs = {
         winL: pL, draw: pX, winV: pV,
-        o25: pO25, u25: 1 - pO25, btts: pBTTS
+        o25: pO25, u25: 1 - pO25, btts: pBTTS,
+        ho15: pHO15, ao15: pAO15
     };
 
     document.getElementById('matchTitle').innerText = `${homeTeam.name.toUpperCase()} VS ${awayTeam.name.toUpperCase()}`;
@@ -330,6 +348,10 @@ function calculatePoisson() {
     document.getElementById('pO25').innerText = (pO25 * 100).toFixed(1) + "%";
     document.getElementById('pU25').innerText = (currentProbs.u25 * 100).toFixed(1) + "%";
     document.getElementById('pBTTS').innerText = (pBTTS * 100).toFixed(1) + "%";
+    
+    // Actualizar nuevos campos
+    document.getElementById('pHO15').innerText = (pHO15 * 100).toFixed(1) + "%";
+    document.getElementById('pAO15').innerText = (pAO15 * 100).toFixed(1) + "%";
 
     checkValue();
 
@@ -345,7 +367,9 @@ function checkValue() {
     const badge = document.getElementById('valueBadge');
     const detail = document.getElementById('valueDetail');
 
+    // Resetear bordes
     document.querySelectorAll('.prob-box').forEach(b => b.style.borderColor = 'var(--border)');
+    document.querySelectorAll('.market-highlight').forEach(b => b.style.borderColor = 'var(--accent-blue)');
 
     if (isNaN(odd) || odd <= 1) {
         analysisArea.style.display = 'none';
@@ -359,16 +383,18 @@ function checkValue() {
 
     analysisArea.style.display = 'block';
     
+    const targetBox = document.getElementById(`box_${market}`);
+    
     if (value > 0) {
         badge.innerText = `VALOR DETECTADO: +${valuePercentage}%`;
         badge.className = "value-badge has-value";
         detail.innerHTML = `Cuota Bookie: <b>${odd}</b> | Cuota Justa: <b>${cuotaJusta.toFixed(2)}</b><br>La probabilidad del modelo es mayor que la de la casa.`;
-        document.getElementById(`box_${market}`).style.borderColor = "var(--accent-green)";
+        if(targetBox) targetBox.style.borderColor = "var(--accent-green)";
     } else {
         badge.innerText = `SIN VALOR: ${valuePercentage}%`;
         badge.className = "value-badge no-value";
         detail.innerHTML = `Cuota Bookie: <b>${odd}</b> | Cuota Justa: <b>${cuotaJusta.toFixed(2)}</b><br>La cuota no compensa el riesgo según el modelo.`;
-        document.getElementById(`box_${market}`).style.borderColor = "var(--accent-red)";
+        if(targetBox) targetBox.style.borderColor = "var(--accent-red)";
     }
 }
 
