@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BETAGS - Poisson & History Analysis</title>
+    <title>BETAGS - Professional Poisson</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -11,192 +11,161 @@
             --bg-card: #151921;
             --primary: #4dabf7;
             --accent-green: #51cf66;
-            --accent-red: #ff6b6b;
             --accent-yellow: #fcc419;
             --text-white: #e9ecef;
             --text-muted: #adb5bd;
             --border: #2c3440;
-            --glass: rgba(255, 255, 255, 0.05);
         }
 
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg-dark); 
-            color: var(--text-white);
-            margin: 0; padding: 0;
-            display: flex; justify-content: center;
-            min-height: 100vh;
-        }
-
-        .container { width: 100%; max-width: 650px; padding: 20px; box-sizing: border-box; }
-
-        h1 { font-size: 1.6rem; color: var(--primary); text-align: center; margin: 25px 0; letter-spacing: 4px; font-weight: 900; }
-        h1 span { color: var(--text-white); }
-
-        .section-title { 
-            font-size: 0.75rem; color: var(--primary); text-transform: uppercase; 
-            margin: 20px 0 12px; display: flex; align-items: center; gap: 10px; 
-            font-weight: 800; letter-spacing: 1px;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-dark); color: var(--text-white); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 600px; }
         
-        .card {
-            background: var(--bg-card); border-radius: 16px; padding: 20px;
-            margin-bottom: 20px; border: 1px solid var(--border);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
-
-        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .full-width { grid-column: span 2; }
+        .card { background: var(--bg-card); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        h1 { color: var(--primary); text-align: center; letter-spacing: 2px; font-weight: 900; }
         
-        label { display: block; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 5px; font-weight: bold; }
-
-        input { 
-            width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); 
-            background: #0b0e14; color: white; font-size: 0.9rem; outline: none; box-sizing: border-box;
-        }
-
-        .btn-analyze {
-            width: 100%; background: linear-gradient(135deg, #4dabf7, #228be6);
-            color: white; border: none; padding: 16px; border-radius: 12px;
-            font-weight: 900; font-size: 0.9rem; cursor: pointer; margin-top: 20px;
-        }
-
-        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
-
-        .result-box {
-            background: var(--glass); padding: 15px; border-radius: 12px;
-            text-align: center; border: 1px solid var(--border);
-        }
-
-        .res-label { font-size: 0.6rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; }
-        .res-val { font-size: 1.2rem; font-weight: 900; margin: 5px 0; color: var(--accent-yellow); }
-
-        .chart-container { margin-top: 20px; height: 250px; width: 100%; }
+        .section-title { font-size: 0.7rem; color: var(--primary); text-transform: uppercase; font-weight: 800; margin-bottom: 10px; display: block; }
         
-        .info-box {
-            margin-top: 15px; padding: 12px; background: rgba(252, 196, 25, 0.1);
-            border-radius: 8px; border-left: 4px solid var(--accent-yellow);
-            font-size: 0.8rem; line-height: 1.4; color: #ffd866;
-        }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        label { display: block; font-size: 0.6rem; color: var(--text-muted); margin-bottom: 4px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #0b0e14; color: white; box-sizing: border-box; }
+        
+        .btn { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 900; cursor: pointer; transition: 0.3s; }
+        .btn:hover { filter: brightness(1.2); }
+
+        .res-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+        .res-box { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; text-align: center; border: 1px solid var(--border); }
+        .res-box span { display: block; font-size: 0.6rem; color: var(--text-muted); }
+        .res-box b { font-size: 1.1rem; color: var(--accent-yellow); }
+
+        .chart-area { height: 200px; margin-top: 20px; }
+        .badge { background: var(--accent-green); color: black; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: 900; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>BETA<span>GS</span> VS HISTORY</h1>
+    <h1>BETA<span>GS</span> PRO 2026</h1>
 
-    <div class="section-title"><span>📊</span> CONFIGURACIÓN DE LIGA</div>
     <div class="card">
-        <div class="input-grid">
-            <div class="full-width"><label>LIGA</label><input type="text" id="leagueName" value="La Liga"></div>
-            <div><label>AVG LIGA LOCAL</label><input type="number" id="avgGLiga_Local" step="0.01" value="1.50"></div>
-            <div><label>AVG LIGA VISITA</label><input type="number" id="avgGLiga_Visita" step="0.01" value="1.10"></div>
+        <span class="section-title">1. Promedios de la Liga (Referencia)</span>
+        <div class="grid">
+            <div><label>Goles Local Liga</label><input type="number" id="l_avgL" value="1.50" step="0.01"></div>
+            <div><label>Goles Visita Liga</label><input type="number" id="l_avgV" value="1.20" step="0.01"></div>
         </div>
+
+        <span class="section-title">2. Equipo Local (Últimos 5-8 partidos)</span>
+        <div class="grid">
+            <div><label>GF Local</label><input type="number" id="h_gf" placeholder="Ej: 2.1"></div>
+            <div><label>GC Local</label><input type="number" id="h_gc" placeholder="Ej: 0.8"></div>
+        </div>
+
+        <span class="section-title">3. Equipo Visita (Últimos 5-8 partidos)</span>
+        <div class="grid">
+            <div><label>GF Visita</label><input type="number" id="a_gf" placeholder="Ej: 1.1"></div>
+            <div><label>GC Visita</label><input type="number" id="a_gc" placeholder="Ej: 1.9"></div>
+        </div>
+
+        <button class="btn" onclick="analisisProfesional()">GENERAR PRONÓSTICO ELITE</button>
     </div>
 
-    <div class="section-title"><span>⚽</span> DATOS DE EQUIPOS</div>
-    <div class="card">
-        <div class="input-grid">
-            <div><label>GF LOCAL</label><input type="number" id="avgGF_Local" step="0.01" placeholder="Ej: 1.8"></div>
-            <div><label>GC LOCAL</label><input type="number" id="avgGC_Local" step="0.01" placeholder="Ej: 0.9"></div>
-            <div><label>GF VISITA</label><input type="number" id="avgGF_Visita" step="0.01" placeholder="Ej: 1.2"></div>
-            <div><label>GC VISITA</label><input type="number" id="avgGC_Visita" step="0.01" placeholder="Ej: 1.5"></div>
+    <div id="results" class="card" style="display:none;">
+        <div style="text-align: center; margin-bottom: 15px;">
+            <span class="badge">ANÁLISIS DE FUERZA COMPLETADO</span>
+            <div id="matchDisplay" style="font-weight: 800; margin-top: 5px;"></div>
         </div>
-        <button class="btn-analyze" onclick="calcularTodo()">🚀 ANALIZAR REALIDAD VS POISSON</button>
-    </div>
 
-    <div id="resultsPanel" style="display: none;">
-        <div class="section-title"><span>📉</span> COMPARATIVA DE PROBABILIDADES</div>
-        <div class="card">
-            <div class="chart-container">
-                <canvas id="myChart"></canvas>
-            </div>
-            <div class="info-box">
-                <strong>Nota Histórica:</strong> La curva azul muestra la predicción matemática. La línea amarilla representa la "Realidad Histórica" (Dixon-Coles), ajustando el exceso de empates y falta de goles en ciertos tramos.
-            </div>
-            
-            <div class="results-grid">
-                <div class="result-box"><div class="res-label">PROB. POISSON</div><div class="res-val" id="val_poisson">0%</div></div>
-                <div class="result-box"><div class="res-label">AJUSTE REAL (1X2)</div><div class="res-val" id="val_real">0%</div></div>
-            </div>
+        <div class="res-grid">
+            <div class="res-box"><span id="nameH">Local</span><b id="probH">0%</b></div>
+            <div class="res-box"><span>Empate</span><b id="probX">0%</b></div>
+            <div class="res-box"><span id="nameA">Visita</span><b id="probA">0%</b></div>
         </div>
+
+        <div class="res-grid" style="margin-top: 10px;">
+            <div class="res-box"><span>Over 2.5</span><b id="probO25">0%</b></div>
+            <div class="res-box"><span>Ambos Marcan</span><b id="probBTTS">0%</b></div>
+            <div class="res-box"><span>Goles Exp.</span><b id="expG">0</b></div>
+        </div>
+
+        <div class="chart-area"><canvas id="goalsChart"></canvas></div>
     </div>
 </div>
 
 <script>
-    let myChart = null;
+let chart = null;
 
-    function factorial(n) { return (n <= 1) ? 1 : n * factorial(n - 1); }
-    function poisson(k, lambda) { return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k); }
+function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
+function poisson(k, lambda) { return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k); }
 
-    function calcularTodo() {
-        const gfL = parseFloat(document.getElementById('avgGF_Local').value);
-        const gcL = parseFloat(document.getElementById('avgGC_Local').value);
-        const alL = parseFloat(document.getElementById('avgGLiga_Local').value);
-        const gfV = parseFloat(document.getElementById('avgGF_Visita').value);
-        const gcV = parseFloat(document.getElementById('avgGC_Visita').value);
-        const alV = parseFloat(document.getElementById('avgGLiga_Visita').value);
+function analisisProfesional() {
+    // Datos Liga
+    const avgLigaH = parseFloat(document.getElementById('l_avgL').value);
+    const avgLigaV = parseFloat(document.getElementById('l_avgV').value);
 
-        if (isNaN(gfL) || isNaN(gfV)) return alert("Ingresa los promedios");
+    // Datos Equipos
+    const gfH = parseFloat(document.getElementById('h_gf').value);
+    const gcH = parseFloat(document.getElementById('h_gc').value);
+    const gfV = parseFloat(document.getElementById('a_gf').value);
+    const gcV = parseFloat(document.getElementById('a_gc').value);
 
-        const lambdaH = gfL * gcV * alL;
-        const lambdaV = gfV * gcL * alV;
+    if ([gfH, gcH, gfV, gcV].some(isNaN)) return alert("Por favor ingresa los datos de los equipos.");
 
-        const labels = ['0 Goles', '1 Gol', '2 Goles', '3 Goles', '4 Goles', '5+ Goles'];
-        const dataPoisson = [];
-        const dataReal = [];
+    // CÁLCULO PROFESIONAL: FUERZAS DE ATAQUE Y DEFENSA
+    const ataqueH = gfH / avgLigaH;
+    const defensaH = gcH / avgLigaV;
+    const ataqueV = gfV / avgLigaV;
+    const defensaV = gcV / avgLigaH;
 
-        // Generar datos comparativos para el Total de Goles (Over/Under)
-        for (let k = 0; k <= 5; k++) {
-            let p = poisson(k, lambdaH + lambdaV);
-            dataPoisson.push((p * 100).toFixed(1));
-            
-            // Factor de ajuste histórico: suavizado de curvas y aumento en el centro
-            let adjustment = (k === 0 || k === 1) ? 1.12 : (k === 2) ? 1.05 : 0.90;
-            dataReal.push((p * 100 * adjustment).toFixed(1));
+    // DETERMINACIÓN DE LAMBDAS AJUSTADOS
+    const lambdaH = ataqueH * defensaV * avgLigaH;
+    const lambdaV = ataqueV * defensaH * avgLigaV;
+
+    let pH = 0, pX = 0, pA = 0, pO25 = 0, pBTTS = 0;
+    let matrixH = [], matrixV = [];
+
+    for (let i = 0; i <= 8; i++) {
+        matrixH[i] = poisson(i, lambdaH);
+        matrixV[i] = poisson(i, lambdaV);
+    }
+
+    for (let i = 0; i <= 8; i++) {
+        for (let j = 0; j <= 8; j++) {
+            let prob = matrixH[i] * matrixV[j];
+            if (i > j) pH += prob;
+            else if (i === j) pX += prob;
+            else pA += prob;
+
+            if (i + j > 2.5) pO25 += prob;
+            if (i > 0 && j > 0) pBTTS += prob;
         }
-
-        renderChart(labels, dataPoisson, dataReal);
-        
-        document.getElementById('val_poisson').innerText = dataPoisson[2] + "% (U2.5)";
-        document.getElementById('val_real').innerText = (parseFloat(dataReal[0])+parseFloat(dataReal[1])+parseFloat(dataReal[2])).toFixed(1) + "%";
-        document.getElementById('resultsPanel').style.display = 'block';
     }
 
-    function renderChart(labels, d1, d2) {
-        const ctx = document.getElementById('myChart').getContext('2d');
-        if (myChart) myChart.destroy();
-        
-        myChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Poisson Teórico',
-                    data: d1,
-                    borderColor: '#4dabf7',
-                    backgroundColor: 'rgba(77, 171, 247, 0.2)',
-                    fill: true,
-                    tension: 0.4
-                }, {
-                    label: 'Realidad Histórica',
-                    data: d2,
-                    borderColor: '#fcc419',
-                    borderDash: [5, 5],
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: '#adb5bd', font: { size: 10 } } } },
-                scales: {
-                    y: { ticks: { color: '#adb5bd' }, grid: { color: '#2c3440' } },
-                    x: { ticks: { color: '#adb5bd' }, grid: { color: '#2c3440' } }
-                }
-            }
-        });
-    }
+    // UI Updates
+    document.getElementById('probH').innerText = (pH * 100).toFixed(1) + "%";
+    document.getElementById('probX').innerText = (pX * 100).toFixed(1) + "%";
+    document.getElementById('probA').innerText = (pA * 100).toFixed(1) + "%";
+    document.getElementById('probO25').innerText = (pO25 * 100).toFixed(1) + "%";
+    document.getElementById('probBTTS').innerText = (pBTTS * 100).toFixed(1) + "%";
+    document.getElementById('expG').innerText = (lambdaH + lambdaV).toFixed(2);
+    
+    document.getElementById('results').style.display = 'block';
+    renderChart(matrixH, matrixV);
+}
+
+function renderChart(h, v) {
+    const ctx = document.getElementById('goalsChart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['0', '1', '2', '3', '4', '5'],
+            datasets: [
+                { label: 'Prob. Goles Local', data: h.slice(0,6), backgroundColor: '#4dabf7' },
+                { label: 'Prob. Goles Visita', data: v.slice(0,6), backgroundColor: '#fcc419' }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false } } }
+    });
+}
 </script>
 </body>
 </html>
