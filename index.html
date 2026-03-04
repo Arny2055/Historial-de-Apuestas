@@ -64,10 +64,10 @@
 
     <div class="card">
         <div class="section-title"><span>📂</span> 1. TABLA FORM LOCAL (HOME)</div>
-        <textarea id="homeTableInput" placeholder="Pega aquí la tabla de los últimos 10 de local..."></textarea>
+        <textarea id="homeTableInput" placeholder="Pega aquí la tabla de local..."></textarea>
         
         <div class="section-title" style="margin-top: 20px;"><span>📂</span> 2. TABLA FORM VISITA (AWAY)</div>
-        <textarea id="awayTableInput" placeholder="Pega aquí la tabla de los últimos 10 de visita..."></textarea>
+        <textarea id="awayTableInput" placeholder="Pega aquí la tabla de visita..."></textarea>
 
         <button class="btn" onclick="parseTables()">1. PROCESAR ESTADÍSTICAS LIGA</button>
     </div>
@@ -135,18 +135,34 @@ let chartInstance = null;
 function parseTable(text) {
     const lines = text.trim().split('\n');
     const teams = [];
+    
     lines.forEach(line => {
-        // Parser mejorado para manejar nombres con puntos, números y espacios
+        // Limpiamos la línea de espacios extra
         const parts = line.trim().split(/\s+/);
-        if (parts.length >= 7) {
-            const gpIndex = parts.findIndex(p => p === "10" || p === "8" || p === "9");
-            if (gpIndex !== -1) {
-                const name = parts.slice(1, gpIndex).join(" ");
-                const gp = parseInt(parts[gpIndex]);
-                const gf = parseInt(parts[gpIndex + 4]);
-                const ga = parseInt(parts[gpIndex + 5]);
-                
-                if (!isNaN(gp) && !isNaN(gf) && !isNaN(ga)) {
+        
+        // Buscamos líneas que parezcan datos (mínimo 8 columnas)
+        // Estructura esperada desde el final: PPG(7), Opp(6), Pts(5), GD(4), GA(3), GF(2), L(1), D(0)
+        if (parts.length >= 8) {
+            // Intentamos localizar las columnas numéricas de goles (GF y GA)
+            // En tu formato, GF es la 5ta columna contando desde Pts hacia atrás
+            // Pero es más seguro buscar el bloque de números: GP W D L GF GA GD Pts
+            
+            let dataStartIndex = -1;
+            // Buscamos donde empieza el número de partidos jugados (GP) que suele ser el primer número tras el nombre
+            for(let i = 1; i < parts.length; i++) {
+                if(!isNaN(parts[i]) && !isNaN(parts[i+1]) && parts[i].length <= 2) {
+                    dataStartIndex = i;
+                    break;
+                }
+            }
+
+            if (dataStartIndex !== -1) {
+                const name = parts.slice(1, dataStartIndex).join(" ");
+                const gp = parseInt(parts[dataStartIndex]);
+                const gf = parseInt(parts[dataStartIndex + 4]);
+                const ga = parseInt(parts[dataStartIndex + 5]);
+
+                if (!isNaN(gp) && gp > 0 && !isNaN(gf) && !isNaN(ga)) {
                     teams.push({
                         name: name,
                         gp: gp,
@@ -163,15 +179,20 @@ function parseTable(text) {
 }
 
 function parseTables() {
-    homeData = parseTable(document.getElementById('homeTableInput').value);
-    awayData = parseTable(document.getElementById('awayTableInput').value);
+    const homeInput = document.getElementById('homeTableInput').value;
+    const awayInput = document.getElementById('awayTableInput').value;
 
-    if (homeData.length === 0 || awayData.length === 0) {
-        alert("Error: Asegúrate de copiar las filas completas de la tabla (desde el ranking hasta PPG).");
+    homeData = parseTable(homeInput);
+    // Si la tabla de visita está vacía, usamos la de local para permitir pruebas, 
+    // pero lo ideal es que pegues ambas.
+    awayData = parseTable(awayInput || homeInput);
+
+    if (homeData.length === 0) {
+        alert("Error: No se pudieron extraer datos de la tabla local. Verifica el formato.");
         return;
     }
 
-    // Goles promedio de toda la liga en este periodo (Base de comparación)
+    // Goles promedio de toda la liga
     avgLeagueGF_Home = homeData.reduce((sum, t) => sum + t.avgGF, 0) / homeData.length;
     avgLeagueGF_Away = awayData.reduce((sum, t) => sum + t.avgGF, 0) / awayData.length;
 
@@ -186,20 +207,28 @@ function parseTables() {
     window.scrollTo({ top: document.getElementById('selectionArea').offsetTop, behavior: 'smooth' });
 }
 
-function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
-function poisson(k, lambda) { return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k); }
+function factorial(n) { 
+    if (n === 0) return 1;
+    let res = 1;
+    for (let i = 2; i <= n; i++) res *= i;
+    return res;
+}
+
+function poisson(k, lambda) { 
+    return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k); 
+}
 
 function calculatePoisson() {
     const homeTeam = homeData.find(t => t.name === document.getElementById('selectHome').value);
     const awayTeam = awayData.find(t => t.name === document.getElementById('selectAway').value);
 
-    // 1. FUERZAS RELATIVAS (Fuerza = Promedio Equipo / Promedio Liga)
+    // 1. FUERZAS RELATIVAS
     const FA_L = homeTeam.avgGF / avgLeagueGF_Home;
     const FD_L = homeTeam.avgGA / avgLeagueGF_Away;
     const FA_V = awayTeam.avgGF / avgLeagueGF_Away;
     const FD_V = awayTeam.avgGA / avgLeagueGF_Home;
 
-    // 2. CÁLCULO DE xG (λ - Lambda)
+    // 2. CÁLCULO DE xG (λ)
     const lambdaL = FA_L * FD_V * avgLeagueGF_Home;
     const lambdaV = FA_V * FD_L * avgLeagueGF_Away;
 
@@ -263,7 +292,9 @@ function renderChart(l, v) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: true, labels: { color: '#adb5bd' } } },
+            plugins: { 
+                legend: { display: true, labels: { color: '#adb5bd', font: { size: 10 } } } 
+            },
             scales: { 
                 y: { display: false }, 
                 x: { ticks: { color: '#adb5bd' }, grid: { display: false } } 
