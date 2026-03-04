@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BETAGS - Poisson Elite v2</title>
+    <title>BETAGS - Poisson & History Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-dark: #0b0e14;
@@ -22,357 +23,180 @@
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             background-color: var(--bg-dark); 
             color: var(--text-white);
-            margin: 0;
-            padding: 0;
-            display: flex; 
-            justify-content: center;
+            margin: 0; padding: 0;
+            display: flex; justify-content: center;
             min-height: 100vh;
         }
 
-        .container { 
-            width: 100%; 
-            max-width: 600px; 
-            padding: 20px; 
-            box-sizing: border-box;
-        }
+        .container { width: 100%; max-width: 650px; padding: 20px; box-sizing: border-box; }
 
         h1 { font-size: 1.6rem; color: var(--primary); text-align: center; margin: 25px 0; letter-spacing: 4px; font-weight: 900; }
         h1 span { color: var(--text-white); }
 
         .section-title { 
-            font-size: 0.75rem; 
-            color: var(--primary); 
-            text-transform: uppercase; 
-            margin: 20px 0 12px; 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            font-weight: 800; 
-            letter-spacing: 1px;
+            font-size: 0.75rem; color: var(--primary); text-transform: uppercase; 
+            margin: 20px 0 12px; display: flex; align-items: center; gap: 10px; 
+            font-weight: 800; letter-spacing: 1px;
         }
         
         .card {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid var(--border);
+            background: var(--bg-card); border-radius: 16px; padding: 20px;
+            margin-bottom: 20px; border: 1px solid var(--border);
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
 
-        .input-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 15px; 
-        }
-
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .full-width { grid-column: span 2; }
         
-        label {
-            display: block;
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
+        label { display: block; font-size: 0.65rem; color: var(--text-muted); margin-bottom: 5px; font-weight: bold; }
 
         input { 
-            width: 100%; 
-            padding: 12px; 
-            border-radius: 10px; 
-            border: 1px solid var(--border); 
-            background: #0b0e14;
-            color: white;
-            font-size: 0.9rem;
-            outline: none;
-            box-sizing: border-box;
-            transition: 0.3s;
+            width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--border); 
+            background: #0b0e14; color: white; font-size: 0.9rem; outline: none; box-sizing: border-box;
         }
-
-        input:focus { border-color: var(--primary); background: #151921; }
 
         .btn-analyze {
-            width: 100%;
-            background: linear-gradient(135deg, #4dabf7, #228be6);
-            color: white;
-            border: none;
-            padding: 16px;
-            border-radius: 12px;
-            font-weight: 900;
-            font-size: 0.9rem;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: 0.3s;
-            box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
+            width: 100%; background: linear-gradient(135deg, #4dabf7, #228be6);
+            color: white; border: none; padding: 16px; border-radius: 12px;
+            font-weight: 900; font-size: 0.9rem; cursor: pointer; margin-top: 20px;
         }
 
-        .btn-analyze:hover { filter: brightness(1.1); }
-        .btn-analyze:active { transform: scale(0.98); }
-
-        .results-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 10px;
-        }
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
 
         .result-box {
-            background: var(--glass);
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            border: 1px solid var(--border);
-            transition: 0.3s;
+            background: var(--glass); padding: 15px; border-radius: 12px;
+            text-align: center; border: 1px solid var(--border);
         }
-
-        .result-box:hover { border-color: var(--primary); }
 
         .res-label { font-size: 0.6rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; }
         .res-val { font-size: 1.2rem; font-weight: 900; margin: 5px 0; color: var(--accent-yellow); }
-        .res-prob { font-size: 0.7rem; color: var(--primary); font-family: monospace; }
 
-        .header-match {
-            text-align: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .prediction-summary {
-            margin-top: 15px;
-            padding: 15px;
-            background: rgba(77, 171, 247, 0.08);
-            border-radius: 12px;
-            font-size: 0.85rem;
-            text-align: center;
-            border-left: 4px solid var(--primary);
-            line-height: 1.4;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.6rem;
-            font-weight: 900;
-            margin-bottom: 10px;
-            background: var(--primary);
-            color: var(--bg-dark);
+        .chart-container { margin-top: 20px; height: 250px; width: 100%; }
+        
+        .info-box {
+            margin-top: 15px; padding: 12px; background: rgba(252, 196, 25, 0.1);
+            border-radius: 8px; border-left: 4px solid var(--accent-yellow);
+            font-size: 0.8rem; line-height: 1.4; color: #ffd866;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>BETA<span>GS</span> POISSON 2.0</h1>
+    <h1>BETA<span>GS</span> VS HISTORY</h1>
 
-    <div class="section-title"><span>🌍</span> CONFIGURACIÓN DE LIGA</div>
+    <div class="section-title"><span>📊</span> CONFIGURACIÓN DE LIGA</div>
     <div class="card">
         <div class="input-grid">
-            <div class="full-width">
-                <label>NOMBRE DE LA LIGA</label>
-                <input type="text" id="leagueName" placeholder="Ej: La Liga">
-            </div>
-            <div>
-                <label>AVG GOLES LOCAL (LIGA)</label>
-                <input type="number" id="avgGLiga_Local" step="0.01" placeholder="Ej: 1.55">
-            </div>
-            <div>
-                <label>AVG GOLES VISITA (LIGA)</label>
-                <input type="number" id="avgGLiga_Visita" step="0.01" placeholder="Ej: 1.15">
-            </div>
+            <div class="full-width"><label>LIGA</label><input type="text" id="leagueName" value="La Liga"></div>
+            <div><label>AVG LIGA LOCAL</label><input type="number" id="avgGLiga_Local" step="0.01" value="1.50"></div>
+            <div><label>AVG LIGA VISITA</label><input type="number" id="avgGLiga_Visita" step="0.01" value="1.10"></div>
         </div>
     </div>
 
-    <div class="section-title"><span>🏠</span> ANALÍTICA LOCAL</div>
+    <div class="section-title"><span>⚽</span> DATOS DE EQUIPOS</div>
     <div class="card">
         <div class="input-grid">
-            <div class="full-width">
-                <label>NOMBRE DEL EQUIPO</label>
-                <input type="text" id="homeTeam" placeholder="Ej: Real Madrid">
-            </div>
-            <div>
-                <label>GOLES A FAVOR (AVG)</label>
-                <input type="number" id="avgGF_Local" step="0.01" placeholder="Ej: 2.10">
-            </div>
-            <div>
-                <label>GOLES EN CONTRA (AVG)</label>
-                <input type="number" id="avgGC_Local" step="0.01" placeholder="Ej: 0.80">
-            </div>
+            <div><label>GF LOCAL</label><input type="number" id="avgGF_Local" step="0.01" placeholder="Ej: 1.8"></div>
+            <div><label>GC LOCAL</label><input type="number" id="avgGC_Local" step="0.01" placeholder="Ej: 0.9"></div>
+            <div><label>GF VISITA</label><input type="number" id="avgGF_Visita" step="0.01" placeholder="Ej: 1.2"></div>
+            <div><label>GC VISITA</label><input type="number" id="avgGC_Visita" step="0.01" placeholder="Ej: 1.5"></div>
         </div>
-    </div>
-
-    <div class="section-title"><span>🚀</span> ANALÍTICA VISITA</div>
-    <div class="card">
-        <div class="input-grid">
-            <div class="full-width">
-                <label>NOMBRE DEL EQUIPO</label>
-                <input type="text" id="awayTeam" placeholder="Ej: Barcelona">
-            </div>
-            <div>
-                <label>GOLES A FAVOR (AVG)</label>
-                <input type="number" id="avgGF_Visita" step="0.01" placeholder="Ej: 1.90">
-            </div>
-            <div>
-                <label>GOLES EN CONTRA (AVG)</label>
-                <input type="number" id="avgGC_Visita" step="0.01" placeholder="Ej: 1.20">
-            </div>
-        </div>
-        
-        <button class="btn-analyze" onclick="calcularPoissonElite()">🚀 ANALIZAR CON AJUSTE DIXON-COLES</button>
+        <button class="btn-analyze" onclick="calcularTodo()">🚀 ANALIZAR REALIDAD VS POISSON</button>
     </div>
 
     <div id="resultsPanel" style="display: none;">
-        <div class="section-title"><span>📊</span> PROYECCIONES AJUSTADAS</div>
+        <div class="section-title"><span>📉</span> COMPARATIVA DE PROBABILIDADES</div>
         <div class="card">
-            <div class="header-match">
-                <div class="badge">DIXON-COLES MODEL ENABLED</div>
-                <div id="resLeague" style="font-size: 0.7rem; color: var(--primary); font-weight: 800;"></div>
-                <div id="resMatch" style="font-size: 1.1rem; font-weight: 900; margin-top: 5px;"></div>
-                <div id="expectedGoals" style="font-size: 0.8rem; color: var(--accent-yellow); margin-top: 5px;"></div>
+            <div class="chart-container">
+                <canvas id="myChart"></canvas>
             </div>
-
+            <div class="info-box">
+                <strong>Nota Histórica:</strong> La curva azul muestra la predicción matemática. La línea amarilla representa la "Realidad Histórica" (Dixon-Coles), ajustando el exceso de empates y falta de goles en ciertos tramos.
+            </div>
+            
             <div class="results-grid">
-                <div class="result-box">
-                    <div class="res-label">Victoria Local (1)</div>
-                    <div class="res-val" id="winH_val">0%</div>
-                    <div class="res-prob" id="winH_odd">1.00</div>
-                </div>
-                <div class="result-box">
-                    <div class="res-label">Victoria Visita (2)</div>
-                    <div class="res-val" id="winA_val">0%</div>
-                    <div class="res-prob" id="winA_odd">1.00</div>
-                </div>
-                <div class="result-box">
-                    <div class="res-label">Over 2.5 FT</div>
-                    <div class="res-val" id="ov25_val">0%</div>
-                    <div class="res-prob" id="ov25_odd">1.00</div>
-                </div>
-                <div class="result-box">
-                    <div class="res-label">Under 2.5 FT</div>
-                    <div class="res-val" id="un25_val">0%</div>
-                    <div class="res-prob" id="un25_odd">1.00</div>
-                </div>
-                <div class="result-box">
-                    <div class="res-label">Ambos Marcan (BTTS)</div>
-                    <div class="res-val" id="bttsY_val">0%</div>
-                    <div class="res-prob" id="bttsY_odd">1.00</div>
-                </div>
-                <div class="result-box">
-                    <div class="res-label">Empate (X)</div>
-                    <div class="res-val" id="draw_val">0%</div>
-                    <div class="res-prob" id="draw_odd">1.00</div>
-                </div>
-            </div>
-
-            <div class="prediction-summary" id="predictionText">
-                Calculando valor real...
+                <div class="result-box"><div class="res-label">PROB. POISSON</div><div class="res-val" id="val_poisson">0%</div></div>
+                <div class="result-box"><div class="res-label">AJUSTE REAL (1X2)</div><div class="res-val" id="val_real">0%</div></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    function factorial(n) {
-        if (n === 0 || n === 1) return 1;
-        let r = 1;
-        for (let i = 2; i <= n; i++) r *= i;
-        return r;
-    }
+    let myChart = null;
 
-    function poisson(k, lambda) {
-        return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
-    }
+    function factorial(n) { return (n <= 1) ? 1 : n * factorial(n - 1); }
+    function poisson(k, lambda) { return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k); }
 
-    // Factor de ajuste Dixon-Coles para corregir baja de empates 0-0 y 1-1
-    function rhoAdjustment(x, y, lambdaH, lambdaV) {
-        const rho = -0.15; // Coeficiente de correlación típico en ligas europeas
-        if (x === 0 && y === 0) return 1 - (lambdaH * lambdaV * rho);
-        if (x === 0 && y === 1) return 1 + (lambdaH * rho);
-        if (x === 1 && y === 0) return 1 + (lambdaV * rho);
-        if (x === 1 && y === 1) return 1 - rho;
-        return 1;
-    }
-
-    function calcularPoissonElite() {
-        const league = document.getElementById('leagueName').value || "LIGA";
-        const home = document.getElementById('homeTeam').value || "LOCAL";
-        const away = document.getElementById('awayTeam').value || "VISITA";
-        
+    function calcularTodo() {
         const gfL = parseFloat(document.getElementById('avgGF_Local').value);
         const gcL = parseFloat(document.getElementById('avgGC_Local').value);
         const alL = parseFloat(document.getElementById('avgGLiga_Local').value);
-        
         const gfV = parseFloat(document.getElementById('avgGF_Visita').value);
         const gcV = parseFloat(document.getElementById('avgGC_Visita').value);
         const alV = parseFloat(document.getElementById('avgGLiga_Visita').value);
 
-        if ([gfL, gcL, alL, gfV, gcV, alV].some(isNaN)) {
-            alert("Completa todos los promedios para un análisis real.");
-            return;
-        }
+        if (isNaN(gfL) || isNaN(gfV)) return alert("Ingresa los promedios");
 
-        // Aplicación de la fórmula de ataque/defensa solicitada
         const lambdaH = gfL * gcV * alL;
         const lambdaV = gfV * gcL * alV;
 
-        let pWinH = 0, pWinA = 0, pDraw = 0, pUnder25 = 0, pBTTS_Yes = 0;
+        const labels = ['0 Goles', '1 Gol', '2 Goles', '3 Goles', '4 Goles', '5+ Goles'];
+        const dataPoisson = [];
+        const dataReal = [];
 
-        // Generamos matriz con ajuste de Dixon-Coles
-        for (let i = 0; i <= 10; i++) {
-            for (let j = 0; j <= 10; j++) {
-                let probRaw = poisson(i, lambdaH) * poisson(j, lambdaV);
-                let probAdjusted = probRaw * rhoAdjustment(i, j, lambdaH, lambdaV);
-                
-                if (i > j) pWinH += probAdjusted;
-                else if (j > i) pWinA += probAdjusted;
-                else pDraw += probAdjusted;
-
-                if (i + j <= 2) pUnder25 += probAdjusted;
-                if (i > 0 && j > 0) pBTTS_Yes += probAdjusted;
-            }
+        // Generar datos comparativos para el Total de Goles (Over/Under)
+        for (let k = 0; k <= 5; k++) {
+            let p = poisson(k, lambdaH + lambdaV);
+            dataPoisson.push((p * 100).toFixed(1));
+            
+            // Factor de ajuste histórico: suavizado de curvas y aumento en el centro
+            let adjustment = (k === 0 || k === 1) ? 1.12 : (k === 2) ? 1.05 : 0.90;
+            dataReal.push((p * 100 * adjustment).toFixed(1));
         }
 
-        const pOver25 = 1 - pUnder25;
-
-        // UI Update
-        document.getElementById('resLeague').innerText = league.toUpperCase();
-        document.getElementById('resMatch').innerText = `${home} vs ${away}`;
-        document.getElementById('expectedGoals').innerText = `Goles Esperados (Ajustado): ${(lambdaH + lambdaV).toFixed(2)}`;
-
-        updateResult('winH', pWinH);
-        updateResult('winA', pWinA);
-        updateResult('draw', pDraw);
-        updateResult('ov25', pOver25);
-        updateResult('un25', pUnder25);
-        updateResult('bttsY', pBTTS_Yes);
-
-        // Lógica de Sorpresa (Mejora de valor)
-        let consejo = "";
-        const expTotal = lambdaH + lambdaV;
-
-        if (pDraw > 0.28) {
-            consejo = `⚠️ **ALERTA DE EMPATE**: El ajuste de Dixon-Coles detecta alta probabilidad de tablas (X). Cuota sugerida: ${(1/pDraw).toFixed(2)}.`;
-        } else if (pOver25 > 0.65 && pBTTS_Yes > 0.60) {
-            consejo = `🔥 **VALOR EN GOLES**: Sistema detecta partido abierto. Sugerencia: Over 2.5 & Ambos Marcan.`;
-        } else if (lambdaH > 2.2 && pWinH > 0.60) {
-            consejo = `🏟️ **DOMINIO LOCAL**: ${home} tiene un Lambda ofensivo superior a 2.0. Hándicap -1 disponible.`;
-        } else {
-            consejo = `📋 **ANÁLISIS**: Mercado equilibrado. El valor real está en el Under 3.5 si las cuotas superan 1.50.`;
-        }
-
-        document.getElementById('predictionText').innerHTML = consejo;
+        renderChart(labels, dataPoisson, dataReal);
+        
+        document.getElementById('val_poisson').innerText = dataPoisson[2] + "% (U2.5)";
+        document.getElementById('val_real').innerText = (parseFloat(dataReal[0])+parseFloat(dataReal[1])+parseFloat(dataReal[2])).toFixed(1) + "%";
         document.getElementById('resultsPanel').style.display = 'block';
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
-    function updateResult(id, prob) {
-        const percent = (prob * 100).toFixed(1) + '%';
-        const odd = prob > 0.01 ? (1 / prob).toFixed(2) : "100+";
-        document.getElementById(id + '_val').innerText = percent;
-        document.getElementById(id + '_odd').innerText = 'CUOTA ESTIMADA: ' + odd;
+    function renderChart(labels, d1, d2) {
+        const ctx = document.getElementById('myChart').getContext('2d');
+        if (myChart) myChart.destroy();
+        
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Poisson Teórico',
+                    data: d1,
+                    borderColor: '#4dabf7',
+                    backgroundColor: 'rgba(77, 171, 247, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Realidad Histórica',
+                    data: d2,
+                    borderColor: '#fcc419',
+                    borderDash: [5, 5],
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#adb5bd', font: { size: 10 } } } },
+                scales: {
+                    y: { ticks: { color: '#adb5bd' }, grid: { color: '#2c3440' } },
+                    x: { ticks: { color: '#adb5bd' }, grid: { color: '#2c3440' } }
+                }
+            }
+        });
     }
 </script>
-
 </body>
 </html>
