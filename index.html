@@ -143,12 +143,12 @@
         
         <div class="xg-display-grid">
             <div class="xg-box">
-                <label id="nameL_label">xG LOCAL</label>
+                <label id="nameL_label">xG LOCAL (AJUSTADO)</label>
                 <div class="val" id="val_xgL">0.00</div>
                 <div id="deltaL_badge" class="delta-badge">ΔxG: 0.00</div>
             </div>
             <div class="xg-box">
-                <label id="nameV_label">xG VISITA</label>
+                <label id="nameV_label">xG VISITA (AJUSTADO)</label>
                 <div class="val" id="val_xgV">0.00</div>
                 <div id="deltaV_badge" class="delta-badge">ΔxG: 0.00</div>
             </div>
@@ -201,7 +201,6 @@ let avgLeagueGF_Home = 0, avgLeagueGF_Away = 0;
 let chartInstance = null;
 let currentProbs = {};
 
-// --- FUNCIONES DE PERSISTENCIA ---
 window.onload = function() {
     if(localStorage.getItem('betags_homeTable')) {
         document.getElementById('homeTableInput').value = localStorage.getItem('betags_homeTable');
@@ -226,7 +225,6 @@ function clearData() {
         document.getElementById('results').style.display = 'none';
     }
 }
-// --------------------------------
 
 function parseTable(text) {
     const lines = text.trim().split('\n');
@@ -300,6 +298,7 @@ function factorial(n) {
 }
 
 function poisson(k, lambda) { 
+    if(lambda <= 0) return k === 0 ? 1 : 0;
     return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k); 
 }
 
@@ -307,24 +306,31 @@ function calculatePoisson() {
     const homeTeam = homeData.find(t => t.name === document.getElementById('selectHome').value);
     const awayTeam = awayData.find(t => t.name === document.getElementById('selectAway').value);
 
+    // 1. Cálculo Base xG (Modelo Estático)
     const FA_L = homeTeam.avgGF / avgLeagueGF_Home;
     const FD_L = homeTeam.avgGA / avgLeagueGF_Away;
     const FA_V = awayTeam.avgGF / avgLeagueGF_Away;
     const FD_V = awayTeam.avgGA / avgLeagueGF_Home;
 
-    const lambdaL = FA_L * FD_V * avgLeagueGF_Home;
-    const lambdaV = FA_V * FD_L * avgLeagueGF_Away;
+    const baseLambdaL = FA_L * FD_V * avgLeagueGF_Home;
+    const baseLambdaV = FA_V * FD_L * avgLeagueGF_Away;
 
-    // --- NUEVO: Cálculo Delta xG ---
-    // Delta = Goles Reales Promedio - Goles Esperados del Modelo
-    const deltaL = homeTeam.avgGF - lambdaL;
-    const deltaV = awayTeam.avgGF - lambdaV;
+    // 2. Cálculo de Delta xG (Eficiencia de Finalización)
+    const deltaL = homeTeam.avgGF - baseLambdaL;
+    const deltaV = awayTeam.avgGF - baseLambdaV;
+
+    // 3. INTEGRACIÓN LITERAL: Ajustamos el Lambda de Poisson usando el Delta
+    // Si Delta es positivo, el equipo "produce" más de lo que el modelo base dice.
+    // Usamos un factor de suavizado (0.5) para no sobre-reaccionar a la varianza.
+    const lambdaL = Math.max(0.05, baseLambdaL + (deltaL * 0.5));
+    const lambdaV = Math.max(0.05, baseLambdaV + (deltaV * 0.5));
 
     updateDeltaUI(deltaL, deltaV, homeTeam.name, awayTeam.name);
 
     let pL = 0, pV = 0, pX = 0, pO25 = 0, pBTTS = 0;
     let probL = [], probV = [];
 
+    // Cálculo de la distribución de Poisson con los Lambdas Ajustados
     for (let i = 0; i <= 10; i++) {
         probL[i] = poisson(i, lambdaL);
         probV[i] = poisson(i, lambdaV);
@@ -352,8 +358,8 @@ function calculatePoisson() {
     };
 
     document.getElementById('matchTitle').innerText = `${homeTeam.name.toUpperCase()} VS ${awayTeam.name.toUpperCase()}`;
-    document.getElementById('nameL_label').innerText = `xG ${homeTeam.name}`;
-    document.getElementById('nameV_label').innerText = `xG ${awayTeam.name}`;
+    document.getElementById('nameL_label').innerText = `xG ${homeTeam.name} (AJUSTADO)`;
+    document.getElementById('nameV_label').innerText = `xG ${awayTeam.name} (AJUSTADO)`;
     document.getElementById('val_xgL').innerText = lambdaL.toFixed(2);
     document.getElementById('val_xgV').innerText = lambdaV.toFixed(2);
     
@@ -390,20 +396,19 @@ function updateDeltaUI(dL, dV, nameL, nameV) {
     bV.innerText = `ΔxG: ${dV > 0 ? '+' : ''}${dV.toFixed(2)}`;
     bV.className = `delta-badge ${dV >= 0 ? 'delta-pos' : 'delta-neg'}`;
 
-    // Explicación dinámica
-    let text = `<b>Análisis de Eficiencia:</b> `;
-    if (dL > 0.3) {
-        text += `El <b>${nameL}</b> está en racha, marcando por encima de su probabilidad. `;
-    } else if (dL < -0.3) {
-        text += `El <b>${nameL}</b> llega pero no define, está "perdonando" goles. `;
+    let text = `<b>Análisis de Eficiencia Real:</b> `;
+    if (dL > 0.2) {
+        text += `El <b>${nameL}</b> está sobre-rindiendo su xG, lo que ha inflado sus probabilidades en Poisson. `;
+    } else if (dL < -0.2) {
+        text += `El <b>${nameL}</b> es ineficiente; Poisson ha castigado su expectativa de gol. `;
     } else {
-        text += `El <b>${nameL}</b> rinde exactamente según lo esperado. `;
+        text += `El <b>${nameL}</b> es estable. `;
     }
 
-    if (dV > 0.3) {
-        text += `Ojo con el <b>${nameV}</b>, su pegada es extremadamente eficiente ahora mismo.`;
-    } else if (dV < -0.3) {
-        text += `La visita (<b>${nameV}</b>) tiene una tendencia negativa de finalización.`;
+    if (dV > 0.2) {
+        text += `La visita <b>${nameV}</b> llega con alta efectividad (Delta Positivo).`;
+    } else if (dV < -0.2) {
+        text += `<b>${nameV}</b> genera pero no concreta (Delta Negativo).`;
     }
 
     insight.innerHTML = text;
@@ -430,18 +435,17 @@ function checkValue() {
     const valuePercentage = (value * 100).toFixed(2);
 
     analysisArea.style.display = 'block';
-    
     const targetBox = document.getElementById(`box_${market}`);
     
     if (value > 0) {
         badge.innerText = `VALOR DETECTADO: +${valuePercentage}%`;
         badge.className = "value-badge has-value";
-        detail.innerHTML = `Cuota Bookie: <b>${odd}</b> | Cuota Justa: <b>${cuotaJusta.toFixed(2)}</b><br>La probabilidad del modelo es mayor que la de la casa.`;
+        detail.innerHTML = `Cuota Bookie: <b>${odd}</b> | Cuota Justa: <b>${cuotaJusta.toFixed(2)}</b><br>Este valor ya incluye el ajuste por Delta xG.`;
         if(targetBox) targetBox.style.borderColor = "var(--accent-green)";
     } else {
         badge.innerText = `SIN VALOR: ${valuePercentage}%`;
         badge.className = "value-badge no-value";
-        detail.innerHTML = `Cuota Bookie: <b>${odd}</b> | Cuota Justa: <b>${cuotaJusta.toFixed(2)}</b><br>La cuota no compensa el riesgo según el modelo.`;
+        detail.innerHTML = `Cuota Bookie: <b>${odd}</b> | Cuota Justa: <b>${cuotaJusta.toFixed(2)}</b><br>Riesgo alto según la eficiencia actual.`;
         if(targetBox) targetBox.style.borderColor = "var(--accent-red)";
     }
 }
