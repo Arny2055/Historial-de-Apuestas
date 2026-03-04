@@ -499,6 +499,7 @@
     }
 
     function poisson(k, lambda) {
+        if (lambda <= 0) return k === 0 ? 1 : 0;
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
     }
     function factorial(n) {
@@ -551,33 +552,37 @@
         const loader = document.getElementById('loadingOverlay');
         loader.style.display = 'flex';
         const leagues = getLeagues();
-        if(leagues.length === 0) { alert("No hay hojas configuradas."); loader.style.display = 'none'; return; }
+        if(leagues.length === 0) { alert("No hay hojas de ligas configuradas."); loader.style.display = 'none'; return; }
 
         database = {};
         matchesToday = [];
 
+        // 1. Cargar bases de datos de cada liga
         for (let l of leagues) {
             const data = await fetchDataForSheet(l.sheet);
             if (data) database[l.sheet] = data;
         }
 
         try {
+            // 2. Cargar Partidos del Día (Columnas D y F)
             const url = `https://docs.google.com/spreadsheets/d/${SHEETS_ID}/gviz/tq?tqx=out:csv&sheet=PARTIDOS+DEL+DIA&range=D1:F1000`;
             const res = await fetch(url);
             const text = await res.text();
             const rows = text.split('\n').map(r => r.split(',').map(c => c.replace(/"/g, '').trim()));
 
             rows.forEach(cols => {
-                const home = cols[0];
-                const away = cols[2];
+                const home = cols[0]; // Columna D
+                const away = cols[2]; // Columna F
                 if (!home || home === "LOCAL") return;
                 
+                // Buscar en qué liga están estos equipos
                 for (let leagueName in database) {
                     const db = database[leagueName];
                     const lData = db.locales.find(e => e.n.toUpperCase() === home.toUpperCase());
                     const vData = db.visitantes.find(e => e.n.toUpperCase() === away.toUpperCase());
 
                     if (lData && vData) {
+                        // Cálculos xG y Delta
                         const deltaL = (lData.gf / lData.gp) - (lData.xG_generado / lData.gp);
                         const deltaV = (vData.gf / vData.gp) - (vData.xG_generado / vData.gp);
                         const factorL = 1 - (deltaL * 0.08);
@@ -598,7 +603,7 @@
                             league: leagueName, home, away, xGL, xGV,
                             ov25: ov25_Final, btts: btts_Final, deltaL, deltaV,
                             probHT: 1 - Math.exp(-(xGL + xGV) * 0.45),
-                            hasSample: (lData.gp >= 5 && vData.gp >= 5)
+                            hasSample: (lData.gp >= 4 && vData.gp >= 4)
                         });
                         break; 
                     }
@@ -609,7 +614,11 @@
             document.getElementById('multiAnalysisPanel').style.display = 'block';
             document.getElementById('singleAnalysisPanel').style.display = 'none';
 
-        } catch (e) { alert("Error al conectar con la hoja PARTIDOS DEL DIA."); } finally { loader.style.display = 'none'; }
+        } catch (e) { 
+            alert("Error al conectar con la hoja PARTIDOS DEL DIA."); 
+        } finally { 
+            loader.style.display = 'none'; 
+        }
     }
 
     function getTrendIcon(delta) {
@@ -643,21 +652,21 @@
         modal.style.display = 'flex';
 
         if (m.deltaL > 0.3 && m.deltaV > 0.3) {
-            mTitle.innerText = "BURBUJA DE GOLES";
-            mText.innerText = "Ambos equipos están anotando por encima de su xG. Cuidado con el Over, la tendencia dice que alguno fallará pronto.";
+            mTitle.innerText = "ALTA EFECTIVIDAD";
+            mText.innerText = "Ambos equipos están anotando por encima de su creación real (xG). Es probable una regresión a la media pronto.";
         } else if (m.deltaL < -0.3 && m.deltaV < -0.3) {
-            mTitle.innerText = "BOMBA DE GOLES";
-            mText.innerText = "Estadística comprimida. Ambos generan pero no marcan. Escenario ideal para despertar hoy con goles.";
+            mTitle.innerText = "GOL COMPRIMIDO";
+            mText.innerText = "Equipos que generan mucho pero no han marcado lo esperado. Hoy podría ser el día del descorche.";
         } else {
             mTitle.innerText = "ESTADO DE FORMA";
-            mText.innerText = "Revisa el pick sugerido basado en la probabilidad ajustada por Delta xG.";
+            mText.innerText = "Los indicadores Delta sugieren un comportamiento estable respecto al xG proyectado.";
         }
     }
 
     function renderMultiTable() {
         const body = document.getElementById('multiResultsBody');
         if(matchesToday.length === 0) {
-            body.innerHTML = '<tr><td colspan="7">No se encontraron partidos coincidentes entre "PARTIDOS DEL DIA" y tus hojas.</td></tr>';
+            body.innerHTML = '<tr><td colspan="7">No se encontraron partidos coincidentes. Revisa nombres en PARTIDOS DEL DIA.</td></tr>';
             return;
         }
         body.innerHTML = matchesToday.map((m, i) => {
@@ -719,12 +728,20 @@
         document.getElementById('btts_val').innerText = (m.btts*100).toFixed(1) + '%';
         document.getElementById('btts_odds').innerText = 'JUSTA: ' + (1/m.btts).toFixed(2);
         
-        const markets = [{n: 'OVER 0.5 HT', p: m.probHT}, {n: 'OVER 2.5 FT', p: m.ov25}, {n: 'UNDER 2.5 FT', p: 1 - m.ov25}, {n: 'BTTS YES', p: m.btts}, {n: 'BTTS NO', p: 1 - m.btts}];
+        const markets = [
+            {n: 'OVER 0.5 HT', p: m.probHT}, 
+            {n: 'OVER 2.5 FT', p: m.ov25}, 
+            {n: 'UNDER 2.5 FT', p: 1 - m.ov25}, 
+            {n: 'BTTS YES', p: m.btts}, 
+            {n: 'BTTS NO', p: 1 - m.btts}
+        ];
+        
         const table = document.getElementById('individualMarketsTable');
         table.innerHTML = markets.map((mk, i) => {
             const fair = (1/mk.p).toFixed(2);
             return `<tr><td><strong>${mk.n}</strong></td><td>${(mk.p*100).toFixed(0)}%</td><td style="color:var(--primary)">${fair}</td><td><input type="number" step="0.01" class="input-odds" oninput="calcSingleVal(${i}, ${mk.p}, this.value)"></td><td id="s_val_${i}">--</td><td><button class="btn-send-bet" id="s_btn_${i}" onclick="enviarBet('${m.league}', '${m.home} vs ${m.away}', '${mk.n}', ${mk.p}, ${fair}, ${i})">SEND</button></td></tr>`;
         }).join('');
+        
         document.getElementById('singleAnalysisPanel').style.display = 'block';
         document.getElementById('singleAnalysisPanel').scrollIntoView({behavior: 'smooth'});
     }
@@ -753,7 +770,18 @@
     function enviarBet(liga, partido, mercado, prob, justa, inputIdx) {
         const houseOddInputs = document.querySelectorAll('#individualMarketsTable .input-odds');
         const houseOdd = parseFloat(houseOddInputs[inputIdx].value);
-        const pick = { id: Date.now(), date: new Date().toLocaleString(), teams: `[${liga}] ${partido}`, market: mercado, prob, fair_odd: justa, odd: houseOdd, edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%', stake: 1, status: 'pending' };
+        const pick = { 
+            id: Date.now(), 
+            date: new Date().toLocaleString(), 
+            teams: `[${liga}] ${partido}`, 
+            market: mercado, 
+            prob, 
+            fair_odd: justa, 
+            odd: houseOdd, 
+            edge: ((prob * houseOdd - 1) * 100).toFixed(1) + '%', 
+            stake: 1, 
+            status: 'pending' 
+        };
         let historial = JSON.parse(localStorage.getItem('betags_pre_match')) || [];
         historial.push(pick);
         localStorage.setItem('betags_pre_match', JSON.stringify(historial));
