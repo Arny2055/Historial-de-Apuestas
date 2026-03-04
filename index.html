@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BETAGS - Poisson Pro</title>
+    <title>BETAGS - Poisson Elite v2</title>
     <style>
         :root {
             --bg-dark: #0b0e14;
@@ -15,7 +15,7 @@
             --text-white: #e9ecef;
             --text-muted: #adb5bd;
             --border: #2c3440;
-            --glass: rgba(255, 255, 255, 0.03);
+            --glass: rgba(255, 255, 255, 0.05);
         }
 
         body { 
@@ -86,9 +86,10 @@
             font-size: 0.9rem;
             outline: none;
             box-sizing: border-box;
+            transition: 0.3s;
         }
 
-        input:focus { border-color: var(--primary); }
+        input:focus { border-color: var(--primary); background: #151921; }
 
         .btn-analyze {
             width: 100%;
@@ -105,6 +106,7 @@
             box-shadow: 0 4px 15px rgba(34, 139, 230, 0.4);
         }
 
+        .btn-analyze:hover { filter: brightness(1.1); }
         .btn-analyze:active { transform: scale(0.98); }
 
         .results-grid {
@@ -120,7 +122,10 @@
             border-radius: 12px;
             text-align: center;
             border: 1px solid var(--border);
+            transition: 0.3s;
         }
+
+        .result-box:hover { border-color: var(--primary); }
 
         .res-label { font-size: 0.6rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; }
         .res-val { font-size: 1.2rem; font-weight: 900; margin: 5px 0; color: var(--accent-yellow); }
@@ -135,80 +140,93 @@
 
         .prediction-summary {
             margin-top: 15px;
-            padding: 10px;
-            background: rgba(77, 171, 247, 0.1);
-            border-radius: 8px;
-            font-size: 0.8rem;
+            padding: 15px;
+            background: rgba(77, 171, 247, 0.08);
+            border-radius: 12px;
+            font-size: 0.85rem;
             text-align: center;
             border-left: 4px solid var(--primary);
+            line-height: 1.4;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 900;
+            margin-bottom: 10px;
+            background: var(--primary);
+            color: var(--bg-dark);
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>BETA<span>GS</span> POISSON</h1>
+    <h1>BETA<span>GS</span> POISSON 2.0</h1>
 
-    <div class="section-title"><span>🌍</span> CONFIGURACIÓN GENERAL</div>
+    <div class="section-title"><span>🌍</span> CONFIGURACIÓN DE LIGA</div>
     <div class="card">
         <div class="input-grid">
             <div class="full-width">
                 <label>NOMBRE DE LA LIGA</label>
-                <input type="text" id="leagueName" placeholder="Ej: Premier League">
+                <input type="text" id="leagueName" placeholder="Ej: La Liga">
             </div>
             <div>
-                <label>AVG LIGA (LOCALES)</label>
-                <input type="number" id="avgGLiga_Local" step="0.01" placeholder="Ej: 1.50">
+                <label>AVG GOLES LOCAL (LIGA)</label>
+                <input type="number" id="avgGLiga_Local" step="0.01" placeholder="Ej: 1.55">
             </div>
             <div>
-                <label>AVG LIGA (VISITAS)</label>
-                <input type="number" id="avgGLiga_Visita" step="0.01" placeholder="Ej: 1.10">
+                <label>AVG GOLES VISITA (LIGA)</label>
+                <input type="number" id="avgGLiga_Visita" step="0.01" placeholder="Ej: 1.15">
             </div>
         </div>
     </div>
 
-    <div class="section-title"><span>🏠</span> DATOS EQUIPO LOCAL</div>
+    <div class="section-title"><span>🏠</span> ANALÍTICA LOCAL</div>
     <div class="card">
         <div class="input-grid">
             <div class="full-width">
                 <label>NOMBRE DEL EQUIPO</label>
-                <input type="text" id="homeTeam" placeholder="Local">
+                <input type="text" id="homeTeam" placeholder="Ej: Real Madrid">
             </div>
             <div>
-                <label>AVG GOLES A FAVOR</label>
-                <input type="number" id="avgGF_Local" step="0.01" placeholder="Ej: 1.85">
+                <label>GOLES A FAVOR (AVG)</label>
+                <input type="number" id="avgGF_Local" step="0.01" placeholder="Ej: 2.10">
             </div>
             <div>
-                <label>AVG GOLES EN CONTRA</label>
-                <input type="number" id="avgGC_Local" step="0.01" placeholder="Ej: 0.90">
+                <label>GOLES EN CONTRA (AVG)</label>
+                <input type="number" id="avgGC_Local" step="0.01" placeholder="Ej: 0.80">
             </div>
         </div>
     </div>
 
-    <div class="section-title"><span>🚀</span> DATOS EQUIPO VISITA</div>
+    <div class="section-title"><span>🚀</span> ANALÍTICA VISITA</div>
     <div class="card">
         <div class="input-grid">
             <div class="full-width">
                 <label>NOMBRE DEL EQUIPO</label>
-                <input type="text" id="awayTeam" placeholder="Visita">
+                <input type="text" id="awayTeam" placeholder="Ej: Barcelona">
             </div>
             <div>
-                <label>AVG GOLES A FAVOR</label>
-                <input type="number" id="avgGF_Visita" step="0.01" placeholder="Ej: 1.20">
+                <label>GOLES A FAVOR (AVG)</label>
+                <input type="number" id="avgGF_Visita" step="0.01" placeholder="Ej: 1.90">
             </div>
             <div>
-                <label>AVG GOLES EN CONTRA</label>
-                <input type="number" id="avgGC_Visita" step="0.01" placeholder="Ej: 1.60">
+                <label>GOLES EN CONTRA (AVG)</label>
+                <input type="number" id="avgGC_Visita" step="0.01" placeholder="Ej: 1.20">
             </div>
         </div>
         
-        <button class="btn-analyze" onclick="calcularPoisson()">🚀 CALCULAR PROBABILIDADES</button>
+        <button class="btn-analyze" onclick="calcularPoissonElite()">🚀 ANALIZAR CON AJUSTE DIXON-COLES</button>
     </div>
 
     <div id="resultsPanel" style="display: none;">
-        <div class="section-title"><span>📊</span> RESULTADOS DEL ANÁLISIS</div>
+        <div class="section-title"><span>📊</span> PROYECCIONES AJUSTADAS</div>
         <div class="card">
             <div class="header-match">
+                <div class="badge">DIXON-COLES MODEL ENABLED</div>
                 <div id="resLeague" style="font-size: 0.7rem; color: var(--primary); font-weight: 800;"></div>
                 <div id="resMatch" style="font-size: 1.1rem; font-weight: 900; margin-top: 5px;"></div>
                 <div id="expectedGoals" style="font-size: 0.8rem; color: var(--accent-yellow); margin-top: 5px;"></div>
@@ -236,19 +254,19 @@
                     <div class="res-prob" id="un25_odd">1.00</div>
                 </div>
                 <div class="result-box">
-                    <div class="res-label">Ambos Marcan</div>
+                    <div class="res-label">Ambos Marcan (BTTS)</div>
                     <div class="res-val" id="bttsY_val">0%</div>
                     <div class="res-prob" id="bttsY_odd">1.00</div>
                 </div>
                 <div class="result-box">
-                    <div class="res-label">BTTS & Over 2.5</div>
-                    <div class="res-val" id="bttsOv_val">0%</div>
-                    <div class="res-prob" id="bttsOv_odd">1.00</div>
+                    <div class="res-label">Empate (X)</div>
+                    <div class="res-val" id="draw_val">0%</div>
+                    <div class="res-prob" id="draw_odd">1.00</div>
                 </div>
             </div>
 
             <div class="prediction-summary" id="predictionText">
-                Analizando datos...
+                Calculando valor real...
             </div>
         </div>
     </div>
@@ -266,7 +284,17 @@
         return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k);
     }
 
-    function calcularPoisson() {
+    // Factor de ajuste Dixon-Coles para corregir baja de empates 0-0 y 1-1
+    function rhoAdjustment(x, y, lambdaH, lambdaV) {
+        const rho = -0.15; // Coeficiente de correlación típico en ligas europeas
+        if (x === 0 && y === 0) return 1 - (lambdaH * lambdaV * rho);
+        if (x === 0 && y === 1) return 1 + (lambdaH * rho);
+        if (x === 1 && y === 0) return 1 + (lambdaV * rho);
+        if (x === 1 && y === 1) return 1 - rho;
+        return 1;
+    }
+
+    function calcularPoissonElite() {
         const league = document.getElementById('leagueName').value || "LIGA";
         const home = document.getElementById('homeTeam').value || "LOCAL";
         const away = document.getElementById('awayTeam').value || "VISITA";
@@ -280,39 +308,28 @@
         const alV = parseFloat(document.getElementById('avgGLiga_Visita').value);
 
         if ([gfL, gcL, alL, gfV, gcV, alV].some(isNaN)) {
-            alert("Por favor completa todos los campos numéricos.");
+            alert("Completa todos los promedios para un análisis real.");
             return;
         }
 
-        // Lógica de multiplicación solicitada:
-        const lambdaL = gfL * gcV * alL;
+        // Aplicación de la fórmula de ataque/defensa solicitada
+        const lambdaH = gfL * gcV * alL;
         const lambdaV = gfV * gcL * alV;
 
-        let probL = [];
-        let probV = [];
-        for (let i = 0; i <= 10; i++) {
-            probL[i] = poisson(i, lambdaL);
-            probV[i] = poisson(i, lambdaV);
-        }
+        let pWinH = 0, pWinA = 0, pDraw = 0, pUnder25 = 0, pBTTS_Yes = 0;
 
-        let pWinH = 0, pWinA = 0, pUnder25 = 0, pBTTS_Yes = 0, pBTTS_Over25 = 0;
-
+        // Generamos matriz con ajuste de Dixon-Coles
         for (let i = 0; i <= 10; i++) {
             for (let j = 0; j <= 10; j++) {
-                let pResult = probL[i] * probV[j];
+                let probRaw = poisson(i, lambdaH) * poisson(j, lambdaV);
+                let probAdjusted = probRaw * rhoAdjustment(i, j, lambdaH, lambdaV);
                 
-                // 1X2
-                if (i > j) pWinH += pResult;
-                if (j > i) pWinA += pResult;
+                if (i > j) pWinH += probAdjusted;
+                else if (j > i) pWinA += probAdjusted;
+                else pDraw += probAdjusted;
 
-                // Over/Under 2.5
-                if (i + j <= 2) pUnder25 += pResult;
-
-                // BTTS & BTTS+Over
-                if (i > 0 && j > 0) {
-                    pBTTS_Yes += pResult;
-                    if (i + j > 2.5) pBTTS_Over25 += pResult;
-                }
+                if (i + j <= 2) pUnder25 += probAdjusted;
+                if (i > 0 && j > 0) pBTTS_Yes += probAdjusted;
             }
         }
 
@@ -321,23 +338,30 @@
         // UI Update
         document.getElementById('resLeague').innerText = league.toUpperCase();
         document.getElementById('resMatch').innerText = `${home} vs ${away}`;
-        document.getElementById('expectedGoals').innerText = `Goles Esperados: ${(lambdaL + lambdaV).toFixed(2)}`;
+        document.getElementById('expectedGoals').innerText = `Goles Esperados (Ajustado): ${(lambdaH + lambdaV).toFixed(2)}`;
 
         updateResult('winH', pWinH);
         updateResult('winA', pWinA);
+        updateResult('draw', pDraw);
         updateResult('ov25', pOver25);
         updateResult('un25', pUnder25);
         updateResult('bttsY', pBTTS_Yes);
-        updateResult('bttsOv', pBTTS_Over25);
 
-        // Generar Sugerencia
-        let sugerencia = "Consejo: ";
-        if (pOver25 > 0.60) sugerencia += "Busca el Over 2.0 o 2.5 en vivo.";
-        else if (pWinH > 0.60) sugerencia += `Favorito claro: ${home}.`;
-        else if (pBTTS_Yes > 0.60) sugerencia += "Mercado de Ambos Marcan es atractivo.";
-        else sugerencia = "Partido con tendencia al mercado de goles Under.";
+        // Lógica de Sorpresa (Mejora de valor)
+        let consejo = "";
+        const expTotal = lambdaH + lambdaV;
 
-        document.getElementById('predictionText').innerText = sugerencia;
+        if (pDraw > 0.28) {
+            consejo = `⚠️ **ALERTA DE EMPATE**: El ajuste de Dixon-Coles detecta alta probabilidad de tablas (X). Cuota sugerida: ${(1/pDraw).toFixed(2)}.`;
+        } else if (pOver25 > 0.65 && pBTTS_Yes > 0.60) {
+            consejo = `🔥 **VALOR EN GOLES**: Sistema detecta partido abierto. Sugerencia: Over 2.5 & Ambos Marcan.`;
+        } else if (lambdaH > 2.2 && pWinH > 0.60) {
+            consejo = `🏟️ **DOMINIO LOCAL**: ${home} tiene un Lambda ofensivo superior a 2.0. Hándicap -1 disponible.`;
+        } else {
+            consejo = `📋 **ANÁLISIS**: Mercado equilibrado. El valor real está en el Under 3.5 si las cuotas superan 1.50.`;
+        }
+
+        document.getElementById('predictionText').innerHTML = consejo;
         document.getElementById('resultsPanel').style.display = 'block';
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
@@ -346,7 +370,7 @@
         const percent = (prob * 100).toFixed(1) + '%';
         const odd = prob > 0.01 ? (1 / prob).toFixed(2) : "100+";
         document.getElementById(id + '_val').innerText = percent;
-        document.getElementById(id + '_odd').innerText = 'CUOTA: ' + odd;
+        document.getElementById(id + '_odd').innerText = 'CUOTA ESTIMADA: ' + odd;
     }
 </script>
 
