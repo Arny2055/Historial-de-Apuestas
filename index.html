@@ -45,6 +45,12 @@
         .xg-box { background: rgba(77, 171, 247, 0.05); border: 1px solid var(--primary); border-radius: 12px; padding: 15px; text-align: center; }
         .xg-box label { font-size: 0.65rem; color: var(--primary); font-weight: 800; display: block; margin-bottom: 5px; }
         .xg-box .val { font-size: 1.8rem; font-weight: 900; color: var(--text-white); }
+        
+        /* Delta xG Styles */
+        .delta-container { margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .delta-badge { font-size: 0.7rem; padding: 5px; border-radius: 6px; font-weight: bold; background: #0b0e14; border: 1px solid var(--border); }
+        .delta-pos { color: var(--accent-green); border-color: var(--accent-green); }
+        .delta-neg { color: var(--accent-red); border-color: var(--accent-red); }
 
         .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-top: 15px; }
         .stat-item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
@@ -66,8 +72,11 @@
 
         .chart-container { height: 250px; margin-top: 25px; }
         
-        /* Nuevos estilos para mercados específicos */
         .market-highlight { border: 1px solid var(--accent-blue); background: rgba(51, 154, 240, 0.05); }
+
+        /* Estilos explicación Delta */
+        .insight-box { margin-top: 15px; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); font-size: 0.75rem; line-height: 1.4; color: var(--text-muted); border-left: 4px solid var(--primary); }
+        .insight-box b { color: var(--text-white); }
     </style>
 </head>
 <body>
@@ -129,18 +138,24 @@
     </div>
 
     <div id="results" class="card">
-        <div class="section-title"><span>📊</span> PANEL DE RESULTADOS xG</div>
+        <div class="section-title"><span>📊</span> PANEL DE RESULTADOS xG & DELTA</div>
         <div id="matchTitle" style="text-align: center; font-weight: 900; font-size: 1.3rem; margin-bottom: 5px; color: var(--primary);"></div>
         
         <div class="xg-display-grid">
             <div class="xg-box">
                 <label id="nameL_label">xG LOCAL</label>
                 <div class="val" id="val_xgL">0.00</div>
+                <div id="deltaL_badge" class="delta-badge">ΔxG: 0.00</div>
             </div>
             <div class="xg-box">
                 <label id="nameV_label">xG VISITA</label>
                 <div class="val" id="val_xgV">0.00</div>
+                <div id="deltaV_badge" class="delta-badge">ΔxG: 0.00</div>
             </div>
+        </div>
+
+        <div class="insight-box" id="deltaInsight">
+            <b>Análisis de Tendencia:</b> Procesando datos...
         </div>
 
         <div class="stats-summary">
@@ -300,6 +315,13 @@ function calculatePoisson() {
     const lambdaL = FA_L * FD_V * avgLeagueGF_Home;
     const lambdaV = FA_V * FD_L * avgLeagueGF_Away;
 
+    // --- NUEVO: Cálculo Delta xG ---
+    // Delta = Goles Reales Promedio - Goles Esperados del Modelo
+    const deltaL = homeTeam.avgGF - lambdaL;
+    const deltaV = awayTeam.avgGF - lambdaV;
+
+    updateDeltaUI(deltaL, deltaV, homeTeam.name, awayTeam.name);
+
     let pL = 0, pV = 0, pX = 0, pO25 = 0, pBTTS = 0;
     let probL = [], probV = [];
 
@@ -308,8 +330,6 @@ function calculatePoisson() {
         probV[i] = poisson(i, lambdaV);
     }
 
-    // Cálculo de Local Over 1.5 y Visita Over 1.5
-    // Prob(O1.5) = 1 - Prob(0 goles) - Prob(1 gol)
     const pHO15 = 1 - (probL[0] + probL[1]);
     const pAO15 = 1 - (probV[0] + probV[1]);
 
@@ -349,7 +369,6 @@ function calculatePoisson() {
     document.getElementById('pU25').innerText = (currentProbs.u25 * 100).toFixed(1) + "%";
     document.getElementById('pBTTS').innerText = (pBTTS * 100).toFixed(1) + "%";
     
-    // Actualizar nuevos campos
     document.getElementById('pHO15').innerText = (pHO15 * 100).toFixed(1) + "%";
     document.getElementById('pAO15').innerText = (pAO15 * 100).toFixed(1) + "%";
 
@@ -360,6 +379,36 @@ function calculatePoisson() {
     window.scrollTo({ top: document.getElementById('results').offsetTop, behavior: 'smooth' });
 }
 
+function updateDeltaUI(dL, dV, nameL, nameV) {
+    const bL = document.getElementById('deltaL_badge');
+    const bV = document.getElementById('deltaV_badge');
+    const insight = document.getElementById('deltaInsight');
+
+    bL.innerText = `ΔxG: ${dL > 0 ? '+' : ''}${dL.toFixed(2)}`;
+    bL.className = `delta-badge ${dL >= 0 ? 'delta-pos' : 'delta-neg'}`;
+
+    bV.innerText = `ΔxG: ${dV > 0 ? '+' : ''}${dV.toFixed(2)}`;
+    bV.className = `delta-badge ${dV >= 0 ? 'delta-pos' : 'delta-neg'}`;
+
+    // Explicación dinámica
+    let text = `<b>Análisis de Eficiencia:</b> `;
+    if (dL > 0.3) {
+        text += `El <b>${nameL}</b> está en racha, marcando por encima de su probabilidad. `;
+    } else if (dL < -0.3) {
+        text += `El <b>${nameL}</b> llega pero no define, está "perdonando" goles. `;
+    } else {
+        text += `El <b>${nameL}</b> rinde exactamente según lo esperado. `;
+    }
+
+    if (dV > 0.3) {
+        text += `Ojo con el <b>${nameV}</b>, su pegada es extremadamente eficiente ahora mismo.`;
+    } else if (dV < -0.3) {
+        text += `La visita (<b>${nameV}</b>) tiene una tendencia negativa de finalización.`;
+    }
+
+    insight.innerHTML = text;
+}
+
 function checkValue() {
     const odd = parseFloat(document.getElementById('bookieOdd').value);
     const market = document.getElementById('valueMarket').value;
@@ -367,7 +416,6 @@ function checkValue() {
     const badge = document.getElementById('valueBadge');
     const detail = document.getElementById('valueDetail');
 
-    // Resetear bordes
     document.querySelectorAll('.prob-box').forEach(b => b.style.borderColor = 'var(--border)');
     document.querySelectorAll('.market-highlight').forEach(b => b.style.borderColor = 'var(--accent-blue)');
 
