@@ -114,6 +114,7 @@
                     <option value="winV">Gana Visita</option>
                     <option value="o25">Over 2.5 FT</option>
                     <option value="btts">Ambos Anotan (Sí)</option>
+                    <option value="o05ht">Over 0.5 HT</option>
                 </select>
                 <input type="number" id="bookieOdd" step="0.01" placeholder="Cuota Bookie">
             </div>
@@ -139,7 +140,7 @@
         <div class="prob-card" style="margin-top: 10px;">
             <div class="prob-box" style="border-color: var(--accent-blue);"><span>Over 2.5 FT</span><span class="val" id="pO25_avg" style="color: var(--accent-blue);">0%</span></div>
             <div class="prob-box" style="border-color: var(--accent-yellow);"><span>Ambos Anotan</span><span class="val" id="pBTTS_avg" style="color: var(--accent-yellow);">0%</span></div>
-            <div class="prob-box"><span>Under 2.5</span><span class="val" id="pU25_avg">0%</span></div>
+            <div class="prob-box" style="border-color: var(--accent-green);"><span>Over 0.5 HT</span><span class="val" id="pO05HT_avg" style="color: var(--accent-green);">0%</span></div>
         </div>
 
         <div class="independent-results">
@@ -216,6 +217,11 @@ function poisson(k, l) { return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); 
 
 function getPoissonProbs(l1, l2) {
     let pL=0, pV=0, pX=0, pO25=0, pBTTS=0;
+    // Cálculo para HT (0.45 del tiempo/goles aprox)
+    const l1HT = l1 * 0.45;
+    const l2HT = l2 * 0.45;
+    let p00HT = poisson(0, l1HT) * poisson(0, l2HT);
+    
     for(let i=0; i<=8; i++) {
         for(let j=0; j<=8; j++) {
             let p = poisson(i, l1) * poisson(j, l2);
@@ -224,14 +230,21 @@ function getPoissonProbs(l1, l2) {
             if(i>0 && j>0) pBTTS+=p;
         }
     }
-    return { winL: pL, draw: pX, winV: pV, o25: pO25, btts: pBTTS };
+    return { 
+        winL: pL, 
+        draw: pX, 
+        winV: pV, 
+        o25: pO25, 
+        btts: pBTTS,
+        o05ht: 1 - p00HT
+    };
 }
 
 function calculatePoisson() {
     const nameL = document.getElementById('selectHome').value;
     const nameV = document.getElementById('selectAway').value;
     const labels = ["TEMP. COMPLETA", "ÚLTIMOS 8", "ÚLTIMOS 4"];
-    const weights = [0.20, 0.30, 0.50]; // PESO DINÁMICO
+    const weights = [0.20, 0.30, 0.50];
     const area = document.getElementById('indResultsArea');
     area.innerHTML = "";
 
@@ -250,7 +263,7 @@ function calculatePoisson() {
                 <span class="ind-val">${(res.winL*100).toFixed(0)}% | ${(res.winV*100).toFixed(0)}%</span>
                 <span class="ind-label">Win L/V</span>
                 <div style="margin-top:5px; border-top:1px solid #1a1e26; padding-top:5px;">
-                    <span class="ind-val" style="color:var(--accent-blue); font-size:0.7rem;">O2.5: ${(res.o25*100).toFixed(0)}%</span>
+                    <span class="ind-val" style="color:var(--accent-yellow); font-size:0.7rem;">BTTS: ${(res.btts*100).toFixed(0)}%</span>
                 </div>
             </div>`;
         }
@@ -268,7 +281,7 @@ function calculatePoisson() {
     document.getElementById('pWinV').innerText = (final.winV*100).toFixed(1) + "%";
     document.getElementById('pO25_avg').innerText = (final.o25*100).toFixed(1) + "%";
     document.getElementById('pBTTS_avg').innerText = (final.btts*100).toFixed(1) + "%";
-    document.getElementById('pU25_avg').innerText = ((1-final.o25)*100).toFixed(1) + "%";
+    document.getElementById('pO05HT_avg').innerText = (final.o05ht*100).toFixed(1) + "%";
 
     checkValue();
     document.getElementById('results').style.display = 'block';
