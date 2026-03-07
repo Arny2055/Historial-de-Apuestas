@@ -27,6 +27,10 @@
         h1 span { color: var(--accent-yellow); }
         .subtitle { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; display: block; }
 
+        .nav-header { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        .btn-nav { background: #1a212d; color: var(--accent-yellow); border: 1px solid var(--border); padding: 8px 15px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; text-decoration: none; transition: 0.3s; }
+        .btn-nav:hover { background: var(--border); color: white; }
+
         .league-header { text-align: center; margin-bottom: 25px; }
         .league-input { 
             background: transparent; 
@@ -78,21 +82,12 @@
         .prob-box { background: var(--bg-dark); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); transition: 0.3s; position: relative; }
         .prob-box .val { font-size: 1.3rem; font-weight: 900; color: var(--accent-green); display: block; margin-top: 5px; }
         
-        .trend { font-size: 0.7rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
-        .trend-up { color: var(--accent-green); }
-        .trend-down { color: var(--accent-red); }
-        .trend-stable { color: var(--text-muted); }
-
         .value-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 10px; }
         .has-value { background: var(--accent-green); color: black; }
         .no-value { background: var(--accent-red); color: white; }
 
-        #riskAlerts { margin-top: 15px; padding: 10px; border-radius: 8px; display: none; background: rgba(255, 107, 107, 0.1); border: 1px solid var(--accent-red); }
-        .risk-item { font-size: 0.7rem; color: #ff8787; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
-
         .chart-container { height: 250px; margin-top: 25px; }
 
-        /* Botón de envío a ROI */
         .btn-roi { 
             display: none; 
             background: linear-gradient(135deg, #fcc419, #f59f00); 
@@ -110,6 +105,10 @@
 <body>
 
 <div class="container">
+    <div class="nav-header">
+        <a href="roi2.html" class="btn-nav">📂 IR A ROI LAB</a>
+    </div>
+
     <h1>BETA<span>GS</span> MULTI-DATA</h1>
     <span class="subtitle">Análisis Predictivo: Ponderación Exponencial Reciente</span>
 
@@ -168,11 +167,9 @@
     </div>
 
     <div id="results" class="card" style="display:none;">
-        <div class="section-title"><span>📊</span> RESULTADO UNIFICADO (PONDERADO 20/30/50)</div>
+        <div class="section-title"><span>📊</span> RESULTADO UNIFICADO</div>
         <div id="matchTitle" style="text-align: center; font-weight: 900; font-size: 1.3rem; margin-bottom: 5px; color: var(--primary);"></div>
         
-        <div id="riskAlerts"></div>
-
         <div class="xg-display-grid">
             <div class="xg-box"><label>xG LOCAL (WEIGHTED)</label><div class="val" id="val_xgL">0.00</div></div>
             <div class="xg-box"><label>xG VISITA (WEIGHTED)</label><div class="val" id="val_xgV">0.00</div></div>
@@ -186,26 +183,27 @@
         
         <div class="prob-card" style="margin-top: 10px;">
             <div class="prob-box" style="border-color: var(--accent-blue);">
-                <span>Over 2.5 FT <span id="trend_o25"></span></span>
+                <span>Over 2.5 FT</span>
                 <span class="val" id="pO25_avg" style="color: var(--accent-blue);">0%</span>
             </div>
             <div class="prob-box" style="border-color: var(--accent-yellow);">
-                <span>BTTS Yes <span id="trend_btts"></span></span>
+                <span>BTTS Yes</span>
                 <span class="val" id="pBTTS_avg" style="color: var(--accent-yellow);">0%</span>
             </div>
             <div class="prob-box" style="border-color: var(--accent-green);">
-                <span>Over 0.5 HT <span id="trend_ht"></span></span>
+                <span>Over 0.5 HT</span>
                 <span class="val" id="pO05HT_avg" style="color: var(--accent-green);">0%</span>
             </div>
         </div>
 
         <div class="independent-results">
-            <div class="section-title"><span>🔍</span> ANÁLISIS POR SEGMENTO (DETALLE)</div>
+            <div class="section-title"><span>🔍</span> ANÁLISIS POR SEGMENTO</div>
             <div class="ind-grid" id="indResultsArea"></div>
         </div>
 
-        <div id="valueAnalysisResult" style="text-align: center; margin-top: 15px;">
+        <div id="valueAnalysisResult" style="text-align: center; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
             <div id="valueBadge" class="value-badge"></div>
+            <br>
             <button id="sendToRoiBtn" class="btn btn-roi" onclick="sendToRoi()">🚀 ENVIAR A ROI LAB</button>
         </div>
 
@@ -217,34 +215,49 @@
 let tablesData = { h: [{}, {}, {}], a: [{}, {}, {}] };
 let chartInstance = null;
 let currentProbs = {};
+
+// --- SISTEMA DE IDENTIDAD DE PESTAÑA ---
+// window.name persiste incluso si refrescas la página, pero es único por pestaña.
+if (!window.name || !window.name.startsWith('betags_session_')) {
+    window.name = 'betags_session_' + Date.now() + Math.random().toString(36).substr(2, 5);
+}
+const SESSION_ID = window.name;
 const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3', 'leagueName'];
 
 window.onload = () => {
+    // Recuperar datos específicos de esta sesión (pestaña) desde localStorage
     storageKeys.forEach(key => {
-        const val = sessionStorage.getItem('betags_' + key);
+        const val = localStorage.getItem(SESSION_ID + '_' + key);
         if(val) {
             document.getElementById(key).value = val;
-            if(key === 'leagueName') updateLeagueName();
+            if(key === 'leagueName') updateLeagueName(false);
         }
     });
 };
 
-function updateLeagueName() {
+function updateLeagueName(save = true) {
     const name = document.getElementById('leagueName').value;
-    sessionStorage.setItem('betags_leagueName', name);
-    document.title = name ? `BETAGS - ${name.toUpperCase()}` : "BETAGS - Pro Multi-Weight Poisson";
+    if(save) localStorage.setItem(SESSION_ID + '_leagueName', name);
+    document.title = name ? `${name.toUpperCase()} - BETAGS` : "BETAGS - Multi-Weight";
 }
 
 function saveToStorage() {
-    storageKeys.forEach(key => sessionStorage.setItem('betags_' + key, document.getElementById(key).value));
+    // Sincronización inmediata con localStorage usando el prefijo de sesión
+    storageKeys.forEach(key => {
+        localStorage.setItem(SESSION_ID + '_' + key, document.getElementById(key).value);
+    });
 }
 
 function clearData() {
-    if(confirm("¿Borrar todo en esta pestaña?")) {
-        storageKeys.forEach(key => { document.getElementById(key).value = ""; sessionStorage.removeItem('betags_' + key); });
+    if(confirm("¿Borrar todos los datos de esta pestaña?")) {
+        storageKeys.forEach(key => {
+            document.getElementById(key).value = "";
+            localStorage.removeItem(SESSION_ID + '_' + key);
+        });
         location.reload();
     }
 }
+// --- FIN SISTEMA DE SESIÓN ---
 
 function parseTable(text) {
     const lines = text.trim().split('\n');
@@ -284,10 +297,8 @@ function poisson(k, l) { return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); 
 
 function getPoissonProbs(l1, l2) {
     let pL=0, pV=0, pX=0, pO25=0, pBTTS=0;
-    const l1HT = l1 * 0.45;
-    const l2HT = l2 * 0.45;
+    const l1HT = l1 * 0.45, l2HT = l2 * 0.45;
     let p00HT = poisson(0, l1HT) * poisson(0, l2HT);
-    
     for(let i=0; i<=8; i++) {
         for(let j=0; j<=8; j++) {
             let p = poisson(i, l1) * poisson(j, l2);
@@ -299,27 +310,14 @@ function getPoissonProbs(l1, l2) {
     return { winL: pL, draw: pX, winV: pV, o25: pO25, btts: pBTTS, o05ht: 1 - p00HT };
 }
 
-function getTrendIcon(historic, recent) {
-    const diff = recent - historic;
-    if (diff > 0.05) return '<span class="trend trend-up">▲</span>';
-    if (diff < -0.05) return '<span class="trend trend-down">▼</span>';
-    return '<span class="trend trend-stable">●</span>';
-}
-
 function calculatePoisson() {
     const nameL = document.getElementById('selectHome').value;
     const nameV = document.getElementById('selectAway').value;
     const labels = ["TEMP. COMPLETA", "ÚLTIMOS 8", "ÚLTIMOS 4"];
     const weights = [0.20, 0.30, 0.50];
     const area = document.getElementById('indResultsArea');
-    const alertBox = document.getElementById('riskAlerts');
     area.innerHTML = "";
-    alertBox.innerHTML = "";
-    alertBox.style.display = "none";
-
     let weightedL=0, weightedV=0, totalWeight=0;
-    let historicRes = null, recentRes = null;
-    let risks = [];
 
     labels.forEach((label, i) => {
         const dL = tablesData.h[i][nameL], dV = tablesData.a[i][nameV];
@@ -328,9 +326,6 @@ function calculatePoisson() {
             weightedL += dL.avgGF * weights[i];
             weightedV += dV.avgGF * weights[i];
             totalWeight += weights[i];
-            if (i === 0) historicRes = { l: dL, v: dV, p: segmentProb };
-            if (i === 2) recentRes = { l: dL, v: dV, p: segmentProb };
-
             area.innerHTML += `<div class="ind-card">
                 <h4>${label}</h4>
                 <span class="ind-val">${(segmentProb.winL*100).toFixed(0)}% | ${(segmentProb.winV*100).toFixed(0)}%</span>
@@ -341,8 +336,6 @@ function calculatePoisson() {
                     <div class="ind-stat" style="color:var(--accent-green);"><span>HT0.5</span> <span>${(segmentProb.o05ht*100).toFixed(0)}%</span></div>
                 </div>
             </div>`;
-        } else {
-            area.innerHTML += `<div class="ind-card"><h4>${label}</h4><span class="ind-label">Faltan Datos</span></div>`;
         }
     });
 
@@ -370,13 +363,10 @@ function checkValue() {
     const market = document.getElementById('valueMarket').value;
     const b = document.getElementById('valueBadge');
     const roiBtn = document.getElementById('sendToRoiBtn');
-
     if(!isNaN(odd) && odd > 1 && currentProbs[market]) {
         const val = (currentProbs[market] * odd) - 1;
         b.innerText = val > 0 ? `VALOR PONDERADO: +${(val*100).toFixed(1)}%` : `SIN VALOR: ${(val*100).toFixed(1)}%`;
         b.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
-        
-        // Mostrar botón si hay valor positivo
         roiBtn.style.display = val > 0 ? "inline-block" : "none";
     } else {
         roiBtn.style.display = "none";
@@ -384,44 +374,21 @@ function checkValue() {
     }
 }
 
-// LÓGICA DE ENVÍO A ROI2.HTML
 function sendToRoi() {
-    const STORAGE_KEY = 'betags_pre_match';
-    const existingBets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    
     const league = document.getElementById('leagueName').value || "General";
     const nameL = document.getElementById('selectHome').value;
     const nameV = document.getElementById('selectAway').value;
     const marketKey = document.getElementById('valueMarket').value;
     const odd = parseFloat(document.getElementById('bookieOdd').value);
-    
-    // Traducir el nombre del mercado para la tabla de ROI
-    const marketNames = {
-        winL: 'GANA LOCAL', draw: 'EMPATE', winV: 'GANA VISITA',
-        o25: 'OVER 2.5 FT', btts: 'BTTS YES', o05ht: 'OVER 0.5 HT'
-    };
-
-    const prob = currentProbs[marketKey];
-    const edge = (prob * odd - 1) * 100;
-
-    const newBet = {
-        id: Date.now(),
-        date: new Date().toLocaleString(),
+    const mNames = {winL:'GANA LOCAL',draw:'EMPATE',winV:'GANA VISITA',o25:'OVER 2.5 FT',btts:'BTTS YES',o05ht:'OVER 0.5 HT'};
+    const betData = {
         teams: `[${league.toUpperCase()}] ${nameL} vs ${nameV}`,
-        market: marketNames[marketKey],
-        prob: prob.toFixed(4),
+        market: mNames[marketKey],
         odd: odd.toFixed(2),
-        fair_odd: (1/prob).toFixed(2),
-        edge: edge.toFixed(2) + "%",
-        stake: 1, // Stake plano por defecto
-        status: 'pending',
-        profit: 0
+        prob: (currentProbs[marketKey] * 100).toFixed(1) + "%",
+        edge: ((currentProbs[marketKey] * odd - 1) * 100).toFixed(1) + "%"
     };
-
-    existingBets.push(newBet);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(existingBets));
-    
-    // Redirigir
+    localStorage.setItem('last_bet_sent', JSON.stringify(betData));
     window.location.href = 'roi2.html';
 }
 
