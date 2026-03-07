@@ -61,6 +61,12 @@
         .prob-box { background: var(--bg-dark); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); transition: 0.3s; position: relative; }
         .prob-box .val { font-size: 1.3rem; font-weight: 900; color: var(--accent-green); display: block; margin-top: 5px; }
         
+        /* Estilos de Tendencia */
+        .trend { font-size: 0.7rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
+        .trend-up { color: var(--accent-green); }
+        .trend-down { color: var(--accent-red); }
+        .trend-stable { color: var(--text-muted); }
+
         .value-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 10px; }
         .has-value { background: var(--accent-green); color: black; }
         .no-value { background: var(--accent-red); color: white; }
@@ -140,9 +146,18 @@
         </div>
         
         <div class="prob-card" style="margin-top: 10px;">
-            <div class="prob-box" style="border-color: var(--accent-blue);"><span>Over 2.5 FT</span><span class="val" id="pO25_avg" style="color: var(--accent-blue);">0%</span></div>
-            <div class="prob-box" style="border-color: var(--accent-yellow);"><span>Ambos Anotan</span><span class="val" id="pBTTS_avg" style="color: var(--accent-yellow);">0%</span></div>
-            <div class="prob-box" style="border-color: var(--accent-green);"><span>Over 0.5 HT</span><span class="val" id="pO05HT_avg" style="color: var(--accent-green);">0%</span></div>
+            <div class="prob-box" style="border-color: var(--accent-blue);">
+                <span>Over 2.5 FT <span id="trend_o25"></span></span>
+                <span class="val" id="pO25_avg" style="color: var(--accent-blue);">0%</span>
+            </div>
+            <div class="prob-box" style="border-color: var(--accent-yellow);">
+                <span>BTTS Yes <span id="trend_btts"></span></span>
+                <span class="val" id="pBTTS_avg" style="color: var(--accent-yellow);">0%</span>
+            </div>
+            <div class="prob-box" style="border-color: var(--accent-green);">
+                <span>Over 0.5 HT <span id="trend_ht"></span></span>
+                <span class="val" id="pO05HT_avg" style="color: var(--accent-green);">0%</span>
+            </div>
         </div>
 
         <div class="independent-results">
@@ -234,6 +249,13 @@ function getPoissonProbs(l1, l2) {
     return { winL: pL, draw: pX, winV: pV, o25: pO25, btts: pBTTS, o05ht: 1 - p00HT };
 }
 
+function getTrendIcon(historic, recent) {
+    const diff = recent - historic;
+    if (diff > 0.05) return '<span class="trend trend-up">▲</span>';
+    if (diff < -0.05) return '<span class="trend trend-down">▼</span>';
+    return '<span class="trend trend-stable">●</span>';
+}
+
 function calculatePoisson() {
     const nameL = document.getElementById('selectHome').value;
     const nameV = document.getElementById('selectAway').value;
@@ -243,6 +265,7 @@ function calculatePoisson() {
     area.innerHTML = "";
 
     let weightedL=0, weightedV=0, totalWeight=0;
+    let historicRes = null, recentRes = null;
 
     labels.forEach((label, i) => {
         const dL = tablesData.h[i][nameL], dV = tablesData.a[i][nameV];
@@ -251,6 +274,10 @@ function calculatePoisson() {
             weightedL += dL.avgGF * weights[i];
             weightedV += dV.avgGF * weights[i];
             totalWeight += weights[i];
+
+            // Guardar extremos para tendencia
+            if (i === 0) historicRes = res;
+            if (i === 2) recentRes = res;
 
             area.innerHTML += `<div class="ind-card">
                 <h4>${label}</h4>
@@ -270,6 +297,13 @@ function calculatePoisson() {
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
     const final = getPoissonProbs(finalL, finalV);
     currentProbs = final;
+
+    // Actualizar Tendencias
+    if (historicRes && recentRes) {
+        document.getElementById('trend_o25').innerHTML = getTrendIcon(historicRes.o25, recentRes.o25);
+        document.getElementById('trend_btts').innerHTML = getTrendIcon(historicRes.btts, recentRes.btts);
+        document.getElementById('trend_ht').innerHTML = getTrendIcon(historicRes.o05ht, recentRes.o05ht);
+    }
 
     document.getElementById('matchTitle').innerText = `${nameL} VS ${nameV}`;
     document.getElementById('val_xgL').innerText = finalL.toFixed(2);
