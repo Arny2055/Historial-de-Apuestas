@@ -113,7 +113,8 @@
                     <option value="winL">Gana Local</option>
                     <option value="draw">Empate</option>
                     <option value="winV">Gana Visita</option>
-                    <option value="o25">Over 2.5 Goles</option>
+                    <option value="o25">Over 2.5 FT</option>
+                    <option value="btts">Ambos Anotan (Sí)</option>
                 </select>
                 <input type="number" id="bookieOdd" step="0.01" placeholder="Cuota Bookie">
             </div>
@@ -135,11 +136,17 @@
             <div class="prob-box"><span>Empate</span><span class="val" id="pDraw">0%</span></div>
             <div class="prob-box"><span>Visita</span><span class="val" id="pWinV">0%</span></div>
         </div>
+        
+        <div class="prob-card" style="margin-top: 10px;">
+            <div class="prob-box" style="border-color: var(--accent-blue);"><span>Over 2.5 FT</span><span class="val" id="pO25_avg" style="color: var(--accent-blue);">0%</span></div>
+            <div class="prob-box" style="border-color: var(--accent-yellow);"><span>Ambos Anotan</span><span class="val" id="pBTTS_avg" style="color: var(--accent-yellow);">0%</span></div>
+            <div class="prob-box"><span>Under 2.5</span><span class="val" id="pU25_avg">0%</span></div>
+        </div>
 
         <div class="independent-results">
             <div class="section-title"><span>🔍</span> COMPARATIVA INDEPENDIENTE (L vs V)</div>
             <div class="ind-grid" id="indResultsArea">
-                </div>
+            </div>
         </div>
 
         <div id="valueAnalysisResult" style="text-align: center; margin-top: 15px;">
@@ -216,15 +223,16 @@ function factorial(n) { return n<=1 ? 1 : n * factorial(n-1); }
 function poisson(k, l) { return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); }
 
 function getPoissonProbs(l1, l2) {
-    let pL=0, pV=0, pX=0, pO25=0;
+    let pL=0, pV=0, pX=0, pO25=0, pBTTS=0;
     for(let i=0; i<=8; i++) {
         for(let j=0; j<=8; j++) {
             let p = poisson(i, l1) * poisson(j, l2);
             if(i>j) pL+=p; else if(i<j) pV+=p; else pX+=p;
             if(i+j > 2.5) pO25+=p;
+            if(i>0 && j>0) pBTTS+=p;
         }
     }
-    return { winL: pL, draw: pX, winV: pV, o25: pO25 };
+    return { winL: pL, draw: pX, winV: pV, o25: pO25, btts: pBTTS };
 }
 
 function calculatePoisson() {
@@ -241,7 +249,6 @@ function calculatePoisson() {
         const dataV = tablesData.a[i][nameV];
 
         if(dataL && dataV) {
-            // Cálculo simplificado de Poisson para cada tabla independiente
             const l1 = dataL.avgGF; 
             const l2 = dataV.avgGF;
             const res = getPoissonProbs(l1, l2);
@@ -253,15 +260,16 @@ function calculatePoisson() {
                     <h4>${label}</h4>
                     <span class="ind-val">${(res.winL*100).toFixed(1)}% | ${(res.winV*100).toFixed(1)}%</span>
                     <span class="ind-label">L vs V (Win%)</span>
-                    <span class="ind-val" style="color:var(--accent-blue); margin-top:5px;">${(res.o25*100).toFixed(1)}%</span>
-                    <span class="ind-label">Over 2.5</span>
+                    <div style="margin-top:8px; border-top:1px solid #1a1e26; padding-top:5px;">
+                        <span class="ind-val" style="color:var(--accent-blue); font-size:0.75rem;">O2.5: ${(res.o25*100).toFixed(1)}%</span>
+                        <span class="ind-val" style="color:var(--accent-yellow); font-size:0.75rem;">BTTS: ${(res.btts*100).toFixed(1)}%</span>
+                    </div>
                 </div>`;
         } else {
-            area.innerHTML += `<div class="ind-card"><h4>${label}</h4><span class="ind-label">Sin datos para este equipo</span></div>`;
+            area.innerHTML += `<div class="ind-card"><h4>${label}</h4><span class="ind-label">Sin datos</span></div>`;
         }
     });
 
-    // Resultado Promedio (Esencia de la herramienta)
     const avgL = sumL / validTables;
     const avgV = sumV / validTables;
     const final = getPoissonProbs(avgL, avgV);
@@ -273,6 +281,9 @@ function calculatePoisson() {
     document.getElementById('pWinL').innerText = (final.winL*100).toFixed(1) + "%";
     document.getElementById('pDraw').innerText = (final.draw*100).toFixed(1) + "%";
     document.getElementById('pWinV').innerText = (final.winV*100).toFixed(1) + "%";
+    document.getElementById('pO25_avg').innerText = (final.o25*100).toFixed(1) + "%";
+    document.getElementById('pBTTS_avg').innerText = (final.btts*100).toFixed(1) + "%";
+    document.getElementById('pU25_avg').innerText = ((1-final.o25)*100).toFixed(1) + "%";
 
     checkValue();
     document.getElementById('results').style.display = 'block';
