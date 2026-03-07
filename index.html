@@ -70,7 +70,6 @@
         .has-value { background: var(--accent-green); color: black; }
         .no-value { background: var(--accent-red); color: white; }
 
-        /* Mejora: Alertas de Riesgo */
         #riskAlerts { margin-top: 15px; padding: 10px; border-radius: 8px; display: none; background: rgba(255, 107, 107, 0.1); border: 1px solid var(--accent-red); }
         .risk-item { font-size: 0.7rem; color: #ff8787; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
 
@@ -184,19 +183,20 @@ let chartInstance = null;
 let currentProbs = {};
 const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3'];
 
+// MEJORA: Aislamiento por pestaña usando sessionStorage
 window.onload = () => {
     storageKeys.forEach(key => {
-        if(localStorage.getItem('betags_' + key)) document.getElementById(key).value = localStorage.getItem('betags_' + key);
+        if(sessionStorage.getItem('betags_' + key)) document.getElementById(key).value = sessionStorage.getItem('betags_' + key);
     });
 };
 
 function saveToStorage() {
-    storageKeys.forEach(key => localStorage.setItem('betags_' + key, document.getElementById(key).value));
+    storageKeys.forEach(key => sessionStorage.setItem('betags_' + key, document.getElementById(key).value));
 }
 
 function clearData() {
-    if(confirm("¿Borrar todo?")) {
-        storageKeys.forEach(key => { document.getElementById(key).value = ""; localStorage.removeItem('betags_' + key); });
+    if(confirm("¿Borrar todo en esta pestaña?")) {
+        storageKeys.forEach(key => { document.getElementById(key).value = ""; sessionStorage.removeItem('betags_' + key); });
         location.reload();
     }
 }
@@ -302,7 +302,6 @@ function calculatePoisson() {
         }
     });
 
-    // Lógica de Alertas de Riesgo
     if (historicRes && recentRes) {
         if (recentRes.l.avgGA > historicRes.l.avgGA * 1.3) risks.push(`⚠️ Defensa Local crítica (+30% goles recibidos reciente)`);
         if (recentRes.v.avgGA > historicRes.v.avgGA * 1.3) risks.push(`⚠️ Defensa Visita crítica (+30% goles recibidos reciente)`);
