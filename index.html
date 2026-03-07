@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BETAGS - Multi-Table Poisson Pro</title>
+    <title>BETAGS - Multi-Table & Independent Poisson</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -42,38 +42,29 @@
         .btn { width: 100%; background: linear-gradient(135deg, #4dabf7, #228be6); color: white; border: none; padding: 18px; border-radius: 12px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
         .btn-reset { background: linear-gradient(135deg, #343a40, #212529); color: #adb5bd; border: 1px solid var(--border); }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(77, 171, 247, 0.4); }
-        .btn-reset:hover { background: #c92a2a; color: white; border-color: #c92a2a; }
 
         .xg-display-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
         .xg-box { background: rgba(77, 171, 247, 0.05); border: 1px solid var(--primary); border-radius: 12px; padding: 15px; text-align: center; }
         .xg-box label { font-size: 0.65rem; color: var(--primary); font-weight: 800; display: block; margin-bottom: 5px; }
         .xg-box .val { font-size: 1.8rem; font-weight: 900; color: var(--text-white); }
         
-        .delta-badge { font-size: 0.7rem; padding: 5px; border-radius: 6px; font-weight: bold; background: #0b0e14; border: 1px solid var(--border); }
-        .delta-pos { color: var(--accent-green); border-color: var(--accent-green); }
-        .delta-neg { color: var(--accent-red); border-color: var(--accent-red); }
+        .independent-results { margin-top: 25px; border-top: 1px solid var(--border); padding-top: 15px; }
+        .ind-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .ind-card { background: #0b0e14; padding: 10px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
+        .ind-card h4 { font-size: 0.6rem; color: var(--accent-yellow); margin: 0 0 8px 0; text-transform: uppercase; }
+        .ind-val { font-size: 0.85rem; font-weight: bold; color: var(--text-white); display: block; margin-bottom: 2px; }
+        .ind-label { font-size: 0.55rem; color: var(--text-muted); display: block; }
 
-        .stats-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-top: 15px; }
-        .stat-item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
-        .stat-item label { font-size: 0.6rem; color: var(--text-muted); display: block; }
-        .stat-item b { color: var(--accent-yellow); font-size: 0.9rem; }
-
-        #results { display: none; }
         .prob-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
         .prob-box { background: var(--bg-dark); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); transition: 0.3s; position: relative; }
-        .prob-box:hover { border-color: var(--primary); }
-        .prob-box span { font-size: 0.65rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
         .prob-box .val { font-size: 1.3rem; font-weight: 900; color: var(--accent-green); display: block; margin-top: 5px; }
         
-        .value-check-container { margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed var(--border); }
-        .value-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px; align-items: end; }
         .value-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; margin-top: 10px; }
         .has-value { background: var(--accent-green); color: black; }
         .no-value { background: var(--accent-red); color: white; }
 
         .chart-container { height: 250px; margin-top: 25px; }
         .insight-box { margin-top: 15px; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); font-size: 0.75rem; line-height: 1.4; color: var(--text-muted); border-left: 4px solid var(--primary); }
-        .insight-box b { color: var(--text-white); }
     </style>
 </head>
 <body>
@@ -85,32 +76,26 @@
     <div class="card">
         <div class="input-grid">
             <div>
-                <div class="column-title">DATOS EQUIPOS LOCALES</div>
-                <div class="section-title"><span>📊</span> Tabla General (Home)</div>
+                <div class="column-title">LOCALES</div>
+                <div class="section-title"><span>📊</span> Tabla General</div>
                 <textarea id="h_table_1" placeholder="Pegar tabla temporada..." oninput="saveToStorage()"></textarea>
-                
-                <div class="section-title"><span>📈</span> Últimos 8 Partidos</div>
+                <div class="section-title"><span>📈</span> Últimos 8</div>
                 <textarea id="h_table_2" placeholder="Pegar tabla últimos 8..." oninput="saveToStorage()"></textarea>
-                
-                <div class="section-title"><span>🔥</span> Últimos 4 Partidos</div>
+                <div class="section-title"><span>🔥</span> Últimos 4</div>
                 <textarea id="h_table_3" placeholder="Pegar tabla últimos 4..." oninput="saveToStorage()"></textarea>
             </div>
-
             <div>
-                <div class="column-title">DATOS EQUIPOS VISITANTES</div>
-                <div class="section-title"><span>📊</span> Tabla General (Away)</div>
+                <div class="column-title">VISITANTES</div>
+                <div class="section-title"><span>📊</span> Tabla General</div>
                 <textarea id="a_table_1" placeholder="Pegar tabla temporada..." oninput="saveToStorage()"></textarea>
-                
-                <div class="section-title"><span>📈</span> Últimos 8 Partidos</div>
+                <div class="section-title"><span>📈</span> Últimos 8</div>
                 <textarea id="a_table_2" placeholder="Pegar tabla últimos 8..." oninput="saveToStorage()"></textarea>
-                
-                <div class="section-title"><span>🔥</span> Últimos 4 Partidos</div>
+                <div class="section-title"><span>🔥</span> Últimos 4</div>
                 <textarea id="a_table_3" placeholder="Pegar tabla últimos 4..." oninput="saveToStorage()"></textarea>
             </div>
         </div>
-
         <div class="btn-group">
-            <button class="btn" onclick="processAllTables()">1. COMBINAR Y PROCESAR DATOS</button>
+            <button class="btn" onclick="processAllTables()">1. PROCESAR TODAS LAS TABLAS</button>
             <button class="btn btn-reset" onclick="clearData()">LIMPIAR</button>
         </div>
     </div>
@@ -118,113 +103,75 @@
     <div id="selectionArea" class="card" style="display:none;">
         <div class="section-title"><span>⚔️</span> 3. SELECCIÓN DE ENCUENTRO</div>
         <div class="selector-grid">
-            <div>
-                <label>LOCAL</label>
-                <select id="selectHome"></select>
-            </div>
-            <div>
-                <label>VISITANTE</label>
-                <select id="selectAway"></select>
-            </div>
+            <div><label>LOCAL</label><select id="selectHome"></select></div>
+            <div><label>VISITANTE</label><select id="selectAway"></select></div>
         </div>
-        
         <div class="value-check-container">
             <div class="section-title"><span>💰</span> COMPARADOR DE CUOTAS</div>
-            <div class="value-grid">
-                <div>
-                    <label style="font-size: 0.7rem; color: var(--text-muted);">MERCADO</label>
-                    <select id="valueMarket">
-                        <option value="winL">Gana Local</option>
-                        <option value="draw">Empate</option>
-                        <option value="winV">Gana Visita</option>
-                        <option value="o25">Over 2.5 Goles</option>
-                        <option value="u25">Under 2.5 Goles</option>
-                        <option value="btts">Ambos Marcan (Sí)</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size: 0.7rem; color: var(--text-muted);">CUOTA BOOKIE</label>
-                    <input type="number" id="bookieOdd" step="0.01" placeholder="1.90">
-                </div>
+            <div class="value-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <select id="valueMarket">
+                    <option value="winL">Gana Local</option>
+                    <option value="draw">Empate</option>
+                    <option value="winV">Gana Visita</option>
+                    <option value="o25">Over 2.5 Goles</option>
+                </select>
+                <input type="number" id="bookieOdd" step="0.01" placeholder="Cuota Bookie">
             </div>
         </div>
-
         <button class="btn" style="background: var(--accent-green); color: black; width: 100%; margin-top: 20px;" onclick="calculatePoisson()">2. CALCULAR PROBABILIDADES</button>
     </div>
 
     <div id="results" class="card">
-        <div class="section-title"><span>📊</span> RESULTADOS POISSON (MULTI-DATA)</div>
+        <div class="section-title"><span>📊</span> RESULTADO UNIFICADO (PROMEDIO)</div>
         <div id="matchTitle" style="text-align: center; font-weight: 900; font-size: 1.3rem; margin-bottom: 5px; color: var(--primary);"></div>
         
         <div class="xg-display-grid">
-            <div class="xg-box">
-                <label id="nameL_label">xG LOCAL FINAL</label>
-                <div class="val" id="val_xgL">0.00</div>
-                <div id="deltaL_badge" class="delta-badge">Ajuste Multi-Tabla</div>
-            </div>
-            <div class="xg-box">
-                <label id="nameV_label">xG VISITA FINAL</label>
-                <div class="val" id="val_xgV">0.00</div>
-                <div id="deltaV_badge" class="delta-badge">Ajuste Multi-Tabla</div>
-            </div>
-        </div>
-
-        <div class="insight-box" id="deltaInsight">
-            <b>Nota:</b> Los xG mostrados son el promedio ponderado de las tablas ingresadas.
+            <div class="xg-box"><label>xG LOCAL PROMEDIO</label><div class="val" id="val_xgL">0.00</div></div>
+            <div class="xg-box"><label>xG VISITA PROMEDIO</label><div class="val" id="val_xgV">0.00</div></div>
         </div>
 
         <div class="prob-card">
-            <div class="prob-box" id="box_winL"><span>Local</span><span class="val" id="pWinL">0%</span></div>
-            <div class="prob-box" id="box_draw"><span>Empate</span><span class="val" id="pDraw">0%</span></div>
-            <div class="prob-box" id="box_winV"><span>Visita</span><span class="val" id="pWinV">0%</span></div>
+            <div class="prob-box"><span>Local</span><span class="val" id="pWinL">0%</span></div>
+            <div class="prob-box"><span>Empate</span><span class="val" id="pDraw">0%</span></div>
+            <div class="prob-box"><span>Visita</span><span class="val" id="pWinV">0%</span></div>
         </div>
 
-        <div class="prob-card">
-            <div class="prob-box" id="box_o25"><span>Over 2.5</span><span class="val" id="pO25">0%</span></div>
-            <div class="prob-box" id="box_btts"><span>Ambos Marcan</span><span class="val" id="pBTTS">0%</span></div>
-            <div class="prob-box" id="box_u25"><span>Under 2.5</span><span class="val" id="pU25">0%</span></div>
+        <div class="independent-results">
+            <div class="section-title"><span>🔍</span> COMPARATIVA INDEPENDIENTE (L vs V)</div>
+            <div class="ind-grid" id="indResultsArea">
+                </div>
         </div>
 
-        <div id="valueAnalysisResult" style="text-align: center; margin-top: 15px; display: none;">
+        <div id="valueAnalysisResult" style="text-align: center; margin-top: 15px;">
             <div id="valueBadge" class="value-badge"></div>
         </div>
 
-        <div class="chart-container">
-            <canvas id="poissonChart"></canvas>
-        </div>
+        <div class="chart-container"><canvas id="poissonChart"></canvas></div>
     </div>
 </div>
 
 <script>
-let globalHomeData = {}, globalAwayData = {};
-let leagueAvgH = 0, leagueAvgA = 0;
+let tablesData = { h: [{}, {}, {}], a: [{}, {}, {}] };
+let averages = { h: 0, a: 0 };
 let chartInstance = null;
 let currentProbs = {};
 
 const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3'];
 
-window.onload = function() {
+window.onload = () => {
     storageKeys.forEach(key => {
-        if(localStorage.getItem('betags_' + key)) {
-            document.getElementById(key).value = localStorage.getItem('betags_' + key);
-        }
+        if(localStorage.getItem('betags_' + key)) document.getElementById(key).value = localStorage.getItem('betags_' + key);
     });
 };
 
 function saveToStorage() {
-    storageKeys.forEach(key => {
-        localStorage.setItem('betags_' + key, document.getElementById(key).value);
-    });
+    storageKeys.forEach(key => localStorage.setItem('betags_' + key, document.getElementById(key).value));
 }
 
 function clearData() {
-    if(confirm("¿Borrar todos los campos?")) {
-        storageKeys.forEach(key => {
-            document.getElementById(key).value = "";
-            localStorage.removeItem('betags_' + key);
-        });
-        document.getElementById('selectionArea').style.display = 'none';
-        document.getElementById('results').style.display = 'none';
+    if(confirm("¿Borrar todo?")) {
+        storageKeys.forEach(key => { document.getElementById(key).value = ""; localStorage.removeItem('betags_' + key); });
+        location.reload();
     }
 }
 
@@ -234,20 +181,12 @@ function parseTable(text) {
     lines.forEach(line => {
         const parts = line.trim().split(/\s+/);
         if (parts.length >= 8) {
-            let dataStartIndex = -1;
-            for(let i = 1; i < parts.length; i++) {
-                if(!isNaN(parts[i]) && !isNaN(parts[i+1]) && parts[i].length <= 2) {
-                    dataStartIndex = i; break;
-                }
-            }
-            if (dataStartIndex !== -1) {
-                const name = parts.slice(1, dataStartIndex).join(" ");
-                const gp = parseInt(parts[dataStartIndex]);
-                const gf = parseInt(parts[dataStartIndex + 4]);
-                const ga = parseInt(parts[dataStartIndex + 5]);
-                if (!isNaN(gp) && gp > 0) {
-                    teams[name] = { avgGF: gf / gp, avgGA: ga / gp };
-                }
+            let start = -1;
+            for(let i=1; i<parts.length; i++) if(!isNaN(parts[i]) && !isNaN(parts[i+1])) { start=i; break; }
+            if (start !== -1) {
+                const name = parts.slice(1, start).join(" ");
+                const gp = parseInt(parts[start]), gf = parseInt(parts[start+4]), ga = parseInt(parts[start+5]);
+                if (gp > 0) teams[name] = { avgGF: gf/gp, avgGA: ga/gp };
             }
         }
     });
@@ -256,115 +195,114 @@ function parseTable(text) {
 
 function processAllTables() {
     saveToStorage();
-    const h1 = parseTable(document.getElementById('h_table_1').value);
-    const h2 = parseTable(document.getElementById('h_table_2').value);
-    const h3 = parseTable(document.getElementById('h_table_3').value);
-    
-    const a1 = parseTable(document.getElementById('a_table_1').value);
-    const a2 = parseTable(document.getElementById('a_table_2').value);
-    const a3 = parseTable(document.getElementById('a_table_3').value);
-
-    if (Object.keys(h1).length === 0 && Object.keys(h2).length === 0) {
-        alert("Pega al menos la tabla principal en Local 1."); return;
+    for(let i=0; i<3; i++) {
+        tablesData.h[i] = parseTable(document.getElementById(`h_table_${i+1}`).value);
+        tablesData.a[i] = parseTable(document.getElementById(`a_table_${i+1}`).value);
     }
 
-    // Unificar nombres de equipos
-    const allHomeTeams = [...new Set([...Object.keys(h1), ...Object.keys(h2), ...Object.keys(h3)])];
-    const allAwayTeams = [...new Set([...Object.keys(a1), ...Object.keys(a2), ...Object.keys(a3)])];
-
-    globalHomeData = {};
-    allHomeTeams.forEach(name => {
-        let gfSum = 0, gaSum = 0, count = 0;
-        [h1[name], h2[name], h3[name]].forEach(d => { if(d) { gfSum+=d.avgGF; gaSum+=d.avgGA; count++; }});
-        globalHomeData[name] = { avgGF: gfSum/count, avgGA: gaSum/count };
-    });
-
-    globalAwayData = {};
-    allAwayTeams.forEach(name => {
-        let gfSum = 0, gaSum = 0, count = 0;
-        [a1[name], a2[name], a3[name]].forEach(d => { if(d) { gfSum+=d.avgGF; gaSum+=d.avgGA; count++; }});
-        globalAwayData[name] = { avgGF: gfSum/count, avgGA: gaSum/count };
-    });
-
-    // Promedios de liga para Poisson
-    const hVals = Object.values(globalHomeData);
-    leagueAvgH = hVals.reduce((s, t) => s + t.avgGF, 0) / hVals.length;
-    const aVals = Object.values(globalAwayData);
-    leagueAvgA = aVals.reduce((s, t) => s + t.avgGF, 0) / aVals.length;
-
-    const sH = document.getElementById('selectHome');
-    const sV = document.getElementById('selectAway');
+    const sH = document.getElementById('selectHome'), sV = document.getElementById('selectAway');
     sH.innerHTML = ""; sV.innerHTML = "";
-    Object.keys(globalHomeData).sort().forEach(n => sH.add(new Option(n, n)));
-    Object.keys(globalAwayData).sort().forEach(n => sV.add(new Option(n, n)));
+    
+    const allNamesH = [...new Set([...Object.keys(tablesData.h[0]), ...Object.keys(tablesData.h[1]), ...Object.keys(tablesData.h[2])])];
+    const allNamesA = [...new Set([...Object.keys(tablesData.a[0]), ...Object.keys(tablesData.a[1]), ...Object.keys(tablesData.a[2])])];
+
+    allNamesH.sort().forEach(n => sH.add(new Option(n, n)));
+    allNamesA.sort().forEach(n => sV.add(new Option(n, n)));
 
     document.getElementById('selectionArea').style.display = 'block';
-    window.scrollTo({ top: document.getElementById('selectionArea').offsetTop, behavior: 'smooth' });
 }
 
-function factorial(n) { if (n === 0) return 1; let res = 1; for (let i = 2; i <= n; i++) res *= i; return res; }
-function poisson(k, lambda) { return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k); }
+function factorial(n) { return n<=1 ? 1 : n * factorial(n-1); }
+function poisson(k, l) { return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); }
 
-function calculatePoisson() {
-    const home = globalHomeData[document.getElementById('selectHome').value];
-    const away = globalAwayData[document.getElementById('selectAway').value];
-
-    const lambdaL = (home.avgGF / leagueAvgH) * (away.avgGA / leagueAvgH) * leagueAvgH;
-    const lambdaV = (away.avgGF / leagueAvgA) * (home.avgGA / leagueAvgA) * leagueAvgA;
-
-    let pL = 0, pV = 0, pX = 0, pO25 = 0, pBTTS = 0;
-    let probL = [], probV = [];
-
-    for (let i = 0; i <= 10; i++) {
-        probL[i] = poisson(i, lambdaL);
-        probV[i] = poisson(i, lambdaV);
-    }
-
-    for (let i = 0; i <= 10; i++) {
-        for (let j = 0; j <= 10; j++) {
-            let p = probL[i] * probV[j];
-            if (i > j) pL += p; else if (i < j) pV += p; else pX += p;
-            if (i + j > 2.5) pO25 += p;
-            if (i > 0 && j > 0) pBTTS += p;
+function getPoissonProbs(l1, l2) {
+    let pL=0, pV=0, pX=0, pO25=0;
+    for(let i=0; i<=8; i++) {
+        for(let j=0; j<=8; j++) {
+            let p = poisson(i, l1) * poisson(j, l2);
+            if(i>j) pL+=p; else if(i<j) pV+=p; else pX+=p;
+            if(i+j > 2.5) pO25+=p;
         }
     }
-
-    currentProbs = { winL: pL, draw: pX, winV: pV, o25: pO25, u25: 1-pO25, btts: pBTTS };
-
-    document.getElementById('val_xgL').innerText = lambdaL.toFixed(2);
-    document.getElementById('val_xgV').innerText = lambdaV.toFixed(2);
-    document.getElementById('pWinL').innerText = (pL * 100).toFixed(1) + "%";
-    document.getElementById('pWinV').innerText = (pV * 100).toFixed(1) + "%";
-    document.getElementById('pDraw').innerText = (pX * 100).toFixed(1) + "%";
-    document.getElementById('pO25').innerText = (pO25 * 100).toFixed(1) + "%";
-    document.getElementById('pU25').innerText = ((1-pO25) * 100).toFixed(1) + "%";
-    document.getElementById('pBTTS').innerText = (pBTTS * 100).toFixed(1) + "%";
-
-    const odd = parseFloat(document.getElementById('bookieOdd').value);
-    const market = document.getElementById('valueMarket').value;
-    if(!isNaN(odd) && odd > 1) {
-        const val = (currentProbs[market] * odd) - 1;
-        const b = document.getElementById('valueBadge');
-        document.getElementById('valueAnalysisResult').style.display = 'block';
-        b.innerText = val > 0 ? `VALOR: +${(val*100).toFixed(1)}%` : `SIN VALOR: ${(val*100).toFixed(1)}%`;
-        b.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
-    }
-
-    document.getElementById('results').style.display = 'block';
-    renderChart(probL.slice(0,6), probV.slice(0,6));
-    window.scrollTo({ top: document.getElementById('results').offsetTop, behavior: 'smooth' });
+    return { winL: pL, draw: pX, winV: pV, o25: pO25 };
 }
 
-function renderChart(l, v) {
+function calculatePoisson() {
+    const nameL = document.getElementById('selectHome').value;
+    const nameV = document.getElementById('selectAway').value;
+    const labels = ["TEMP. COMPLETA", "ÚLTIMOS 8", "ÚLTIMOS 4"];
+    const area = document.getElementById('indResultsArea');
+    area.innerHTML = "";
+
+    let sumL=0, sumV=0, validTables=0;
+
+    labels.forEach((label, i) => {
+        const dataL = tablesData.h[i][nameL];
+        const dataV = tablesData.a[i][nameV];
+
+        if(dataL && dataV) {
+            // Cálculo simplificado de Poisson para cada tabla independiente
+            const l1 = dataL.avgGF; 
+            const l2 = dataV.avgGF;
+            const res = getPoissonProbs(l1, l2);
+            
+            sumL += l1; sumV += l2; validTables++;
+
+            area.innerHTML += `
+                <div class="ind-card">
+                    <h4>${label}</h4>
+                    <span class="ind-val">${(res.winL*100).toFixed(1)}% | ${(res.winV*100).toFixed(1)}%</span>
+                    <span class="ind-label">L vs V (Win%)</span>
+                    <span class="ind-val" style="color:var(--accent-blue); margin-top:5px;">${(res.o25*100).toFixed(1)}%</span>
+                    <span class="ind-label">Over 2.5</span>
+                </div>`;
+        } else {
+            area.innerHTML += `<div class="ind-card"><h4>${label}</h4><span class="ind-label">Sin datos para este equipo</span></div>`;
+        }
+    });
+
+    // Resultado Promedio (Esencia de la herramienta)
+    const avgL = sumL / validTables;
+    const avgV = sumV / validTables;
+    const final = getPoissonProbs(avgL, avgV);
+    currentProbs = final;
+
+    document.getElementById('matchTitle').innerText = `${nameL} VS ${nameV}`;
+    document.getElementById('val_xgL').innerText = avgL.toFixed(2);
+    document.getElementById('val_xgV').innerText = avgV.toFixed(2);
+    document.getElementById('pWinL').innerText = (final.winL*100).toFixed(1) + "%";
+    document.getElementById('pDraw').innerText = (final.draw*100).toFixed(1) + "%";
+    document.getElementById('pWinV').innerText = (final.winV*100).toFixed(1) + "%";
+
+    checkValue();
+    document.getElementById('results').style.display = 'block';
+    renderChart(avgL, avgV);
+}
+
+function checkValue() {
+    const odd = parseFloat(document.getElementById('bookieOdd').value);
+    const market = document.getElementById('valueMarket').value;
+    const badge = document.getElementById('valueBadge');
+    if(!isNaN(odd) && odd > 1) {
+        const val = (currentProbs[market] * odd) - 1;
+        badge.innerText = val > 0 ? `VALOR DETECTADO: +${(val*100).toFixed(1)}%` : `SIN VALOR: ${(val*100).toFixed(1)}%`;
+        badge.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
+    }
+}
+
+function renderChart(l1, l2) {
     const ctx = document.getElementById('poissonChart').getContext('2d');
     if (chartInstance) chartInstance.destroy();
+    let pL = [], pV = [];
+    for(let i=0; i<6; i++) { pL.push(poisson(i, l1)); pV.push(poisson(i, l2)); }
+    
     chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: ['0', '1', '2', '3', '4', '5'],
             datasets: [
-                { label: 'Goles Local', data: l, backgroundColor: '#4dabf7' },
-                { label: 'Goles Visita', data: v, backgroundColor: '#fcc419' }
+                { label: 'Goles Local', data: pL, backgroundColor: '#4dabf7' },
+                { label: 'Goles Visita', data: pV, backgroundColor: '#fcc419' }
             ]
         },
         options: { responsive: true, maintainAspectRatio: false }
