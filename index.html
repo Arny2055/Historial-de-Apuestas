@@ -25,7 +25,25 @@
         .card { background: var(--bg-card); border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
         h1 { color: var(--primary); text-align: center; letter-spacing: 2px; font-weight: 900; margin-bottom: 5px; }
         h1 span { color: var(--accent-yellow); }
-        .subtitle { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 25px; display: block; }
+        .subtitle { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; display: block; }
+
+        /* Mejora: Estilo para el nombre de la liga */
+        .league-header { text-align: center; margin-bottom: 25px; }
+        .league-input { 
+            background: transparent; 
+            border: none; 
+            border-bottom: 2px solid var(--border); 
+            color: var(--accent-yellow); 
+            font-size: 1.8rem; 
+            font-weight: 900; 
+            text-align: center; 
+            width: 80%; 
+            outline: none; 
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+        .league-input:focus { border-color: var(--primary); color: white; }
+        .league-input::placeholder { color: #2c3440; font-size: 1.2rem; }
 
         .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .column-title { color: var(--accent-yellow); font-size: 0.9rem; font-weight: 800; text-align: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
@@ -81,6 +99,10 @@
 <div class="container">
     <h1>BETA<span>GS</span> MULTI-DATA</h1>
     <span class="subtitle">Análisis Predictivo: Ponderación Exponencial Reciente</span>
+
+    <div class="league-header">
+        <input type="text" id="leagueName" class="league-input" placeholder="ESCRIBE EL NOMBRE DE LA LIGA" oninput="updateLeagueName()">
+    </div>
 
     <div class="card">
         <div class="input-grid">
@@ -181,14 +203,25 @@
 let tablesData = { h: [{}, {}, {}], a: [{}, {}, {}] };
 let chartInstance = null;
 let currentProbs = {};
-const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3'];
+const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3', 'leagueName'];
 
 // MEJORA: Aislamiento por pestaña usando sessionStorage
 window.onload = () => {
     storageKeys.forEach(key => {
-        if(sessionStorage.getItem('betags_' + key)) document.getElementById(key).value = sessionStorage.getItem('betags_' + key);
+        const val = sessionStorage.getItem('betags_' + key);
+        if(val) {
+            document.getElementById(key).value = val;
+            if(key === 'leagueName') updateLeagueName(); // Actualizar título si hay liga guardada
+        }
     });
 };
+
+function updateLeagueName() {
+    const name = document.getElementById('leagueName').value;
+    sessionStorage.setItem('betags_leagueName', name);
+    // Cambiar el título de la pestaña del navegador dinámicamente
+    document.title = name ? `BETAGS - ${name.toUpperCase()}` : "BETAGS - Pro Multi-Weight Poisson";
+}
 
 function saveToStorage() {
     storageKeys.forEach(key => sessionStorage.setItem('betags_' + key, document.getElementById(key).value));
