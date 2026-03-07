@@ -86,9 +86,10 @@
         .has-value { background: var(--accent-green); color: black; }
         .no-value { background: var(--accent-red); color: white; }
 
-        .confidence-meter { margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border); }
-        .confidence-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-        .confidence-stars { color: var(--accent-yellow); font-size: 1.1rem; margin-top: 2px; }
+        .confidence-meter { margin-top: 10px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 12px; border: 1px solid var(--border); display: inline-block; min-width: 200px; }
+        .confidence-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .confidence-stars { color: var(--accent-yellow); font-size: 1.2rem; margin-bottom: 2px; }
+        .confidence-text { font-size: 0.75rem; font-weight: 900; letter-spacing: 1px; }
 
         .chart-container { height: 250px; margin-top: 25px; }
 
@@ -208,9 +209,11 @@
 
         <div id="valueAnalysisResult" style="text-align: center; margin-top: 15px; border-top: 1px dashed var(--border); padding-top: 15px;">
             <div id="valueBadge" class="value-badge"></div>
+            <br>
             <div class="confidence-meter">
-                <div class="confidence-label">Sincronía de Datos (Confianza)</div>
+                <div class="confidence-label">Sincronía del Análisis</div>
                 <div id="confidenceStars" class="confidence-stars">⭐⭐⭐</div>
+                <div id="confidenceText" class="confidence-text">---</div>
             </div>
             <br>
             <button id="sendToRoiBtn" class="btn btn-roi" onclick="sendToRoi()">🚀 ENVIAR A ROI LAB</button>
@@ -226,7 +229,7 @@ let tablesData = { h: [{}, {}, {}], a: [{}, {}, {}] };
 let chartInstance = null;
 let trendChartInstance = null;
 let currentProbs = {};
-let segmentResults = []; // Almacena los resultados de cada segmento para medir confianza
+let segmentResults = [];
 
 if (!window.name || !window.name.startsWith('betags_session_')) {
     window.name = 'betags_session_' + Date.now() + Math.random().toString(36).substr(2, 5);
@@ -423,6 +426,7 @@ function checkValue() {
     const b = document.getElementById('valueBadge');
     const roiBtn = document.getElementById('sendToRoiBtn');
     const sContainer = document.getElementById('confidenceStars');
+    const tContainer = document.getElementById('confidenceText');
 
     if(!isNaN(odd) && odd > 1 && currentProbs[market]) {
         const val = (currentProbs[market] * odd) - 1;
@@ -430,28 +434,30 @@ function checkValue() {
         b.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
         roiBtn.style.display = val > 0 ? "inline-block" : "none";
 
-        // MEDIDOR DE CONFIANZA: Variación entre segmentos para el mercado elegido
         if(segmentResults.length >= 2) {
             let marketVals = segmentResults.map(s => s[market]);
-            let max = Math.max(...marketVals);
-            let min = Math.min(...marketVals);
-            let diff = max - min;
+            let diff = Math.max(...marketVals) - Math.min(...marketVals);
             
-            // 5 estrellas: alineación perfecta (diff < 5%)
-            // 1 estrella: contradicción total (diff > 25%)
-            let stars = "⭐";
-            if(diff < 0.06) stars = "⭐⭐⭐⭐⭐";
-            else if(diff < 0.12) stars = "⭐⭐⭐⭐";
-            else if(diff < 0.18) stars = "⭐⭐⭐";
-            else if(diff < 0.25) stars = "⭐⭐";
-            
-            sContainer.innerText = stars;
+            if(diff < 0.08) {
+                sContainer.innerText = "⭐⭐⭐⭐⭐";
+                tContainer.innerText = "CONFIANZA ALTA";
+                tContainer.style.color = "var(--accent-green)";
+            } else if(diff < 0.18) {
+                sContainer.innerText = "⭐⭐⭐";
+                tContainer.innerText = "CONFIANZA MEDIA";
+                tContainer.style.color = "var(--accent-yellow)";
+            } else {
+                sContainer.innerText = "⭐";
+                tContainer.innerText = "CONFIANZA BAJA";
+                tContainer.style.color = "var(--accent-red)";
+            }
         }
-
     } else {
         roiBtn.style.display = "none";
         b.innerText = "";
         sContainer.innerText = "---";
+        tContainer.innerText = "---";
+        tContainer.style.color = "var(--text-muted)";
     }
 }
 
