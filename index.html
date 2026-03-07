@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BETAGS - Multi-Table & Independent Poisson</title>
+    <title>BETAGS - Pro Multi-Weight Poisson</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -64,14 +64,13 @@
         .no-value { background: var(--accent-red); color: white; }
 
         .chart-container { height: 250px; margin-top: 25px; }
-        .insight-box { margin-top: 15px; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); font-size: 0.75rem; line-height: 1.4; color: var(--text-muted); border-left: 4px solid var(--primary); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>BETA<span>GS</span> MULTI-DATA</h1>
-    <span class="subtitle">Análisis Profundo: Temporada Completa + Form Reciente</span>
+    <span class="subtitle">Análisis Predictivo: Ponderación Exponencial Reciente</span>
 
     <div class="card">
         <div class="input-grid">
@@ -123,12 +122,12 @@
     </div>
 
     <div id="results" class="card">
-        <div class="section-title"><span>📊</span> RESULTADO UNIFICADO (PROMEDIO)</div>
+        <div class="section-title"><span>📊</span> RESULTADO UNIFICADO (PONDERADO 20/30/50)</div>
         <div id="matchTitle" style="text-align: center; font-weight: 900; font-size: 1.3rem; margin-bottom: 5px; color: var(--primary);"></div>
         
         <div class="xg-display-grid">
-            <div class="xg-box"><label>xG LOCAL PROMEDIO</label><div class="val" id="val_xgL">0.00</div></div>
-            <div class="xg-box"><label>xG VISITA PROMEDIO</label><div class="val" id="val_xgV">0.00</div></div>
+            <div class="xg-box"><label>xG LOCAL (WEIGHTED)</label><div class="val" id="val_xgL">0.00</div></div>
+            <div class="xg-box"><label>xG VISITA (WEIGHTED)</label><div class="val" id="val_xgV">0.00</div></div>
         </div>
 
         <div class="prob-card">
@@ -144,9 +143,8 @@
         </div>
 
         <div class="independent-results">
-            <div class="section-title"><span>🔍</span> COMPARATIVA INDEPENDIENTE (L vs V)</div>
-            <div class="ind-grid" id="indResultsArea">
-            </div>
+            <div class="section-title"><span>🔍</span> ANÁLISIS POR SEGMENTO</div>
+            <div class="ind-grid" id="indResultsArea"></div>
         </div>
 
         <div id="valueAnalysisResult" style="text-align: center; margin-top: 15px;">
@@ -159,10 +157,8 @@
 
 <script>
 let tablesData = { h: [{}, {}, {}], a: [{}, {}, {}] };
-let averages = { h: 0, a: 0 };
 let chartInstance = null;
 let currentProbs = {};
-
 const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3'];
 
 window.onload = () => {
@@ -206,16 +202,12 @@ function processAllTables() {
         tablesData.h[i] = parseTable(document.getElementById(`h_table_${i+1}`).value);
         tablesData.a[i] = parseTable(document.getElementById(`a_table_${i+1}`).value);
     }
-
     const sH = document.getElementById('selectHome'), sV = document.getElementById('selectAway');
     sH.innerHTML = ""; sV.innerHTML = "";
-    
     const allNamesH = [...new Set([...Object.keys(tablesData.h[0]), ...Object.keys(tablesData.h[1]), ...Object.keys(tablesData.h[2])])];
     const allNamesA = [...new Set([...Object.keys(tablesData.a[0]), ...Object.keys(tablesData.a[1]), ...Object.keys(tablesData.a[2])])];
-
     allNamesH.sort().forEach(n => sH.add(new Option(n, n)));
     allNamesA.sort().forEach(n => sV.add(new Option(n, n)));
-
     document.getElementById('selectionArea').style.display = 'block';
 }
 
@@ -239,45 +231,38 @@ function calculatePoisson() {
     const nameL = document.getElementById('selectHome').value;
     const nameV = document.getElementById('selectAway').value;
     const labels = ["TEMP. COMPLETA", "ÚLTIMOS 8", "ÚLTIMOS 4"];
+    const weights = [0.20, 0.30, 0.50]; // PESO DINÁMICO
     const area = document.getElementById('indResultsArea');
     area.innerHTML = "";
 
-    let sumL=0, sumV=0, validTables=0;
+    let weightedL=0, weightedV=0, totalWeight=0;
 
     labels.forEach((label, i) => {
-        const dataL = tablesData.h[i][nameL];
-        const dataV = tablesData.a[i][nameV];
+        const dL = tablesData.h[i][nameL], dV = tablesData.a[i][nameV];
+        if(dL && dV) {
+            const res = getPoissonProbs(dL.avgGF, dV.avgGF);
+            weightedL += dL.avgGF * weights[i];
+            weightedV += dV.avgGF * weights[i];
+            totalWeight += weights[i];
 
-        if(dataL && dataV) {
-            const l1 = dataL.avgGF; 
-            const l2 = dataV.avgGF;
-            const res = getPoissonProbs(l1, l2);
-            
-            sumL += l1; sumV += l2; validTables++;
-
-            area.innerHTML += `
-                <div class="ind-card">
-                    <h4>${label}</h4>
-                    <span class="ind-val">${(res.winL*100).toFixed(1)}% | ${(res.winV*100).toFixed(1)}%</span>
-                    <span class="ind-label">L vs V (Win%)</span>
-                    <div style="margin-top:8px; border-top:1px solid #1a1e26; padding-top:5px;">
-                        <span class="ind-val" style="color:var(--accent-blue); font-size:0.75rem;">O2.5: ${(res.o25*100).toFixed(1)}%</span>
-                        <span class="ind-val" style="color:var(--accent-yellow); font-size:0.75rem;">BTTS: ${(res.btts*100).toFixed(1)}%</span>
-                    </div>
-                </div>`;
-        } else {
-            area.innerHTML += `<div class="ind-card"><h4>${label}</h4><span class="ind-label">Sin datos</span></div>`;
+            area.innerHTML += `<div class="ind-card">
+                <h4>${label}</h4>
+                <span class="ind-val">${(res.winL*100).toFixed(0)}% | ${(res.winV*100).toFixed(0)}%</span>
+                <span class="ind-label">Win L/V</span>
+                <div style="margin-top:5px; border-top:1px solid #1a1e26; padding-top:5px;">
+                    <span class="ind-val" style="color:var(--accent-blue); font-size:0.7rem;">O2.5: ${(res.o25*100).toFixed(0)}%</span>
+                </div>
+            </div>`;
         }
     });
 
-    const avgL = sumL / validTables;
-    const avgV = sumV / validTables;
-    const final = getPoissonProbs(avgL, avgV);
+    const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
+    const final = getPoissonProbs(finalL, finalV);
     currentProbs = final;
 
     document.getElementById('matchTitle').innerText = `${nameL} VS ${nameV}`;
-    document.getElementById('val_xgL').innerText = avgL.toFixed(2);
-    document.getElementById('val_xgV').innerText = avgV.toFixed(2);
+    document.getElementById('val_xgL').innerText = finalL.toFixed(2);
+    document.getElementById('val_xgV').innerText = finalV.toFixed(2);
     document.getElementById('pWinL').innerText = (final.winL*100).toFixed(1) + "%";
     document.getElementById('pDraw').innerText = (final.draw*100).toFixed(1) + "%";
     document.getElementById('pWinV').innerText = (final.winV*100).toFixed(1) + "%";
@@ -287,17 +272,17 @@ function calculatePoisson() {
 
     checkValue();
     document.getElementById('results').style.display = 'block';
-    renderChart(avgL, avgV);
+    renderChart(finalL, finalV);
 }
 
 function checkValue() {
     const odd = parseFloat(document.getElementById('bookieOdd').value);
     const market = document.getElementById('valueMarket').value;
-    const badge = document.getElementById('valueBadge');
     if(!isNaN(odd) && odd > 1) {
         const val = (currentProbs[market] * odd) - 1;
-        badge.innerText = val > 0 ? `VALOR DETECTADO: +${(val*100).toFixed(1)}%` : `SIN VALOR: ${(val*100).toFixed(1)}%`;
-        badge.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
+        const b = document.getElementById('valueBadge');
+        b.innerText = val > 0 ? `VALOR PONDERADO: +${(val*100).toFixed(1)}%` : `SIN VALOR: ${(val*100).toFixed(1)}%`;
+        b.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
     }
 }
 
@@ -306,7 +291,6 @@ function renderChart(l1, l2) {
     if (chartInstance) chartInstance.destroy();
     let pL = [], pV = [];
     for(let i=0; i<6; i++) { pL.push(poisson(i, l1)); pV.push(poisson(i, l2)); }
-    
     chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
