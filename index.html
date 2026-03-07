@@ -171,8 +171,8 @@
         <div id="matchTitle" style="text-align: center; font-weight: 900; font-size: 1.3rem; margin-bottom: 5px; color: var(--primary);"></div>
         
         <div class="xg-display-grid">
-            <div class="xg-box"><label>xG LOCAL (WEIGHTED)</label><div class="val" id="val_xgL">0.00</div></div>
-            <div class="xg-box"><label>xG VISITA (WEIGHTED)</label><div class="val" id="val_xgV">0.00</div></div>
+            <div class="xg-box"><label>xG LOCAL (CRUZADO)</label><div class="val" id="val_xgL">0.00</div></div>
+            <div class="xg-box"><label>xG VISITA (CRUZADO)</label><div class="val" id="val_xgV">0.00</div></div>
         </div>
 
         <div class="prob-card">
@@ -197,7 +197,7 @@
         </div>
 
         <div class="independent-results">
-            <div class="section-title"><span>🔍</span> ANÁLISIS POR SEGMENTO</div>
+            <div class="section-title"><span>🔍</span> ANÁLISIS POR SEGMENTO (CRUCE ATK vs DEF)</div>
             <div class="ind-grid" id="indResultsArea"></div>
         </div>
 
@@ -266,7 +266,6 @@ function parseTable(text) {
             if (start !== -1) {
                 const name = parts.slice(1, start).join(" ");
                 const gp = parseInt(parts[start]), gf = parseInt(parts[start+4]), ga = parseInt(parts[start+5]);
-                // Validación quirúrgica: evitamos división por cero y guardamos promedios
                 if (gp > 0) teams[name] = { avgGF: gf/gp, avgGA: ga/gp };
             }
         }
@@ -302,11 +301,10 @@ function poisson(k, l) {
 
 function getPoissonProbs(l1, l2) {
     let pL=0, pV=0, pX=0, pO25=0, pBTTS=0;
-    // Cálculo HT: factor de tiempo ajustado a 0.44 para mayor precisión estadística (histórico 1T vs 2T)
     const l1HT = l1 * 0.44, l2HT = l2 * 0.44;
     let p00HT = poisson(0, l1HT) * poisson(0, l2HT);
     
-    // Bucle de matriz extendido a 10 para mayor precisión en ligas Over
+    // Matriz 10x10 para evitar fugas de probabilidad
     for(let i=0; i<=10; i++) {
         for(let j=0; j<=10; j++) {
             let p = poisson(i, l1) * poisson(j, l2);
@@ -331,7 +329,7 @@ function calculatePoisson() {
     labels.forEach((label, i) => {
         const dL = tablesData.h[i][nameL], dV = tablesData.a[i][nameV];
         if(dL && dV) {
-            // AJUSTE QUIRÚRGICO: El xG esperado es el cruce entre ataque y defensa rival
+            // LÓGICA DE CRUCE (ATK vs DEF): Esto es lo que hace al modelo superior
             const expG_L = (dL.avgGF + dV.avgGA) / 2;
             const expG_V = (dV.avgGF + dL.avgGA) / 2;
             
@@ -354,7 +352,7 @@ function calculatePoisson() {
         }
     });
 
-    if (totalWeight === 0) return alert("Faltan datos de los equipos en las tablas.");
+    if (totalWeight === 0) return alert("Error en datos de tablas.");
 
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
     const final = getPoissonProbs(finalL, finalV);
