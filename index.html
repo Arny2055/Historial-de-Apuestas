@@ -217,7 +217,6 @@ let chartInstance = null;
 let currentProbs = {};
 
 // --- SISTEMA DE IDENTIDAD DE PESTAÑA ---
-// window.name persiste incluso si refrescas la página, pero es único por pestaña.
 if (!window.name || !window.name.startsWith('betags_session_')) {
     window.name = 'betags_session_' + Date.now() + Math.random().toString(36).substr(2, 5);
 }
@@ -225,7 +224,6 @@ const SESSION_ID = window.name;
 const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3', 'leagueName'];
 
 window.onload = () => {
-    // Recuperar datos específicos de esta sesión (pestaña) desde localStorage
     storageKeys.forEach(key => {
         const val = localStorage.getItem(SESSION_ID + '_' + key);
         if(val) {
@@ -242,7 +240,6 @@ function updateLeagueName(save = true) {
 }
 
 function saveToStorage() {
-    // Sincronización inmediata con localStorage usando el prefijo de sesión
     storageKeys.forEach(key => {
         localStorage.setItem(SESSION_ID + '_' + key, document.getElementById(key).value);
     });
@@ -257,7 +254,6 @@ function clearData() {
         location.reload();
     }
 }
-// --- FIN SISTEMA DE SESIÓN ---
 
 function parseTable(text) {
     const lines = text.trim().split('\n');
@@ -270,6 +266,7 @@ function parseTable(text) {
             if (start !== -1) {
                 const name = parts.slice(1, start).join(" ");
                 const gp = parseInt(parts[start]), gf = parseInt(parts[start+4]), ga = parseInt(parts[start+5]);
+                // Validación quirúrgica: evitamos división por cero y guardamos promedios
                 if (gp > 0) teams[name] = { avgGF: gf/gp, avgGA: ga/gp };
             }
         }
@@ -292,15 +289,26 @@ function processAllTables() {
     document.getElementById('selectionArea').style.display = 'block';
 }
 
-function factorial(n) { return n<=1 ? 1 : n * factorial(n-1); }
-function poisson(k, l) { return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); }
+function factorial(n) { 
+    if (n === 0) return 1;
+    let res = 1;
+    for (let i = 2; i <= n; i++) res *= i;
+    return res;
+}
+
+function poisson(k, l) { 
+    return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); 
+}
 
 function getPoissonProbs(l1, l2) {
     let pL=0, pV=0, pX=0, pO25=0, pBTTS=0;
-    const l1HT = l1 * 0.45, l2HT = l2 * 0.45;
+    // Cálculo HT: factor de tiempo ajustado a 0.44 para mayor precisión estadística (histórico 1T vs 2T)
+    const l1HT = l1 * 0.44, l2HT = l2 * 0.44;
     let p00HT = poisson(0, l1HT) * poisson(0, l2HT);
-    for(let i=0; i<=8; i++) {
-        for(let j=0; j<=8; j++) {
+    
+    // Bucle de matriz extendido a 10 para mayor precisión en ligas Over
+    for(let i=0; i<=10; i++) {
+        for(let j=0; j<=10; j++) {
             let p = poisson(i, l1) * poisson(j, l2);
             if(i>j) pL+=p; else if(i<j) pV+=p; else pX+=p;
             if(i+j > 2.5) pO25+=p;
@@ -317,15 +325,22 @@ function calculatePoisson() {
     const weights = [0.20, 0.30, 0.50];
     const area = document.getElementById('indResultsArea');
     area.innerHTML = "";
+    
     let weightedL=0, weightedV=0, totalWeight=0;
 
     labels.forEach((label, i) => {
         const dL = tablesData.h[i][nameL], dV = tablesData.a[i][nameV];
         if(dL && dV) {
-            const segmentProb = getPoissonProbs(dL.avgGF, dV.avgGA);
-            weightedL += dL.avgGF * weights[i];
-            weightedV += dV.avgGF * weights[i];
+            // AJUSTE QUIRÚRGICO: El xG esperado es el cruce entre ataque y defensa rival
+            const expG_L = (dL.avgGF + dV.avgGA) / 2;
+            const expG_V = (dV.avgGF + dL.avgGA) / 2;
+            
+            const segmentProb = getPoissonProbs(expG_L, expG_V);
+            
+            weightedL += expG_L * weights[i];
+            weightedV += expG_V * weights[i];
             totalWeight += weights[i];
+
             area.innerHTML += `<div class="ind-card">
                 <h4>${label}</h4>
                 <span class="ind-val">${(segmentProb.winL*100).toFixed(0)}% | ${(segmentProb.winV*100).toFixed(0)}%</span>
@@ -338,6 +353,8 @@ function calculatePoisson() {
             </div>`;
         }
     });
+
+    if (totalWeight === 0) return alert("Faltan datos de los equipos en las tablas.");
 
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
     const final = getPoissonProbs(finalL, finalV);
@@ -406,7 +423,17 @@ function renderChart(l1, l2) {
                 { label: 'Goles Visita', data: pV, backgroundColor: '#fcc419' }
             ]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#adb5bd' } },
+                x: { ticks: { color: '#adb5bd' } }
+            },
+            plugins: {
+                legend: { labels: { color: '#e9ecef' } }
+            }
+        }
     });
 }
 </script>
