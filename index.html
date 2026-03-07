@@ -27,7 +27,6 @@
         h1 span { color: var(--accent-yellow); }
         .subtitle { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; display: block; }
 
-        /* Mejora: Estilo para el nombre de la liga */
         .league-header { text-align: center; margin-bottom: 25px; }
         .league-input { 
             background: transparent; 
@@ -205,13 +204,12 @@ let chartInstance = null;
 let currentProbs = {};
 const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3', 'leagueName'];
 
-// MEJORA: Aislamiento por pestaña usando sessionStorage
 window.onload = () => {
     storageKeys.forEach(key => {
         const val = sessionStorage.getItem('betags_' + key);
         if(val) {
             document.getElementById(key).value = val;
-            if(key === 'leagueName') updateLeagueName(); // Actualizar título si hay liga guardada
+            if(key === 'leagueName') updateLeagueName();
         }
     });
 };
@@ -219,7 +217,6 @@ window.onload = () => {
 function updateLeagueName() {
     const name = document.getElementById('leagueName').value;
     sessionStorage.setItem('betags_leagueName', name);
-    // Cambiar el título de la pestaña del navegador dinámicamente
     document.title = name ? `BETAGS - ${name.toUpperCase()}` : "BETAGS - Pro Multi-Weight Poisson";
 }
 
@@ -312,22 +309,24 @@ function calculatePoisson() {
     labels.forEach((label, i) => {
         const dL = tablesData.h[i][nameL], dV = tablesData.a[i][nameV];
         if(dL && dV) {
-            const res = getPoissonProbs(dL.avgGF, dV.avgGA);
+            // CORRECCIÓN: Cruzamos el ataque de uno con la defensa del otro en este segmento específico
+            const segmentProb = getPoissonProbs(dL.avgGF, dV.avgGA);
+            
             weightedL += dL.avgGF * weights[i];
             weightedV += dV.avgGF * weights[i];
             totalWeight += weights[i];
 
-            if (i === 0) historicRes = { l: dL, v: dV, p: res };
-            if (i === 2) recentRes = { l: dL, v: dV, p: res };
+            if (i === 0) historicRes = { l: dL, v: dV, p: segmentProb };
+            if (i === 2) recentRes = { l: dL, v: dV, p: segmentProb };
 
             area.innerHTML += `<div class="ind-card">
                 <h4>${label}</h4>
-                <span class="ind-val">${(res.winL*100).toFixed(0)}% | ${(res.winV*100).toFixed(0)}%</span>
+                <span class="ind-val">${(segmentProb.winL*100).toFixed(0)}% | ${(segmentProb.winV*100).toFixed(0)}%</span>
                 <span class="ind-label">Win L/V</span>
                 <div class="ind-detail">
-                    <div class="ind-stat" style="color:var(--accent-blue);"><span>O2.5</span> <span>${(res.o25*100).toFixed(0)}%</span></div>
-                    <div class="ind-stat" style="color:var(--accent-yellow);"><span>BTTS</span> <span>${(res.btts*100).toFixed(0)}%</span></div>
-                    <div class="ind-stat" style="color:var(--accent-green);"><span>HT0.5</span> <span>${(res.o05ht*100).toFixed(0)}%</span></div>
+                    <div class="ind-stat" style="color:var(--accent-blue);"><span>O2.5</span> <span>${(segmentProb.o25*100).toFixed(0)}%</span></div>
+                    <div class="ind-stat" style="color:var(--accent-yellow);"><span>BTTS</span> <span>${(segmentProb.btts*100).toFixed(0)}%</span></div>
+                    <div class="ind-stat" style="color:var(--accent-green);"><span>HT0.5</span> <span>${(segmentProb.o05ht*100).toFixed(0)}%</span></div>
                 </div>
             </div>`;
         } else {
