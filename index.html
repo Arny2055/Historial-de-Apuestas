@@ -54,6 +54,8 @@
         .ind-card h4 { font-size: 0.6rem; color: var(--accent-yellow); margin: 0 0 8px 0; text-transform: uppercase; }
         .ind-val { font-size: 0.85rem; font-weight: bold; color: var(--text-white); display: block; margin-bottom: 2px; }
         .ind-label { font-size: 0.55rem; color: var(--text-muted); display: block; }
+        .ind-detail { margin-top: 6px; border-top: 1px solid #1a1e26; padding-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+        .ind-stat { font-size: 0.65rem; font-weight: 800; display: flex; justify-content: space-between; }
 
         .prob-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
         .prob-box { background: var(--bg-dark); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); transition: 0.3s; position: relative; }
@@ -254,9 +256,10 @@ function calculatePoisson() {
                 <h4>${label}</h4>
                 <span class="ind-val">${(res.winL*100).toFixed(0)}% | ${(res.winV*100).toFixed(0)}%</span>
                 <span class="ind-label">Win L/V</span>
-                <div style="margin-top:5px; border-top:1px solid #1a1e26; padding-top:5px; text-align: left; padding-left: 5px;">
-                    <span class="ind-val" style="color:var(--accent-blue); font-size:0.65rem;">O2.5: ${(res.o25*100).toFixed(0)}%</span>
-                    <span class="ind-val" style="color:var(--accent-green); font-size:0.65rem;">HT0.5: ${(res.o05ht*100).toFixed(0)}%</span>
+                <div class="ind-detail">
+                    <div class="ind-stat" style="color:var(--accent-blue);"><span>O2.5</span> <span>${(res.o25*100).toFixed(0)}%</span></div>
+                    <div class="ind-stat" style="color:var(--accent-yellow);"><span>BTTS</span> <span>${(res.btts*100).toFixed(0)}%</span></div>
+                    <div class="ind-stat" style="color:var(--accent-green);"><span>HT0.5</span> <span>${(res.o05ht*100).toFixed(0)}%</span></div>
                 </div>
             </div>`;
         } else {
