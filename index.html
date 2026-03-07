@@ -115,7 +115,7 @@
     </div>
 
     <h1>BETA<span>GS</span> MULTI-DATA</h1>
-    <span class="subtitle">Análisis Predictivo: Ponderación Exponencial Reciente</span>
+    <span class="subtitle">Análisis Predictivo: Poisson + Montecarlo (50k)</span>
 
     <div class="league-header">
         <input type="text" id="leagueName" class="league-input" placeholder="ESCRIBE EL NOMBRE DE LA LIGA" oninput="updateLeagueName()">
@@ -172,7 +172,7 @@
     </div>
 
     <div id="results" class="card" style="display:none;">
-        <div class="section-title"><span>📊</span> RESULTADO UNIFICADO</div>
+        <div class="section-title"><span>📊</span> RESULTADO UNIFICADO (SISTEMA HÍBRIDO)</div>
         <div id="matchTitle" style="text-align: center; font-weight: 900; font-size: 1.3rem; margin-bottom: 5px; color: var(--primary);"></div>
         
         <div class="xg-display-grid">
@@ -313,6 +313,42 @@ function poisson(k, l) {
     return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); 
 }
 
+// Generador aleatorio basado en distribución de Poisson para Montecarlo
+function getPoissonRandom(lambda) {
+    let L = Math.exp(-lambda), k = 0, p = 1;
+    do { k++; p *= Math.random(); } while (p > L);
+    return k - 1;
+}
+
+function runMontecarlo(l1, l2, iterations = 50000) {
+    let counts = { winL: 0, draw: 0, winV: 0, o25: 0, btts: 0, o05ht: 0 };
+    const l1HT = l1 * 0.44, l2HT = l2 * 0.44;
+
+    for (let i = 0; i < iterations; i++) {
+        const gL = getPoissonRandom(l1);
+        const gV = getPoissonRandom(l2);
+        const gLHT = getPoissonRandom(l1HT);
+        const gVHT = getPoissonRandom(l2HT);
+
+        if (gL > gV) counts.winL++;
+        else if (gL < gV) counts.winV++;
+        else counts.draw++;
+
+        if (gL + gV > 2.5) counts.o25++;
+        if (gL > 0 && gV > 0) counts.btts++;
+        if (gLHT + gVHT > 0.5) counts.o05ht++;
+    }
+
+    return {
+        winL: counts.winL / iterations,
+        draw: counts.draw / iterations,
+        winV: counts.winV / iterations,
+        o25: counts.o25 / iterations,
+        btts: counts.btts / iterations,
+        o05ht: counts.o05ht / iterations
+    };
+}
+
 function getPoissonProbs(l1, l2) {
     let pL=0, pV=0, pX=0, pO25=0, pBTTS=0;
     const l1HT = l1 * 0.44, l2HT = l2 * 0.44;
@@ -377,18 +413,30 @@ function calculatePoisson() {
     if (totalWeight === 0) return alert("Error en datos de tablas.");
 
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
-    const final = getPoissonProbs(finalL, finalV);
-    currentProbs = final;
+    
+    // Ejecutamos Montecarlo con el promedio ponderado final
+    const mcResults = runMontecarlo(finalL, finalV, 50000);
+    const poissonResults = getPoissonProbs(finalL, finalV);
+    
+    // Promediamos Poisson y Montecarlo para mayor estabilidad (Híbrido)
+    currentProbs = {
+        winL: (poissonResults.winL + mcResults.winL) / 2,
+        draw: (poissonResults.draw + mcResults.draw) / 2,
+        winV: (poissonResults.winV + mcResults.winV) / 2,
+        o25: (poissonResults.o25 + mcResults.o25) / 2,
+        btts: (poissonResults.btts + mcResults.btts) / 2,
+        o05ht: (poissonResults.o05ht + mcResults.o05ht) / 2
+    };
 
     document.getElementById('matchTitle').innerText = `${nameL} VS ${nameV}`;
     document.getElementById('val_xgL').innerText = finalL.toFixed(2);
     document.getElementById('val_xgV').innerText = finalV.toFixed(2);
-    document.getElementById('pWinL').innerText = (final.winL*100).toFixed(1) + "%";
-    document.getElementById('pDraw').innerText = (final.draw*100).toFixed(1) + "%";
-    document.getElementById('pWinV').innerText = (final.winV*100).toFixed(1) + "%";
-    document.getElementById('pO25_avg').innerText = (final.o25*100).toFixed(1) + "%";
-    document.getElementById('pBTTS_avg').innerText = (final.btts*100).toFixed(1) + "%";
-    document.getElementById('pO05HT_avg').innerText = (final.o05ht*100).toFixed(1) + "%";
+    document.getElementById('pWinL').innerText = (currentProbs.winL*100).toFixed(1) + "%";
+    document.getElementById('pDraw').innerText = (currentProbs.draw*100).toFixed(1) + "%";
+    document.getElementById('pWinV').innerText = (currentProbs.winV*100).toFixed(1) + "%";
+    document.getElementById('pO25_avg').innerText = (currentProbs.o25*100).toFixed(1) + "%";
+    document.getElementById('pBTTS_avg').innerText = (currentProbs.btts*100).toFixed(1) + "%";
+    document.getElementById('pO05HT_avg').innerText = (currentProbs.o05ht*100).toFixed(1) + "%";
 
     checkValue();
     document.getElementById('results').style.display = 'block';
