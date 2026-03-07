@@ -144,7 +144,7 @@
         </div>
 
         <div class="independent-results">
-            <div class="section-title"><span>🔍</span> ANÁLISIS POR SEGMENTO</div>
+            <div class="section-title"><span>🔍</span> ANÁLISIS POR SEGMENTO (DETALLE)</div>
             <div class="ind-grid" id="indResultsArea"></div>
         </div>
 
@@ -217,7 +217,6 @@ function poisson(k, l) { return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); 
 
 function getPoissonProbs(l1, l2) {
     let pL=0, pV=0, pX=0, pO25=0, pBTTS=0;
-    // Cálculo para HT (0.45 del tiempo/goles aprox)
     const l1HT = l1 * 0.45;
     const l2HT = l2 * 0.45;
     let p00HT = poisson(0, l1HT) * poisson(0, l2HT);
@@ -230,14 +229,7 @@ function getPoissonProbs(l1, l2) {
             if(i>0 && j>0) pBTTS+=p;
         }
     }
-    return { 
-        winL: pL, 
-        draw: pX, 
-        winV: pV, 
-        o25: pO25, 
-        btts: pBTTS,
-        o05ht: 1 - p00HT
-    };
+    return { winL: pL, draw: pX, winV: pV, o25: pO25, btts: pBTTS, o05ht: 1 - p00HT };
 }
 
 function calculatePoisson() {
@@ -262,10 +254,13 @@ function calculatePoisson() {
                 <h4>${label}</h4>
                 <span class="ind-val">${(res.winL*100).toFixed(0)}% | ${(res.winV*100).toFixed(0)}%</span>
                 <span class="ind-label">Win L/V</span>
-                <div style="margin-top:5px; border-top:1px solid #1a1e26; padding-top:5px;">
-                    <span class="ind-val" style="color:var(--accent-yellow); font-size:0.7rem;">BTTS: ${(res.btts*100).toFixed(0)}%</span>
+                <div style="margin-top:5px; border-top:1px solid #1a1e26; padding-top:5px; text-align: left; padding-left: 5px;">
+                    <span class="ind-val" style="color:var(--accent-blue); font-size:0.65rem;">O2.5: ${(res.o25*100).toFixed(0)}%</span>
+                    <span class="ind-val" style="color:var(--accent-green); font-size:0.65rem;">HT0.5: ${(res.o05ht*100).toFixed(0)}%</span>
                 </div>
             </div>`;
+        } else {
+            area.innerHTML += `<div class="ind-card"><h4>${label}</h4><span class="ind-label">Faltan Datos</span></div>`;
         }
     });
 
