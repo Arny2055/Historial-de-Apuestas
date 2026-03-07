@@ -91,6 +91,20 @@
         .risk-item { font-size: 0.7rem; color: #ff8787; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
 
         .chart-container { height: 250px; margin-top: 25px; }
+
+        /* Botón de envío a ROI */
+        .btn-roi { 
+            display: none; 
+            background: linear-gradient(135deg, #fcc419, #f59f00); 
+            color: black; 
+            margin-top: 15px; 
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252, 196, 25, 0.7); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(252, 196, 25, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252, 196, 25, 0); }
+        }
     </style>
 </head>
 <body>
@@ -139,21 +153,21 @@
         <div class="value-check-container">
             <div class="section-title"><span>💰</span> COMPARADOR DE CUOTAS</div>
             <div class="value-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <select id="valueMarket">
+                <select id="valueMarket" onchange="checkValue()">
                     <option value="winL">Gana Local</option>
                     <option value="draw">Empate</option>
                     <option value="winV">Gana Visita</option>
                     <option value="o25">Over 2.5 FT</option>
-                    <option value="btts">Ambos Anotan (Sí)</option>
+                    <option value="btts">BTTS YES</option>
                     <option value="o05ht">Over 0.5 HT</option>
                 </select>
-                <input type="number" id="bookieOdd" step="0.01" placeholder="Cuota Bookie">
+                <input type="number" id="bookieOdd" step="0.01" placeholder="Cuota Bookie" oninput="checkValue()">
             </div>
         </div>
         <button class="btn" style="background: var(--accent-green); color: black; width: 100%; margin-top: 20px;" onclick="calculatePoisson()">2. CALCULAR PROBABILIDADES</button>
     </div>
 
-    <div id="results" class="card">
+    <div id="results" class="card" style="display:none;">
         <div class="section-title"><span>📊</span> RESULTADO UNIFICADO (PONDERADO 20/30/50)</div>
         <div id="matchTitle" style="text-align: center; font-weight: 900; font-size: 1.3rem; margin-bottom: 5px; color: var(--primary);"></div>
         
@@ -192,6 +206,7 @@
 
         <div id="valueAnalysisResult" style="text-align: center; margin-top: 15px;">
             <div id="valueBadge" class="value-badge"></div>
+            <button id="sendToRoiBtn" class="btn btn-roi" onclick="sendToRoi()">🚀 ENVIAR A ROI LAB</button>
         </div>
 
         <div class="chart-container"><canvas id="poissonChart"></canvas></div>
@@ -309,13 +324,10 @@ function calculatePoisson() {
     labels.forEach((label, i) => {
         const dL = tablesData.h[i][nameL], dV = tablesData.a[i][nameV];
         if(dL && dV) {
-            // CORRECCIÓN: Cruzamos el ataque de uno con la defensa del otro en este segmento específico
             const segmentProb = getPoissonProbs(dL.avgGF, dV.avgGA);
-            
             weightedL += dL.avgGF * weights[i];
             weightedV += dV.avgGF * weights[i];
             totalWeight += weights[i];
-
             if (i === 0) historicRes = { l: dL, v: dV, p: segmentProb };
             if (i === 2) recentRes = { l: dL, v: dV, p: segmentProb };
 
@@ -334,26 +346,9 @@ function calculatePoisson() {
         }
     });
 
-    if (historicRes && recentRes) {
-        if (recentRes.l.avgGA > historicRes.l.avgGA * 1.3) risks.push(`⚠️ Defensa Local crítica (+30% goles recibidos reciente)`);
-        if (recentRes.v.avgGA > historicRes.v.avgGA * 1.3) risks.push(`⚠️ Defensa Visita crítica (+30% goles recibidos reciente)`);
-        if (Math.abs(recentRes.p.winL - historicRes.p.winL) > 0.25) risks.push(`⚠️ Volatilidad alta: Pronóstico sesgado por racha actual`);
-        
-        if (risks.length > 0) {
-            alertBox.style.display = "block";
-            risks.forEach(r => { alertBox.innerHTML += `<div class="risk-item">${r}</div>`; });
-        }
-    }
-
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
     const final = getPoissonProbs(finalL, finalV);
     currentProbs = final;
-
-    if (historicRes && recentRes) {
-        document.getElementById('trend_o25').innerHTML = getTrendIcon(historicRes.p.o25, recentRes.p.o25);
-        document.getElementById('trend_btts').innerHTML = getTrendIcon(historicRes.p.btts, recentRes.p.btts);
-        document.getElementById('trend_ht').innerHTML = getTrendIcon(historicRes.p.o05ht, recentRes.p.o05ht);
-    }
 
     document.getElementById('matchTitle').innerText = `${nameL} VS ${nameV}`;
     document.getElementById('val_xgL').innerText = finalL.toFixed(2);
@@ -373,12 +368,61 @@ function calculatePoisson() {
 function checkValue() {
     const odd = parseFloat(document.getElementById('bookieOdd').value);
     const market = document.getElementById('valueMarket').value;
-    if(!isNaN(odd) && odd > 1) {
+    const b = document.getElementById('valueBadge');
+    const roiBtn = document.getElementById('sendToRoiBtn');
+
+    if(!isNaN(odd) && odd > 1 && currentProbs[market]) {
         const val = (currentProbs[market] * odd) - 1;
-        const b = document.getElementById('valueBadge');
         b.innerText = val > 0 ? `VALOR PONDERADO: +${(val*100).toFixed(1)}%` : `SIN VALOR: ${(val*100).toFixed(1)}%`;
         b.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
+        
+        // Mostrar botón si hay valor positivo
+        roiBtn.style.display = val > 0 ? "inline-block" : "none";
+    } else {
+        roiBtn.style.display = "none";
+        b.innerText = "";
     }
+}
+
+// LÓGICA DE ENVÍO A ROI2.HTML
+function sendToRoi() {
+    const STORAGE_KEY = 'betags_pre_match';
+    const existingBets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    
+    const league = document.getElementById('leagueName').value || "General";
+    const nameL = document.getElementById('selectHome').value;
+    const nameV = document.getElementById('selectAway').value;
+    const marketKey = document.getElementById('valueMarket').value;
+    const odd = parseFloat(document.getElementById('bookieOdd').value);
+    
+    // Traducir el nombre del mercado para la tabla de ROI
+    const marketNames = {
+        winL: 'GANA LOCAL', draw: 'EMPATE', winV: 'GANA VISITA',
+        o25: 'OVER 2.5 FT', btts: 'BTTS YES', o05ht: 'OVER 0.5 HT'
+    };
+
+    const prob = currentProbs[marketKey];
+    const edge = (prob * odd - 1) * 100;
+
+    const newBet = {
+        id: Date.now(),
+        date: new Date().toLocaleString(),
+        teams: `[${league.toUpperCase()}] ${nameL} vs ${nameV}`,
+        market: marketNames[marketKey],
+        prob: prob.toFixed(4),
+        odd: odd.toFixed(2),
+        fair_odd: (1/prob).toFixed(2),
+        edge: edge.toFixed(2) + "%",
+        stake: 1, // Stake plano por defecto
+        status: 'pending',
+        profit: 0
+    };
+
+    existingBets.push(newBet);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(existingBets));
+    
+    // Redirigir
+    window.location.href = 'roi2.html';
 }
 
 function renderChart(l1, l2) {
