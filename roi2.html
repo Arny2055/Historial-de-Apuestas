@@ -144,49 +144,6 @@
             text-transform: uppercase;
             font-weight: 600;
         }
-
-        .top-performance-badge {
-            background: linear-gradient(90deg, #10b981, #059669);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: 900;
-            text-transform: uppercase;
-        }
-        .kelly-badge {
-            background: rgba(139, 92, 246, 0.2);
-            color: #a78bfa;
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-size: 9px;
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            margin-left: 4px;
-        }
-        .pid-badge {
-            background: rgba(0, 242, 255, 0.15);
-            color: #00f2ff;
-            padding: 1px 4px;
-            border-radius: 3px;
-            font-size: 9px;
-            border: 1px solid rgba(0, 242, 255, 0.3);
-            margin-left: 4px;
-        }
-
-        .profit-selector {
-            background: transparent;
-            border: none;
-            color: #64748b;
-            font-size: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            outline: none;
-            padding: 0;
-            margin: 0;
-            text-align: center;
-        }
-        .profit-selector:focus { ring: none; }
     </style>
 </head>
 <body>
@@ -196,7 +153,6 @@
             <div class="flex flex-wrap gap-2">
                 <a href="index.html" class="px-4 py-1.5 text-xs font-semibold bg-slate-900 rounded-full border border-slate-800 hover:border-emerald-500/50 transition">Poisson</a>
                 <a href="roi2.html" class="px-4 py-1.5 text-xs font-semibold bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/30">ROI Pre</a>
-                <a href="xg.html" class="px-4 py-1.5 text-xs font-semibold bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/30 hover:bg-blue-500/20 transition">XG ANALYTICS ⭐</a>
             </div>
         </div>
     </nav>
@@ -204,7 +160,7 @@
     <div class="container mx-auto p-4 lg:p-8">
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div class="glass-card p-4 rounded-xl text-center">
-                <select id="main-profit-type" class="profit-selector" onchange="updateStats()">
+                <select id="main-profit-type" class="profit-selector" onchange="updateStats()" style="background:transparent; color:#64748b; font-size:10px; font-weight:bold; cursor:pointer;">
                     <option value="REAL">Profit Real</option>
                     <option value="KELLY">Profit Kelly</option>
                     <option value="PID">Profit PID</option>
@@ -236,17 +192,17 @@
         <div class="glass-card p-6 rounded-2xl mb-8 border-emerald-500/20">
             <div class="flex items-center gap-3 mb-6">
                 <i class="fa-solid fa-ranking-star text-emerald-500"></i>
-                <h2 class="text-xs font-black uppercase text-white tracking-widest">League Performance Analytics & Teams</h2>
+                <h2 class="text-xs font-black uppercase text-white tracking-widest">League Performance Analytics</h2>
             </div>
             <div class="overflow-x-auto scroll-custom">
                 <table class="excel-table mb-6">
                     <thead>
                         <tr>
                             <th>Liga</th>
-                            <th>Principal Mercado</th>
-                            <th>Prob % Prom.</th>
-                            <th>Cuota Casa Prom.</th>
-                            <th>Valor % Prom.</th>
+                            <th>Mercado</th>
+                            <th>Prob %</th>
+                            <th>Cuota Prom.</th>
+                            <th>Valor %</th>
                             <th>Yield</th>
                             <th>ROI</th>
                             <th>P-Value</th>
@@ -258,45 +214,12 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-slate-800">
                 <div>
-                    <h3 class="text-[10px] font-black text-emerald-400 uppercase mb-3">Ranking Equipos: Más Rentables</h3>
-                    <div id="top-teams-profit" class="space-y-2 max-h-[250px] overflow-y-auto pr-2 scroll-custom"></div>
+                    <h3 class="text-[10px] font-black text-emerald-400 uppercase mb-3">Ranking Equipos Rentables</h3>
+                    <div id="top-teams-profit" class="space-y-2 max-h-[200px] overflow-y-auto scroll-custom"></div>
                 </div>
                 <div>
-                    <h3 class="text-[10px] font-black text-red-400 uppercase mb-3">Ranking Equipos: Menos Rentables</h3>
-                    <div id="bottom-teams-profit" class="space-y-2 max-h-[250px] overflow-y-auto pr-2 scroll-custom"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="glass-card p-4 rounded-xl border-blue-500/20">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="fa-solid fa-calculator text-blue-400"></i>
-                    <p class="text-[10px] text-blue-400 uppercase font-black tracking-widest">Simulación 1/4 Kelly</p>
-                </div>
-                <div class="flex justify-between items-end">
-                    <p id="kelly-quarter-profit" class="text-2xl font-black text-white">$0.00</p>
-                    <p id="kelly-quarter-yield" class="text-xs font-bold text-slate-500">Yield: 0%</p>
-                </div>
-            </div>
-            <div class="glass-card p-4 rounded-xl border-purple-500/20">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="fa-solid fa-calculator text-purple-400"></i>
-                    <p class="text-[10px] text-purple-400 uppercase font-black tracking-widest">Simulación 1/8 Kelly</p>
-                </div>
-                <div class="flex justify-between items-end">
-                    <p id="kelly-eighth-profit" class="text-2xl font-black text-white">$0.00</p>
-                    <p id="kelly-eighth-yield" class="text-xs font-bold text-slate-500">Yield: 0%</p>
-                </div>
-            </div>
-            <div class="glass-card p-4 rounded-xl border-emerald-500/20">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="fa-solid fa-trophy text-emerald-400"></i>
-                    <p class="text-[10px] text-emerald-400 uppercase font-black tracking-widest">Top Rendimiento</p>
-                </div>
-                <div class="grid grid-cols-1 gap-2">
-                    <div id="top-leagues-list" class="text-[10px] text-slate-300">Cargando ligas...</div>
-                    <div id="top-markets-list" class="text-[10px] text-slate-300">Cargando mercados...</div>
+                    <h3 class="text-[10px] font-black text-red-400 uppercase mb-3">Ranking Equipos Negativos</h3>
+                    <div id="bottom-teams-profit" class="space-y-2 max-h-[200px] overflow-y-auto scroll-custom"></div>
                 </div>
             </div>
         </div>
@@ -305,13 +228,9 @@
             <div class="lg:col-span-1 space-y-6">
                 <div class="glass-card p-5 rounded-2xl">
                     <button onclick="toggleFilters()" class="w-full flex justify-between items-center group">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs font-black uppercase text-emerald-500 tracking-tighter">Panel de Filtros</span>
-                            <div id="active-indicator" class="hidden"><span class="dot-active"></span></div>
-                        </div>
-                        <i id="filter-chevron" class="fa-solid fa-chevron-down text-slate-500 group-hover:text-emerald-500 rotate-icon"></i>
+                        <span class="text-xs font-black uppercase text-emerald-500">Panel de Filtros</span>
+                        <i id="filter-chevron" class="fa-solid fa-chevron-down text-slate-500 rotate-icon"></i>
                     </button>
-
                     <div id="filter-container">
                         <div class="space-y-4 pt-6">
                             <div>
@@ -320,81 +239,17 @@
                                     <option value="">Todas las Ligas</option>
                                 </select>
                             </div>
-
                             <div>
-                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Mercados (Multiselección)</label>
+                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Mercados</label>
                                 <div class="market-checkbox-group" id="f_market_group">
                                     <label class="market-item"><input type="checkbox" value="OVER 2.5 FT" onchange="updateStats()"> <span>Over 2.5 Ft</span></label>
-                                    <label class="market-item"><input type="checkbox" value="UNDER 2.5 FT" onchange="updateStats()"> <span>Under 2.5 Ft</span></label>
                                     <label class="market-item"><input type="checkbox" value="BTTS YES" onchange="updateStats()"> <span>BTTS Yes</span></label>
-                                    <label class="market-item"><input type="checkbox" value="BTTS NO" onchange="updateStats()"> <span>BTTS No</span></label>
                                     <label class="market-item"><input type="checkbox" value="OVER 0.5 HT" onchange="updateStats()"> <span>Over 0.5 Ht</span></label>
                                 </div>
                             </div>
-
-                            <div>
-                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Algoritmo</label>
-                                <select id="f_source" class="w-full bg-slate-950 p-2.5 text-[11px] rounded-lg border border-slate-800 text-slate-200" onchange="updateStats()">
-                                    <option value="">Cualquier Origen</option>
-                                    <option value="XG">Basado en xG</option>
-                                    <option value="GOLES">Basado en Goles</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Estado</label>
-                                <select id="f_status" class="w-full bg-slate-950 p-2.5 text-[11px] rounded-lg border border-slate-800 text-slate-200" onchange="updateStats()">
-                                    <option value="">Cualquier Resultado</option>
-                                    <option value="win">W - Ganadas</option>
-                                    <option value="loss">L - Perdidas</option>
-                                    <option value="pending">P - Pendientes</option>
-                                </select>
-                            </div>
-
-                            <div class="pt-4 border-t border-slate-800 space-y-3">
-                                <p class="text-[10px] text-emerald-500 font-black uppercase">Rangos de Valor</p>
-                                <div class="filter-row">
-                                    <span class="filter-label">Prob %</span>
-                                    <input type="number" id="f_p_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
-                                    <input type="number" id="f_p_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
-                                </div>
-                                <div class="filter-row">
-                                    <span class="filter-label">VAL %</span>
-                                    <input type="number" id="f_v_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
-                                    <input type="number" id="f_v_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
-                                </div>
-                                <div class="filter-row">
-                                    <span class="filter-label">C. Justa</span>
-                                    <input type="number" id="f_fj_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
-                                    <input type="number" id="f_fj_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
-                                </div>
-                                <div class="filter-row">
-                                    <span class="filter-label">C. Casa</span>
-                                    <input type="number" id="f_oc_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
-                                    <input type="number" id="f_oc_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
-                                </div>
-                                <div class="filter-row">
-                                    <span class="filter-label">Edge %</span>
-                                    <input type="number" id="f_e_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
-                                    <input type="number" id="f_e_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
-                                </div>
-                                <div class="filter-row">
-                                    <span class="filter-label">Stake</span>
-                                    <input type="number" id="f_s_min" placeholder="Min" class="filter-mini" oninput="updateStats()">
-                                    <input type="number" id="f_s_max" placeholder="Max" class="filter-mini" oninput="updateStats()">
-                                </div>
-                            </div>
-
-                            <button onclick="resetFilters()" class="w-full text-[9px] text-slate-500 hover:text-white underline py-2 transition-colors">Limpiar filtros aplicados</button>
-
                             <div class="pt-4 border-t border-slate-800 space-y-2">
-                                <button onclick="sendToBacktesting()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black rounded-lg uppercase shadow-lg shadow-blue-900/20 transition-all">
-                                    <i class="fa-solid fa-vial-circle-check mr-2"></i>Enviar a Backtesting
-                                </button>
-                                <button onclick="exportToExcel()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black rounded-lg uppercase shadow-lg shadow-emerald-900/20 transition-all">
-                                    <i class="fa-solid fa-file-excel mr-2"></i>Exportar CSV
-                                </button>
-                                <button onclick="clearHistory()" class="w-full py-2 bg-transparent text-red-500 hover:bg-red-500/10 text-[10px] font-bold rounded-lg uppercase transition-all">Borrar Historial</button>
+                                <button onclick="exportToExcel()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black rounded-lg uppercase">Exportar CSV</button>
+                                <button onclick="clearHistory()" class="w-full py-2 text-red-500 text-[10px] font-bold uppercase">Borrar Historial</button>
                             </div>
                         </div>
                     </div>
@@ -402,41 +257,31 @@
                 
                 <div class="glass-card p-5 rounded-2xl">
                     <p class="text-[10px] text-slate-500 font-black uppercase mb-4 text-center tracking-widest">Equity Curve (u)</p>
-                    <div class="h-[150px]">
-                        <canvas id="bankrollChart"></canvas>
-                    </div>
+                    <div class="h-[150px]"><canvas id="bankrollChart"></canvas></div>
                 </div>
             </div>
 
             <div class="lg:col-span-3">
                 <div class="flex justify-between items-center mb-4 px-2">
                     <h3 class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Historial de Operaciones</h3>
-                    <div class="flex items-center gap-3">
-                        <div id="selection-summary" class="hidden bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
-                            <span class="text-[10px] font-bold text-emerald-400">Seleccionado: <span id="selected-profit">0.00u</span></span>
-                        </div>
-                        <button id="btn-delete-bulk" onclick="deleteSelectedBets()" class="hidden bg-red-500/10 border border-red-500/40 text-red-500 px-3 py-1 rounded-full text-[10px] font-black hover:bg-red-500 hover:text-white transition-all">
-                            <i class="fa-solid fa-trash-can mr-1"></i> ELIMINAR SELECCIONADOS
-                        </button>
-                    </div>
+                    <div id="selection-summary" class="hidden"><span class="text-[10px] font-bold text-emerald-400">Seleccionado: <span id="selected-profit">0.00u</span></span></div>
+                    <button id="btn-delete-bulk" onclick="deleteSelectedBets()" class="hidden bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black">ELIMINAR SELECCIONADOS</button>
                 </div>
-                <div class="glass-card rounded-2xl overflow-hidden shadow-2xl">
+                <div class="glass-card rounded-2xl overflow-hidden">
                     <div class="overflow-x-auto scroll-custom">
                         <table class="excel-table">
                             <thead>
                                 <tr>
-                                    <th class="w-8">
-                                        <input type="checkbox" id="master-checkbox" onchange="toggleSelectAll(this)" class="select-bet-checkbox">
-                                    </th>
+                                    <th class="w-8"><input type="checkbox" id="master-checkbox" onchange="toggleSelectAll(this)" class="select-bet-checkbox"></th>
                                     <th>Evento / Fecha</th>
                                     <th>Mercado</th>
                                     <th>Prob %</th>
-                                    <th>Justa</th>
-                                    <th>Casa</th>
-                                    <th>VAL %</th>
+                                    <th>Cuota Justa</th>
+                                    <th>Cuota Casa</th>
+                                    <th>Valor %</th>
                                     <th>Edge</th>
-                                    <th>Stake (Plano vs Kelly vs PID)</th>
-                                    <th>Resolución</th>
+                                    <th>Stake</th>
+                                    <th>Acción</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -453,341 +298,163 @@
         let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let bChart;
 
-        const PID_CONFIG = {
-            Kp: 0.1, Ki: 0.01, Kd: 0.05,
-            TargetBank: 150, integral: 0, lastError: 0
-        };
+        // --- MEJORA: RECEPCIÓN DE DATOS DESDE INDEX ---
+        (function checkIncomingBet() {
+            const rawData = localStorage.getItem('last_bet_sent');
+            if (rawData) {
+                const betData = JSON.parse(rawData);
+                // Evitar duplicados por timestamp (si ya existe un ID igual)
+                const alreadyExists = bets.some(b => b.timestamp === betData.timestamp);
+                
+                if (!alreadyExists) {
+                    const newPick = {
+                        id: Date.now(),
+                        teams: betData.teams,
+                        market: betData.market,
+                        prob: betData.prob,
+                        odd: parseFloat(betData.odd),
+                        fair_odd: (1 / betData.prob).toFixed(2),
+                        edge: betData.edge,
+                        stake: 1, // Stake por defecto
+                        status: 'pending',
+                        profit: 0,
+                        date: new Date().toLocaleDateString(),
+                        timestamp: betData.timestamp
+                    };
+                    bets.push(newPick);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+                }
+                // Limpiar la "bandeja de entrada" para que no se duplique al recargar roi2
+                localStorage.removeItem('last_bet_sent');
+                localStorage.removeItem('roi_teams');
+                localStorage.removeItem('roi_market');
+                localStorage.removeItem('roi_odd');
+            }
+        })();
+
+        const PID_CONFIG = { Kp: 0.1, Ki: 0.01, Kd: 0.05, TargetBank: 150, integral: 0, lastError: 0 };
 
         function calculatePIDStake(currentBank, edge) {
             const error = PID_CONFIG.TargetBank - currentBank;
             PID_CONFIG.integral += error;
             const derivative = error - PID_CONFIG.lastError;
             let output = (PID_CONFIG.Kp * error) + (PID_CONFIG.Ki * PID_CONFIG.integral) + (PID_CONFIG.Kd * derivative);
-            const edgeFactor = Math.max(0.5, edge / 5); 
-            let finalStake = Math.abs(output) * edgeFactor;
+            let finalStake = Math.abs(output) * Math.max(0.5, edge / 5);
             PID_CONFIG.lastError = error;
             return Math.min(Math.max(finalStake, 0.5), 5).toFixed(2);
         }
 
         function extractLeagueName(teamsStr) {
             if (!teamsStr) return 'General';
-            if (teamsStr.includes('[') && teamsStr.includes(']')) {
-                const match = teamsStr.match(/\[(.*?)\]/);
-                return match ? match[1].trim() : 'General';
-            }
-            if (teamsStr.includes(':')) return teamsStr.split(':')[0].trim();
-            return 'General';
+            const match = teamsStr.match(/\[(.*?)\]/);
+            return match ? match[1].trim() : 'General';
         }
 
         function extractTeams(teamsStr) {
-            if (!teamsStr) return [];
-            let matchText = teamsStr;
+            let matchText = teamsStr || "";
             if (matchText.includes(']')) matchText = matchText.split(']')[1].trim();
-            let teams = [];
-            if (matchText.includes(' vs ')) teams = matchText.split(' vs ');
-            else if (matchText.includes(' - ')) teams = matchText.split(' - ');
+            let teams = matchText.includes(' vs ') ? matchText.split(' vs ') : (matchText.includes(' - ') ? matchText.split(' - ') : []);
             return teams.map(t => t.trim());
-        }
-
-        function updateLeagueFilter() {
-            const leagueSelect = document.getElementById('f_league');
-            const currentValue = leagueSelect.value;
-            const leagues = new Set();
-            bets.forEach(b => leagues.add(extractLeagueName(b.teams)));
-            leagueSelect.innerHTML = '<option value="">Todas las Ligas</option>';
-            Array.from(leagues).sort().forEach(league => {
-                if(league !== 'General') {
-                    const opt = document.createElement('option');
-                    opt.value = league;
-                    opt.innerText = league;
-                    if(league === currentValue) opt.selected = true;
-                    leagueSelect.appendChild(opt);
-                }
-            });
-        }
-
-        function updateLeaguePerformanceTable() {
-            const resolved = bets.filter(b => b.status === 'win' || b.status === 'loss');
-            const leagueAnalysis = {};
-            const teamAnalysis = {};
-
-            resolved.forEach(b => {
-                const league = extractLeagueName(b.teams);
-                const teams = extractTeams(b.teams);
-                const profit = Number(b.profit) || 0;
-                const stake = Number(b.stake) || 0;
-                const prob = (Number(b.prob) || 0) * 100;
-                const odd = Number(b.odd) || 0;
-                const market = b.market || 'Unknown';
-                const houseProb = odd > 0 ? (1/odd)*100 : 0;
-                const val = prob - houseProb;
-
-                if (!leagueAnalysis[league]) {
-                    leagueAnalysis[league] = { 
-                        profit: 0, staked: 0, count: 0, markets: {}, 
-                        totalProb: 0, totalOdd: 0, totalVal: 0
-                    };
-                }
-                const l = leagueAnalysis[league];
-                l.profit += profit;
-                l.staked += stake;
-                l.count += 1;
-                l.totalProb += prob;
-                l.totalOdd += odd;
-                l.totalVal += val;
-                l.markets[market] = (l.markets[market] || 0) + 1;
-
-                teams.forEach(t => {
-                    if (!teamAnalysis[t]) teamAnalysis[t] = { profit: 0, count: 0 };
-                    teamAnalysis[t].profit += (profit / 2);
-                    teamAnalysis[t].count += 1;
-                });
-            });
-
-            const tbody = document.getElementById('league-performance-body');
-            tbody.innerHTML = '';
-
-            Object.entries(leagueAnalysis).forEach(([name, data]) => {
-                const yieldVal = data.staked > 0 ? (data.profit / data.staked * 100) : 0;
-                const roi = data.staked > 0 ? ((data.staked + data.profit) / data.staked * 100) : 0;
-                const avgProb = data.totalProb / data.count;
-                const avgOdd = data.totalOdd / data.count;
-                const avgVal = data.totalVal / data.count;
-                const mainMarket = Object.entries(data.markets).sort((a,b) => b[1]-a[1])[0][0];
-                const pVal = calculatePValue(data.count, yieldVal, avgOdd);
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="font-bold text-white">${name}</td>
-                    <td class="text-emerald-400 font-bold text-[9px]">${mainMarket}</td>
-                    <td>${avgProb.toFixed(1)}%</td>
-                    <td>${avgOdd.toFixed(2)}</td>
-                    <td class="${avgVal > 0 ? 'text-blue-400' : 'text-slate-500'}">${avgVal.toFixed(1)}%</td>
-                    <td class="font-bold ${yieldVal >= 0 ? 'text-emerald-400' : 'text-red-400'}">${yieldVal.toFixed(1)}%</td>
-                    <td class="text-slate-300">${roi.toFixed(1)}%</td>
-                    <td class="font-mono ${pVal < 0.05 ? 'text-emerald-500' : 'text-slate-500'}">${pVal ? (pVal*100).toFixed(2)+'%' : '--'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            const sortedTeams = Object.entries(teamAnalysis).sort((a,b) => b[1].profit - a[1].profit);
-            document.getElementById('top-teams-profit').innerHTML = sortedTeams.slice(0, 10).map(([name, data]) => `
-                <div class="flex justify-between items-center bg-emerald-500/5 p-2 rounded border border-emerald-500/10">
-                    <span class="text-[10px] font-bold text-slate-200">${name}</span>
-                    <span class="text-[10px] font-black text-emerald-400">+${data.profit.toFixed(2)}u</span>
-                </div>`).join('');
-
-            document.getElementById('bottom-teams-profit').innerHTML = [...sortedTeams].reverse().slice(0, 10).map(([name, data]) => `
-                <div class="flex justify-between items-center bg-red-500/5 p-2 rounded border border-red-500/10">
-                    <span class="text-[10px] font-bold text-slate-200">${name}</span>
-                    <span class="text-[10px] font-black text-red-400">${data.profit.toFixed(2)}u</span>
-                </div>`).join('');
-        }
-
-        function updatePerformanceTops() {
-            const resolved = bets.filter(b => b.status === 'win' || b.status === 'loss');
-            const leagueStats = {};
-            const marketStats = {};
-            resolved.forEach(b => {
-                const league = extractLeagueName(b.teams);
-                const market = b.market || 'Unknown';
-                const profit = Number(b.profit) || 0;
-                if (!leagueStats[league]) leagueStats[league] = { profit: 0, count: 0 };
-                leagueStats[league].profit += profit; leagueStats[league].count++;
-                if (!marketStats[market]) marketStats[market] = { profit: 0, count: 0 };
-                marketStats[market].profit += profit; marketStats[market].count++;
-            });
-
-            const topLeagues = Object.entries(leagueStats).filter(l => l[1].profit > 1 && l[1].count >= 3).sort((a,b) => b[1].profit - a[1].profit).slice(0, 3);
-            const topMarkets = Object.entries(marketStats).filter(m => m[1].profit > 1 && m[1].count >= 3).sort((a,b) => b[1].profit - a[1].profit).slice(0, 3);
-
-            document.getElementById('top-leagues-list').innerHTML = topLeagues.length ? '<i class="fa-solid fa-flag mr-1"></i> ' + topLeagues.map(l => `<span class="font-bold text-emerald-400">${l[0]}</span>`).join(', ') : 'Sin ligas top';
-            document.getElementById('top-markets-list').innerHTML = topMarkets.length ? '<i class="fa-solid fa-chart-line mr-1"></i> ' + topMarkets.map(m => `<span class="font-bold text-blue-400">${m[0]}</span>`).join(', ') : 'Sin mercados top';
-
-            return { leagues: topLeagues.map(l => l[0]), markets: topMarkets.map(m => m[0]) };
-        }
-
-        function toggleFilters() {
-            document.getElementById('filter-container').classList.toggle('show');
-            document.getElementById('filter-chevron').classList.toggle('active');
-        }
-
-        function resetFilters() {
-            document.querySelectorAll('.filter-mini, select').forEach(i => i.value = '');
-            document.querySelectorAll('#f_market_group input').forEach(c => c.checked = false);
-            updateStats();
-        }
-
-        function calculatePValue(n, yieldVal, avgOdd) {
-            if (n < 5 || avgOdd <= 1) return null;
-            const yieldDec = yieldVal / 100;
-            const sd = Math.sqrt(avgOdd - 1) / Math.sqrt(n);
-            if (sd === 0) return null;
-            const z = yieldDec / sd;
-            const t = 1 / (1 + 0.5 * Math.abs(z));
-            const ans = 1 - t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
-            return z >= 0 ? 1 - (ans + 1) / 2 : (ans + 1) / 2;
-        }
-
-        function simulateKelly(resolvedBets, fraction) {
-            let profit = 0, staked = 0;
-            resolvedBets.forEach(b => {
-                const p = Number(b.prob), odd = Number(b.odd);
-                if (odd > 1 && p > (1/odd)) {
-                    const s = (( (odd - 1) * p - (1 - p)) / (odd - 1)) * fraction * 100;
-                    profit += b.status === 'win' ? s * (odd - 1) : -s;
-                    staked += s;
-                }
-            });
-            return { profit, yield: staked > 0 ? (profit/staked)*100 : 0 };
-        }
-
-        function simulatePID(resolvedBets) {
-            let profit = 0, staked = 0, bank = 100, temp = {...PID_CONFIG, integral: 0, lastError: 0};
-            resolvedBets.forEach(b => {
-                const edge = parseFloat(b.edge?.toString().replace('%','')) || 0;
-                const err = temp.TargetBank - bank; temp.integral += err;
-                const out = (temp.Kp * err) + (temp.Ki * temp.integral) + (temp.Kd * (err - temp.lastError));
-                const s = Math.min(Math.max(Math.abs(out) * Math.max(0.5, edge / 5), 0.5), 5);
-                const p = b.status === 'win' ? s * (Number(b.odd) - 1) : -s;
-                profit += p; staked += s; bank += p; temp.lastError = err;
-            });
-            return { profit, yield: staked > 0 ? (profit/staked)*100 : 0 };
         }
 
         function updateStats() {
             updateLeagueFilter();
-            const tops = updatePerformanceTops();
             updateLeaguePerformanceTable();
-            
             const selectedMarkets = Array.from(document.querySelectorAll('#f_market_group input:checked')).map(cb => cb.value.toUpperCase());
-            const fStatus = document.getElementById('f_status').value;
-            const fSource = document.getElementById('f_source').value;
             const fLeague = document.getElementById('f_league').value;
 
             let filtered = bets.filter(b => {
-                const prob = (Number(b.prob) || 0) * 100;
-                const odd = Number(b.odd) || 0;
-                const edge = parseFloat(b.edge?.toString().replace('%','')) || 0;
-                const val = prob - (odd > 0 ? (1/odd)*100 : 0);
-                
                 return (!selectedMarkets.length || selectedMarkets.includes(b.market?.toUpperCase())) &&
-                       (!fStatus || b.status === fStatus) &&
-                       (!fSource || b.teams?.toUpperCase().includes(fSource.toUpperCase())) &&
-                       (!fLeague || extractLeagueName(b.teams) === fLeague) &&
-                       (prob >= (parseFloat(document.getElementById('f_p_min').value) || -Infinity)) &&
-                       (prob <= (parseFloat(document.getElementById('f_p_max').value) || Infinity)) &&
-                       (val >= (parseFloat(document.getElementById('f_v_min').value) || -Infinity)) &&
-                       (val <= (parseFloat(document.getElementById('f_v_max').value) || Infinity)) &&
-                       (edge >= (parseFloat(document.getElementById('f_e_min').value) || -Infinity)) &&
-                       (edge <= (parseFloat(document.getElementById('f_e_max').value) || Infinity));
+                       (!fLeague || extractLeagueName(b.teams) === fLeague);
             });
 
-            const currentBank = 100 + bets.filter(b => b.status !== 'pending').reduce((a, b) => a + (Number(b.profit) || 0), 0);
-            renderHistory(filtered, tops, currentBank);
+            const currentBank = 100 + bets.reduce((a, b) => a + (Number(b.profit) || 0), 0);
+            renderHistory(filtered, currentBank);
 
-            const resolved = filtered.filter(b => b.status === 'win' || b.status === 'loss').sort((a,b) => new Date(a.date) - new Date(b.date));
-            const pType = document.getElementById('main-profit-type').value;
-            const k14 = simulateKelly(resolved, 0.25), k18 = simulateKelly(resolved, 0.125), pid = simulatePID(resolved);
+            const resolved = filtered.filter(b => b.status !== 'pending');
             const realP = resolved.reduce((a, b) => a + (Number(b.profit) || 0), 0);
             const realS = resolved.reduce((a, b) => a + (Number(b.stake) || 0), 0);
 
-            let dispP = pType === 'KELLY' ? k14.profit : (pType === 'PID' ? pid.profit : realP);
-            let dispY = pType === 'KELLY' ? k14.yield : (pType === 'PID' ? pid.yield : (realS > 0 ? (realP/realS)*100 : 0));
-
-            const statP = document.getElementById('stat-profit');
-            statP.innerText = `${dispP >= 0 ? '+' : ''}${dispP.toFixed(2)}u`;
-            statP.className = `text-xl font-black ${dispP >= 0 ? 'text-emerald-400' : 'text-red-400'}`;
-            document.getElementById('stat-yield').innerText = `${dispY.toFixed(1)}%`;
+            document.getElementById('stat-profit').innerText = `${realP.toFixed(2)}u`;
+            document.getElementById('stat-yield').innerText = realS > 0 ? `${(realP/realS*100).toFixed(1)}%` : '0%';
             document.getElementById('stat-count').innerText = resolved.length;
             document.getElementById('stat-hit').innerText = resolved.length ? `${(resolved.filter(b => b.status === 'win').length/resolved.length*100).toFixed(1)}%` : '0%';
 
-            document.getElementById('kelly-quarter-profit').innerText = `${k14.profit >= 0 ? '+' : ''}${k14.profit.toFixed(2)}u`;
-            document.getElementById('kelly-eighth-profit').innerText = `${k18.profit >= 0 ? '+' : ''}${k18.profit.toFixed(2)}u`;
-
             renderBankrollChart(resolved);
-            calculateSelectedSummary();
         }
 
-        function toggleSelectAll(master) {
-            document.querySelectorAll('.bet-item-checkbox').forEach(cb => cb.checked = master.checked);
-            updateStats();
+        function updateLeagueFilter() {
+            const leagueSelect = document.getElementById('f_league');
+            const leagues = new Set(bets.map(b => extractLeagueName(b.teams)));
+            const current = leagueSelect.value;
+            leagueSelect.innerHTML = '<option value="">Todas las Ligas</option>';
+            Array.from(leagues).sort().forEach(l => {
+                const opt = new Option(l, l);
+                if(l === current) opt.selected = true;
+                leagueSelect.add(opt);
+            });
         }
 
-        function calculateSelectedSummary() {
-            const checks = document.querySelectorAll('.bet-item-checkbox:checked');
-            const summary = document.getElementById('selection-summary');
-            if (checks.length) {
-                let total = Array.from(checks).reduce((a, b) => a + parseFloat(b.dataset.profit || 0), 0);
-                document.getElementById('selected-profit').innerText = `${total >= 0 ? '+' : ''}${total.toFixed(2)}u`;
-                summary.classList.remove('hidden');
-                document.getElementById('btn-delete-bulk').classList.remove('hidden');
-            } else {
-                summary.classList.add('hidden');
-                document.getElementById('btn-delete-bulk').classList.add('hidden');
-            }
-        }
-
-        function deleteSelectedBets() {
-            if (confirm('¿Eliminar seleccionados?')) {
-                const ids = Array.from(document.querySelectorAll('.bet-item-checkbox:checked')).map(cb => cb.dataset.id);
-                bets = bets.filter(b => !ids.includes(b.id.toString()));
-                saveAndRefresh();
-            }
-        }
-
-        function renderHistory(data, tops, currentBank) {
-            const tbody = document.getElementById('history-body');
-            tbody.innerHTML = data.length ? '' : '<tr><td colspan="11" class="p-10 text-center text-slate-600">No hay datos</td></tr>';
-            
-            [...data].sort((a,b) => (new Date(b.date) - new Date(a.date)) || b.id - a.id).forEach(b => {
-                const league = extractLeagueName(b.teams), market = b.market || 'Unknown', status = b.status || 'pending';
-                const isTop = status === 'pending' && (tops.leagues.includes(league) || tops.markets.includes(market));
+        function updateLeaguePerformanceTable() {
+            const resolved = bets.filter(b => b.status !== 'pending');
+            const leagueAnalysis = {};
+            resolved.forEach(b => {
+                const league = extractLeagueName(b.teams);
+                if (!leagueAnalysis[league]) leagueAnalysis[league] = { profit: 0, staked: 0, count: 0 };
+                leagueAnalysis[league].profit += (Number(b.profit) || 0);
+                leagueAnalysis[league].staked += (Number(b.stake) || 0);
+                leagueAnalysis[league].count++;
+            });
+            const tbody = document.getElementById('league-performance-body');
+            tbody.innerHTML = '';
+            Object.entries(leagueAnalysis).forEach(([name, data]) => {
                 const tr = document.createElement('tr');
-                tr.className = `row-${status} ${isTop ? 'profitable-alert' : ''}`;
-                
-                const p = Number(b.prob) || 0, odd = Number(b.odd) || 0, edge = parseFloat(b.edge?.toString().replace('%','')) || 0;
-                const kVal = (odd > 1 && p > (1/odd)) ? ((((odd-1)*p - (1-p))/(odd-1))*25).toFixed(2) : "0.00";
-                const pVal = calculatePIDStake(currentBank, edge);
+                const yieldVal = data.staked > 0 ? (data.profit/data.staked*100).toFixed(1) : 0;
+                tr.innerHTML = `<td class="font-bold">${name}</td><td>--</td><td>--</td><td>--</td><td>--</td><td class="font-bold">${yieldVal}%</td><td>--</td><td>--</td>`;
+                tbody.appendChild(tr);
+            });
+        }
 
+        function renderHistory(data, currentBank) {
+            const tbody = document.getElementById('history-body');
+            tbody.innerHTML = '';
+            data.sort((a,b) => b.id - a.id).forEach(b => {
+                const tr = document.createElement('tr');
+                tr.className = `row-${b.status}`;
+                const edgeNum = parseFloat(b.edge);
                 tr.innerHTML = `
-                    <td><input type="checkbox" class="bet-item-checkbox select-bet-checkbox" data-id="${b.id}" data-profit="${b.profit || 0}" onchange="calculateSelectedSummary()"></td>
-                    <td><div class="font-bold">${b.teams || 'Evento'}</div><div class="text-[9px] text-slate-500">${b.date || ''}</div></td>
-                    <td class="font-bold text-emerald-500">${market}</td>
-                    <td>${(p*100).toFixed(1)}%</td>
-                    <td>${b.fair_odd || (p > 0 ? (1/p).toFixed(2) : '0.00')}</td>
-                    <td class="font-black">${odd.toFixed(2)}</td>
-                    <td class="text-blue-400 font-bold">${(p*100 - (odd > 0 ? (1/odd)*100 : 0)).toFixed(1)}%</td>
-                    <td class="${edge > 0 ? 'text-emerald-400' : 'text-slate-500'}">${edge.toFixed(1)}%</td>
-                    <td>
-                        <span class="font-bold">${b.stake || 0}u</span>
-                        <span class="kelly-badge">${kVal}u</span>
-                        <span class="pid-badge">${pVal}u</span>
-                    </td>
+                    <td><input type="checkbox" class="bet-item-checkbox select-bet-checkbox" data-id="${b.id}" onchange="calculateSelectedSummary()"></td>
+                    <td><div class="font-bold">${b.teams}</div><div class="text-[9px] text-slate-500">${b.date}</div></td>
+                    <td class="font-bold text-emerald-500">${b.market}</td>
+                    <td>${(b.prob*100).toFixed(1)}%</td>
+                    <td>${b.fair_odd}</td>
+                    <td class="font-black">${b.odd.toFixed(2)}</td>
+                    <td class="text-blue-400 font-bold">${(b.prob*100 - (1/b.odd*100)).toFixed(1)}%</td>
+                    <td class="${edgeNum > 0 ? 'text-emerald-400' : 'text-slate-400'}">${b.edge}</td>
+                    <td>${b.stake}u</td>
                     <td>
                         <div class="flex gap-1">
                             <button onclick="resolve('${b.id}', 'win')" class="btn-action btn-win">W</button>
                             <button onclick="resolve('${b.id}', 'loss')" class="btn-action btn-loss">L</button>
-                            <button onclick="resolve('${b.id}', 'pending')" class="btn-action btn-pending">P</button>
                         </div>
                     </td>
-                    <td><button onclick="deleteBet('${b.id}')" class="text-slate-700 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button></td>
+                    <td><button onclick="deleteBet('${b.id}')"><i class="fa-solid fa-trash"></i></button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
         function resolve(id, status) {
-            const idx = bets.findIndex(x => x.id.toString() === id.toString());
-            if(idx !== -1) {
-                const b = bets[idx];
+            const b = bets.find(x => x.id.toString() === id.toString());
+            if(b) {
                 b.status = status;
-                const odd = Number(b.odd) || 0, stake = Number(b.stake) || 1;
-                b.profit = status === 'win' ? stake * (odd - 1) : (status === 'loss' ? -stake : 0);
+                b.profit = status === 'win' ? b.stake * (b.odd - 1) : -b.stake;
                 saveAndRefresh();
             }
         }
 
+        function deleteBet(id) { if(confirm('¿Eliminar?')) { bets = bets.filter(x => x.id.toString() !== id.toString()); saveAndRefresh(); } }
+        function saveAndRefresh() { localStorage.setItem(STORAGE_KEY, JSON.stringify(bets)); updateStats(); }
         function renderBankrollChart(resolved) {
             const ctx = document.getElementById('bankrollChart').getContext('2d');
             if(bChart) bChart.destroy();
@@ -795,22 +462,30 @@
             resolved.forEach(b => { val += Number(b.profit) || 0; data.push(val); });
             bChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: data.map((_,i)=>i), datasets: [{ data, borderColor: '#10b981', fill: true, tension: 0.4, pointRadius: 0, backgroundColor: 'rgba(16, 185, 129, 0.1)' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#475569', font: { size: 9 } } } } }
+                data: { labels: data.map((_,i)=>i), datasets: [{ data, borderColor: '#10b981', tension: 0.4, fill: true, pointRadius: 0, backgroundColor: 'rgba(16, 185, 129, 0.1)' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false } } }
             });
         }
-
-        function deleteBet(id) { if(confirm('¿Eliminar?')) { bets = bets.filter(x => x.id.toString() !== id.toString()); saveAndRefresh(); } }
-        function saveAndRefresh() { localStorage.setItem(STORAGE_KEY, JSON.stringify(bets)); updateStats(); }
-        function clearHistory() { if(confirm('¿BORRAR TODO?')) { bets = []; saveAndRefresh(); } }
-        function sendToBacktesting() { alert('Función de backtesting lista para procesar datos filtrados.'); }
-        function exportToExcel() {
-            const headers = "Fecha,Evento,Mercado,Prob,Cuota,Stake,Estado,Profit\n";
-            const csv = bets.map(b => `${b.date},${b.teams},${b.market},${b.prob},${b.odd},${b.stake},${b.status},${b.profit}`).join("\n");
-            const blob = new Blob([headers + csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = 'roi_betags.csv'; a.click();
+        function toggleFilters() { document.getElementById('filter-container').classList.toggle('show'); }
+        function toggleSelectAll(m) { document.querySelectorAll('.bet-item-checkbox').forEach(c => c.checked = m.checked); calculateSelectedSummary(); }
+        function calculateSelectedSummary() {
+            const checks = document.querySelectorAll('.bet-item-checkbox:checked');
+            document.getElementById('selection-summary').classList.toggle('hidden', checks.length === 0);
+            document.getElementById('btn-delete-bulk').classList.toggle('hidden', checks.length === 0);
         }
+        function deleteSelectedBets() {
+            const ids = Array.from(document.querySelectorAll('.bet-item-checkbox:checked')).map(c => c.dataset.id);
+            bets = bets.filter(b => !ids.includes(b.id.toString()));
+            saveAndRefresh();
+        }
+        function clearHistory() { if(confirm('¿Borrar todo?')) { bets = []; saveAndRefresh(); } }
+        function exportToExcel() {
+            let csv = "Fecha,Evento,Mercado,Odd,Prob,Stake,Status,Profit\n";
+            bets.forEach(b => { csv += `${b.date},${b.teams},${b.market},${b.odd},${b.prob},${b.stake},${b.status},${b.profit}\n`; });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'roi_history.csv'; a.click();
+        }
+
         window.onload = updateStats;
     </script>
 </body>
