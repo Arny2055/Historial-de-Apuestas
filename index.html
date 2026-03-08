@@ -495,12 +495,18 @@ function sendToRoi() {
     const odd = parseFloat(document.getElementById('bookieOdd').value);
     const mNames = {winL:'GANA LOCAL',draw:'EMPATE',winV:'GANA VISITA',o25:'OVER 2.5 FT',btts:'BTTS YES',o05ht:'OVER 0.5 HT'};
     
+    // Capturamos el nivel de confianza actual de la interfaz
+    const stars = document.getElementById('confidenceStars').innerText;
+    const text = document.getElementById('confidenceText').innerText;
+    const fullConfidence = `${stars} (${text})`;
+
     const betData = {
         teams: `[${league.toUpperCase()}] ${nameL} vs ${nameV}`,
         market: mNames[marketKey],
         odd: odd.toFixed(2),
         prob: currentProbs[marketKey],
         edge: ((currentProbs[marketKey] * odd - 1) * 100).toFixed(1) + "%",
+        confidence: fullConfidence, // Añadida la mejora
         timestamp: new Date().getTime()
     };
     
@@ -509,6 +515,7 @@ function sendToRoi() {
     localStorage.setItem('roi_teams', betData.teams);
     localStorage.setItem('roi_market', betData.market);
     localStorage.setItem('roi_odd', betData.odd);
+    localStorage.setItem('roi_confidence', betData.confidence); // Enviado a ROI
     
     setTimeout(() => { window.location.href = 'roi2.html'; }, 100);
 }
