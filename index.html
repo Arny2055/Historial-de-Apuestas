@@ -283,13 +283,9 @@ async function fetchFromSheets() {
 }
 
 /**
- * CORRECCIÓN: Coordenadas de celdas exactas
- * Local General: B1:M28 (Rows 0-27, Cols 1-12)
- * Local Last 8: B30:M57 (Rows 29-56, Cols 1-12)
- * Local Last 4: B58:M88 (Rows 57-87, Cols 1-12)
- * Visitante General: O1:Z28 (Rows 0-27, Cols 14-25)
- * Visitante Last 8: O30:Z57 (Rows 29-56, Cols 14-25)
- * Visitante Last 4: O58:Z87 (Rows 57-87, Cols 14-25)
+ * COORDINACIÓN EXACTA DE RANGOS (Basado en índices 0 de Google Sheets API)
+ * Col B = Index 1 | Col M = Index 12
+ * Col O = Index 14 | Col Z = Index 25
  */
 function processRanges(rows) {
     const getRangeData = (startRow, endRow, startCol, endCol) => {
@@ -299,23 +295,27 @@ function processRanges(rows) {
             let rowCells = [];
             for (let c = startCol; c <= endCol; c++) {
                 let cell = rows[r].c[c];
-                let val = cell ? (cell.v !== null ? cell.v : "") : "";
+                // Sanitizar nulos y asegurar que convertimos a string limpio
+                let val = (cell && cell.v !== null) ? String(cell.v).trim() : "";
                 rowCells.push(val);
             }
-            if (rowCells.some(v => v !== "")) text += rowCells.join("\t") + "\n";
+            // Solo agregar si la fila tiene datos reales (no solo celdas vacías)
+            if (rowCells.some(v => v !== "")) {
+                text += rowCells.join("\t") + "\n";
+            }
         }
         return text;
     };
 
-    // LOCALES
-    document.getElementById('h_table_1').value = getRangeData(0, 27, 1, 12); 
-    document.getElementById('h_table_2').value = getRangeData(29, 56, 1, 12);
-    document.getElementById('h_table_3').value = getRangeData(57, 87, 1, 12);
+    // LOCALES (B-M)
+    document.getElementById('h_table_1').value = getRangeData(0, 27, 1, 12);   // B1:M28
+    document.getElementById('h_table_2').value = getRangeData(29, 56, 1, 12);  // B30:M57
+    document.getElementById('h_table_3').value = getRangeData(57, 87, 1, 12);  // B58:M88
 
-    // VISITANTES
-    document.getElementById('a_table_1').value = getRangeData(0, 27, 14, 25);
-    document.getElementById('a_table_2').value = getRangeData(29, 56, 14, 25);
-    document.getElementById('a_table_3').value = getRangeData(57, 86, 14, 25);
+    // VISITANTES (O-Z)
+    document.getElementById('a_table_1').value = getRangeData(0, 27, 14, 25);  // O1:Z28
+    document.getElementById('a_table_2').value = getRangeData(29, 56, 14, 25); // O30:Z57
+    document.getElementById('a_table_3').value = getRangeData(57, 87, 14, 25); // O58:Z88
 
     processAllTables();
 }
@@ -324,21 +324,41 @@ function parseTable(text) {
     if(!text) return {};
     const lines = text.trim().split('\n');
     const teams = {};
+    
     lines.forEach(line => {
-        const parts = line.trim().split(/\t|\s{2,}/);
+        const parts = line.split('\t');
         if(parts.length < 5) return;
 
-        let namePart = parts[0].replace(/^[0-9]+\s+/, "").trim();
+        // Limpiar el nombre del equipo:
+        // Si la primera celda es un número (Rank), el nombre está en la segunda. 
+        // Si no, la primera celda es el nombre.
+        let nameCandidate = parts[0].trim();
+        let nameFinal = "";
+        
+        if (!isNaN(nameCandidate) && nameCandidate !== "" && parts[1]) {
+            nameFinal = parts[1].trim(); // Caso: B=Pos, C=Nombre
+        } else {
+            nameFinal = nameCandidate;    // Caso: B=Nombre
+        }
+
+        // Saltamos si es una cabecera
+        if (["EQUIPO", "TEAM", "POS", "#", "PJ"].includes(nameFinal.toUpperCase())) return;
+
+        // Extraer todos los números de la línea para las estadísticas
         let numbers = line.match(/(-?\d+\.?\d*)/g);
         
         if (numbers && numbers.length >= 7) {
-            // PJ = numbers[1], GF = numbers[5], GC = numbers[6]
-            const gp = parseInt(numbers[1]); 
-            const gf = parseFloat(numbers[5]); 
-            const ga = parseFloat(numbers[6]); 
+            // Ajuste de índices basado en estructura estándar:
+            // PJ suele ser el primer número después del Rank (o el primer número si no hay Rank)
+            // Para asegurar, buscamos el primer entero > 0 como PJ.
+            let gpIndex = (numbers.length > 7) ? 1 : 0; // Si hay muchos números, el 0 suele ser el Rank
             
-            if (gp > 0 && !isNaN(gf) && !isNaN(ga)) {
-                teams[namePart] = { avgGF: gf/gp, avgGA: ga/gp };
+            const gp = parseInt(numbers[gpIndex]); 
+            const gf = parseFloat(numbers[gpIndex + 4]); // GF es usualmente PJ + 4
+            const ga = parseFloat(numbers[gpIndex + 5]); // GC es usualmente PJ + 5
+            
+            if (!isNaN(gp) && gp > 0 && !isNaN(gf) && !isNaN(ga)) {
+                teams[nameFinal] = { avgGF: gf/gp, avgGA: ga/gp };
             }
         }
     });
@@ -359,8 +379,18 @@ function processAllTables() {
     const prevH = sH.value, prevV = sV.value;
     sH.innerHTML = ""; sV.innerHTML = "";
     
-    const allNamesH = [...new Set([...Object.keys(tablesData.h[0]), ...Object.keys(tablesData.h[1]), ...Object.keys(tablesData.h[2])])].sort();
-    const allNamesA = [...new Set([...Object.keys(tablesData.a[0]), ...Object.keys(tablesData.a[1]), ...Object.keys(tablesData.a[2])])].sort();
+    // Obtener lista única de nombres para los selectores
+    const allNamesH = [...new Set([
+        ...Object.keys(tablesData.h[0]), 
+        ...Object.keys(tablesData.h[1]), 
+        ...Object.keys(tablesData.h[2])
+    ])].filter(n => n.length > 1).sort();
+
+    const allNamesA = [...new Set([
+        ...Object.keys(tablesData.a[0]), 
+        ...Object.keys(tablesData.a[1]), 
+        ...Object.keys(tablesData.a[2])
+    ])].filter(n => n.length > 1).sort();
     
     if(allNamesH.length === 0) return;
 
@@ -374,10 +404,12 @@ function processAllTables() {
 }
 
 function clearData() {
-    if(confirm("¿Borrar todos los datos?")) {
+    if(confirm("¿Borrar todos los datos de esta liga?")) {
         storageKeys.forEach(key => {
-            document.getElementById(key).value = "";
-            localStorage.removeItem(SESSION_ID + '_' + key);
+            if(key !== 'leagueName') {
+                document.getElementById(key).value = "";
+                localStorage.removeItem(SESSION_ID + '_' + key);
+            }
         });
         location.reload();
     }
@@ -402,7 +434,10 @@ function runMontecarlo(l1, l2, iterations = 50000) {
         if (gL + gV > 2.5) counts.o25++; if (gL > 0 && gV > 0) counts.btts++;
         if (gLHT + gVHT > 0.5) counts.o05ht++;
     }
-    return { winL: counts.winL/iterations, draw: counts.draw/iterations, winV: counts.winV/iterations, o25: counts.o25/iterations, btts: counts.btts/iterations, o05ht: counts.o05ht/iterations };
+    return { 
+        winL: counts.winL/iterations, draw: counts.draw/iterations, winV: counts.winV/iterations, 
+        o25: counts.o25/iterations, btts: counts.btts/iterations, o05ht: counts.o05ht/iterations 
+    };
 }
 
 function getPoissonProbs(l1, l2) {
@@ -446,7 +481,7 @@ function calculatePoisson() {
             trendData.btts.push((segmentProb.btts * 100).toFixed(1));
             trendData.o05ht.push((segmentProb.o05ht * 100).toFixed(1));
 
-            area.insertAdjacentHTML('afterbegin', `<div class="ind-card">
+            area.insertAdjacentHTML('beforeend', `<div class="ind-card">
                 <h4>${labels[i]}</h4>
                 <span class="ind-val">${(segmentProb.winL*100).toFixed(0)}% | ${(segmentProb.winV*100).toFixed(0)}%</span>
                 <div class="ind-detail">
@@ -457,7 +492,7 @@ function calculatePoisson() {
         }
     }
 
-    if (totalWeight === 0) return alert("Datos insuficientes para estos equipos.");
+    if (totalWeight === 0) return alert("Datos insuficientes para calcular estos equipos.");
 
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
     const mc = runMontecarlo(finalL, finalV, 50000);
@@ -493,8 +528,8 @@ function renderTrendChart(data) {
         data: {
             labels: ["G", "U8", "U4"],
             datasets: [
-                { label: 'Over 2.5', data: [...data.o25].reverse(), borderColor: '#339af0', tension: 0.4 },
-                { label: 'BTTS', data: [...data.btts].reverse(), borderColor: '#fcc419', tension: 0.4 }
+                { label: 'Over 2.5', data: data.o25, borderColor: '#339af0', tension: 0.4 },
+                { label: 'BTTS', data: data.btts, borderColor: '#fcc419', tension: 0.4 }
             ]
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false } } }
