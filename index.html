@@ -63,7 +63,6 @@
         .btn { width: 100%; background: linear-gradient(135deg, #4dabf7, #228be6); color: white; border: none; padding: 18px; border-radius: 12px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
         .btn-sheets { background: linear-gradient(135deg, #27ae60, #2ecc71); }
         .btn-reset { background: linear-gradient(135deg, #343a40, #212529); color: #adb5bd; border: 1px solid var(--border); }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(77, 171, 247, 0.4); }
 
         .xg-display-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
         .xg-box { background: rgba(77, 171, 247, 0.05); border: 1px solid var(--primary); border-radius: 12px; padding: 15px; text-align: center; }
@@ -283,6 +282,15 @@ async function fetchFromSheets() {
     }
 }
 
+/**
+ * CORRECCIÓN: Coordenadas de celdas exactas
+ * Local General: B1:M28 (Rows 0-27, Cols 1-12)
+ * Local Last 8: B30:M57 (Rows 29-56, Cols 1-12)
+ * Local Last 4: B58:M88 (Rows 57-87, Cols 1-12)
+ * Visitante General: O1:Z28 (Rows 0-27, Cols 14-25)
+ * Visitante Last 8: O30:Z57 (Rows 29-56, Cols 14-25)
+ * Visitante Last 4: O58:Z87 (Rows 57-87, Cols 14-25)
+ */
 function processRanges(rows) {
     const getRangeData = (startRow, endRow, startCol, endCol) => {
         let text = "";
@@ -290,7 +298,7 @@ function processRanges(rows) {
             if (!rows[r] || !rows[r].c) continue;
             let rowCells = [];
             for (let c = startCol; c <= endCol; c++) {
-                let cell = rows[r] ? rows[r].c[c] : null;
+                let cell = rows[r].c[c];
                 let val = cell ? (cell.v !== null ? cell.v : "") : "";
                 rowCells.push(val);
             }
@@ -299,39 +307,32 @@ function processRanges(rows) {
         return text;
     };
 
+    // LOCALES
     document.getElementById('h_table_1').value = getRangeData(0, 27, 1, 12); 
     document.getElementById('h_table_2').value = getRangeData(29, 56, 1, 12);
     document.getElementById('h_table_3').value = getRangeData(57, 87, 1, 12);
 
+    // VISITANTES
     document.getElementById('a_table_1').value = getRangeData(0, 27, 14, 25);
     document.getElementById('a_table_2').value = getRangeData(29, 56, 14, 25);
-    document.getElementById('a_table_3').value = getRangeData(57, 87, 14, 25);
+    document.getElementById('a_table_3').value = getRangeData(57, 86, 14, 25);
 
     processAllTables();
 }
 
-/**
- * MEJORA: parseTable robusto para Google Sheets
- * Limpia posiciones (ej. "1 Manchester City") y extrae GP, GF y GC
- */
 function parseTable(text) {
     if(!text) return {};
     const lines = text.trim().split('\n');
     const teams = {};
     lines.forEach(line => {
-        // 1. Limpiamos la línea de tabulaciones y espacios múltiples
         const parts = line.trim().split(/\t|\s{2,}/);
         if(parts.length < 5) return;
 
-        // 2. Extraer el nombre (Quitamos el número de posición al inicio si existe)
         let namePart = parts[0].replace(/^[0-9]+\s+/, "").trim();
-        
-        // 3. Buscar todos los números en la cadena
         let numbers = line.match(/(-?\d+\.?\d*)/g);
         
         if (numbers && numbers.length >= 7) {
-            // El formato estándar suele ser: Pos, PJ, G, E, P, GF, GC...
-            // Por lo tanto: numbers[1]=PJ, numbers[5]=GF, numbers[6]=GC
+            // PJ = numbers[1], GF = numbers[5], GC = numbers[6]
             const gp = parseInt(numbers[1]); 
             const gf = parseFloat(numbers[5]); 
             const ga = parseFloat(numbers[6]); 
@@ -421,7 +422,7 @@ function getPoissonProbs(l1, l2) {
 function calculatePoisson() {
     const nameL = document.getElementById('selectHome').value;
     const nameV = document.getElementById('selectAway').value;
-    const labels = ["TEMP. COMPLETA", "ÚLTIMOS 8", "ÚLTIMOS 4"];
+    const labels = ["T. GENERAL", "ÚLTIMOS 8", "ÚLTIMOS 4"];
     const weights = [0.20, 0.30, 0.50];
     const area = document.getElementById('indResultsArea');
     
@@ -490,7 +491,7 @@ function renderTrendChart(data) {
     trendChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ["General", "Ult. 8", "Ult. 4"],
+            labels: ["G", "U8", "U4"],
             datasets: [
                 { label: 'Over 2.5', data: [...data.o25].reverse(), borderColor: '#339af0', tension: 0.4 },
                 { label: 'BTTS', data: [...data.btts].reverse(), borderColor: '#fcc419', tension: 0.4 }
