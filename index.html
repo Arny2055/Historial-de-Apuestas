@@ -286,32 +286,32 @@ async function fetchFromSheets() {
     }
 }
 
-/**
- * Procesa los datos de las filas de Google Sheets basándose en los rangos de celdas indicados
- */
 function processRanges(rows) {
     const getRangeData = (startRow, endRow, startCol, endCol) => {
         let text = "";
         for (let r = startRow; r <= endRow; r++) {
             if (!rows[r] || !rows[r].c) continue;
             let rowCells = [];
+            // Ajustamos el bucle para las columnas específicas
             for (let c = startCol; c <= endCol; c++) {
                 let cell = rows[r].c[c];
-                rowCells.push(cell ? (cell.v !== null ? cell.v : "") : "");
+                let val = cell ? (cell.v !== null ? cell.v : "") : "";
+                rowCells.push(val);
             }
+            // Solo añadir si hay datos en la fila
             if (rowCells.some(v => v !== "")) {
-                text += rowCells.join(" ") + "\n";
+                text += rowCells.join("\t") + "\n";
             }
         }
         return text;
     };
 
-    // LOCALES (Columnas B a M son índices 1 a 12)
+    // LOCALES: Columnas B a M (Índices 1 a 12)
     document.getElementById('h_table_1').value = getRangeData(0, 27, 1, 12);  // B1:M28
     document.getElementById('h_table_2').value = getRangeData(29, 56, 1, 12); // B30:M57
     document.getElementById('h_table_3').value = getRangeData(57, 87, 1, 12); // B58:M88
 
-    // VISITANTES (Columnas O a Z son índices 14 a 25)
+    // VISITANTES: Columnas O a Z (Índices 14 a 25)
     document.getElementById('a_table_1').value = getRangeData(0, 27, 14, 25); // O1:Z28
     document.getElementById('a_table_2').value = getRangeData(29, 56, 14, 25); // O30:Z57
     document.getElementById('a_table_3').value = getRangeData(57, 86, 14, 25); // O58:Z87
@@ -324,20 +324,19 @@ function parseTable(text) {
     const lines = text.trim().split('\n');
     const teams = {};
     lines.forEach(line => {
-        const parts = line.trim().split(/\s+/);
+        // Separamos por tabulación o múltiples espacios
+        const parts = line.trim().split(/\t|\s{2,}/);
         if (parts.length >= 6) {
-            let start = -1;
-            // Identificamos dónde empieza el nombre del equipo (después de la posición inicial)
-            // y dónde empiezan los números (PJ suele ser la columna 2 o 3 en el rango)
-            for(let i=1; i<parts.length; i++) {
-                if(!isNaN(parts[i]) && i > 0) { start = i; break; }
-            }
+            // El nombre suele ser el primer o segundo elemento tras la posición
+            let name = parts[0].replace(/^[0-9]+\s+/, "").trim();
+            // Buscamos los valores numéricos (PJ, Goles, etc) que suelen estar al final
+            let numbers = line.match(/(\d+\.?\d*)/g);
             
-            if (start !== -1) {
-                const name = parts.slice(0, start).join(" ").replace(/^[0-9]+\s+/, "").trim();
-                const gp = parseInt(parts[start]); 
-                const gf = parseFloat(parts[start+4]); // Ajustado a posición relativa de goles
-                const ga = parseFloat(parts[start+5]);
+            if (numbers && numbers.length >= 6) {
+                // PJ es el primer o segundo número grande
+                const gp = parseInt(numbers[numbers.length - 11] || numbers[1]); 
+                const gf = parseFloat(numbers[numbers.length - 2]); // Penúltimo
+                const ga = parseFloat(numbers[numbers.length - 1]); // Último
                 
                 if (gp > 0 && !isNaN(gf) && !isNaN(ga)) {
                     teams[name] = { avgGF: gf/gp, avgGA: ga/gp };
@@ -367,8 +366,8 @@ function processAllTables() {
     allNamesH.forEach(n => sH.add(new Option(n, n)));
     allNamesA.forEach(n => sV.add(new Option(n, n)));
     
-    if(prevH) sH.value = prevH;
-    if(prevV) sV.value = prevV;
+    if(prevH && allNamesH.includes(prevH)) sH.value = prevH;
+    if(prevV && allNamesA.includes(prevV)) sV.value = prevV;
     
     document.getElementById('selectionArea').style.display = 'block';
 }
