@@ -145,17 +145,13 @@
             font-weight: 600;
         }
 
-        /* Estilo para los Badges de Confianza */
-        .conf-badge {
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: 900;
-            text-transform: uppercase;
+        /* Estilo para los Badges de Confianza (Estrellas) */
+        .conf-stars {
+            font-size: 10px;
+            letter-spacing: -1px;
+            filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.4));
+            white-space: nowrap;
         }
-        .conf-high { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
-        .conf-med { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24; }
-        .conf-low { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
     </style>
 </head>
 <body>
@@ -330,7 +326,8 @@
                             odd: parseFloat(betData.odd),
                             fair_odd: (1 / betData.prob).toFixed(2),
                             edge: betData.edge,
-                            confidence: betData.confidence || "MED", // Captura la confianza
+                            // Captura las estrellas ⭐️ enviadas tal cual
+                            confidence: betData.confidence || "⭐⭐⭐", 
                             stake: 1, 
                             status: 'pending',
                             profit: 0,
@@ -359,13 +356,6 @@
             return teams.map(t => t.trim());
         }
 
-        function getConfClass(conf) {
-            const c = conf?.toUpperCase();
-            if(c === 'ALTA' || c === 'HIGH') return 'conf-high';
-            if(c === 'BAJA' || c === 'LOW') return 'conf-low';
-            return 'conf-med';
-        }
-
         // --- CORE DE ACTUALIZACIÓN ---
         function updateStats() {
             updateLeagueFilter();
@@ -390,7 +380,6 @@
             document.getElementById('stat-count').innerText = resolved.length;
             document.getElementById('stat-hit').innerText = resolved.length ? `${(resolved.filter(b => b.status === 'win').length/resolved.length*100).toFixed(1)}%` : '0%';
             
-            // Drawdown logic
             let peak = 100, dd = 0, current = 100;
             resolved.forEach(b => {
                 current += b.profit;
@@ -482,12 +471,11 @@
                 const tr = document.createElement('tr');
                 tr.className = `row-${b.status}`;
                 const edgeNum = parseFloat(b.edge);
-                const confClass = getConfClass(b.confidence);
                 
                 tr.innerHTML = `
                     <td><input type="checkbox" class="bet-item-checkbox select-bet-checkbox" data-id="${b.id}" onchange="calculateSelectedSummary()"></td>
                     <td><div class="font-bold text-white">${b.teams}</div><div class="text-[9px] text-slate-500">${b.date}</div></td>
-                    <td><span class="conf-badge ${confClass}">${b.confidence || 'MED'}</span></td>
+                    <td><div class="conf-stars text-yellow-500">${b.confidence}</div></td>
                     <td class="font-bold text-emerald-500">${b.market}</td>
                     <td>${(b.prob*100).toFixed(1)}%</td>
                     <td>${b.fair_odd}</td>
