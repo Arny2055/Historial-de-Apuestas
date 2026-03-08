@@ -124,12 +124,12 @@
             font-weight: 600;
         }
 
-        /* Estilo Exclusivo para Estrellas de Confianza */
         .conf-stars-display {
-            font-size: 12px;
-            letter-spacing: 1px;
-            filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.5));
+            font-size: 14px;
+            letter-spacing: 2px;
+            filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.4));
             white-space: nowrap;
+            display: inline-block;
         }
     </style>
 </head>
@@ -293,6 +293,12 @@
                     const alreadyExists = bets.some(b => b.timestamp === betData.timestamp);
                     
                     if (!alreadyExists) {
+                        // Limpieza de confianza para guardar solo las estrellas
+                        let starsOnly = betData.confidence || "⭐⭐⭐";
+                        if (starsOnly.includes('⭐')) {
+                            starsOnly = starsOnly.match(/⭐/g).join('');
+                        }
+
                         const newPick = {
                             id: Date.now(),
                             teams: betData.teams,
@@ -301,8 +307,7 @@
                             odd: parseFloat(betData.odd),
                             fair_odd: (1 / betData.prob).toFixed(2),
                             edge: betData.edge,
-                            // Captura las estrellas ⭐️ enviadas. Si no hay, usa 3 por defecto
-                            confidence: betData.confidence || "⭐⭐⭐", 
+                            confidence: starsOnly, 
                             stake: 1, 
                             status: 'pending',
                             profit: 0,
@@ -445,10 +450,13 @@
                 tr.className = `row-${b.status}`;
                 const edgeNum = parseFloat(b.edge);
                 
+                // Limpieza de estrellas para asegurar que solo se vean iconos
+                const starsOnly = b.confidence.includes('⭐') ? b.confidence.match(/⭐/g).join('') : "⭐⭐⭐";
+
                 tr.innerHTML = `
                     <td><input type="checkbox" class="bet-item-checkbox select-bet-checkbox" data-id="${b.id}" onchange="calculateSelectedSummary()"></td>
                     <td><div class="font-bold text-white">${b.teams}</div><div class="text-[9px] text-slate-500">${b.date}</div></td>
-                    <td><div class="conf-stars-display text-yellow-500">${b.confidence}</div></td>
+                    <td><div class="conf-stars-display text-yellow-500">${starsOnly}</div></td>
                     <td class="font-bold text-emerald-500">${b.market}</td>
                     <td>${(b.prob*100).toFixed(1)}%</td>
                     <td>${b.fair_odd}</td>
