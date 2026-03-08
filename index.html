@@ -27,9 +27,12 @@
         h1 span { color: var(--accent-yellow); }
         .subtitle { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; display: block; }
 
-        .nav-header { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .btn-nav { background: #1a212d; color: var(--accent-yellow); border: 1px solid var(--border); padding: 8px 15px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; text-decoration: none; transition: 0.3s; }
         .btn-nav:hover { background: var(--border); color: white; }
+        
+        /* Estilo para el estado de carga */
+        #syncStatus { font-size: 0.65rem; color: var(--accent-green); font-weight: bold; }
 
         .league-header { text-align: center; margin-bottom: 25px; }
         .league-input { 
@@ -115,6 +118,7 @@
 
 <div class="container">
     <div class="nav-header">
+        <div id="syncStatus">Hoja: Conectada 🟢</div>
         <a href="roi2.html" class="btn-nav">📂 IR A ROI LAB</a>
     </div>
 
@@ -147,7 +151,7 @@
             </div>
         </div>
         <div class="btn-group">
-            <button class="btn" onclick="processAllTables()">1. PROCESAR TODAS LAS TABLAS</button>
+            <button class="btn" onclick="syncAndProcess()">1. SINCRONIZAR Y PROCESAR</button>
             <button class="btn btn-reset" onclick="clearData()">LIMPIAR</button>
         </div>
     </div>
@@ -233,6 +237,14 @@
 </div>
 
 <script>
+// --- CONFIGURACIÓN DE GOOGLE SHEETS ---
+const SHEET_ID = '1lmUPv7SP0XYi9ns4jkj3RTCScxIN2pCfBJyMUp_kNRI';
+// Mapeo de hojas: Ajusta los nombres 'H1', 'H2', etc., a los nombres reales de tus pestañas si son distintos
+const SHEET_MAPPING = {
+    'h_table_1': 'H1', 'h_table_2': 'H2', 'h_table_3': 'H3',
+    'a_table_1': 'A1', 'a_table_2': 'A2', 'a_table_3': 'A3'
+};
+
 let tablesData = { h: [{}, {}, {}], a: [{}, {}, {}] };
 let chartInstance = null;
 let trendChartInstance = null;
@@ -254,6 +266,35 @@ window.onload = () => {
         }
     });
 };
+
+// --- NUEVA FUNCIÓN DE LECTURA DE SHEETS ---
+async function fetchSheetData(sheetName) {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+    try {
+        const response = await fetch(url);
+        const csvText = await response.text();
+        // Convertimos el CSV de Google (que viene con comillas) a texto plano legible por el parseador existente
+        return csvText.replace(/"/g, '').replace(/,/g, '\t');
+    } catch (e) {
+        console.error("Error cargando hoja: " + sheetName);
+        return "";
+    }
+}
+
+async function syncAndProcess() {
+    const status = document.getElementById('syncStatus');
+    status.innerText = "⏳ SINCRONIZANDO...";
+    status.style.color = "var(--accent-yellow)";
+
+    for (const [id, sheetName] of Object.entries(SHEET_MAPPING)) {
+        const data = await fetchSheetData(sheetName);
+        if (data) document.getElementById(id).value = data;
+    }
+
+    status.innerText = "✅ SINCRONIZADO";
+    status.style.color = "var(--accent-green)";
+    processAllTables();
+}
 
 function updateLeagueName(save = true) {
     const name = document.getElementById('leagueName').value;
@@ -527,9 +568,6 @@ function checkValue() {
     }
 }
 
-/**
- * Función CORREGIDA para enviar a ROI LAB
- */
 function sendToRoi() {
     const league = document.getElementById('leagueName').value || "General";
     const nameL = document.getElementById('selectHome').value;
@@ -547,15 +585,11 @@ function sendToRoi() {
         timestamp: new Date().getTime()
     };
     
-    // Guardamos bajo una clave estándar para que roi2.html lo identifique fácilmente
     localStorage.setItem('last_bet_sent', JSON.stringify(betData));
-    
-    // Opcional: Guardamos propiedades individuales por si roi2.html las busca así
     localStorage.setItem('roi_teams', betData.teams);
     localStorage.setItem('roi_market', betData.market);
     localStorage.setItem('roi_odd', betData.odd);
     
-    // Pequeño delay para asegurar la escritura antes del cambio de página
     setTimeout(() => {
         window.location.href = 'roi2.html';
     }, 100);
