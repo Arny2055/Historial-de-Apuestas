@@ -299,12 +299,10 @@ function processRanges(rows) {
         return text;
     };
 
-    // LOCALES (B-M)
     document.getElementById('h_table_1').value = getRangeData(0, 27, 1, 12); 
     document.getElementById('h_table_2').value = getRangeData(29, 56, 1, 12);
     document.getElementById('h_table_3').value = getRangeData(57, 87, 1, 12);
 
-    // VISITANTES (O-Z)
     document.getElementById('a_table_1').value = getRangeData(0, 27, 14, 25);
     document.getElementById('a_table_2').value = getRangeData(29, 56, 14, 25);
     document.getElementById('a_table_3').value = getRangeData(57, 87, 14, 25);
@@ -312,22 +310,28 @@ function processRanges(rows) {
     processAllTables();
 }
 
+/**
+ * MEJORA: parseTable robusto para Google Sheets
+ * Limpia posiciones (ej. "1 Manchester City") y extrae GP, GF y GC
+ */
 function parseTable(text) {
     if(!text) return {};
     const lines = text.trim().split('\n');
     const teams = {};
     lines.forEach(line => {
-        // Separamos por tabulación o espacios
+        // 1. Limpiamos la línea de tabulaciones y espacios múltiples
         const parts = line.trim().split(/\t|\s{2,}/);
-        // El nombre suele estar después del número de posición
+        if(parts.length < 5) return;
+
+        // 2. Extraer el nombre (Quitamos el número de posición al inicio si existe)
         let namePart = parts[0].replace(/^[0-9]+\s+/, "").trim();
         
-        // Buscamos todos los números en la línea
+        // 3. Buscar todos los números en la cadena
         let numbers = line.match(/(-?\d+\.?\d*)/g);
         
         if (numbers && numbers.length >= 7) {
-            // Basado en el formato proporcionado:
-            // Pos [0], PJ [1], G [2], E [3], P [4], GF [5], GC [6]
+            // El formato estándar suele ser: Pos, PJ, G, E, P, GF, GC...
+            // Por lo tanto: numbers[1]=PJ, numbers[5]=GF, numbers[6]=GC
             const gp = parseInt(numbers[1]); 
             const gf = parseFloat(numbers[5]); 
             const ga = parseFloat(numbers[6]); 
