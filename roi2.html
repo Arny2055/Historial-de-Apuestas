@@ -56,20 +56,6 @@
             100% { box-shadow: inset 0 0 5px rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.1); }
         }
 
-        @keyframes blue-flash {
-            0% { box-shadow: 0 0 5px var(--neon-blue); opacity: 0.8; }
-            50% { box-shadow: 0 0 20px var(--neon-blue), 0 0 30px var(--neon-blue); opacity: 1; }
-            100% { box-shadow: 0 0 5px var(--neon-blue); opacity: 0.8; }
-        }
-
-        .combo-top-flash {
-            background: #00e5ff !important;
-            color: #000 !important;
-            animation: blue-flash 1.5s infinite ease-in-out;
-            border: none;
-            text-shadow: 0 0 5px rgba(255,255,255,0.5);
-        }
-
         .profitable-alert {
             animation: glowing-profitable 2s infinite ease-in-out;
             border-left: 4px solid #10b981 !important;
@@ -81,8 +67,6 @@
         .btn-loss { background: #dc2626; color: white; }
         .btn-pending { background: #d97706; color: white; }
         
-        .btn-export { background: #3b82f6; color: white; padding: 4px 6px; border-radius: 4px; font-size: 9px; }
-
         .scroll-custom::-webkit-scrollbar { width: 6px; height: 6px; }
         .scroll-custom::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .scroll-custom::-webkit-scrollbar-thumb:hover { background: #10b981; }
@@ -90,11 +74,6 @@
         #filter-container { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); max-height: 0; overflow: hidden; opacity: 0; }
         #filter-container.show { max-height: 2000px; opacity: 1; margin-top: 1rem; padding-bottom: 1rem; }
         
-        .filter-mini { background: #020617; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 4px 6px; color: #10b981; font-size: 10px; width: 48%; outline: none; }
-        .filter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-        .filter-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; font-weight: 600; width: 60px; }
-        
-        .dot-active { height: 8px; width: 8px; background-color: var(--bet-yellow); border-radius: 50%; display: inline-block; box-shadow: 0 0 8px var(--bet-yellow); }
         .rotate-icon { transition: transform 0.3s ease; }
         .rotate-icon.active { transform: rotate(180deg); }
 
@@ -145,11 +124,11 @@
             font-weight: 600;
         }
 
-        /* Estilo para los Badges de Confianza (Estrellas) */
-        .conf-stars {
-            font-size: 10px;
-            letter-spacing: -1px;
-            filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.4));
+        /* Estilo Exclusivo para Estrellas de Confianza */
+        .conf-stars-display {
+            font-size: 12px;
+            letter-spacing: 1px;
+            filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.5));
             white-space: nowrap;
         }
     </style>
@@ -168,11 +147,7 @@
     <div class="container mx-auto p-4 lg:p-8">
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div class="glass-card p-4 rounded-xl text-center">
-                <select id="main-profit-type" class="profit-selector" onchange="updateStats()" style="background:transparent; color:#64748b; font-size:10px; font-weight:bold; cursor:pointer;">
-                    <option value="REAL">Profit Real</option>
-                    <option value="KELLY">Profit Kelly</option>
-                    <option value="PID">Profit PID</option>
-                </select>
+                <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Profit Total</p>
                 <p id="stat-profit" class="text-xl font-black text-white">$0.00</p>
             </div>
             <div class="glass-card p-4 rounded-xl text-center">
@@ -326,7 +301,7 @@
                             odd: parseFloat(betData.odd),
                             fair_odd: (1 / betData.prob).toFixed(2),
                             edge: betData.edge,
-                            // Captura las estrellas ⭐️ enviadas tal cual
+                            // Captura las estrellas ⭐️ enviadas. Si no hay, usa 3 por defecto
                             confidence: betData.confidence || "⭐⭐⭐", 
                             stake: 1, 
                             status: 'pending',
@@ -423,16 +398,14 @@
             Object.entries(leagueAnalysis)
                 .sort((a, b) => b[1].profit - a[1].profit)
                 .forEach(([name, data]) => {
-                    const yieldVal = data.staked > 0 ? (data.profit/data.staked*100).toFixed(1) : 0;
-                    const hitRate = data.count > 0 ? (data.wins/data.count*100).toFixed(1) : 0;
                     const tr = document.createElement('tr');
                     if(data.profit > 0) tr.className = "profitable-alert";
                     tr.innerHTML = `
                         <td class="font-bold text-white">${name}</td>
                         <td class="${data.profit >= 0 ? 'text-emerald-400' : 'text-red-400'} font-bold">${data.profit.toFixed(2)}u</td>
                         <td>${data.staked.toFixed(1)}u</td>
-                        <td class="font-bold">${yieldVal}%</td>
-                        <td>${hitRate}%</td>
+                        <td class="font-bold">${data.staked > 0 ? (data.profit/data.staked*100).toFixed(1) : 0}%</td>
+                        <td>${data.count > 0 ? (data.wins/data.count*100).toFixed(1) : 0}%</td>
                         <td>${data.count}</td>
                         <td>--</td>
                         <td class="text-blue-400">Est. ROI</td>
@@ -475,7 +448,7 @@
                 tr.innerHTML = `
                     <td><input type="checkbox" class="bet-item-checkbox select-bet-checkbox" data-id="${b.id}" onchange="calculateSelectedSummary()"></td>
                     <td><div class="font-bold text-white">${b.teams}</div><div class="text-[9px] text-slate-500">${b.date}</div></td>
-                    <td><div class="conf-stars text-yellow-500">${b.confidence}</div></td>
+                    <td><div class="conf-stars-display text-yellow-500">${b.confidence}</div></td>
                     <td class="font-bold text-emerald-500">${b.market}</td>
                     <td>${(b.prob*100).toFixed(1)}%</td>
                     <td>${b.fair_odd}</td>
