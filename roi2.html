@@ -131,17 +131,6 @@
             filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.5));
             white-space: nowrap;
         }
-
-        /* Selector de estrellas interactivo para filtros */
-        .star-filter-btn {
-            color: #475569;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        .star-filter-btn.active {
-            color: #fbbf24;
-            text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
-        }
     </style>
 </head>
 <body>
@@ -233,19 +222,6 @@
                                     <option value="">Todas las Ligas</option>
                                 </select>
                             </div>
-
-                            <div>
-                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Confianza (Estrellas)</label>
-                                <div class="flex gap-2 bg-slate-950 p-2.5 rounded-lg border border-slate-800 justify-center">
-                                    <i class="fa-solid fa-star star-filter-btn" data-val="1" onclick="setStarFilter(1)"></i>
-                                    <i class="fa-solid fa-star star-filter-btn" data-val="2" onclick="setStarFilter(2)"></i>
-                                    <i class="fa-solid fa-star star-filter-btn" data-val="3" onclick="setStarFilter(3)"></i>
-                                    <i class="fa-solid fa-star star-filter-btn" data-val="4" onclick="setStarFilter(4)"></i>
-                                    <i class="fa-solid fa-star star-filter-btn" data-val="5" onclick="setStarFilter(5)"></i>
-                                    <button onclick="setStarFilter(0)" class="text-[9px] ml-2 text-slate-500 hover:text-white uppercase font-bold">Ver Todas</button>
-                                </div>
-                            </div>
-
                             <div>
                                 <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Mercados</label>
                                 <div class="market-checkbox-group" id="f_market_group">
@@ -307,7 +283,6 @@
         const STORAGE_KEY = 'betags_pre_match'; 
         let bets = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let bChart;
-        let starFilterLevel = 0; // 0 significa sin filtro
 
         // --- SISTEMA DE RECEPCIÓN DE APUESTAS ---
         (function checkIncomingBet() {
@@ -326,6 +301,7 @@
                             odd: parseFloat(betData.odd),
                             fair_odd: (1 / betData.prob).toFixed(2),
                             edge: betData.edge,
+                            // Captura las estrellas ⭐️ enviadas. Si no hay, usa 3 por defecto
                             confidence: betData.confidence || "⭐⭐⭐", 
                             stake: 1, 
                             status: 'pending',
@@ -355,26 +331,6 @@
             return teams.map(t => t.trim());
         }
 
-        // Lógica para contar estrellas en el string (ej: "⭐⭐⭐" -> 3)
-        function countStars(starString) {
-            return (starString.match(/⭐/g) || []).length;
-        }
-
-        // --- FUNCIONES DE FILTRO ---
-        function setStarFilter(val) {
-            starFilterLevel = val;
-            const buttons = document.querySelectorAll('.star-filter-btn');
-            buttons.forEach(btn => {
-                const btnVal = parseInt(btn.dataset.val);
-                if (val > 0 && btnVal <= val) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-            });
-            updateStats();
-        }
-
         // --- CORE DE ACTUALIZACIÓN ---
         function updateStats() {
             updateLeagueFilter();
@@ -385,12 +341,7 @@
             let filtered = bets.filter(b => {
                 const matchesMarket = !selectedMarkets.length || selectedMarkets.includes(b.market?.toUpperCase());
                 const matchesLeague = !fLeague || extractLeagueName(b.teams) === fLeague;
-                
-                // MEJORA: Lógica de filtrado por estrellas
-                const starsCount = countStars(b.confidence);
-                const matchesStars = starFilterLevel === 0 || starsCount === starFilterLevel;
-
-                return matchesMarket && matchesLeague && matchesStars;
+                return matchesMarket && matchesLeague;
             });
 
             renderHistory(filtered);
