@@ -69,7 +69,6 @@
         .xg-box label { font-size: 0.65rem; color: var(--primary); font-weight: 800; display: block; margin-bottom: 5px; }
         .xg-box .val { font-size: 1.8rem; font-weight: 900; color: var(--text-white); }
         
-        /* Explosividad Style */
         .explosividad-box { grid-column: span 2; background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 107, 107, 0.2)); border: 1px solid var(--accent-red); margin-top: 10px; padding: 10px; border-radius: 12px; text-align: center; }
         .explosividad-box label { font-size: 0.65rem; color: var(--accent-red); font-weight: 800; display: block; margin-bottom: 2px; }
         .explosividad-box .val { font-size: 1.5rem; font-weight: 900; color: var(--accent-red); }
@@ -322,7 +321,6 @@ function poisson(k, l) {
     return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); 
 }
 
-// Generador aleatorio basado en distribución de Poisson para Montecarlo
 function getPoissonRandom(lambda) {
     let L = Math.exp(-lambda), k = 0, p = 1;
     do { k++; p *= Math.random(); } while (p > L);
@@ -423,11 +421,9 @@ function calculatePoisson() {
 
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
     
-    // Ejecutamos Montecarlo con el promedio ponderado final
     const mcResults = runMontecarlo(finalL, finalV, 50000);
     const poissonResults = getPoissonProbs(finalL, finalV);
     
-    // Promediamos Poisson y Montecarlo para mayor estabilidad (Híbrido)
     currentProbs = {
         winL: (poissonResults.winL + mcResults.winL) / 2,
         draw: (poissonResults.draw + mcResults.draw) / 2,
@@ -437,7 +433,6 @@ function calculatePoisson() {
         o05ht: (poissonResults.o05ht + mcResults.o05ht) / 2
     };
 
-    // --- NUEVA LÓGICA: Puntuación de Explosividad ---
     const explosividad = (finalL + finalV);
     document.getElementById('val_explosividad').innerText = explosividad.toFixed(2);
     
@@ -451,7 +446,6 @@ function calculatePoisson() {
     } else {
         matchTitleElem.style.color = 'var(--primary)';
     }
-    // -----------------------------------------------
 
     document.getElementById('val_xgL').innerText = finalL.toFixed(2);
     document.getElementById('val_xgV').innerText = finalV.toFixed(2);
@@ -533,6 +527,9 @@ function checkValue() {
     }
 }
 
+/**
+ * Función CORREGIDA para enviar a ROI LAB
+ */
 function sendToRoi() {
     const league = document.getElementById('leagueName').value || "General";
     const nameL = document.getElementById('selectHome').value;
@@ -540,15 +537,28 @@ function sendToRoi() {
     const marketKey = document.getElementById('valueMarket').value;
     const odd = parseFloat(document.getElementById('bookieOdd').value);
     const mNames = {winL:'GANA LOCAL',draw:'EMPATE',winV:'GANA VISITA',o25:'OVER 2.5 FT',btts:'BTTS YES',o05ht:'OVER 0.5 HT'};
+    
     const betData = {
         teams: `[${league.toUpperCase()}] ${nameL} vs ${nameV}`,
         market: mNames[marketKey],
         odd: odd.toFixed(2),
         prob: (currentProbs[marketKey] * 100).toFixed(1) + "%",
-        edge: ((currentProbs[marketKey] * odd - 1) * 100).toFixed(1) + "%"
+        edge: ((currentProbs[marketKey] * odd - 1) * 100).toFixed(1) + "%",
+        timestamp: new Date().getTime()
     };
+    
+    // Guardamos bajo una clave estándar para que roi2.html lo identifique fácilmente
     localStorage.setItem('last_bet_sent', JSON.stringify(betData));
-    window.location.href = 'roi2.html';
+    
+    // Opcional: Guardamos propiedades individuales por si roi2.html las busca así
+    localStorage.setItem('roi_teams', betData.teams);
+    localStorage.setItem('roi_market', betData.market);
+    localStorage.setItem('roi_odd', betData.odd);
+    
+    // Pequeño delay para asegurar la escritura antes del cambio de página
+    setTimeout(() => {
+        window.location.href = 'roi2.html';
+    }, 100);
 }
 
 function renderChart(l1, l2) {
