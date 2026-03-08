@@ -223,6 +223,14 @@
                                 </select>
                             </div>
                             <div>
+                                <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Filtrar por Confianza</label>
+                                <div class="market-checkbox-group" id="f_conf_group">
+                                    <label class="market-item"><input type="checkbox" value="⭐⭐⭐" onchange="updateStats()"> <span>⭐⭐⭐ (Alta)</span></label>
+                                    <label class="market-item"><input type="checkbox" value="⭐⭐" onchange="updateStats()"> <span>⭐⭐ (Media)</span></label>
+                                    <label class="market-item"><input type="checkbox" value="⭐" onchange="updateStats()"> <span>⭐ (Baja)</span></label>
+                                </div>
+                            </div>
+                            <div>
                                 <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Mercados</label>
                                 <div class="market-checkbox-group" id="f_market_group">
                                     <label class="market-item"><input type="checkbox" value="OVER 2.5 FT" onchange="updateStats()"> <span>Over 2.5 Ft</span></label>
@@ -293,8 +301,6 @@
                     const alreadyExists = bets.some(b => b.timestamp === betData.timestamp);
                     
                     if (!alreadyExists) {
-                        // EXTRACCIÓN SOLO DE ESTRELLAS:
-                        // Usamos regex para quedarnos solo con los símbolos ⭐
                         let starsOnly = "⭐⭐⭐";
                         if (betData.confidence) {
                             const match = betData.confidence.match(/⭐+/g);
@@ -309,7 +315,7 @@
                             odd: parseFloat(betData.odd),
                             fair_odd: (1 / betData.prob).toFixed(2),
                             edge: betData.edge,
-                            confidence: starsOnly, // Aquí guardamos solo las estrellas
+                            confidence: starsOnly,
                             stake: 1, 
                             status: 'pending',
                             profit: 0,
@@ -339,13 +345,18 @@
 
         function updateStats() {
             updateLeagueFilter();
+            
+            // Recoger filtros seleccionados
             const selectedMarkets = Array.from(document.querySelectorAll('#f_market_group input:checked')).map(cb => cb.value.toUpperCase());
+            const selectedConf = Array.from(document.querySelectorAll('#f_conf_group input:checked')).map(cb => cb.value);
             const fLeague = document.getElementById('f_league').value;
 
+            // Aplicar filtros
             let filtered = bets.filter(b => {
                 const matchesMarket = !selectedMarkets.length || selectedMarkets.includes(b.market?.toUpperCase());
                 const matchesLeague = !fLeague || extractLeagueName(b.teams) === fLeague;
-                return matchesMarket && matchesLeague;
+                const matchesConf = !selectedConf.length || selectedConf.includes(b.confidence);
+                return matchesMarket && matchesLeague && matchesConf;
             });
 
             renderHistory(filtered);
