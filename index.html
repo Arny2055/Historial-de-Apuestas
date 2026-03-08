@@ -27,9 +27,16 @@
         h1 span { color: var(--accent-yellow); }
         .subtitle { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 10px; display: block; }
 
-        .nav-header { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .btn-nav { background: #1a212d; color: var(--accent-yellow); border: 1px solid var(--border); padding: 8px 15px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; text-decoration: none; transition: 0.3s; }
         .btn-nav:hover { background: var(--border); color: white; }
+
+        /* Estilos nuevos para el Gestor de Ligas */
+        .storage-manager { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px dashed var(--border); }
+        .storage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .league-list { grid-column: span 2; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .badge-league { background: var(--border); color: var(--text-white); padding: 5px 10px; border-radius: 6px; font-size: 0.65rem; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
+        .badge-league:hover { border-color: var(--primary); background: #1a212d; }
 
         .league-header { text-align: center; margin-bottom: 25px; }
         .league-input { 
@@ -115,14 +122,24 @@
 
 <div class="container">
     <div class="nav-header">
-        <a href="roi2.html" class="btn-nav">📂 IR A ROI LAB</a>
+        <div class="section-title"><span>📂</span> GESTOR DE LIGAS</div>
+        <a href="roi2.html" class="btn-nav">IR A ROI LAB</a>
+    </div>
+
+    <div class="storage-manager">
+        <div class="storage-grid">
+            <button class="btn-nav" onclick="saveLeagueToStorage()" style="color: var(--accent-green);">💾 GUARDAR/ACTUALIZAR LIGA</button>
+            <button class="btn-nav" onclick="deleteCurrentLeague()" style="color: var(--accent-red);">🗑️ ELIMINAR LIGA</button>
+        </div>
+        <div class="league-list" id="leagueSavedList">
+            </div>
     </div>
 
     <h1>BETA<span>GS</span> MULTI-DATA</h1>
     <span class="subtitle">Análisis Predictivo: Poisson + Montecarlo (50k)</span>
 
     <div class="league-header">
-        <input type="text" id="leagueName" class="league-input" placeholder="ESCRIBE EL NOMBRE DE LA LIGA" oninput="updateLeagueName()">
+        <input type="text" id="leagueName" class="league-input" placeholder="NOMBRE DE LA LIGA" oninput="updateLeagueName()">
     </div>
 
     <div class="card">
@@ -130,25 +147,25 @@
             <div>
                 <div class="column-title">LOCALES</div>
                 <div class="section-title"><span>📊</span> Tabla General</div>
-                <textarea id="h_table_1" placeholder="Pegar tabla temporada..." oninput="saveToStorage()"></textarea>
+                <textarea id="h_table_1" placeholder="Pegar tabla temporada..."></textarea>
                 <div class="section-title"><span>📈</span> Últimos 8</div>
-                <textarea id="h_table_2" placeholder="Pegar tabla últimos 8..." oninput="saveToStorage()"></textarea>
+                <textarea id="h_table_2" placeholder="Pegar tabla últimos 8..."></textarea>
                 <div class="section-title"><span>🔥</span> Últimos 4</div>
-                <textarea id="h_table_3" placeholder="Pegar tabla últimos 4..." oninput="saveToStorage()"></textarea>
+                <textarea id="h_table_3" placeholder="Pegar tabla últimos 4..."></textarea>
             </div>
             <div>
                 <div class="column-title">VISITANTES</div>
                 <div class="section-title"><span>📊</span> Tabla General</div>
-                <textarea id="a_table_1" placeholder="Pegar tabla temporada..." oninput="saveToStorage()"></textarea>
+                <textarea id="a_table_1" placeholder="Pegar tabla temporada..."></textarea>
                 <div class="section-title"><span>📈</span> Últimos 8</div>
-                <textarea id="a_table_2" placeholder="Pegar tabla últimos 8..." oninput="saveToStorage()"></textarea>
+                <textarea id="a_table_2" placeholder="Pegar tabla últimos 8..."></textarea>
                 <div class="section-title"><span>🔥</span> Últimos 4</div>
-                <textarea id="a_table_3" placeholder="Pegar tabla últimos 4..." oninput="saveToStorage()"></textarea>
+                <textarea id="a_table_3" placeholder="Pegar tabla últimos 4..."></textarea>
             </div>
         </div>
         <div class="btn-group">
             <button class="btn" onclick="processAllTables()">1. PROCESAR TODAS LAS TABLAS</button>
-            <button class="btn btn-reset" onclick="clearData()">LIMPIAR</button>
+            <button class="btn btn-reset" onclick="clearData()">LIMPIAR TODO</button>
         </div>
     </div>
 
@@ -239,41 +256,88 @@ let trendChartInstance = null;
 let currentProbs = {};
 let segmentResults = [];
 
-if (!window.name || !window.name.startsWith('betags_session_')) {
-    window.name = 'betags_session_' + Date.now() + Math.random().toString(36).substr(2, 5);
-}
-const SESSION_ID = window.name;
 const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3', 'leagueName'];
 
 window.onload = () => {
-    storageKeys.forEach(key => {
-        const val = localStorage.getItem(SESSION_ID + '_' + key);
-        if(val) {
-            document.getElementById(key).value = val;
-            if(key === 'leagueName') updateLeagueName(false);
-        }
-    });
+    refreshLeagueBadges();
 };
 
-function updateLeagueName(save = true) {
+// --- NUEVAS FUNCIONES DE PERSISTENCIA POR LIGA ---
+
+function saveLeagueToStorage() {
+    const name = document.getElementById('leagueName').value.trim().toUpperCase();
+    if (!name) return alert("Escribe un nombre de liga para guardar.");
+
+    const data = {};
+    storageKeys.forEach(key => {
+        data[key] = document.getElementById(key).value;
+    });
+
+    const savedLeagues = JSON.parse(localStorage.getItem('betags_leagues_db') || '{}');
+    
+    if (savedLeagues[name]) {
+        if (!confirm(`La liga ${name} ya existe. ¿Deseas reemplazarla con los datos actuales?`)) return;
+    }
+
+    savedLeagues[name] = data;
+    localStorage.setItem('betags_leagues_db', JSON.stringify(savedLeagues));
+    refreshLeagueBadges();
+    alert("Liga guardada con éxito.");
+}
+
+function loadLeague(name) {
+    const savedLeagues = JSON.parse(localStorage.getItem('betags_leagues_db') || '{}');
+    const data = savedLeagues[name];
+    if (data) {
+        storageKeys.forEach(key => {
+            document.getElementById(key).value = data[key] || "";
+        });
+        updateLeagueName();
+        processAllTables(); // Procesa automáticamente al cargar
+    }
+}
+
+function refreshLeagueBadges() {
+    const container = document.getElementById('leagueSavedList');
+    const savedLeagues = JSON.parse(localStorage.getItem('betags_leagues_db') || '{}');
+    container.innerHTML = "";
+    
+    Object.keys(savedLeagues).sort().forEach(name => {
+        const badge = document.createElement('div');
+        badge.className = 'badge-league';
+        badge.innerText = name;
+        badge.onclick = () => loadLeague(name);
+        container.appendChild(badge);
+    });
+}
+
+function deleteCurrentLeague() {
+    const name = document.getElementById('leagueName').value.trim().toUpperCase();
+    if (!name) return alert("No hay una liga seleccionada.");
+    
+    if (confirm(`¿Eliminar permanentemente la liga ${name}?`)) {
+        const savedLeagues = JSON.parse(localStorage.getItem('betags_leagues_db') || '{}');
+        delete savedLeagues[name];
+        localStorage.setItem('betags_leagues_db', JSON.stringify(savedLeagues));
+        refreshLeagueBadges();
+        clearData(false);
+    }
+}
+
+// --- FUNCIONES ORIGINALES MANTENIDAS ---
+
+function updateLeagueName() {
     const name = document.getElementById('leagueName').value;
-    if(save) localStorage.setItem(SESSION_ID + '_leagueName', name);
     document.title = name ? `${name.toUpperCase()} - BETAGS` : "BETAGS - Multi-Weight";
 }
 
-function saveToStorage() {
-    storageKeys.forEach(key => {
-        localStorage.setItem(SESSION_ID + '_' + key, document.getElementById(key).value);
-    });
-}
-
-function clearData() {
-    if(confirm("¿Borrar todos los datos de esta pestaña?")) {
+function clearData(ask = true) {
+    if(!ask || confirm("¿Borrar todos los campos de texto actuales?")) {
         storageKeys.forEach(key => {
             document.getElementById(key).value = "";
-            localStorage.removeItem(SESSION_ID + '_' + key);
         });
-        location.reload();
+        document.getElementById('selectionArea').style.display = 'none';
+        document.getElementById('results').style.display = 'none';
     }
 }
 
@@ -296,7 +360,6 @@ function parseTable(text) {
 }
 
 function processAllTables() {
-    saveToStorage();
     for(let i=0; i<3; i++) {
         tablesData.h[i] = parseTable(document.getElementById(`h_table_${i+1}`).value);
         tablesData.a[i] = parseTable(document.getElementById(`a_table_${i+1}`).value);
@@ -381,8 +444,7 @@ function calculatePoisson() {
     let trendData = { o25: [], btts: [], o05ht: [] };
     segmentResults = []; 
     
-    const cards = area.querySelectorAll('.ind-card');
-    cards.forEach(c => c.remove());
+    area.innerHTML = "";
     
     let weightedL=0, weightedV=0, totalWeight=0;
 
@@ -420,7 +482,6 @@ function calculatePoisson() {
     if (totalWeight === 0) return alert("Error en datos de tablas.");
 
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
-    
     const mcResults = runMontecarlo(finalL, finalV, 50000);
     const poissonResults = getPoissonProbs(finalL, finalV);
     
@@ -433,20 +494,8 @@ function calculatePoisson() {
         o05ht: (poissonResults.o05ht + mcResults.o05ht) / 2
     };
 
-    const explosividad = (finalL + finalV);
-    document.getElementById('val_explosividad').innerText = explosividad.toFixed(2);
-    
-    const highChanceOver = (explosividad > 2.7 && finalL > 1.1 && finalV > 1.1);
-    const matchTitleElem = document.getElementById('matchTitle');
-    matchTitleElem.innerText = `${nameL} VS ${nameV}`;
-    
-    if(highChanceOver) {
-        matchTitleElem.style.color = 'var(--accent-red)';
-        matchTitleElem.innerText += " 🔥";
-    } else {
-        matchTitleElem.style.color = 'var(--primary)';
-    }
-
+    document.getElementById('val_explosividad').innerText = (finalL + finalV).toFixed(2);
+    document.getElementById('matchTitle').innerText = `${nameL} VS ${nameV}`;
     document.getElementById('val_xgL').innerText = finalL.toFixed(2);
     document.getElementById('val_xgV').innerText = finalV.toFixed(2);
     document.getElementById('pWinL').innerText = (currentProbs.winL*100).toFixed(1) + "%";
@@ -503,33 +552,15 @@ function checkValue() {
         if(segmentResults.length >= 2) {
             let marketVals = segmentResults.map(s => s[market]);
             let diff = Math.max(...marketVals) - Math.min(...marketVals);
-            
-            if(diff < 0.08) {
-                sContainer.innerText = "⭐⭐⭐⭐⭐";
-                tContainer.innerText = "CONFIANZA ALTA";
-                tContainer.style.color = "var(--accent-green)";
-            } else if(diff < 0.18) {
-                sContainer.innerText = "⭐⭐⭐";
-                tContainer.innerText = "CONFIANZA MEDIA";
-                tContainer.style.color = "var(--accent-yellow)";
-            } else {
-                sContainer.innerText = "⭐";
-                tContainer.innerText = "CONFIANZA BAJA";
-                tContainer.style.color = "var(--accent-red)";
-            }
+            if(diff < 0.08) { sContainer.innerText = "⭐⭐⭐⭐⭐"; tContainer.innerText = "CONFIANZA ALTA"; tContainer.style.color = "var(--accent-green)"; }
+            else if(diff < 0.18) { sContainer.innerText = "⭐⭐⭐"; tContainer.innerText = "CONFIANZA MEDIA"; tContainer.style.color = "var(--accent-yellow)"; }
+            else { sContainer.innerText = "⭐"; tContainer.innerText = "CONFIANZA BAJA"; tContainer.style.color = "var(--accent-red)"; }
         }
     } else {
-        roiBtn.style.display = "none";
-        b.innerText = "";
-        sContainer.innerText = "---";
-        tContainer.innerText = "---";
-        tContainer.style.color = "var(--text-muted)";
+        roiBtn.style.display = "none"; b.innerText = ""; sContainer.innerText = "---"; tContainer.innerText = "---";
     }
 }
 
-/**
- * Función CORREGIDA para enviar a ROI LAB
- */
 function sendToRoi() {
     const league = document.getElementById('leagueName').value || "General";
     const nameL = document.getElementById('selectHome').value;
@@ -547,18 +578,12 @@ function sendToRoi() {
         timestamp: new Date().getTime()
     };
     
-    // Guardamos bajo una clave estándar para que roi2.html lo identifique fácilmente
     localStorage.setItem('last_bet_sent', JSON.stringify(betData));
-    
-    // Opcional: Guardamos propiedades individuales por si roi2.html las busca así
     localStorage.setItem('roi_teams', betData.teams);
     localStorage.setItem('roi_market', betData.market);
     localStorage.setItem('roi_odd', betData.odd);
     
-    // Pequeño delay para asegurar la escritura antes del cambio de página
-    setTimeout(() => {
-        window.location.href = 'roi2.html';
-    }, 100);
+    setTimeout(() => { window.location.href = 'roi2.html'; }, 100);
 }
 
 function renderChart(l1, l2) {
