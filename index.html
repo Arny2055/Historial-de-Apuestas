@@ -132,20 +132,20 @@
         <div class="input-grid">
             <div>
                 <div class="column-title">LOCALES</div>
-                <div class="section-title"><span>📊</span> Tabla General</div>
+                <div class="section-title"><span>📊</span> Tabla General (B1:M28)</div>
                 <textarea id="h_table_1" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
-                <div class="section-title"><span>📈</span> Últimos 8</div>
+                <div class="section-title"><span>📈</span> Últimos 8 (B30:M57)</div>
                 <textarea id="h_table_2" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
-                <div class="section-title"><span>🔥</span> Últimos 4</div>
+                <div class="section-title"><span>🔥</span> Últimos 4 (B58:M88)</div>
                 <textarea id="h_table_3" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
             </div>
             <div>
                 <div class="column-title">VISITANTES</div>
-                <div class="section-title"><span>📊</span> Tabla General</div>
+                <div class="section-title"><span>📊</span> Tabla General (O1:Z28)</div>
                 <textarea id="a_table_1" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
-                <div class="section-title"><span>📈</span> Últimos 8</div>
+                <div class="section-title"><span>📈</span> Últimos 8 (O30:Z57)</div>
                 <textarea id="a_table_2" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
-                <div class="section-title"><span>🔥</span> Últimos 4</div>
+                <div class="section-title"><span>🔥</span> Últimos 4 (O58:Z87)</div>
                 <textarea id="a_table_3" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
             </div>
         </div>
@@ -257,6 +257,7 @@ window.onload = () => {
             if(key === 'leagueName') updateLeagueName(false);
         }
     });
+    if(document.getElementById('h_table_1').value) processAllTables();
 };
 
 function updateLeagueName(save = true) {
@@ -265,71 +266,57 @@ function updateLeagueName(save = true) {
     document.title = name ? `${name.toUpperCase()} - BETAGS` : "BETAGS - Multi-Weight";
 }
 
-/**
- * Función para obtener datos desde Google Sheets usando la pestaña como nombre de Liga
- */
 async function fetchFromSheets() {
     const league = document.getElementById('leagueName').value.trim();
-    if(!league) return alert("Escribe el nombre de la pestaña (LIGA) exactamente como aparece en Sheets.");
+    if(!league) return alert("Escribe el nombre de la pestaña (LIGA).");
     
     document.getElementById('loading').style.display = 'block';
-    
-    // URL para obtener datos en formato JSON a través de la API de Visualización
     const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(league)}`;
 
     try {
         const response = await fetch(url);
         const text = await response.text();
-        // Limpiamos el wrapper de Google para obtener el JSON puro
         const json = JSON.parse(text.substr(47).slice(0, -2));
-        
-        processSheetsData(json.table);
+        processRanges(json.table.rows);
     } catch (error) {
         console.error("Error cargando Sheets:", error);
-        alert("No se encontró la pestaña o el archivo no es público. Revisa el nombre.");
+        alert("Error al conectar. Verifica que la pestaña '" + league + "' exista y el archivo sea público.");
     } finally {
         document.getElementById('loading').style.display = 'none';
     }
 }
 
 /**
- * Procesa la estructura de la tabla de Google Sheets
+ * Procesa los datos de las filas de Google Sheets basándose en los rangos de celdas indicados
  */
-function processSheetsData(table) {
-    if(!table.rows || table.rows.length === 0) return alert("Pestaña vacía.");
+function processRanges(rows) {
+    const getRangeData = (startRow, endRow, startCol, endCol) => {
+        let text = "";
+        for (let r = startRow; r <= endRow; r++) {
+            if (!rows[r] || !rows[r].c) continue;
+            let rowCells = [];
+            for (let c = startCol; c <= endCol; c++) {
+                let cell = rows[r].c[c];
+                rowCells.push(cell ? (cell.v !== null ? cell.v : "") : "");
+            }
+            if (rowCells.some(v => v !== "")) {
+                text += rowCells.join(" ") + "\n";
+            }
+        }
+        return text;
+    };
 
-    let formattedText = "";
-    table.rows.forEach((row, index) => {
-        // Obtenemos los valores de las celdas
-        const rowData = row.c.map(cell => cell ? (cell.v || cell.f || "0") : "0");
-        // Asumimos estructura estándar: Pos, Equipo, PJ, G, E, P, GF, GC...
-        // Si tu tabla es distinta, se puede ajustar este join
-        formattedText += `${index + 1} ${rowData.join(" ")}\n`;
-    });
+    // LOCALES (Columnas B a M son índices 1 a 12)
+    document.getElementById('h_table_1').value = getRangeData(0, 27, 1, 12);  // B1:M28
+    document.getElementById('h_table_2').value = getRangeData(29, 56, 1, 12); // B30:M57
+    document.getElementById('h_table_3').value = getRangeData(57, 87, 1, 12); // B58:M88
 
-    // Llenamos las áreas de texto automáticamente (General, Últimos 8 y 4 se simulan o se pueden segmentar si el Sheet lo permite)
-    // Por ahora, para automatizar, replicamos el dato principal en los 3 niveles si no hay más tablas
-    document.getElementById('h_table_1').value = formattedText;
-    document.getElementById('a_table_1').value = formattedText;
-    
-    // Procesamos para activar el selector
+    // VISITANTES (Columnas O a Z son índices 14 a 25)
+    document.getElementById('a_table_1').value = getRangeData(0, 27, 14, 25); // O1:Z28
+    document.getElementById('a_table_2').value = getRangeData(29, 56, 14, 25); // O30:Z57
+    document.getElementById('a_table_3').value = getRangeData(57, 86, 14, 25); // O58:Z87
+
     processAllTables();
-}
-
-function saveToStorage() {
-    storageKeys.forEach(key => {
-        localStorage.setItem(SESSION_ID + '_' + key, document.getElementById(key).value);
-    });
-}
-
-function clearData() {
-    if(confirm("¿Borrar todos los datos de esta pestaña?")) {
-        storageKeys.forEach(key => {
-            document.getElementById(key).value = "";
-            localStorage.removeItem(SESSION_ID + '_' + key);
-        });
-        location.reload();
-    }
 }
 
 function parseTable(text) {
@@ -338,16 +325,20 @@ function parseTable(text) {
     const teams = {};
     lines.forEach(line => {
         const parts = line.trim().split(/\s+/);
-        // Lógica de detección: buscamos dónde empiezan los números (PJ)
-        if (parts.length >= 7) {
+        if (parts.length >= 6) {
             let start = -1;
-            for(let i=1; i<parts.length; i++) if(!isNaN(parts[i]) && !isNaN(parts[i+1])) { start=i; break; }
+            // Identificamos dónde empieza el nombre del equipo (después de la posición inicial)
+            // y dónde empiezan los números (PJ suele ser la columna 2 o 3 en el rango)
+            for(let i=1; i<parts.length; i++) {
+                if(!isNaN(parts[i]) && i > 0) { start = i; break; }
+            }
+            
             if (start !== -1) {
-                const name = parts.slice(1, start).join(" ");
+                const name = parts.slice(0, start).join(" ").replace(/^[0-9]+\s+/, "").trim();
                 const gp = parseInt(parts[start]); 
-                // Buscamos GF y GC (normalmente 4 y 5 posiciones después de PJ)
-                const gf = parseInt(parts[start+4]); 
-                const ga = parseInt(parts[start+5]);
+                const gf = parseFloat(parts[start+4]); // Ajustado a posición relativa de goles
+                const ga = parseFloat(parts[start+5]);
+                
                 if (gp > 0 && !isNaN(gf) && !isNaN(ga)) {
                     teams[name] = { avgGF: gf/gp, avgGA: ga/gp };
                 }
@@ -365,20 +356,41 @@ function processAllTables() {
     }
     
     const sH = document.getElementById('selectHome'), sV = document.getElementById('selectAway');
+    const prevH = sH.value, prevV = sV.value;
     sH.innerHTML = ""; sV.innerHTML = "";
     
-    const allNamesH = [...new Set([...Object.keys(tablesData.h[0]), ...Object.keys(tablesData.h[1]), ...Object.keys(tablesData.h[2])])];
-    const allNamesA = [...new Set([...Object.keys(tablesData.a[0]), ...Object.keys(tablesData.a[1]), ...Object.keys(tablesData.a[2])])];
+    const allNamesH = [...new Set([...Object.keys(tablesData.h[0]), ...Object.keys(tablesData.h[1]), ...Object.keys(tablesData.h[2])])].sort();
+    const allNamesA = [...new Set([...Object.keys(tablesData.a[0]), ...Object.keys(tablesData.a[1]), ...Object.keys(tablesData.a[2])])].sort();
     
     if(allNamesH.length === 0) return;
 
-    allNamesH.sort().forEach(n => sH.add(new Option(n, n)));
-    allNamesA.sort().forEach(n => sV.add(new Option(n, n)));
+    allNamesH.forEach(n => sH.add(new Option(n, n)));
+    allNamesA.forEach(n => sV.add(new Option(n, n)));
+    
+    if(prevH) sH.value = prevH;
+    if(prevV) sV.value = prevV;
+    
     document.getElementById('selectionArea').style.display = 'block';
 }
 
-// LÓGICA MATEMÁTICA (MANTENIDA)
-function factorial(n) { if (n === 0) return 1; let res = 1; for (let i = 2; i <= n; i++) res *= i; return res; }
+function saveToStorage() {
+    storageKeys.forEach(key => {
+        localStorage.setItem(SESSION_ID + '_' + key, document.getElementById(key).value);
+    });
+}
+
+function clearData() {
+    if(confirm("¿Borrar todos los datos?")) {
+        storageKeys.forEach(key => {
+            document.getElementById(key).value = "";
+            localStorage.removeItem(SESSION_ID + '_' + key);
+        });
+        location.reload();
+    }
+}
+
+// MATH CORE
+function factorial(n) { if (n <= 1) return 1; let res = 1; for (let i = 2; i <= n; i++) res *= i; return res; }
 function poisson(k, l) { return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); }
 function getPoissonRandom(lambda) {
     let L = Math.exp(-lambda), k = 0, p = 1;
@@ -390,8 +402,8 @@ function runMontecarlo(l1, l2, iterations = 50000) {
     let counts = { winL: 0, draw: 0, winV: 0, o25: 0, btts: 0, o05ht: 0 };
     const l1HT = l1 * 0.44, l2HT = l2 * 0.44;
     for (let i = 0; i < iterations; i++) {
-        const gL = getPoissonRandom(l1); const gV = getPoissonRandom(l2);
-        const gLHT = getPoissonRandom(l1HT); const gVHT = getPoissonRandom(l2HT);
+        const gL = getPoissonRandom(l1), gV = getPoissonRandom(l2);
+        const gLHT = getPoissonRandom(l1HT), gVHT = getPoissonRandom(l2HT);
         if (gL > gV) counts.winL++; else if (gL < gV) counts.winV++; else counts.draw++;
         if (gL + gV > 2.5) counts.o25++; if (gL > 0 && gV > 0) counts.btts++;
         if (gLHT + gVHT > 0.5) counts.o05ht++;
@@ -421,9 +433,7 @@ function calculatePoisson() {
     const area = document.getElementById('indResultsArea');
     
     let trendData = { o25: [], btts: [], o05ht: [] };
-    segmentResults = []; 
-    area.innerHTML = "";
-    
+    segmentResults = []; area.innerHTML = "";
     let weightedL=0, weightedV=0, totalWeight=0;
 
     labels.forEach((label, i) => {
@@ -442,33 +452,26 @@ function calculatePoisson() {
             trendData.btts.push((segmentProb.btts * 100).toFixed(1));
             trendData.o05ht.push((segmentProb.o05ht * 100).toFixed(1));
 
-            const cardHtml = `<div class="ind-card">
+            area.insertAdjacentHTML('afterbegin', `<div class="ind-card">
                 <h4>${label}</h4>
                 <span class="ind-val">${(segmentProb.winL*100).toFixed(0)}% | ${(segmentProb.winV*100).toFixed(0)}%</span>
-                <span class="ind-label">Win L/V</span>
                 <div class="ind-detail">
                     <div class="ind-stat" style="color:var(--accent-blue);"><span>O2.5</span> <span>${(segmentProb.o25*100).toFixed(0)}%</span></div>
                     <div class="ind-stat" style="color:var(--accent-yellow);"><span>BTTS</span> <span>${(segmentProb.btts*100).toFixed(0)}%</span></div>
-                    <div class="ind-stat" style="color:var(--accent-green);"><span>HT0.5</span> <span>${(segmentProb.o05ht*100).toFixed(0)}%</span></div>
                 </div>
-            </div>`;
-            area.insertAdjacentHTML('afterbegin', cardHtml);
+            </div>`);
         }
     });
 
-    if (totalWeight === 0) return alert("Selecciona equipos válidos.");
+    if (totalWeight === 0) return alert("Datos insuficientes para estos equipos.");
 
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
-    const mcResults = runMontecarlo(finalL, finalV, 50000);
-    const poissonResults = getPoissonProbs(finalL, finalV);
+    const mc = runMontecarlo(finalL, finalV, 50000);
+    const ps = getPoissonProbs(finalL, finalV);
     
     currentProbs = {
-        winL: (poissonResults.winL + mcResults.winL) / 2,
-        draw: (poissonResults.draw + mcResults.draw) / 2,
-        winV: (poissonResults.winV + mcResults.winV) / 2,
-        o25: (poissonResults.o25 + mcResults.o25) / 2,
-        btts: (poissonResults.btts + mcResults.btts) / 2,
-        o05ht: (poissonResults.o05ht + mcResults.o05ht) / 2
+        winL: (ps.winL + mc.winL) / 2, draw: (ps.draw + mc.draw) / 2, winV: (ps.winV + mc.winV) / 2,
+        o25: (ps.o25 + mc.o25) / 2, btts: (ps.btts + mc.btts) / 2, o05ht: (ps.o05ht + mc.o05ht) / 2
     };
 
     document.getElementById('val_explosividad').innerText = (finalL + finalV).toFixed(2);
@@ -496,19 +499,11 @@ function renderTrendChart(data) {
         data: {
             labels: ["General", "Ult. 8", "Ult. 4"],
             datasets: [
-                { label: 'Over 2.5', data: data.o25.reverse(), borderColor: '#339af0', tension: 0.4, fill: false },
-                { label: 'BTTS Yes', data: data.btts.reverse(), borderColor: '#fcc419', tension: 0.4, fill: false },
-                { label: 'HT 0.5', data: data.o05ht.reverse(), borderColor: '#51cf66', tension: 0.4, fill: false }
+                { label: 'Over 2.5', data: data.o25.reverse(), borderColor: '#339af0', tension: 0.4 },
+                { label: 'BTTS', data: data.btts.reverse(), borderColor: '#fcc419', tension: 0.4 }
             ]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: false, ticks: { color: '#666', font: { size: 9 } }, grid: { color: '#1a1e26' } },
-                x: { ticks: { color: '#adb5bd', font: { size: 9 } }, grid: { display: false } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false } } }
     });
 }
 
@@ -526,16 +521,25 @@ function checkValue() {
         b.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
         roiBtn.style.display = val > 0 ? "inline-block" : "none";
 
-        if(segmentResults.length >= 1) {
+        if(segmentResults.length >= 2) {
             let marketVals = segmentResults.map(s => s[market]);
             let diff = Math.max(...marketVals) - Math.min(...marketVals);
-            if(diff < 0.08) { sContainer.innerText = "⭐⭐⭐⭐⭐"; tContainer.innerText = "CONFIANZA ALTA"; tContainer.style.color = "var(--accent-green)"; }
-            else if(diff < 0.18) { sContainer.innerText = "⭐⭐⭐"; tContainer.innerText = "CONFIANZA MEDIA"; tContainer.style.color = "var(--accent-yellow)"; }
-            else { sContainer.innerText = "⭐"; tContainer.innerText = "CONFIANZA BAJA"; tContainer.style.color = "var(--accent-red)"; }
+            if(diff < 0.10) { sContainer.innerText = "⭐⭐⭐⭐⭐"; tContainer.innerText = "ALTA"; }
+            else if(diff < 0.20) { sContainer.innerText = "⭐⭐⭐"; tContainer.innerText = "MEDIA"; }
+            else { sContainer.innerText = "⭐"; tContainer.innerText = "VOLÁTIL"; }
         }
-    } else {
-        roiBtn.style.display = "none"; b.innerText = ""; sContainer.innerText = "---"; tContainer.innerText = "---";
     }
+}
+
+function renderChart(l1, l2) {
+    const ctx = document.getElementById('poissonChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    let pL = [], pV = []; for(let i=0; i<6; i++) { pL.push(poisson(i, l1)); pV.push(poisson(i, l2)); }
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: ['0', '1', '2', '3', '4', '5'], datasets: [{ label: 'Local', data: pL, backgroundColor: '#4dabf7' }, { label: 'Visita', data: pV, backgroundColor: '#fcc419' }] },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 }
 
 function sendToRoi() {
@@ -547,18 +551,7 @@ function sendToRoi() {
     const mNames = {winL:'GANA LOCAL',draw:'EMPATE',winV:'GANA VISITA',o25:'OVER 2.5 FT',btts:'BTTS YES',o05ht:'OVER 0.5 HT'};
     const betData = { teams: `[${league.toUpperCase()}] ${nameL} vs ${nameV}`, market: mNames[marketKey], odd: odd.toFixed(2), prob: (currentProbs[marketKey] * 100).toFixed(1) + "%", edge: ((currentProbs[marketKey] * odd - 1) * 100).toFixed(1) + "%", timestamp: new Date().getTime() };
     localStorage.setItem('last_bet_sent', JSON.stringify(betData));
-    setTimeout(() => { window.location.href = 'roi2.html'; }, 100);
-}
-
-function renderChart(l1, l2) {
-    const ctx = document.getElementById('poissonChart').getContext('2d');
-    if (chartInstance) chartInstance.destroy();
-    let pL = [], pV = []; for(let i=0; i<6; i++) { pL.push(poisson(i, l1)); pV.push(poisson(i, l2)); }
-    chartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: ['0', '1', '2', '3', '4', '5'], datasets: [{ label: 'Goles Local', data: pL, backgroundColor: '#4dabf7' }, { label: 'Goles Visitante', data: pV, backgroundColor: '#fcc419' }] },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: '#adb5bd' } }, x: { ticks: { color: '#adb5bd' } } }, plugins: { legend: { labels: { color: '#e9ecef' } } } }
-    });
+    alert("¡Enviado a ROI LAB!");
 }
 </script>
 </body>
