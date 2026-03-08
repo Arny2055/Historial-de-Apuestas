@@ -69,6 +69,11 @@
         .xg-box label { font-size: 0.65rem; color: var(--primary); font-weight: 800; display: block; margin-bottom: 5px; }
         .xg-box .val { font-size: 1.8rem; font-weight: 900; color: var(--text-white); }
         
+        /* Explosividad Style */
+        .explosividad-box { grid-column: span 2; background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 107, 107, 0.2)); border: 1px solid var(--accent-red); margin-top: 10px; padding: 10px; border-radius: 12px; text-align: center; }
+        .explosividad-box label { font-size: 0.65rem; color: var(--accent-red); font-weight: 800; display: block; margin-bottom: 2px; }
+        .explosividad-box .val { font-size: 1.5rem; font-weight: 900; color: var(--accent-red); }
+
         .independent-results { margin-top: 25px; border-top: 1px solid var(--border); padding-top: 15px; }
         .ind-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
         .ind-card { background: #0b0e14; padding: 10px; border-radius: 10px; border: 1px solid var(--border); text-align: center; }
@@ -178,6 +183,10 @@
         <div class="xg-display-grid">
             <div class="xg-box"><label>xG LOCAL (CRUZADO)</label><div class="val" id="val_xgL">0.00</div></div>
             <div class="xg-box"><label>xG VISITA (CRUZADO)</label><div class="val" id="val_xgV">0.00</div></div>
+            <div class="explosividad-box">
+                <label>ÍNDICE DE EXPLOSIVIDAD (GOLES)</label>
+                <div class="val" id="val_explosividad">0.00</div>
+            </div>
         </div>
 
         <div class="prob-card">
@@ -428,7 +437,22 @@ function calculatePoisson() {
         o05ht: (poissonResults.o05ht + mcResults.o05ht) / 2
     };
 
-    document.getElementById('matchTitle').innerText = `${nameL} VS ${nameV}`;
+    // --- NUEVA LÓGICA: Puntuación de Explosividad ---
+    const explosividad = (finalL + finalV);
+    document.getElementById('val_explosividad').innerText = explosividad.toFixed(2);
+    
+    const highChanceOver = (explosividad > 2.7 && finalL > 1.1 && finalV > 1.1);
+    const matchTitleElem = document.getElementById('matchTitle');
+    matchTitleElem.innerText = `${nameL} VS ${nameV}`;
+    
+    if(highChanceOver) {
+        matchTitleElem.style.color = 'var(--accent-red)';
+        matchTitleElem.innerText += " 🔥";
+    } else {
+        matchTitleElem.style.color = 'var(--primary)';
+    }
+    // -----------------------------------------------
+
     document.getElementById('val_xgL').innerText = finalL.toFixed(2);
     document.getElementById('val_xgV').innerText = finalV.toFixed(2);
     document.getElementById('pWinL').innerText = (currentProbs.winL*100).toFixed(1) + "%";
@@ -538,7 +562,7 @@ function renderChart(l1, l2) {
             labels: ['0', '1', '2', '3', '4', '5'],
             datasets: [
                 { label: 'Goles Local', data: pL, backgroundColor: '#4dabf7' },
-                { label: 'Goles Visita', data: pV, backgroundColor: '#fcc419' }
+                { label: 'Goles Visitante', data: pV, backgroundColor: '#fcc419' }
             ]
         },
         options: { 
