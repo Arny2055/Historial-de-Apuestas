@@ -262,38 +262,28 @@ window.onload = () => {
     refreshLeagueBadges();
 };
 
-// --- NUEVAS FUNCIONES DE PERSISTENCIA POR LIGA ---
-
 function saveLeagueToStorage() {
     const name = document.getElementById('leagueName').value.trim().toUpperCase();
     if (!name) return alert("Escribe un nombre de liga para guardar.");
-
     const data = {};
-    storageKeys.forEach(key => {
-        data[key] = document.getElementById(key).value;
-    });
-
+    storageKeys.forEach(key => { data[key] = document.getElementById(key).value; });
     const savedLeagues = JSON.parse(localStorage.getItem('betags_leagues_db') || '{}');
-    
     if (savedLeagues[name]) {
-        if (!confirm(`La liga ${name} ya existe. ¿Deseas reemplazarla con los datos actuales?`)) return;
+        if (!confirm(`La liga ${name} ya existe. ¿Deseas reemplazarla?`)) return;
     }
-
     savedLeagues[name] = data;
     localStorage.setItem('betags_leagues_db', JSON.stringify(savedLeagues));
     refreshLeagueBadges();
-    alert("Liga guardada con éxito.");
+    alert("Liga guardada.");
 }
 
 function loadLeague(name) {
     const savedLeagues = JSON.parse(localStorage.getItem('betags_leagues_db') || '{}');
     const data = savedLeagues[name];
     if (data) {
-        storageKeys.forEach(key => {
-            document.getElementById(key).value = data[key] || "";
-        });
+        storageKeys.forEach(key => { document.getElementById(key).value = data[key] || ""; });
         updateLeagueName();
-        processAllTables(); // Procesa automáticamente al cargar
+        processAllTables();
     }
 }
 
@@ -301,7 +291,6 @@ function refreshLeagueBadges() {
     const container = document.getElementById('leagueSavedList');
     const savedLeagues = JSON.parse(localStorage.getItem('betags_leagues_db') || '{}');
     container.innerHTML = "";
-    
     Object.keys(savedLeagues).sort().forEach(name => {
         const badge = document.createElement('div');
         badge.className = 'badge-league';
@@ -314,7 +303,6 @@ function refreshLeagueBadges() {
 function deleteCurrentLeague() {
     const name = document.getElementById('leagueName').value.trim().toUpperCase();
     if (!name) return alert("No hay una liga seleccionada.");
-    
     if (confirm(`¿Eliminar permanentemente la liga ${name}?`)) {
         const savedLeagues = JSON.parse(localStorage.getItem('betags_leagues_db') || '{}');
         delete savedLeagues[name];
@@ -324,18 +312,14 @@ function deleteCurrentLeague() {
     }
 }
 
-// --- FUNCIONES ORIGINALES MANTENIDAS ---
-
 function updateLeagueName() {
     const name = document.getElementById('leagueName').value;
     document.title = name ? `${name.toUpperCase()} - BETAGS` : "BETAGS - Multi-Weight";
 }
 
 function clearData(ask = true) {
-    if(!ask || confirm("¿Borrar todos los campos de texto actuales?")) {
-        storageKeys.forEach(key => {
-            document.getElementById(key).value = "";
-        });
+    if(!ask || confirm("¿Borrar todos los campos?")) {
+        storageKeys.forEach(key => { document.getElementById(key).value = ""; });
         document.getElementById('selectionArea').style.display = 'none';
         document.getElementById('results').style.display = 'none';
     }
@@ -373,50 +357,22 @@ function processAllTables() {
     document.getElementById('selectionArea').style.display = 'block';
 }
 
-function factorial(n) { 
-    if (n === 0) return 1;
-    let res = 1;
-    for (let i = 2; i <= n; i++) res *= i;
-    return res;
-}
-
-function poisson(k, l) { 
-    return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); 
-}
-
-function getPoissonRandom(lambda) {
-    let L = Math.exp(-lambda), k = 0, p = 1;
-    do { k++; p *= Math.random(); } while (p > L);
-    return k - 1;
-}
+function factorial(n) { if (n === 0) return 1; let res = 1; for (let i = 2; i <= n; i++) res *= i; return res; }
+function poisson(k, l) { return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); }
+function getPoissonRandom(lambda) { let L = Math.exp(-lambda), k = 0, p = 1; do { k++; p *= Math.random(); } while (p > L); return k - 1; }
 
 function runMontecarlo(l1, l2, iterations = 50000) {
     let counts = { winL: 0, draw: 0, winV: 0, o25: 0, btts: 0, o05ht: 0 };
     const l1HT = l1 * 0.44, l2HT = l2 * 0.44;
-
     for (let i = 0; i < iterations; i++) {
-        const gL = getPoissonRandom(l1);
-        const gV = getPoissonRandom(l2);
-        const gLHT = getPoissonRandom(l1HT);
-        const gVHT = getPoissonRandom(l2HT);
-
-        if (gL > gV) counts.winL++;
-        else if (gL < gV) counts.winV++;
-        else counts.draw++;
-
+        const gL = getPoissonRandom(l1), gV = getPoissonRandom(l2);
+        const gLHT = getPoissonRandom(l1HT), gVHT = getPoissonRandom(l2HT);
+        if (gL > gV) counts.winL++; else if (gL < gV) counts.winV++; else counts.draw++;
         if (gL + gV > 2.5) counts.o25++;
         if (gL > 0 && gV > 0) counts.btts++;
         if (gLHT + gVHT > 0.5) counts.o05ht++;
     }
-
-    return {
-        winL: counts.winL / iterations,
-        draw: counts.draw / iterations,
-        winV: counts.winV / iterations,
-        o25: counts.o25 / iterations,
-        btts: counts.btts / iterations,
-        o05ht: counts.o05ht / iterations
-    };
+    return { winL: counts.winL/iterations, draw: counts.draw/iterations, winV: counts.winV/iterations, o25: counts.o25/iterations, btts: counts.btts/iterations, o05ht: counts.o05ht/iterations };
 }
 
 function getPoissonProbs(l1, l2) {
@@ -440,12 +396,9 @@ function calculatePoisson() {
     const labels = ["TEMP. COMPLETA", "ÚLTIMOS 8", "ÚLTIMOS 4"];
     const weights = [0.20, 0.30, 0.50];
     const area = document.getElementById('indResultsArea');
-    
     let trendData = { o25: [], btts: [], o05ht: [] };
     segmentResults = []; 
-    
     area.innerHTML = "";
-    
     let weightedL=0, weightedV=0, totalWeight=0;
 
     labels.forEach((label, i) => {
@@ -454,37 +407,22 @@ function calculatePoisson() {
             const expG_L = (dL.avgGF + dV.avgGA) / 2;
             const expG_V = (dV.avgGF + dL.avgGA) / 2;
             const segmentProb = getPoissonProbs(expG_L, expG_V);
-            
             segmentResults.push(segmentProb);
-
             weightedL += expG_L * weights[i];
             weightedV += expG_V * weights[i];
             totalWeight += weights[i];
-
             trendData.o25.push((segmentProb.o25 * 100).toFixed(1));
             trendData.btts.push((segmentProb.btts * 100).toFixed(1));
             trendData.o05ht.push((segmentProb.o05ht * 100).toFixed(1));
-
-            const cardHtml = `<div class="ind-card">
-                <h4>${label}</h4>
-                <span class="ind-val">${(segmentProb.winL*100).toFixed(0)}% | ${(segmentProb.winV*100).toFixed(0)}%</span>
-                <span class="ind-label">Win L/V</span>
-                <div class="ind-detail">
-                    <div class="ind-stat" style="color:var(--accent-blue);"><span>O2.5</span> <span>${(segmentProb.o25*100).toFixed(0)}%</span></div>
-                    <div class="ind-stat" style="color:var(--accent-yellow);"><span>BTTS</span> <span>${(segmentProb.btts*100).toFixed(0)}%</span></div>
-                    <div class="ind-stat" style="color:var(--accent-green);"><span>HT0.5</span> <span>${(segmentProb.o05ht*100).toFixed(0)}%</span></div>
-                </div>
-            </div>`;
+            const cardHtml = `<div class="ind-card"><h4>${label}</h4><span class="ind-val">${(segmentProb.winL*100).toFixed(0)}% | ${(segmentProb.winV*100).toFixed(0)}%</span><span class="ind-label">Win L/V</span><div class="ind-detail"><div class="ind-stat" style="color:var(--accent-blue);"><span>O2.5</span> <span>${(segmentProb.o25*100).toFixed(0)}%</span></div><div class="ind-stat" style="color:var(--accent-yellow);"><span>BTTS</span> <span>${(segmentProb.btts*100).toFixed(0)}%</span></div><div class="ind-stat" style="color:var(--accent-green);"><span>HT0.5</span> <span>${(segmentProb.o05ht*100).toFixed(0)}%</span></div></div></div>`;
             area.insertAdjacentHTML('afterbegin', cardHtml);
         }
     });
 
     if (totalWeight === 0) return alert("Error en datos de tablas.");
-
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
     const mcResults = runMontecarlo(finalL, finalV, 50000);
     const poissonResults = getPoissonProbs(finalL, finalV);
-    
     currentProbs = {
         winL: (poissonResults.winL + mcResults.winL) / 2,
         draw: (poissonResults.draw + mcResults.draw) / 2,
@@ -504,7 +442,6 @@ function calculatePoisson() {
     document.getElementById('pO25_avg').innerText = (currentProbs.o25*100).toFixed(1) + "%";
     document.getElementById('pBTTS_avg').innerText = (currentProbs.btts*100).toFixed(1) + "%";
     document.getElementById('pO05HT_avg').innerText = (currentProbs.o05ht*100).toFixed(1) + "%";
-
     checkValue();
     document.getElementById('results').style.display = 'block';
     renderChart(finalL, finalV);
@@ -524,14 +461,7 @@ function renderTrendChart(data) {
                 { label: 'HT 0.5', data: data.o05ht.reverse(), borderColor: '#51cf66', tension: 0.4, fill: false }
             ]
         },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: false, ticks: { color: '#666', font: { size: 9 } }, grid: { color: '#1a1e26' } },
-                x: { ticks: { color: '#adb5bd', font: { size: 9 } }, grid: { display: false } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { size: 9 }, grid: { color: '#1a1e26' } }, x: { ticks: { size: 9 }, grid: { display: false } } } }
     });
 }
 
@@ -542,23 +472,19 @@ function checkValue() {
     const roiBtn = document.getElementById('sendToRoiBtn');
     const sContainer = document.getElementById('confidenceStars');
     const tContainer = document.getElementById('confidenceText');
-
     if(!isNaN(odd) && odd > 1 && currentProbs[market]) {
         const val = (currentProbs[market] * odd) - 1;
         b.innerText = val > 0 ? `VALOR PONDERADO: +${(val*100).toFixed(1)}%` : `SIN VALOR: ${(val*100).toFixed(1)}%`;
         b.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
         roiBtn.style.display = val > 0 ? "inline-block" : "none";
-
         if(segmentResults.length >= 2) {
             let marketVals = segmentResults.map(s => s[market]);
             let diff = Math.max(...marketVals) - Math.min(...marketVals);
-            if(diff < 0.08) { sContainer.innerText = "⭐⭐⭐⭐⭐"; tContainer.innerText = "CONFIANZA ALTA"; tContainer.style.color = "var(--accent-green)"; }
-            else if(diff < 0.18) { sContainer.innerText = "⭐⭐⭐"; tContainer.innerText = "CONFIANZA MEDIA"; tContainer.style.color = "var(--accent-yellow)"; }
-            else { sContainer.innerText = "⭐"; tContainer.innerText = "CONFIANZA BAJA"; tContainer.style.color = "var(--accent-red)"; }
+            if(diff < 0.08) { sContainer.innerText = "⭐⭐⭐⭐⭐"; tContainer.innerText = "CONFIANZA ALTA"; }
+            else if(diff < 0.18) { sContainer.innerText = "⭐⭐⭐"; tContainer.innerText = "CONFIANZA MEDIA"; }
+            else { sContainer.innerText = "⭐"; tContainer.innerText = "CONFIANZA BAJA"; }
         }
-    } else {
-        roiBtn.style.display = "none"; b.innerText = ""; sContainer.innerText = "---"; tContainer.innerText = "---";
-    }
+    } else { roiBtn.style.display = "none"; b.innerText = ""; }
 }
 
 function sendToRoi() {
@@ -573,11 +499,12 @@ function sendToRoi() {
         teams: `[${league.toUpperCase()}] ${nameL} vs ${nameV}`,
         market: mNames[marketKey],
         odd: odd.toFixed(2),
-        prob: (currentProbs[marketKey] * 100).toFixed(1) + "%",
+        prob: currentProbs[marketKey],
         edge: ((currentProbs[marketKey] * odd - 1) * 100).toFixed(1) + "%",
         timestamp: new Date().getTime()
     };
     
+    // Guardamos bajo las llaves que roi2.html busca
     localStorage.setItem('last_bet_sent', JSON.stringify(betData));
     localStorage.setItem('roi_teams', betData.teams);
     localStorage.setItem('roi_market', betData.market);
@@ -595,19 +522,9 @@ function renderChart(l1, l2) {
         type: 'bar',
         data: {
             labels: ['0', '1', '2', '3', '4', '5'],
-            datasets: [
-                { label: 'Goles Local', data: pL, backgroundColor: '#4dabf7' },
-                { label: 'Goles Visitante', data: pV, backgroundColor: '#fcc419' }
-            ]
+            datasets: [{ label: 'Local', data: pL, backgroundColor: '#4dabf7' }, { label: 'Visita', data: pV, backgroundColor: '#fcc419' }]
         },
-        options: { 
-            responsive: true, maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { color: '#adb5bd' } },
-                x: { ticks: { color: '#adb5bd' } }
-            },
-            plugins: { legend: { labels: { color: '#e9ecef' } } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
     });
 }
 </script>
