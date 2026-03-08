@@ -132,21 +132,21 @@
         <div class="input-grid">
             <div>
                 <div class="column-title">LOCALES</div>
-                <div class="section-title"><span>📊</span> Tabla General (C1:M28)</div>
-                <textarea id="h_table_1" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
-                <div class="section-title"><span>📈</span> Últimos 8 (C30:M57)</div>
-                <textarea id="h_table_2" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
-                <div class="section-title"><span>🔥</span> Últimos 4 (C58:M88)</div>
-                <textarea id="h_table_3" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
+                <div class="section-title"><span>📊</span> Tabla General (B1:M28)</div>
+                <textarea id="h_table_1" placeholder="Datos automáticos..." oninput="processAllTables()"></textarea>
+                <div class="section-title"><span>📈</span> Últimos 8 (B30:M57)</div>
+                <textarea id="h_table_2" placeholder="Datos automáticos..." oninput="processAllTables()"></textarea>
+                <div class="section-title"><span>🔥</span> Últimos 4 (B58:M88)</div>
+                <textarea id="h_table_3" placeholder="Datos automáticos..." oninput="processAllTables()"></textarea>
             </div>
             <div>
                 <div class="column-title">VISITANTES</div>
-                <div class="section-title"><span>📊</span> Tabla General (P1:Z28)</div>
-                <textarea id="a_table_1" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
-                <div class="section-title"><span>📈</span> Últimos 8 (P30:Z57)</div>
-                <textarea id="a_table_2" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
-                <div class="section-title"><span>🔥</span> Últimos 4 (P58:Z87)</div>
-                <textarea id="a_table_3" placeholder="Datos automáticos..." oninput="saveToStorage()"></textarea>
+                <div class="section-title"><span>📊</span> Tabla General (O1:Z28)</div>
+                <textarea id="a_table_1" placeholder="Datos automáticos..." oninput="processAllTables()"></textarea>
+                <div class="section-title"><span>📈</span> Últimos 8 (O30:Z57)</div>
+                <textarea id="a_table_2" placeholder="Datos automáticos..." oninput="processAllTables()"></textarea>
+                <div class="section-title"><span>🔥</span> Últimos 4 (O58:Z87)</div>
+                <textarea id="a_table_3" placeholder="Datos automáticos..." oninput="processAllTables()"></textarea>
             </div>
         </div>
         <div class="btn-group">
@@ -243,10 +243,7 @@ let trendChartInstance = null;
 let currentProbs = {};
 let segmentResults = [];
 
-if (!window.name || !window.name.startsWith('betags_session_')) {
-    window.name = 'betags_session_' + Date.now() + Math.random().toString(36).substr(2, 5);
-}
-const SESSION_ID = window.name;
+const SESSION_ID = 'betags_session_active';
 const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3', 'leagueName'];
 
 window.onload = () => {
@@ -292,29 +289,25 @@ function processRanges(rows) {
         for (let r = startRow; r <= endRow; r++) {
             if (!rows[r] || !rows[r].c) continue;
             let rowCells = [];
-            // Ajustamos el bucle para las columnas específicas
             for (let c = startCol; c <= endCol; c++) {
-                let cell = rows[r].c[c];
+                let cell = rows[r] ? rows[r].c[c] : null;
                 let val = cell ? (cell.v !== null ? cell.v : "") : "";
                 rowCells.push(val);
             }
-            // Solo añadir si hay datos en la fila
-            if (rowCells.some(v => v !== "")) {
-                text += rowCells.join("\t") + "\n";
-            }
+            if (rowCells.some(v => v !== "")) text += rowCells.join("\t") + "\n";
         }
         return text;
     };
 
-    // LOCALES: Columnas B a M (Índices 1 a 12)
-    document.getElementById('h_table_1').value = getRangeData(0, 27, 1, 12);  // B1:M28
-    document.getElementById('h_table_2').value = getRangeData(29, 56, 1, 12); // B30:M57
-    document.getElementById('h_table_3').value = getRangeData(57, 87, 1, 12); // B58:M88
+    // LOCALES (B-M)
+    document.getElementById('h_table_1').value = getRangeData(0, 27, 1, 12); 
+    document.getElementById('h_table_2').value = getRangeData(29, 56, 1, 12);
+    document.getElementById('h_table_3').value = getRangeData(57, 87, 1, 12);
 
-    // VISITANTES: Columnas O a Z (Índices 14 a 25)
-    document.getElementById('a_table_1').value = getRangeData(0, 27, 14, 25); // O1:Z28
-    document.getElementById('a_table_2').value = getRangeData(29, 56, 14, 25); // O30:Z57
-    document.getElementById('a_table_3').value = getRangeData(57, 86, 14, 25); // O58:Z87
+    // VISITANTES (O-Z)
+    document.getElementById('a_table_1').value = getRangeData(0, 27, 14, 25);
+    document.getElementById('a_table_2').value = getRangeData(29, 56, 14, 25);
+    document.getElementById('a_table_3').value = getRangeData(57, 87, 14, 25);
 
     processAllTables();
 }
@@ -324,23 +317,23 @@ function parseTable(text) {
     const lines = text.trim().split('\n');
     const teams = {};
     lines.forEach(line => {
-        // Separamos por tabulación o múltiples espacios
+        // Separamos por tabulación o espacios
         const parts = line.trim().split(/\t|\s{2,}/);
-        if (parts.length >= 6) {
-            // El nombre suele ser el primer o segundo elemento tras la posición
-            let name = parts[0].replace(/^[0-9]+\s+/, "").trim();
-            // Buscamos los valores numéricos (PJ, Goles, etc) que suelen estar al final
-            let numbers = line.match(/(\d+\.?\d*)/g);
+        // El nombre suele estar después del número de posición
+        let namePart = parts[0].replace(/^[0-9]+\s+/, "").trim();
+        
+        // Buscamos todos los números en la línea
+        let numbers = line.match(/(-?\d+\.?\d*)/g);
+        
+        if (numbers && numbers.length >= 7) {
+            // Basado en el formato proporcionado:
+            // Pos [0], PJ [1], G [2], E [3], P [4], GF [5], GC [6]
+            const gp = parseInt(numbers[1]); 
+            const gf = parseFloat(numbers[5]); 
+            const ga = parseFloat(numbers[6]); 
             
-            if (numbers && numbers.length >= 6) {
-                // PJ es el primer o segundo número grande
-                const gp = parseInt(numbers[numbers.length - 11] || numbers[1]); 
-                const gf = parseFloat(numbers[numbers.length - 2]); // Penúltimo
-                const ga = parseFloat(numbers[numbers.length - 1]); // Último
-                
-                if (gp > 0 && !isNaN(gf) && !isNaN(ga)) {
-                    teams[name] = { avgGF: gf/gp, avgGA: ga/gp };
-                }
+            if (gp > 0 && !isNaN(gf) && !isNaN(ga)) {
+                teams[namePart] = { avgGF: gf/gp, avgGA: ga/gp };
             }
         }
     });
@@ -348,7 +341,10 @@ function parseTable(text) {
 }
 
 function processAllTables() {
-    saveToStorage();
+    storageKeys.forEach(key => {
+        localStorage.setItem(SESSION_ID + '_' + key, document.getElementById(key).value);
+    });
+
     for(let i=0; i<3; i++) {
         tablesData.h[i] = parseTable(document.getElementById(`h_table_${i+1}`).value);
         tablesData.a[i] = parseTable(document.getElementById(`a_table_${i+1}`).value);
@@ -370,12 +366,6 @@ function processAllTables() {
     if(prevV && allNamesA.includes(prevV)) sV.value = prevV;
     
     document.getElementById('selectionArea').style.display = 'block';
-}
-
-function saveToStorage() {
-    storageKeys.forEach(key => {
-        localStorage.setItem(SESSION_ID + '_' + key, document.getElementById(key).value);
-    });
 }
 
 function clearData() {
@@ -435,7 +425,7 @@ function calculatePoisson() {
     segmentResults = []; area.innerHTML = "";
     let weightedL=0, weightedV=0, totalWeight=0;
 
-    labels.forEach((label, i) => {
+    for(let i=0; i<3; i++) {
         const dL = tablesData.h[i][nameL], dV = tablesData.a[i][nameV];
         if(dL && dV) {
             const expG_L = (dL.avgGF + dV.avgGA) / 2;
@@ -452,7 +442,7 @@ function calculatePoisson() {
             trendData.o05ht.push((segmentProb.o05ht * 100).toFixed(1));
 
             area.insertAdjacentHTML('afterbegin', `<div class="ind-card">
-                <h4>${label}</h4>
+                <h4>${labels[i]}</h4>
                 <span class="ind-val">${(segmentProb.winL*100).toFixed(0)}% | ${(segmentProb.winV*100).toFixed(0)}%</span>
                 <div class="ind-detail">
                     <div class="ind-stat" style="color:var(--accent-blue);"><span>O2.5</span> <span>${(segmentProb.o25*100).toFixed(0)}%</span></div>
@@ -460,7 +450,7 @@ function calculatePoisson() {
                 </div>
             </div>`);
         }
-    });
+    }
 
     if (totalWeight === 0) return alert("Datos insuficientes para estos equipos.");
 
@@ -498,8 +488,8 @@ function renderTrendChart(data) {
         data: {
             labels: ["General", "Ult. 8", "Ult. 4"],
             datasets: [
-                { label: 'Over 2.5', data: data.o25.reverse(), borderColor: '#339af0', tension: 0.4 },
-                { label: 'BTTS', data: data.btts.reverse(), borderColor: '#fcc419', tension: 0.4 }
+                { label: 'Over 2.5', data: [...data.o25].reverse(), borderColor: '#339af0', tension: 0.4 },
+                { label: 'BTTS', data: [...data.btts].reverse(), borderColor: '#fcc419', tension: 0.4 }
             ]
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false } } }
