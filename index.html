@@ -31,7 +31,6 @@
         .btn-nav { background: #1a212d; color: var(--accent-yellow); border: 1px solid var(--border); padding: 8px 15px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; text-decoration: none; transition: 0.3s; }
         .btn-nav:hover { background: var(--border); color: white; }
 
-        /* Estilos nuevos para el Gestor de Ligas */
         .storage-manager { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px dashed var(--border); }
         .storage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         .league-list { grid-column: span 2; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
@@ -40,24 +39,15 @@
 
         .league-header { text-align: center; margin-bottom: 25px; }
         .league-input { 
-            background: transparent; 
-            border: none; 
-            border-bottom: 2px solid var(--border); 
-            color: var(--accent-yellow); 
-            font-size: 1.8rem; 
-            font-weight: 900; 
-            text-align: center; 
-            width: 80%; 
-            outline: none; 
-            text-transform: uppercase;
-            transition: 0.3s;
+            background: transparent; border: none; border-bottom: 2px solid var(--border); 
+            color: var(--accent-yellow); font-size: 1.8rem; font-weight: 900; text-align: center; 
+            width: 80%; outline: none; text-transform: uppercase; transition: 0.3s;
         }
         .league-input:focus { border-color: var(--primary); color: white; }
         .league-input::placeholder { color: #2c3440; font-size: 1.2rem; }
 
         .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .column-title { color: var(--accent-yellow); font-size: 0.9rem; font-weight: 800; text-align: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
-
         .section-title { font-size: 0.7rem; color: var(--primary); text-transform: uppercase; font-weight: 800; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         
         textarea { width: 100%; height: 80px; background: #0b0e14; border: 1px solid var(--border); border-radius: 8px; color: #51cf66; font-family: monospace; font-size: 0.7rem; padding: 8px; box-sizing: border-box; resize: none; transition: 0.3s; margin-bottom: 10px; }
@@ -76,6 +66,9 @@
         .xg-box label { font-size: 0.65rem; color: var(--primary); font-weight: 800; display: block; margin-bottom: 5px; }
         .xg-box .val { font-size: 1.8rem; font-weight: 900; color: var(--text-white); }
         
+        /* Estilo para Alerta de Volatilidad */
+        .volatility-alert { grid-column: span 2; background: rgba(255, 107, 107, 0.1); border: 1px dashed var(--accent-red); padding: 8px; border-radius: 8px; color: var(--accent-red); font-size: 0.65rem; font-weight: bold; text-align: center; display: none; margin-bottom: 10px; }
+
         .explosividad-box { grid-column: span 2; background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(255, 107, 107, 0.2)); border: 1px solid var(--accent-red); margin-top: 10px; padding: 10px; border-radius: 12px; text-align: center; }
         .explosividad-box label { font-size: 0.65rem; color: var(--accent-red); font-weight: 800; display: block; margin-bottom: 2px; }
         .explosividad-box .val { font-size: 1.5rem; font-weight: 900; color: var(--accent-red); }
@@ -104,18 +97,8 @@
 
         .chart-container { height: 250px; margin-top: 25px; }
 
-        .btn-roi { 
-            display: none; 
-            background: linear-gradient(135deg, #fcc419, #f59f00); 
-            color: black; 
-            margin-top: 15px; 
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252, 196, 25, 0.7); }
-            70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(252, 196, 25, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252, 196, 25, 0); }
-        }
+        .btn-roi { display: none; background: linear-gradient(135deg, #fcc419, #f59f00); color: black; margin-top: 15px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252, 196, 25, 0.7); } 70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(252, 196, 25, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(252, 196, 25, 0); } }
     </style>
 </head>
 <body>
@@ -131,8 +114,7 @@
             <button class="btn-nav" onclick="saveLeagueToStorage()" style="color: var(--accent-green);">💾 GUARDAR/ACTUALIZAR LIGA</button>
             <button class="btn-nav" onclick="deleteCurrentLeague()" style="color: var(--accent-red);">🗑️ ELIMINAR LIGA</button>
         </div>
-        <div class="league-list" id="leagueSavedList">
-            </div>
+        <div class="league-list" id="leagueSavedList"></div>
     </div>
 
     <h1>BETA<span>GS</span> MULTI-DATA</h1>
@@ -197,6 +179,7 @@
         <div id="matchTitle" style="text-align: center; font-weight: 900; font-size: 1.3rem; margin-bottom: 5px; color: var(--primary);"></div>
         
         <div class="xg-display-grid">
+            <div id="volatilityNotice" class="volatility-alert">⚠️ FRENO DE SEGURIDAD ACTIVADO: Datos Atípicos Detectados en U4.</div>
             <div class="xg-box"><label>xG LOCAL (CRUZADO)</label><div class="val" id="val_xgL">0.00</div></div>
             <div class="xg-box"><label>xG VISITA (CRUZADO)</label><div class="val" id="val_xgV">0.00</div></div>
             <div class="explosividad-box">
@@ -258,9 +241,7 @@ let segmentResults = [];
 
 const storageKeys = ['h_table_1', 'h_table_2', 'h_table_3', 'a_table_1', 'a_table_2', 'a_table_3', 'leagueName'];
 
-window.onload = () => {
-    refreshLeagueBadges();
-};
+window.onload = () => { refreshLeagueBadges(); };
 
 function saveLeagueToStorage() {
     const name = document.getElementById('leagueName').value.trim().toUpperCase();
@@ -268,9 +249,6 @@ function saveLeagueToStorage() {
     const data = {};
     storageKeys.forEach(key => { data[key] = document.getElementById(key).value; });
     const savedLeagues = JSON.parse(localStorage.getItem('betags_leagues_db') || '{}');
-    if (savedLeagues[name]) {
-        if (!confirm(`La liga ${name} ya existe. ¿Deseas reemplazarla?`)) return;
-    }
     savedLeagues[name] = data;
     localStorage.setItem('betags_leagues_db', JSON.stringify(savedLeagues));
     refreshLeagueBadges();
@@ -394,7 +372,25 @@ function calculatePoisson() {
     const nameL = document.getElementById('selectHome').value;
     const nameV = document.getElementById('selectAway').value;
     const labels = ["TEMP. COMPLETA", "ÚLTIMOS 8", "ÚLTIMOS 4"];
-    const weights = [0.20, 0.30, 0.50];
+    
+    // MEJORA: FRENO DE SEGURIDAD POR VOLATILIDAD
+    let weights = [0.20, 0.30, 0.50]; 
+    let volatilityDetected = false;
+
+    // Verificar si U4 excede el 80% de la media general (Posible Goleada Atípica)
+    const gL = tablesData.h[0][nameL], u4L = tablesData.h[2][nameL];
+    const gV = tablesData.a[0][nameV], u4V = tablesData.a[2][nameV];
+    
+    if (gL && u4L && (u4L.avgGF / gL.avgGF > 1.8)) volatilityDetected = true;
+    if (gV && u4V && (u4V.avgGF / gV.avgGF > 1.8)) volatilityDetected = true;
+
+    if (volatilityDetected) {
+        weights = [0.35, 0.40, 0.25]; // Bajamos peso de U4 al 25%
+        document.getElementById('volatilityNotice').style.display = 'block';
+    } else {
+        document.getElementById('volatilityNotice').style.display = 'none';
+    }
+
     const area = document.getElementById('indResultsArea');
     let trendData = { o25: [], btts: [], o05ht: [] };
     segmentResults = []; 
@@ -423,6 +419,7 @@ function calculatePoisson() {
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
     const mcResults = runMontecarlo(finalL, finalV, 50000);
     const poissonResults = getPoissonProbs(finalL, finalV);
+    
     currentProbs = {
         winL: (poissonResults.winL + mcResults.winL) / 2,
         draw: (poissonResults.draw + mcResults.draw) / 2,
@@ -494,27 +491,13 @@ function sendToRoi() {
     const marketKey = document.getElementById('valueMarket').value;
     const odd = parseFloat(document.getElementById('bookieOdd').value);
     const mNames = {winL:'GANA LOCAL',draw:'EMPATE',winV:'GANA VISITA',o25:'OVER 2.5 FT',btts:'BTTS YES',o05ht:'OVER 0.5 HT'};
-    
-    // Capturamos solo las estrellas de confianza
     const starsOnly = document.getElementById('confidenceStars').innerText;
-
-    const betData = {
-        teams: `[${league.toUpperCase()}] ${nameL} vs ${nameV}`,
-        market: mNames[marketKey],
-        odd: odd.toFixed(2),
-        prob: currentProbs[marketKey],
-        edge: ((currentProbs[marketKey] * odd - 1) * 100).toFixed(1) + "%",
-        confidence: starsOnly, // Mejora: Envía solo las estrellas
-        timestamp: new Date().getTime()
-    };
-    
-    // Guardamos bajo las llaves que roi2.html busca
+    const betData = { teams: `[${league.toUpperCase()}] ${nameL} vs ${nameV}`, market: mNames[marketKey], odd: odd.toFixed(2), prob: currentProbs[marketKey], edge: ((currentProbs[marketKey] * odd - 1) * 100).toFixed(1) + "%", confidence: starsOnly, timestamp: new Date().getTime() };
     localStorage.setItem('last_bet_sent', JSON.stringify(betData));
     localStorage.setItem('roi_teams', betData.teams);
     localStorage.setItem('roi_market', betData.market);
     localStorage.setItem('roi_odd', betData.odd);
     localStorage.setItem('roi_confidence', betData.confidence); 
-    
     setTimeout(() => { window.location.href = 'roi2.html'; }, 100);
 }
 
@@ -525,10 +508,7 @@ function renderChart(l1, l2) {
     for(let i=0; i<6; i++) { pL.push(poisson(i, l1)); pV.push(poisson(i, l2)); }
     chartInstance = new Chart(ctx, {
         type: 'bar',
-        data: {
-            labels: ['0', '1', '2', '3', '4', '5'],
-            datasets: [{ label: 'Local', data: pL, backgroundColor: '#4dabf7' }, { label: 'Visita', data: pV, backgroundColor: '#fcc419' }]
-        },
+        data: { labels: ['0', '1', '2', '3', '4', '5'], datasets: [{ label: 'Local', data: pL, backgroundColor: '#4dabf7' }, { label: 'Visita', data: pV, backgroundColor: '#fcc419' }] },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
     });
 }
