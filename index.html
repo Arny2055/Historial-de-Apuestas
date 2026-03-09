@@ -70,6 +70,7 @@
         .btn-reset { background: linear-gradient(135deg, #343a40, #212529); color: #adb5bd; border: 1px solid var(--border); }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(77, 171, 247, 0.4); }
 
+        /* Estilo Alerta Freno */
         .volatility-alert { grid-column: span 2; background: rgba(255, 107, 107, 0.15); border: 1px dashed var(--accent-red); padding: 10px; border-radius: 12px; color: var(--accent-red); font-size: 0.7rem; font-weight: 800; text-align: center; display: none; margin-bottom: 15px; animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -177,30 +178,15 @@
             <div><label>VISITANTE</label><select id="selectAway"></select></div>
         </div>
         <div class="value-check-container">
-            <div class="section-title"><span>💰</span> COMPARADOR DE CUOTAS DINÁMICO</div>
+            <div class="section-title"><span>💰</span> COMPARADOR DE CUOTAS</div>
             <div class="value-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <select id="valueMarket" onchange="checkValue()">
-                    <optgroup label="Principales">
-                        <option value="winL">Gana Local</option>
-                        <option value="draw">Empate</option>
-                        <option value="winV">Gana Visita</option>
-                        <option value="btts">BTTS YES</option>
-                    </optgroup>
-                    <optgroup label="Goles Over">
-                        <option value="o05">Over 0.5 FT</option>
-                        <option value="o15">Over 1.5 FT</option>
-                        <option value="o25">Over 2.5 FT</option>
-                        <option value="o35">Over 3.5 FT</option>
-                        <option value="o05ht">Over 0.5 HT</option>
-                    </optgroup>
-                    <optgroup label="Handicap Asiático">
-                        <option value="ahL_m25">Local -2.5</option>
-                        <option value="ahL_m15">Local -1.5</option>
-                        <option value="ahL_m05">Local -0.5</option>
-                        <option value="ahV_m05">Visita -0.5</option>
-                        <option value="ahV_m15">Visita -1.5</option>
-                        <option value="ahV_m25">Visita -2.5</option>
-                    </optgroup>
+                    <option value="winL">Gana Local</option>
+                    <option value="draw">Empate</option>
+                    <option value="winV">Gana Visita</option>
+                    <option value="o25">Over 2.5 FT</option>
+                    <option value="btts">BTTS YES</option>
+                    <option value="o05ht">Over 0.5 HT</option>
                 </select>
                 <input type="number" id="bookieOdd" step="0.01" placeholder="Cuota Bookie" oninput="checkValue()">
             </div>
@@ -381,70 +367,32 @@ function poisson(k, l) { return (Math.exp(-l) * Math.pow(l, k)) / factorial(k); 
 function getPoissonRandom(lambda) { let L = Math.exp(-lambda), k = 0, p = 1; do { k++; p *= Math.random(); } while (p > L); return k - 1; }
 
 function runMontecarlo(l1, l2, iterations = 50000) {
-    let counts = { 
-        winL: 0, draw: 0, winV: 0, 
-        o05: 0, o15: 0, o25: 0, o35: 0, 
-        btts: 0, o05ht: 0,
-        ahL_m25: 0, ahL_m15: 0, ahL_m05: 0,
-        ahV_m25: 0, ahV_m15: 0, ahV_m05: 0
-    };
+    let counts = { winL: 0, draw: 0, winV: 0, o25: 0, btts: 0, o05ht: 0 };
     const l1HT = l1 * 0.44, l2HT = l2 * 0.44;
     for (let i = 0; i < iterations; i++) {
         const gL = getPoissonRandom(l1), gV = getPoissonRandom(l2);
         const gLHT = getPoissonRandom(l1HT), gVHT = getPoissonRandom(l2HT);
-        
         if (gL > gV) counts.winL++; else if (gL < gV) counts.winV++; else counts.draw++;
-        if (gL + gV > 0.5) counts.o05++;
-        if (gL + gV > 1.5) counts.o15++;
         if (gL + gV > 2.5) counts.o25++;
-        if (gL + gV > 3.5) counts.o35++;
         if (gL > 0 && gV > 0) counts.btts++;
         if (gLHT + gVHT > 0.5) counts.o05ht++;
-
-        if (gL - 2.5 > gV) counts.ahL_m25++;
-        if (gL - 1.5 > gV) counts.ahL_m15++;
-        if (gL - 0.5 > gV) counts.ahL_m05++;
-        if (gV - 0.5 > gL) counts.ahV_m05++;
-        if (gV - 1.5 > gL) counts.ahV_m15++;
-        if (gV - 2.5 > gL) counts.ahV_m25++;
     }
-    let results = {};
-    for (let key in counts) results[key] = counts[key] / iterations;
-    return results;
+    return { winL: counts.winL/iterations, draw: counts.draw/iterations, winV: counts.winV/iterations, o25: counts.o25/iterations, btts: counts.btts/iterations, o05ht: counts.o05ht/iterations };
 }
 
 function getPoissonProbs(l1, l2) {
-    let pL=0, pV=0, pX=0, pO05=0, pO15=0, pO25=0, pO35=0, pBTTS=0;
-    let ahL25=0, ahL15=0, ahL05=0, ahV25=0, ahV15=0, ahV05=0;
-    
+    let pL=0, pV=0, pX=0, pO25=0, pBTTS=0;
     const l1HT = l1 * 0.44, l2HT = l2 * 0.44;
     let p00HT = poisson(0, l1HT) * poisson(0, l2HT);
-
     for(let i=0; i<=10; i++) {
         for(let j=0; j<=10; j++) {
             let p = poisson(i, l1) * poisson(j, l2);
             if(i>j) pL+=p; else if(i<j) pV+=p; else pX+=p;
-            if(i+j > 0.5) pO05+=p;
-            if(i+j > 1.5) pO15+=p;
             if(i+j > 2.5) pO25+=p;
-            if(i+j > 3.5) pO35+=p;
             if(i>0 && j>0) pBTTS+=p;
-
-            if(i - 2.5 > j) ahL25+=p;
-            if(i - 1.5 > j) ahL15+=p;
-            if(i - 0.5 > j) ahL05+=p;
-            if(j - 0.5 > i) ahV05+=p;
-            if(j - 1.5 > i) ahV15+=p;
-            if(j - 2.5 > i) ahV25+=p;
         }
     }
-    return { 
-        winL: pL, draw: pX, winV: pV, 
-        o05: pO05, o15: pO15, o25: pO25, o35: pO35, 
-        btts: pBTTS, o05ht: 1 - p00HT,
-        ahL_m25: ahL25, ahL_m15: ahL15, ahL_m05: ahL05,
-        ahV_m25: ahV25, ahV_m15: ahV15, ahV_m05: ahV05
-    };
+    return { winL: pL, draw: pX, winV: pV, o25: pO25, btts: pBTTS, o05ht: 1 - p00HT };
 }
 
 function calculatePoisson() {
@@ -452,7 +400,8 @@ function calculatePoisson() {
     const nameV = document.getElementById('selectAway').value;
     const labels = ["TEMP. COMPLETA", "ÚLTIMOS 8", "ÚLTIMOS 4"];
     
-    let weights = [0.20, 0.30, 0.50]; 
+    // MEJORA: FRENO DE SEGURIDAD
+    let weights = [0.20, 0.30, 0.50]; // Pesos estándar
     let volatilityDetected = false;
 
     const gL = tablesData.h[0][nameL], u4L = tablesData.h[2][nameL];
@@ -462,7 +411,7 @@ function calculatePoisson() {
     if (gV && u4V && (u4V.avgGF / gV.avgGF > 1.8)) volatilityDetected = true;
 
     if (volatilityDetected) {
-        weights = [0.40, 0.40, 0.20]; 
+        weights = [0.40, 0.40, 0.20]; // Rebalanceo: Reducimos peso de racha atípica
         document.getElementById('volatilityNotice').style.display = 'block';
     } else {
         document.getElementById('volatilityNotice').style.display = 'none';
@@ -496,11 +445,14 @@ function calculatePoisson() {
     const finalL = weightedL / totalWeight, finalV = weightedV / totalWeight;
     const mcResults = runMontecarlo(finalL, finalV, 50000);
     const poissonResults = getPoissonProbs(finalL, finalV);
-    
-    // Promediado Híbrido de todos los mercados
-    for (let key in mcResults) {
-        currentProbs[key] = (mcResults[key] + poissonResults[key]) / 2;
-    }
+    currentProbs = {
+        winL: (poissonResults.winL + mcResults.winL) / 2,
+        draw: (poissonResults.draw + mcResults.draw) / 2,
+        winV: (poissonResults.winV + mcResults.winV) / 2,
+        o25: (poissonResults.o25 + mcResults.o25) / 2,
+        btts: (poissonResults.btts + mcResults.btts) / 2,
+        o05ht: (poissonResults.o05ht + mcResults.o05ht) / 2
+    };
 
     document.getElementById('val_explosividad').innerText = (finalL + finalV).toFixed(2);
     document.getElementById('matchTitle').innerText = `${nameL} VS ${nameV}`;
@@ -542,13 +494,11 @@ function checkValue() {
     const roiBtn = document.getElementById('sendToRoiBtn');
     const sContainer = document.getElementById('confidenceStars');
     const tContainer = document.getElementById('confidenceText');
-    
     if(!isNaN(odd) && odd > 1 && currentProbs[market]) {
         const val = (currentProbs[market] * odd) - 1;
         b.innerText = val > 0 ? `VALOR PONDERADO: +${(val*100).toFixed(1)}%` : `SIN VALOR: ${(val*100).toFixed(1)}%`;
         b.className = val > 0 ? "value-badge has-value" : "value-badge no-value";
         roiBtn.style.display = val > 0 ? "inline-block" : "none";
-        
         if(segmentResults.length >= 2) {
             let marketVals = segmentResults.map(s => s[market]);
             let diff = Math.max(...marketVals) - Math.min(...marketVals);
@@ -565,14 +515,7 @@ function sendToRoi() {
     const nameV = document.getElementById('selectAway').value;
     const marketKey = document.getElementById('valueMarket').value;
     const odd = parseFloat(document.getElementById('bookieOdd').value);
-    
-    const mNames = {
-        winL:'GANA LOCAL',draw:'EMPATE',winV:'GANA VISITA',
-        o05:'OVER 0.5 FT',o15:'OVER 1.5 FT',o25:'OVER 2.5 FT',o35:'OVER 3.5 FT',
-        btts:'BTTS YES',o05ht:'OVER 0.5 HT',
-        ahL_m25:'LOCAL -2.5', ahL_m15:'LOCAL -1.5', ahL_m05:'LOCAL -0.5',
-        ahV_m05:'VISITA -0.5', ahV_m15:'VISITA -1.5', ahV_m25:'VISITA -2.5'
-    };
+    const mNames = {winL:'GANA LOCAL',draw:'EMPATE',winV:'GANA VISITA',o25:'OVER 2.5 FT',btts:'BTTS YES',o05ht:'OVER 0.5 HT'};
     
     const starsOnly = document.getElementById('confidenceStars').innerText;
 
