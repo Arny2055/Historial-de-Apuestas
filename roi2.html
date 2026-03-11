@@ -124,7 +124,6 @@
             font-weight: 600;
         }
 
-        /* Estilo Exclusivo para Estrellas de Confianza */
         .conf-stars-display {
             font-size: 12px;
             letter-spacing: 1px;
@@ -236,6 +235,7 @@
                             <div>
                                 <label class="text-[10px] text-slate-400 uppercase font-bold mb-2 block">Mercados</label>
                                 <div class="market-checkbox-group" id="f_market_group">
+                                    <label class="market-item"><input type="checkbox" value="CORNERS" onchange="updateStats()"> <span class="text-emerald-400">🔥 Córners</span></label>
                                     <label class="market-item"><input type="checkbox" value="OVER 2.5 FT" onchange="updateStats()"> <span>Over 2.5 Ft</span></label>
                                     <label class="market-item"><input type="checkbox" value="BTTS YES" onchange="updateStats()"> <span>BTTS Yes</span></label>
                                     <label class="market-item"><input type="checkbox" value="OVER 0.5 HT" onchange="updateStats()"> <span>Over 0.5 Ht</span></label>
@@ -296,7 +296,8 @@
         let bChart;
 
         // --- SISTEMA DE RECEPCIÓN DE APUESTAS ---
-        (function checkIncomingBet() {
+        function handleIncomingPicks() {
+            // 1. Local Storage (Córners y Pro)
             const rawData = localStorage.getItem('last_bet_sent');
             if (rawData) {
                 try {
@@ -308,12 +309,12 @@
                             id: Date.now(),
                             teams: betData.teams,
                             market: betData.market,
-                            prob: betData.prob,
-                            odd: parseFloat(betData.odd),
+                            prob: parseFloat(betData.prob) || 0,
+                            odd: parseFloat(betData.odd) || 0,
                             fair_odd: (1 / betData.prob).toFixed(2),
                             edge: betData.edge,
                             confidence: betData.confidence || "⭐⭐⭐", 
-                            stake: 1, 
+                            stake: parseFloat(betData.stake) || 1, 
                             status: 'pending',
                             profit: 0,
                             date: new Date().toLocaleDateString(),
@@ -323,11 +324,38 @@
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
                     }
                     localStorage.removeItem('last_bet_sent');
-                } catch(e) { console.error("Error al procesar", e); }
+                } catch(e) { console.error("Error al procesar LocalStorage", e); }
             }
-        })();
 
-        // --- FUNCIONES DE UTILIDAD ---
+            // 2. Parámetros URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('evento')) {
+                const newPick = {
+                    id: Date.now(),
+                    teams: `[${urlParams.get('liga')}] ${urlParams.get('evento')}`,
+                    market: urlParams.get('mercado'),
+                    prob: parseFloat(urlParams.get('probabilidad')) / 100,
+                    fair_odd: urlParams.get('cuotaJusta'),
+                    odd: parseFloat(urlParams.get('cuotaCasa')),
+                    edge: urlParams.get('edge'),
+                    confidence: "⭐⭐⭐", 
+                    stake: parseFloat(urlParams.get('stake')) || 1,
+                    status: 'pending',
+                    profit: 0,
+                    date: new Date().toLocaleDateString(),
+                    timestamp: Date.now()
+                };
+                
+                const isDuplicate = bets.some(b => b.teams === newPick.teams && b.market === newPick.market && b.date === newPick.date);
+                if (!isDuplicate) {
+                    bets.push(newPick);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(bets));
+                }
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // --- UTILIDADES ---
         function extractLeagueName(teamsStr) {
             if (!teamsStr) return 'General';
             const match = teamsStr.match(/\[(.*?)\]/);
@@ -341,18 +369,29 @@
             return teams.map(t => t.trim());
         }
 
-        // --- CORE DE ACTUALIZACIÓN ---
+        // --- CORE LÓGICA ---
         function updateStats() {
             updateLeagueFilter();
             
             const selectedMarkets = Array.from(document.querySelectorAll('#f_market_group input:checked')).map(cb => cb.value.toUpperCase());
             const fLeague = document.getElementById('f_league').value;
-            const fStars = document.getElementById('f_stars').value; // Valor del nuevo filtro
+            const fStars = document.getElementById('f_stars').value;
 
             let filtered = bets.filter(b => {
-                const matchesMarket = !selectedMarkets.length || selectedMarkets.includes(b.market?.toUpperCase());
+                const bMarket = (b.market || "").toUpperCase();
+                
+                // Lógica especial para filtro de córners: si está marcado "CORNERS", 
+                // mostramos cualquier mercado que contenga esa palabra
+                let matchesMarket = !selectedMarkets.length;
+                if(selectedMarkets.length > 0) {
+                    matchesMarket = selectedMarkets.some(m => {
+                        if(m === "CORNERS") return bMarket.includes("CORNERS");
+                        return bMarket === m;
+                    });
+                }
+
                 const matchesLeague = !fLeague || extractLeagueName(b.teams) === fLeague;
-                const matchesStars = !fStars || b.confidence === fStars; // Lógica de filtrado por estrellas
+                const matchesStars = !fStars || b.confidence === fStars;
                 return matchesMarket && matchesLeague && matchesStars;
             });
 
@@ -464,7 +503,7 @@
                     <td class="font-bold text-emerald-500">${b.market}</td>
                     <td>${(b.prob*100).toFixed(1)}%</td>
                     <td>${b.fair_odd}</td>
-                    <td class="font-black text-white">${b.odd.toFixed(2)}</td>
+                    <td class="font-black text-white">${parseFloat(b.odd).toFixed(2)}</td>
                     <td class="text-blue-400 font-bold">${(b.prob*100 - (1/b.odd*100)).toFixed(1)}%</td>
                     <td class="${edgeNum > 0 ? 'text-emerald-400' : 'text-slate-400'}">${b.edge}</td>
                     <td>${b.stake}u</td>
@@ -592,7 +631,10 @@
             if(confirm('¿Borrar todo?')) { bets = []; saveAndRefresh(); } 
         }
 
-        window.onload = updateStats;
+        window.onload = () => {
+            handleIncomingPicks();
+            updateStats();
+        };
     </script>
 </body>
 </html>
