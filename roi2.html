@@ -283,17 +283,18 @@
             return match ? match[1].trim() : 'General';
         }
 
+        // --- CORRECCIÓN CRÍTICA: LÓGICA DE FILTRADO ---
         function updateStats() {
-            updateLeagueFilter();
-            
+            const leagueSelect = document.getElementById('f_league');
             const selectedMarkets = Array.from(document.querySelectorAll('#f_market_group input:checked')).map(cb => cb.value.toUpperCase());
-            const fLeague = document.getElementById('f_league').value;
+            const fLeague = leagueSelect.value;
             const fStars = document.getElementById('f_stars').value;
 
+            // 1. Filtrar los datos originales
             let filtered = bets.filter(b => {
                 const bMarket = (b.market || "").toUpperCase();
                 
-                // Lógica de mejora: Si "CORNERS" está marcado, agrupa todo lo que contenga "CORNER"
+                // Filtro de Mercados
                 let matchesMarket = true;
                 if (selectedMarkets.length > 0) {
                     matchesMarket = selectedMarkets.some(m => {
@@ -302,13 +303,16 @@
                     });
                 }
 
+                // Filtro de Liga y Estrellas
                 const matchesLeague = !fLeague || extractLeagueName(b.teams) === fLeague;
                 const matchesStars = !fStars || b.confidence === fStars;
+                
                 return matchesMarket && matchesLeague && matchesStars;
             });
 
+            // 2. Actualizar UI con datos filtrados
             renderHistory(filtered);
-
+            
             const resolved = filtered.filter(b => b.status !== 'pending');
             const realP = resolved.reduce((a, b) => a + (Number(b.profit) || 0), 0);
             const realS = resolved.reduce((a, b) => a + (Number(b.stake) || 0), 0);
@@ -320,18 +324,23 @@
             
             updateLeaguePerformanceTable(resolved);
             renderBankrollChart(resolved);
+            updateLeagueOptions(); // Mantener las opciones de la liga consistentes
         }
 
-        function updateLeagueFilter() {
+        function updateLeagueOptions() {
             const leagueSelect = document.getElementById('f_league');
-            const leagues = new Set(bets.map(b => extractLeagueName(b.teams)));
-            const current = leagueSelect.value;
-            leagueSelect.innerHTML = '<option value="">Todas las Ligas</option>';
-            Array.from(leagues).sort().forEach(l => {
-                const opt = new Option(l, l);
-                if(l === current) opt.selected = true;
-                leagueSelect.add(opt);
-            });
+            const currentSelected = leagueSelect.value;
+            const leagues = [...new Set(bets.map(b => extractLeagueName(b.teams)))].sort();
+            
+            // Solo reconstruir si las opciones han cambiado de tamaño o contenido
+            if (leagueSelect.options.length !== leagues.length + 1) {
+                leagueSelect.innerHTML = '<option value="">Todas las Ligas</option>';
+                leagues.forEach(l => {
+                    const opt = new Option(l, l);
+                    if (l === currentSelected) opt.selected = true;
+                    leagueSelect.add(opt);
+                });
+            }
         }
 
         function updateLeaguePerformanceTable(resolved) {
@@ -372,7 +381,6 @@
             data.slice().sort((a,b) => b.timestamp - a.timestamp).forEach(b => {
                 const tr = document.createElement('tr');
                 tr.className = `row-${b.status}`;
-                const edgeNum = parseFloat(b.edge);
                 const probPerc = (Number(b.prob) * 100);
                 
                 tr.innerHTML = `
@@ -383,7 +391,7 @@
                     <td>${probPerc.toFixed(1)}%</td>
                     <td>${b.fair_odd}</td>
                     <td class="font-black text-white">${Number(b.odd).toFixed(2)}</td>
-                    <td class="${edgeNum > 0 ? 'text-emerald-400' : 'text-slate-400'}">${b.edge}</td>
+                    <td class="${parseFloat(b.edge) > 0 ? 'text-emerald-400' : 'text-slate-400'}">${b.edge}</td>
                     <td>${b.stake}u</td>
                     <td>
                         <div class="flex gap-1">
