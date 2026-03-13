@@ -374,13 +374,20 @@
 
             let filtered = bets.filter(b => {
                 const bMarket = (b.market || "").toUpperCase();
+                
+                // --- CORRECCIÓN DE FILTRO DE MERCADO ---
+                // Si no hay nada seleccionado, mostramos todo.
                 let matchesMarket = true;
-                if(selectedMarkets.length > 0) {
+                if (selectedMarkets.length > 0) {
                     matchesMarket = selectedMarkets.some(m => {
-                        if(m === "CORNERS") return bMarket.includes("CORNERS");
+                        // Si el checkbox "CORNERS" está activo, incluimos cualquier mercado que contenga la palabra CORNER
+                        if (m === "CORNERS") return bMarket.includes("CORNER");
+                        // Para los demás, buscamos coincidencia exacta
                         return bMarket === m;
                     });
                 }
+                // ---------------------------------------
+
                 const matchesLeague = !fLeague || extractLeagueName(b.teams) === fLeague;
                 const matchesStars = !fStars || b.confidence === fStars;
                 return matchesMarket && matchesLeague && matchesStars;
