@@ -94,6 +94,20 @@
             color: #fff;
         }
 
+        /* Input especial para el bank inicial */
+        .bank-input {
+            background: #000;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 5px;
+            width: 100px;
+            font-family: 'Open Sans', sans-serif;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 5px;
+        }
+
         /* Formulario */
         .add-bet-form {
             background: #34495e;
@@ -239,8 +253,12 @@
 
     <div class="dashboard-grid">
         <div class="stat-card">
+            <h3>Bank Inicial</h3>
+            <input type="number" id="in-initial-bank" class="bank-input" step="10" onchange="updateInitialBank(this.value)">
+        </div>
+        <div class="stat-card">
             <h3>Bank Actual</h3>
-            <p id="stat-bank">1.000,00 €</p>
+            <p id="stat-bank">0,00 €</p>
         </div>
         <div class="stat-card">
             <h3>Apostado</h3>
@@ -324,23 +342,37 @@
 </div>
 
 <script>
-    let initialBank = 1000.00;
+    // Recuperar bank inicial de localStorage o usar 1000 por defecto
+    let initialBank = parseFloat(localStorage.getItem('apuestaSystemInitialBank')) || 1000.00;
+    document.getElementById('in-initial-bank').value = initialBank;
+
     let bets = JSON.parse(localStorage.getItem('apuestaSystemData')) || [
         { fecha: '7/4/2026', id: 1, partido: 'M. Liberia - San Carlos', mercado: 'Goles', apuesta: 'BTTs Yes', bankAtTime: 1000, stake: 1, cuota: 1.95, resultado: 'W' },
         { fecha: '7/4/2026', id: 2, partido: 'Sporting CP - Arsenal', mercado: 'Goles', apuesta: 'BTTs Yes', bankAtTime: 1000, stake: 1, cuota: 1.80, resultado: 'PENDING' }
     ];
 
+    function updateInitialBank(val) {
+        initialBank = parseFloat(val) || 0;
+        localStorage.setItem('apuestaSystemInitialBank', initialBank);
+        // Al cambiar el bank inicial, actualizamos el bankAtTime de la primera apuesta
+        // y recalculamos todo para que el stake en euros se ajuste al nuevo capital.
+        calculateStats();
+    }
+
     function calculateStats() {
         let totalInvested = 0;
         let totalProfit = 0;
-        let won = 0;
         let totalSettled = 0;
         let oddsSum = 0;
+        let runningBank = initialBank;
 
         const tableBody = document.getElementById('bet-table-body');
         tableBody.innerHTML = '';
 
         bets.forEach((bet, index) => {
+            // Actualizamos el bank que había en ese momento basado en el bank inicial + beneficios acumulados previos
+            bet.bankAtTime = runningBank;
+            
             let amount = (bet.bankAtTime * (bet.stake / 100)); 
             let potential = amount * bet.cuota;
             let units = 0; 
@@ -350,24 +382,23 @@
             if (bet.resultado === 'W') {
                 netProfit = potential - amount;
                 units = (bet.cuota - 1) * bet.stake;
-                won++;
-                totalSettled++;
                 resClass = 'res-w';
             } else if (bet.resultado === 'L') {
                 netProfit = -amount;
                 units = -bet.stake;
-                totalSettled++;
                 resClass = 'res-l';
             } else if (bet.resultado === 'V') {
                 netProfit = 0;
                 units = 0;
-                totalSettled++;
                 resClass = 'res-v';
             }
 
             totalInvested += amount;
             totalProfit += netProfit;
             oddsSum += bet.cuota;
+            
+            // Actualizamos el bank para la siguiente apuesta en la lista
+            runningBank += netProfit;
 
             tableBody.innerHTML += `
                 <tr>
@@ -402,7 +433,7 @@
 
         localStorage.setItem('apuestaSystemData', JSON.stringify(bets));
 
-        document.getElementById('stat-bank').innerText = `${(initialBank + totalProfit).toFixed(2)} €`;
+        document.getElementById('stat-bank').innerText = `${runningBank.toFixed(2)} €`;
         document.getElementById('stat-invested').innerText = `${totalInvested.toFixed(2)} €`;
         document.getElementById('stat-count').innerText = bets.length;
         document.getElementById('stat-odds').innerText = bets.length > 0 ? (oddsSum / bets.length).toFixed(2) : "0.00";
@@ -427,12 +458,13 @@
 
         if(!match || isNaN(stake) || isNaN(odds)) return alert("¡Faltan datos!");
 
-        let currentProfit = bets.reduce((acc, b) => {
-            let amt = (b.bankAtTime * (b.stake / 100));
-            if (b.resultado === 'W') return acc + (amt * b.cuota - amt);
-            if (b.resultado === 'L') return acc - amt;
-            return acc;
-        }, 0);
+        // Calculamos el bank actual acumulado hasta el momento para la nueva apuesta
+        let currentRunningBank = initialBank;
+        bets.forEach(b => {
+            let amt = (currentRunningBank * (b.stake / 100));
+            if (b.resultado === 'W') currentRunningBank += (amt * b.cuota - amt);
+            else if (b.resultado === 'L') currentRunningBank -= amt;
+        });
 
         const newBet = {
             fecha: new Date().toLocaleDateString(),
@@ -440,7 +472,7 @@
             partido: match,
             mercado: market,
             apuesta: betType,
-            bankAtTime: initialBank + currentProfit,
+            bankAtTime: currentRunningBank,
             stake: stake,
             cuota: odds,
             resultado: res
