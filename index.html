@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>APUESTASYSTEM - Dashboard</title>
+    <title>APUESTASYSTEM - Dashboard PRO</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -27,8 +27,15 @@
             margin: auto;
         }
 
+        .header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
         h1 {
-            text-align: center;
+            margin: 0;
             color: var(--primary);
             text-transform: uppercase;
             letter-spacing: 2px;
@@ -37,7 +44,7 @@
         /* Dashboard Stats */
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
             margin-bottom: 30px;
         }
@@ -53,14 +60,14 @@
 
         .stat-card h3 {
             margin: 0;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #7f8c8d;
             text-transform: uppercase;
         }
 
         .stat-card p {
             margin: 10px 0 0;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: bold;
             color: var(--primary);
         }
@@ -128,25 +135,34 @@
             border-radius: 4px;
         }
 
-        button {
-            background: var(--success);
-            color: white;
-            border: none;
+        .btn {
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
+            border: none;
+            transition: 0.3s;
         }
 
-        button:hover {
-            background: #219150;
+        .btn-add { background: var(--success); color: white; }
+        .btn-export { background: var(--primary); color: white; }
+        .btn-delete { background: #eee; color: var(--danger); padding: 5px 10px; font-size: 0.7rem; }
+        
+        .btn:hover { opacity: 0.8; }
+
+        .select-edit {
+            padding: 2px;
+            font-size: 0.8rem;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>ApuestaSystem</h1>
+    <div class="header-flex">
+        <h1>ApuestaSystem</h1>
+        <button class="btn btn-export" onclick="exportData()">Exportar JSON</button>
+    </div>
 
     <div class="dashboard-grid">
         <div class="stat-card">
@@ -166,7 +182,7 @@
             <p id="stat-odds">0,00</p>
         </div>
         <div class="stat-card" style="border-color: var(--success);">
-            <h3>Beneficio Neto</h3>
+            <h3>B. Neto</h3>
             <p id="stat-profit">0,00 €</p>
         </div>
         <div class="stat-card" style="border-color: #f39c12;">
@@ -201,7 +217,7 @@
                 <option value="V">Nula (V)</option>
             </select>
         </div>
-        <button onclick="addBet()">Añadir Apuesta</button>
+        <button class="btn btn-add" onclick="addBet()">Añadir Apuesta</button>
     </div>
 
     <div class="table-container">
@@ -216,6 +232,7 @@
                     <th>POTENCIAL</th>
                     <th>RESULTADO</th>
                     <th>B. NETO</th>
+                    <th>ACCIONES</th>
                 </tr>
             </thead>
             <tbody id="bet-table-body">
@@ -225,19 +242,17 @@
 </div>
 
 <script>
-    // Configuración Inicial
+    // Configuración Inicial con Persistencia
     let initialBank = 1000.00;
-    let bets = [
-        { fecha: '2026-04-07', partido: 'M. Liberia - San Carlos', stake: 1, cuota: 1.95, resultado: 'W' },
-        { fecha: '2026-04-07', partido: 'Sporting CP - Arsenal', stake: 1, cuota: 1.80, resultado: 'PENDING' }
+    let bets = JSON.parse(localStorage.getItem('apuestaSystemData')) || [
+        { fecha: '7/4/2026', partido: 'M. Liberia - San Carlos', stake: 1, cuota: 1.95, resultado: 'W' },
+        { fecha: '7/4/2026', partido: 'Sporting CP - Arsenal', stake: 1, cuota: 1.80, resultado: 'PENDING' }
     ];
 
     function calculateStats() {
-        let currentBank = initialBank;
         let totalInvested = 0;
         let totalProfit = 0;
         let won = 0;
-        let lost = 0;
         let totalSettled = 0;
         let oddsSum = 0;
 
@@ -245,7 +260,8 @@
         tableBody.innerHTML = '';
 
         bets.forEach((bet, index) => {
-            let amount = (currentBank * (bet.stake / 100));
+            // El importe se basa en el stake del bank inicial fijo o acumulado (según lógica original)
+            let amount = (initialBank * (bet.stake / 100)); 
             let potential = amount * bet.cuota;
             let netProfit = 0;
             let resClass = '';
@@ -257,7 +273,6 @@
                 resClass = 'res-w';
             } else if (bet.resultado === 'L') {
                 netProfit = -amount;
-                lost++;
                 totalSettled++;
                 resClass = 'res-l';
             } else if (bet.resultado === 'V') {
@@ -270,7 +285,6 @@
             totalProfit += netProfit;
             oddsSum += bet.cuota;
 
-            // Renderizar fila
             tableBody.innerHTML += `
                 <tr>
                     <td>${bet.fecha}</td>
@@ -279,11 +293,24 @@
                     <td>${amount.toFixed(2)} €</td>
                     <td>${bet.cuota.toFixed(2)}</td>
                     <td>${potential.toFixed(2)} €</td>
-                    <td class="${resClass}">${bet.resultado}</td>
+                    <td>
+                        <select class="select-edit ${resClass}" onchange="updateResult(${index}, this.value)">
+                            <option value="PENDING" ${bet.resultado === 'PENDING' ? 'selected' : ''}>PENDIENTE</option>
+                            <option value="W" ${bet.resultado === 'W' ? 'selected' : ''}>W</option>
+                            <option value="L" ${bet.resultado === 'L' ? 'selected' : ''}>L</option>
+                            <option value="V" ${bet.resultado === 'V' ? 'selected' : ''}>V</option>
+                        </select>
+                    </td>
                     <td class="${resClass}">${netProfit.toFixed(2)} €</td>
+                    <td>
+                        <button class="btn btn-delete" onclick="deleteBet(${index})">Eliminar</button>
+                    </td>
                 </tr>
             `;
         });
+
+        // Guardar en LocalStorage
+        localStorage.setItem('apuestaSystemData', JSON.stringify(bets));
 
         // Actualizar Dashboard
         document.getElementById('stat-bank').innerText = `${(initialBank + totalProfit).toFixed(2)} €`;
@@ -305,7 +332,7 @@
         const odds = parseFloat(document.getElementById('in-odds').value);
         const res = document.getElementById('in-res').value;
 
-        if(!match) return alert("Escribe el partido");
+        if(!match || isNaN(stake) || isNaN(odds)) return alert("Por favor, rellena todos los campos correctamente");
 
         const newBet = {
             fecha: new Date().toLocaleDateString(),
@@ -317,9 +344,29 @@
 
         bets.push(newBet);
         calculateStats();
-        
-        // Limpiar campos
         document.getElementById('in-match').value = '';
+    }
+
+    function deleteBet(index) {
+        if(confirm("¿Seguro que quieres eliminar esta apuesta?")) {
+            bets.splice(index, 1);
+            calculateStats();
+        }
+    }
+
+    function updateResult(index, newRes) {
+        bets[index].resultado = newRes;
+        calculateStats();
+    }
+
+    function exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bets));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "apuestas_backup.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
     }
 
     // Carga inicial
