@@ -3,29 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>APUESTASYSTEM - Dashboard CARTOON</title>
+    <title>APUESTASYSTEM - Dashboard CARTOON DARK</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Open+Sans:wght@400;700&display=swap');
 
         :root {
             --primary: #FFD700;
             --accent: #FF5722;
-            --success: #26de81; /* Verde más suave para lectura */
-            --danger: #ff7675;  /* Rojo pastel para lectura */
-            --null: #ffe66d;    /* Amarillo claro para nulas */
-            --light: #F0F4F8;
-            --dark: #212121;
+            --success: #2ed573; 
+            --danger: #ff4757;  
+            --null: #eccc68;    
+            --light: #f1f2f6;
+            --dark-bg: #1e272e; /* Fondo oscuro principal */
+            --card-bg: #2f3542; /* Fondo de tarjetas */
+            --text-color: #ffffff;
             --border-width: 3px;
         }
 
         body {
             font-family: 'Open Sans', sans-serif;
-            background-color: #81D4FA;
-            background-image: radial-gradient(#4fc3f7 2px, transparent 2px);
+            background-color: var(--dark-bg);
+            background-image: radial-gradient(#3d4852 2px, transparent 2px);
             background-size: 30px 30px;
             margin: 0;
             padding: 10px; 
-            color: var(--dark);
+            color: var(--text-color);
             overflow-x: hidden; 
         }
 
@@ -47,10 +49,10 @@
             font-family: 'Bangers', cursive;
             font-size: clamp(2rem, 8vw, 4rem); 
             margin: 0;
-            color: white;
-            text-shadow: 3px 3px 0px var(--dark);
+            color: var(--primary);
+            text-shadow: 4px 4px 0px #000;
             letter-spacing: 2px;
-            -webkit-text-stroke: 1.5px var(--dark);
+            -webkit-text-stroke: 1px #000;
         }
 
         /* Dashboard Stats */
@@ -69,39 +71,40 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--card-bg);
             padding: 15px;
-            border: var(--border-width) solid var(--dark);
+            border: var(--border-width) solid #000;
             border-radius: 15px;
-            box-shadow: 5px 5px 0px var(--dark);
+            box-shadow: 5px 5px 0px #000;
             text-align: center;
         }
 
         .stat-card h3 {
             margin: 0;
             font-family: 'Bangers', cursive;
-            font-size: 0.9rem;
-            color: var(--accent);
+            font-size: 1rem;
+            color: var(--primary);
+            letter-spacing: 1px;
         }
 
         .stat-card p {
             margin: 5px 0 0;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 900;
-            color: var(--dark); /* Asegura contraste */
+            color: #fff;
         }
 
-        /* Formulario responsivo */
+        /* Formulario */
         .add-bet-form {
-            background: #FFF9C4;
+            background: #34495e;
             padding: 20px;
-            border: var(--border-width) solid var(--dark);
+            border: var(--border-width) solid #000;
             border-radius: 20px;
             margin-bottom: 30px;
             display: flex;
             flex-direction: column; 
             gap: 15px;
-            box-shadow: 6px 6px 0px var(--dark);
+            box-shadow: 6px 6px 0px #000;
         }
 
         @media (min-width: 768px) {
@@ -129,25 +132,28 @@
         label {
             font-family: 'Bangers', cursive;
             font-size: 1rem;
+            color: var(--primary);
         }
 
         input, select {
             padding: 10px;
-            border: var(--border-width) solid var(--dark);
+            border: var(--border-width) solid #000;
             border-radius: 10px;
             font-weight: bold;
             font-size: 1rem;
             width: 100%;
             box-sizing: border-box; 
+            background: #fff;
+            color: #000;
         }
 
         /* Tabla responsiva */
         .table-container {
-            background: white;
+            background: var(--card-bg);
             padding: 10px;
-            border: var(--border-width) solid var(--dark);
+            border: var(--border-width) solid #000;
             border-radius: 20px;
-            box-shadow: 8px 8px 0px rgba(0,0,0,0.2);
+            box-shadow: 8px 8px 0px #000;
             overflow-x: auto; 
             -webkit-overflow-scrolling: touch; 
         }
@@ -162,28 +168,29 @@
             background-color: var(--primary);
             padding: 12px;
             font-family: 'Bangers', cursive;
-            border: var(--border-width) solid var(--dark);
-            color: var(--dark);
+            border: var(--border-width) solid #000;
+            color: #000;
+            letter-spacing: 1px;
         }
 
         td {
             padding: 10px;
-            border: 2px solid var(--dark);
+            border: 2px solid #000;
             font-weight: 700;
             font-size: 0.85rem;
-            color: var(--dark);
+            color: #fff;
         }
 
-        /* Input específico para el ID en la tabla */
+        /* Input ID en tabla */
         .id-edit-input {
             width: 60px;
-            padding: 2px 5px;
-            border: 2px solid var(--dark);
+            padding: 4px;
+            border: 2px solid #000;
             border-radius: 5px;
-            font-family: 'Open Sans', sans-serif;
             font-weight: bold;
             text-align: center;
             background: #fff;
+            color: #000;
         }
 
         /* Botones */
@@ -193,20 +200,33 @@
             cursor: pointer;
             font-family: 'Bangers', cursive;
             font-size: 1.1rem;
-            border: var(--border-width) solid var(--dark);
-            box-shadow: 4px 4px 0px var(--dark);
+            border: var(--border-width) solid #000;
+            box-shadow: 4px 4px 0px #000;
             text-transform: uppercase;
+            transition: transform 0.1s;
         }
 
-        .btn-add { background: var(--success); width: 100%; color: var(--dark); }
+        .btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000; }
+
+        .btn-add { background: var(--success); width: 100%; color: #000; }
         @media (min-width: 768px) { .btn-add { width: auto; } }
 
         .btn-export { background: var(--accent); color: white; padding: 8px 15px; font-size: 0.9rem; }
 
-        /* Colores de Resultado con Contraste Mejorado */
-        .res-w { background-color: var(--success) !important; color: var(--dark) !important; }
-        .res-l { background-color: var(--danger) !important; color: var(--dark) !important; }
-        .res-v { background-color: var(--null) !important; color: var(--dark) !important; }
+        /* Colores de Resultado con texto oscuro para legibilidad */
+        .res-w { background-color: var(--success) !important; color: #000 !important; }
+        .res-l { background-color: var(--danger) !important; color: #000 !important; }
+        .res-v { background-color: var(--null) !important; color: #000 !important; }
+        
+        /* Select dentro de la tabla */
+        .res-select {
+            border: none; 
+            background: transparent; 
+            font-weight: bold; 
+            color: inherit;
+            cursor: pointer;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -218,7 +238,7 @@
     </div>
 
     <div class="dashboard-grid">
-        <div class="stat-card" style="background: #E3F2FD;">
+        <div class="stat-card">
             <h3>Bank Actual</h3>
             <p id="stat-bank">1.000,00 €</p>
         </div>
@@ -234,13 +254,13 @@
             <h3>Cuota Media</h3>
             <p id="stat-odds">0,00</p>
         </div>
-        <div class="stat-card" style="background: var(--success);">
+        <div class="stat-card" style="border-color: var(--success);">
             <h3>B. Neto</h3>
-            <p id="stat-profit">0,00 €</p>
+            <p id="stat-profit" style="color: var(--success);">0,00 €</p>
         </div>
-        <div class="stat-card" style="background: var(--primary);">
+        <div class="stat-card" style="border-color: var(--primary);">
             <h3>Yield</h3>
-            <p id="stat-yield">0%</p>
+            <p id="stat-yield" style="color: var(--primary);">0%</p>
         </div>
     </div>
 
@@ -366,7 +386,7 @@
                     <td>${units.toFixed(2)}</td>
                     <td class="${resClass}">${netProfit.toFixed(2)} €</td>
                     <td class="${resClass}">
-                        <select onchange="updateResult(${index}, this.value)" style="border:none; background:transparent; font-weight:bold; color: inherit;">
+                        <select class="res-select" onchange="updateResult(${index}, this.value)">
                             <option value="PENDING" ${bet.resultado === 'PENDING' ? 'selected' : ''}>PENDIENTE</option>
                             <option value="W" ${bet.resultado === 'W' ? 'selected' : ''}>WIN</option>
                             <option value="L" ${bet.resultado === 'L' ? 'selected' : ''}>LOSS</option>
@@ -374,7 +394,7 @@
                         </select>
                     </td>
                     <td>
-                        <button onclick="deleteBet(${index})" style="background:white; border:1px solid; border-radius:5px; cursor:pointer;">X</button>
+                        <button onclick="deleteBet(${index})" style="background:#fff; border:1px solid #000; border-radius:5px; cursor:pointer; font-weight:bold;">X</button>
                     </td>
                 </tr>
             `;
