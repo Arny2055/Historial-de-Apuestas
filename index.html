@@ -23,7 +23,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: auto;
         }
 
@@ -85,6 +85,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
+            min-width: 1000px;
         }
 
         th {
@@ -92,13 +93,14 @@
             color: white;
             padding: 12px;
             text-align: left;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
         }
 
         td {
             padding: 10px;
             border-bottom: 1px solid #eee;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         tr:hover {
@@ -129,6 +131,12 @@
             gap: 5px;
         }
 
+        label {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
         input, select {
             padding: 8px;
             border: 1px solid #ccc;
@@ -146,13 +154,16 @@
 
         .btn-add { background: var(--success); color: white; }
         .btn-export { background: var(--primary); color: white; }
-        .btn-delete { background: #eee; color: var(--danger); padding: 5px 10px; font-size: 0.7rem; }
+        .btn-delete { background: #f8f9fa; color: var(--danger); padding: 5px 10px; font-size: 0.7rem; border: 1px solid #ddd; }
         
         .btn:hover { opacity: 0.8; }
 
         .select-edit {
             padding: 2px;
             font-size: 0.8rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -198,7 +209,15 @@
     <div class="add-bet-form">
         <div class="input-group">
             <label>Partido</label>
-            <input type="text" id="in-match" placeholder="Ej: Real Madrid - Bayern">
+            <input type="text" id="in-match" placeholder="Ej: Sporting CP - Arsenal">
+        </div>
+        <div class="input-group">
+            <label>Mercado</label>
+            <input type="text" id="in-market" placeholder="Goles">
+        </div>
+        <div class="input-group">
+            <label>Apuesta</label>
+            <input type="text" id="in-bet-type" placeholder="BTTs Yes">
         </div>
         <div class="input-group">
             <label>Stake (%)</label>
@@ -225,28 +244,33 @@
             <thead>
                 <tr>
                     <th>FECHA</th>
+                    <th>ID</th>
                     <th>PARTIDO</th>
+                    <th>MERCADO</th>
+                    <th>APUESTA</th>
+                    <th>BANK</th>
                     <th>STAKE</th>
-                    <th>INVERTIDO</th>
+                    <th>€ INVERTIDO</th>
                     <th>CUOTA</th>
                     <th>POTENCIAL</th>
-                    <th>RESULTADO</th>
+                    <th>UNIDADES</th>
                     <th>B. NETO</th>
+                    <th>RESULTADO</th>
                     <th>ACCIONES</th>
                 </tr>
             </thead>
             <tbody id="bet-table-body">
-                </tbody>
+            </tbody>
         </table>
     </div>
 </div>
 
 <script>
-    // Configuración Inicial con Persistencia
     let initialBank = 1000.00;
+    // Cargar datos guardados o usar los de ejemplo iniciales
     let bets = JSON.parse(localStorage.getItem('apuestaSystemData')) || [
-        { fecha: '7/4/2026', partido: 'M. Liberia - San Carlos', stake: 1, cuota: 1.95, resultado: 'W' },
-        { fecha: '7/4/2026', partido: 'Sporting CP - Arsenal', stake: 1, cuota: 1.80, resultado: 'PENDING' }
+        { fecha: '7/4/2026', id: 1, partido: 'M. Liberia - San Carlos', mercado: 'Goles', apuesta: 'BTTs Yes', bankAtTime: 1000, stake: 1, cuota: 1.95, resultado: 'W' },
+        { fecha: '7/4/2026', id: 2, partido: 'Sporting CP - Arsenal', mercado: 'Goles', apuesta: 'BTTs Yes', bankAtTime: 1000, stake: 1, cuota: 1.80, resultado: 'PENDING' }
     ];
 
     function calculateStats() {
@@ -260,23 +284,27 @@
         tableBody.innerHTML = '';
 
         bets.forEach((bet, index) => {
-            // El importe se basa en el stake del bank inicial fijo o acumulado (según lógica original)
-            let amount = (initialBank * (bet.stake / 100)); 
+            // Lógica matemática: Importe basado en el bank del momento de la apuesta
+            let amount = (bet.bankAtTime * (bet.stake / 100)); 
             let potential = amount * bet.cuota;
+            let units = 0; 
             let netProfit = 0;
             let resClass = '';
 
             if (bet.resultado === 'W') {
                 netProfit = potential - amount;
+                units = (bet.cuota - 1) * bet.stake;
                 won++;
                 totalSettled++;
                 resClass = 'res-w';
             } else if (bet.resultado === 'L') {
                 netProfit = -amount;
+                units = -bet.stake;
                 totalSettled++;
                 resClass = 'res-l';
             } else if (bet.resultado === 'V') {
                 netProfit = 0;
+                units = 0;
                 totalSettled++;
                 resClass = 'res-v';
             }
@@ -288,11 +316,17 @@
             tableBody.innerHTML += `
                 <tr>
                     <td>${bet.fecha}</td>
+                    <td>${bet.id || index + 1}</td>
                     <td>${bet.partido}</td>
+                    <td>${bet.mercado || '-'}</td>
+                    <td>${bet.apuesta || '-'}</td>
+                    <td>${bet.bankAtTime.toFixed(2)} €</td>
                     <td>${bet.stake}%</td>
                     <td>${amount.toFixed(2)} €</td>
                     <td>${bet.cuota.toFixed(2)}</td>
                     <td>${potential.toFixed(2)} €</td>
+                    <td>${units.toFixed(2)}</td>
+                    <td class="${resClass}">${netProfit.toFixed(2)} €</td>
                     <td>
                         <select class="select-edit ${resClass}" onchange="updateResult(${index}, this.value)">
                             <option value="PENDING" ${bet.resultado === 'PENDING' ? 'selected' : ''}>PENDIENTE</option>
@@ -301,18 +335,16 @@
                             <option value="V" ${bet.resultado === 'V' ? 'selected' : ''}>V</option>
                         </select>
                     </td>
-                    <td class="${resClass}">${netProfit.toFixed(2)} €</td>
                     <td>
-                        <button class="btn btn-delete" onclick="deleteBet(${index})">Eliminar</button>
+                        <button class="btn btn-delete" onclick="deleteBet(${index})">X</button>
                     </td>
                 </tr>
             `;
         });
 
-        // Guardar en LocalStorage
         localStorage.setItem('apuestaSystemData', JSON.stringify(bets));
 
-        // Actualizar Dashboard
+        // UI Updates
         document.getElementById('stat-bank').innerText = `${(initialBank + totalProfit).toFixed(2)} €`;
         document.getElementById('stat-invested').innerText = `${totalInvested.toFixed(2)} €`;
         document.getElementById('stat-count').innerText = bets.length;
@@ -328,15 +360,29 @@
 
     function addBet() {
         const match = document.getElementById('in-match').value;
+        const market = document.getElementById('in-market').value;
+        const betType = document.getElementById('in-bet-type').value;
         const stake = parseFloat(document.getElementById('in-stake').value);
         const odds = parseFloat(document.getElementById('in-odds').value);
         const res = document.getElementById('in-res').value;
 
-        if(!match || isNaN(stake) || isNaN(odds)) return alert("Por favor, rellena todos los campos correctamente");
+        if(!match || isNaN(stake) || isNaN(odds)) return alert("Rellena los datos principales");
+
+        // El bank con el que se hace la apuesta es el bank actual calculado
+        let currentProfit = bets.reduce((acc, b) => {
+            let amt = (b.bankAtTime * (b.stake / 100));
+            if (b.resultado === 'W') return acc + (amt * b.cuota - amt);
+            if (b.resultado === 'L') return acc - amt;
+            return acc;
+        }, 0);
 
         const newBet = {
             fecha: new Date().toLocaleDateString(),
+            id: bets.length + 1,
             partido: match,
+            mercado: market,
+            apuesta: betType,
+            bankAtTime: initialBank + currentProfit,
             stake: stake,
             cuota: odds,
             resultado: res
@@ -344,11 +390,15 @@
 
         bets.push(newBet);
         calculateStats();
+        
+        // Reset campos
         document.getElementById('in-match').value = '';
+        document.getElementById('in-market').value = '';
+        document.getElementById('in-bet-type').value = '';
     }
 
     function deleteBet(index) {
-        if(confirm("¿Seguro que quieres eliminar esta apuesta?")) {
+        if(confirm("¿Eliminar apuesta?")) {
             bets.splice(index, 1);
             calculateStats();
         }
@@ -369,7 +419,6 @@
         downloadAnchorNode.remove();
     }
 
-    // Carga inicial
     calculateStats();
 </script>
 
