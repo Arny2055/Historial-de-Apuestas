@@ -10,8 +10,9 @@
         :root {
             --primary: #FFD700;
             --accent: #FF5722;
-            --success: #00E676;
-            --danger: #FF1744;
+            --success: #26de81; /* Verde más suave para lectura */
+            --danger: #ff7675;  /* Rojo pastel para lectura */
+            --null: #ffe66d;    /* Amarillo claro para nulas */
             --light: #F0F4F8;
             --dark: #212121;
             --border-width: 3px;
@@ -87,6 +88,7 @@
             margin: 5px 0 0;
             font-size: 1.1rem;
             font-weight: 900;
+            color: var(--dark); /* Asegura contraste */
         }
 
         /* Formulario responsivo */
@@ -161,6 +163,7 @@
             padding: 12px;
             font-family: 'Bangers', cursive;
             border: var(--border-width) solid var(--dark);
+            color: var(--dark);
         }
 
         td {
@@ -168,6 +171,7 @@
             border: 2px solid var(--dark);
             font-weight: 700;
             font-size: 0.85rem;
+            color: var(--dark);
         }
 
         /* Input específico para el ID en la tabla */
@@ -179,6 +183,7 @@
             font-family: 'Open Sans', sans-serif;
             font-weight: bold;
             text-align: center;
+            background: #fff;
         }
 
         /* Botones */
@@ -193,14 +198,15 @@
             text-transform: uppercase;
         }
 
-        .btn-add { background: var(--success); width: 100%; }
+        .btn-add { background: var(--success); width: 100%; color: var(--dark); }
         @media (min-width: 768px) { .btn-add { width: auto; } }
 
         .btn-export { background: var(--accent); color: white; padding: 8px 15px; font-size: 0.9rem; }
 
-        .res-w { background-color: var(--success) !important; }
-        .res-l { background-color: var(--danger) !important; color: white; }
-        .res-v { background-color: #FFEA00 !important; }
+        /* Colores de Resultado con Contraste Mejorado */
+        .res-w { background-color: var(--success) !important; color: var(--dark) !important; }
+        .res-l { background-color: var(--danger) !important; color: var(--dark) !important; }
+        .res-v { background-color: var(--null) !important; color: var(--dark) !important; }
     </style>
 </head>
 <body>
@@ -360,7 +366,7 @@
                     <td>${units.toFixed(2)}</td>
                     <td class="${resClass}">${netProfit.toFixed(2)} €</td>
                     <td class="${resClass}">
-                        <select onchange="updateResult(${index}, this.value)" style="border:none; background:transparent; font-weight:bold;">
+                        <select onchange="updateResult(${index}, this.value)" style="border:none; background:transparent; font-weight:bold; color: inherit;">
                             <option value="PENDING" ${bet.resultado === 'PENDING' ? 'selected' : ''}>PENDIENTE</option>
                             <option value="W" ${bet.resultado === 'W' ? 'selected' : ''}>WIN</option>
                             <option value="L" ${bet.resultado === 'L' ? 'selected' : ''}>LOSS</option>
@@ -389,8 +395,6 @@
     function updateId(index, newVal) {
         bets[index].id = newVal;
         localStorage.setItem('apuestaSystemData', JSON.stringify(bets));
-        // No llamamos a calculateStats para evitar refrescar el foco del input mientras se escribe,
-        // pero el dato ya está guardado.
     }
 
     function addBet() {
