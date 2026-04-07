@@ -3,20 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>APUESTASYSTEM - Dashboard PRO</title>
+    <title>APUESTASYSTEM - Dashboard CARTOON</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Open+Sans:wght@400;700&display=swap');
+
         :root {
-            --primary: #2c3e50;
-            --accent: #3498db;
-            --success: #27ae60;
-            --danger: #e74c3c;
-            --light: #ecf0f1;
-            --dark: #1a252f;
+            --primary: #FFD700; /* Amarillo vibrante */
+            --accent: #FF5722;  /* Naranja cómico */
+            --success: #00E676; /* Verde neón */
+            --danger: #FF1744;  /* Rojo intenso */
+            --light: #F0F4F8;
+            --dark: #212121;
+            --border-width: 3px;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
+            font-family: 'Open Sans', sans-serif;
+            background-color: #81D4FA; /* Azul cielo tipo dibujo animado */
+            background-image: radial-gradient(#4fc3f7 2px, transparent 2px);
+            background-size: 30px 30px;
             margin: 0;
             padding: 20px;
             color: var(--dark);
@@ -31,53 +36,64 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         h1 {
+            font-family: 'Bangers', cursive;
+            font-size: 4rem;
             margin: 0;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            color: white;
+            text-shadow: 4px 4px 0px var(--dark);
+            letter-spacing: 4px;
+            -webkit-text-stroke: 2px var(--dark);
         }
 
-        /* Dashboard Stats */
+        /* Dashboard Stats - Estilo Burbuja */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
+            gap: 20px;
+            margin-bottom: 40px;
         }
 
         .stat-card {
             background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            border: var(--border-width) solid var(--dark);
+            border-radius: 15px;
+            box-shadow: 8px 8px 0px var(--dark);
             text-align: center;
-            border-bottom: 4px solid var(--accent);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translate(-4px, -4px);
+            box-shadow: 12px 12px 0px var(--dark);
         }
 
         .stat-card h3 {
             margin: 0;
-            font-size: 0.75rem;
-            color: #7f8c8d;
-            text-transform: uppercase;
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            color: var(--accent);
+            letter-spacing: 1px;
         }
 
         .stat-card p {
             margin: 10px 0 0;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--dark);
         }
 
-        /* Tables */
+        /* Tables - Estilo Pop Art */
         .table-container {
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 25px;
+            border: var(--border-width) solid var(--dark);
+            border-radius: 20px;
+            box-shadow: 10px 10px 0px rgba(0,0,0,0.2);
             overflow-x: auto;
         }
 
@@ -85,85 +101,102 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
-            min-width: 1000px;
+            min-width: 1100px;
         }
 
         th {
             background-color: var(--primary);
-            color: white;
-            padding: 12px;
+            color: var(--dark);
+            padding: 15px;
             text-align: left;
-            font-size: 0.75rem;
-            white-space: nowrap;
+            font-family: 'Bangers', cursive;
+            font-size: 1.1rem;
+            border: var(--border-width) solid var(--dark);
         }
 
         td {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            font-size: 0.85rem;
+            padding: 12px;
+            border: 2px solid var(--dark);
+            font-weight: 700;
+            background: white;
         }
 
-        tr:hover {
-            background-color: #f9f9f9;
+        tr:nth-child(even) td {
+            background-color: #FFFDE7;
         }
 
         /* Result Colors */
-        .res-w { color: var(--success); font-weight: bold; }
-        .res-l { color: var(--danger); font-weight: bold; }
-        .res-v { color: #f39c12; font-weight: bold; }
+        .res-w { background-color: var(--success) !important; color: var(--dark); }
+        .res-l { background-color: var(--danger) !important; color: white; }
+        .res-v { background-color: #FFEA00 !important; color: var(--dark); }
 
-        /* Form for adding bets */
+        /* Formulario - Estilo Panel de Cómic */
         .add-bet-form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            background: #FFF9C4;
+            padding: 30px;
+            border: var(--border-width) solid var(--dark);
+            border-radius: 20px;
+            margin-bottom: 30px;
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 20px;
             align-items: flex-end;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 8px 8px 0px var(--dark);
         }
 
         .input-group {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 8px;
         }
 
         label {
-            font-size: 0.7rem;
-            font-weight: bold;
-            color: var(--primary);
+            font-family: 'Bangers', cursive;
+            font-size: 1.1rem;
+            color: var(--dark);
         }
 
         input, select {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
+            padding: 12px;
+            border: var(--border-width) solid var(--dark);
+            border-radius: 10px;
             font-weight: bold;
-            border: none;
-            transition: 0.3s;
+            font-size: 1rem;
+            box-shadow: 4px 4px 0px #ccc;
         }
 
-        .btn-add { background: var(--success); color: white; }
-        .btn-export { background: var(--primary); color: white; }
-        .btn-delete { background: #f8f9fa; color: var(--danger); padding: 5px 10px; font-size: 0.7rem; border: 1px solid #ddd; }
-        
-        .btn:hover { opacity: 0.8; }
-
-        .select-edit {
-            padding: 2px;
-            font-size: 0.8rem;
-            border: none;
-            background: transparent;
+        /* Botones */
+        .btn {
+            padding: 12px 25px;
+            border-radius: 12px;
             cursor: pointer;
+            font-family: 'Bangers', cursive;
+            font-size: 1.3rem;
+            border: var(--border-width) solid var(--dark);
+            transition: 0.1s;
+            box-shadow: 4px 4px 0px var(--dark);
+            text-transform: uppercase;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px var(--dark);
+        }
+
+        .btn-add { background: var(--success); color: var(--dark); }
+        .btn-export { background: var(--accent); color: white; }
+        .btn-delete { 
+            background: #fff; 
+            color: var(--danger); 
+            padding: 5px 12px; 
+            font-size: 1rem; 
+        }
+        
+        .select-edit {
+            padding: 5px;
+            border: 2px solid var(--dark);
+            border-radius: 5px;
+            font-weight: 900;
         }
     </style>
 </head>
@@ -171,32 +204,32 @@
 
 <div class="container">
     <div class="header-flex">
-        <h1>ApuestaSystem</h1>
-        <button class="btn btn-export" onclick="exportData()">Exportar JSON</button>
+        <h1>ApuestaSystem!</h1>
+        <button class="btn btn-export" onclick="exportData()">💾 Exportar</button>
     </div>
 
     <div class="dashboard-grid">
-        <div class="stat-card">
+        <div class="stat-card" style="background: #E3F2FD;">
             <h3>Bank Actual</h3>
             <p id="stat-bank">1.000,00 €</p>
         </div>
         <div class="stat-card">
-            <h3>Total Apostado</h3>
+            <h3>Apostado</h3>
             <p id="stat-invested">0,00 €</p>
         </div>
         <div class="stat-card">
-            <h3>Nº Apuestas</h3>
+            <h3>Apuestas</h3>
             <p id="stat-count">0</p>
         </div>
         <div class="stat-card">
             <h3>Cuota Media</h3>
             <p id="stat-odds">0,00</p>
         </div>
-        <div class="stat-card" style="border-color: var(--success);">
+        <div class="stat-card" style="background: var(--success);">
             <h3>B. Neto</h3>
             <p id="stat-profit">0,00 €</p>
         </div>
-        <div class="stat-card" style="border-color: #f39c12;">
+        <div class="stat-card" style="background: var(--primary);">
             <h3>Yield</h3>
             <p id="stat-yield">0%</p>
         </div>
@@ -209,18 +242,18 @@
     <div class="add-bet-form">
         <div class="input-group">
             <label>Partido</label>
-            <input type="text" id="in-match" placeholder="Ej: Sporting CP - Arsenal">
+            <input type="text" id="in-match" placeholder="¿Quién juega?">
         </div>
         <div class="input-group">
             <label>Mercado</label>
-            <input type="text" id="in-market" placeholder="Goles">
+            <input type="text" id="in-market" placeholder="Goles, 1X2...">
         </div>
         <div class="input-group">
             <label>Apuesta</label>
-            <input type="text" id="in-bet-type" placeholder="BTTs Yes">
+            <input type="text" id="in-bet-type" placeholder="Tu pronóstico">
         </div>
         <div class="input-group">
-            <label>Stake (%)</label>
+            <label>Stake %</label>
             <input type="number" id="in-stake" step="0.1" value="1">
         </div>
         <div class="input-group">
@@ -230,13 +263,13 @@
         <div class="input-group">
             <label>Resultado</label>
             <select id="in-res">
-                <option value="PENDING">Pendiente</option>
-                <option value="W">Ganada (W)</option>
-                <option value="L">Perdida (L)</option>
-                <option value="V">Nula (V)</option>
+                <option value="PENDING">⌛ Pendiente</option>
+                <option value="W">✅ Ganada (W)</option>
+                <option value="L">❌ Perdida (L)</option>
+                <option value="V">⚪ Nula (V)</option>
             </select>
         </div>
-        <button class="btn btn-add" onclick="addBet()">Añadir Apuesta</button>
+        <button class="btn btn-add" onclick="addBet()">BOOM! Añadir</button>
     </div>
 
     <div class="table-container">
@@ -256,7 +289,7 @@
                     <th>UNIDADES</th>
                     <th>B. NETO</th>
                     <th>RESULTADO</th>
-                    <th>ACCIONES</th>
+                    <th>ELIMINAR</th>
                 </tr>
             </thead>
             <tbody id="bet-table-body">
@@ -267,7 +300,6 @@
 
 <script>
     let initialBank = 1000.00;
-    // Cargar datos guardados o usar los de ejemplo iniciales
     let bets = JSON.parse(localStorage.getItem('apuestaSystemData')) || [
         { fecha: '7/4/2026', id: 1, partido: 'M. Liberia - San Carlos', mercado: 'Goles', apuesta: 'BTTs Yes', bankAtTime: 1000, stake: 1, cuota: 1.95, resultado: 'W' },
         { fecha: '7/4/2026', id: 2, partido: 'Sporting CP - Arsenal', mercado: 'Goles', apuesta: 'BTTs Yes', bankAtTime: 1000, stake: 1, cuota: 1.80, resultado: 'PENDING' }
@@ -284,7 +316,6 @@
         tableBody.innerHTML = '';
 
         bets.forEach((bet, index) => {
-            // Lógica matemática: Importe basado en el bank del momento de la apuesta
             let amount = (bet.bankAtTime * (bet.stake / 100)); 
             let potential = amount * bet.cuota;
             let units = 0; 
@@ -327,16 +358,16 @@
                     <td>${potential.toFixed(2)} €</td>
                     <td>${units.toFixed(2)}</td>
                     <td class="${resClass}">${netProfit.toFixed(2)} €</td>
-                    <td>
-                        <select class="select-edit ${resClass}" onchange="updateResult(${index}, this.value)">
+                    <td class="${resClass}">
+                        <select class="select-edit" onchange="updateResult(${index}, this.value)">
                             <option value="PENDING" ${bet.resultado === 'PENDING' ? 'selected' : ''}>PENDIENTE</option>
-                            <option value="W" ${bet.resultado === 'W' ? 'selected' : ''}>W</option>
-                            <option value="L" ${bet.resultado === 'L' ? 'selected' : ''}>L</option>
-                            <option value="V" ${bet.resultado === 'V' ? 'selected' : ''}>V</option>
+                            <option value="W" ${bet.resultado === 'W' ? 'selected' : ''}>WIN</option>
+                            <option value="L" ${bet.resultado === 'L' ? 'selected' : ''}>LOSS</option>
+                            <option value="V" ${bet.resultado === 'V' ? 'selected' : ''}>VOID</option>
                         </select>
                     </td>
                     <td>
-                        <button class="btn btn-delete" onclick="deleteBet(${index})">X</button>
+                        <button class="btn btn-delete" onclick="deleteBet(${index})">Eliminar</button>
                     </td>
                 </tr>
             `;
@@ -344,7 +375,6 @@
 
         localStorage.setItem('apuestaSystemData', JSON.stringify(bets));
 
-        // UI Updates
         document.getElementById('stat-bank').innerText = `${(initialBank + totalProfit).toFixed(2)} €`;
         document.getElementById('stat-invested').innerText = `${totalInvested.toFixed(2)} €`;
         document.getElementById('stat-count').innerText = bets.length;
@@ -366,9 +396,8 @@
         const odds = parseFloat(document.getElementById('in-odds').value);
         const res = document.getElementById('in-res').value;
 
-        if(!match || isNaN(stake) || isNaN(odds)) return alert("Rellena los datos principales");
+        if(!match || isNaN(stake) || isNaN(odds)) return alert("¡Ey! Falta información importante");
 
-        // El bank con el que se hace la apuesta es el bank actual calculado
         let currentProfit = bets.reduce((acc, b) => {
             let amt = (b.bankAtTime * (b.stake / 100));
             if (b.resultado === 'W') return acc + (amt * b.cuota - amt);
@@ -391,14 +420,13 @@
         bets.push(newBet);
         calculateStats();
         
-        // Reset campos
         document.getElementById('in-match').value = '';
         document.getElementById('in-market').value = '';
         document.getElementById('in-bet-type').value = '';
     }
 
     function deleteBet(index) {
-        if(confirm("¿Eliminar apuesta?")) {
+        if(confirm("¿Estás seguro de querer borrar este pronóstico?")) {
             bets.splice(index, 1);
             calculateStats();
         }
@@ -413,7 +441,7 @@
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bets));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "apuestas_backup.json");
+        downloadAnchorNode.setAttribute("download", "apuestas_cartoon.json");
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
