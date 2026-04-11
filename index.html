@@ -195,16 +195,25 @@
             color: #fff;
         }
 
-        /* Input ID en tabla */
-        .id-edit-input {
-            width: 60px;
+        /* Input ID y Partido en tabla */
+        .id-edit-input, .match-edit-input {
             padding: 4px;
             border: 2px solid #000;
             border-radius: 5px;
             font-weight: bold;
-            text-align: center;
             background: #fff;
             color: #000;
+        }
+
+        .id-edit-input {
+            width: 60px;
+            text-align: center;
+        }
+
+        .match-edit-input {
+            width: 100%;
+            min-width: 150px;
+            box-sizing: border-box;
         }
 
         /* Botones */
@@ -354,8 +363,6 @@
     function updateInitialBank(val) {
         initialBank = parseFloat(val) || 0;
         localStorage.setItem('apuestaSystemInitialBank', initialBank);
-        // Al cambiar el bank inicial, actualizamos el bankAtTime de la primera apuesta
-        // y recalculamos todo para que el stake en euros se ajuste al nuevo capital.
         calculateStats();
     }
 
@@ -370,7 +377,6 @@
         tableBody.innerHTML = '';
 
         bets.forEach((bet, index) => {
-            // Actualizamos el bank que había en ese momento basado en el bank inicial + beneficios acumulados previos
             bet.bankAtTime = runningBank;
             
             let amount = (bet.bankAtTime * (bet.stake / 100)); 
@@ -397,7 +403,6 @@
             totalProfit += netProfit;
             oddsSum += bet.cuota;
             
-            // Actualizamos el bank para la siguiente apuesta en la lista
             runningBank += netProfit;
 
             tableBody.innerHTML += `
@@ -406,7 +411,9 @@
                     <td>
                         <input type="number" class="id-edit-input" value="${bet.id}" onchange="updateId(${index}, this.value)">
                     </td>
-                    <td>${bet.partido}</td>
+                    <td>
+                        <input type="text" class="match-edit-input" value="${bet.partido}" onchange="updateMatch(${index}, this.value)">
+                    </td>
                     <td>${bet.mercado || '-'}</td>
                     <td>${bet.apuesta || '-'}</td>
                     <td>${bet.bankAtTime.toFixed(2)} €</td>
@@ -448,6 +455,13 @@
         localStorage.setItem('apuestaSystemData', JSON.stringify(bets));
     }
 
+    function updateMatch(index, newVal) {
+        bets[index].partido = newVal;
+        localStorage.setItem('apuestaSystemData', JSON.stringify(bets));
+        // No es necesario recalcular estadísticas ya que el nombre no afecta a la matemática,
+        // pero guardamos en local para persistencia.
+    }
+
     function addBet() {
         const match = document.getElementById('in-match').value;
         const market = document.getElementById('in-market').value;
@@ -458,7 +472,6 @@
 
         if(!match || isNaN(stake) || isNaN(odds)) return alert("¡Faltan datos!");
 
-        // Calculamos el bank actual acumulado hasta el momento para la nueva apuesta
         let currentRunningBank = initialBank;
         bets.forEach(b => {
             let amt = (currentRunningBank * (b.stake / 100));
