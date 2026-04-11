@@ -210,10 +210,12 @@
             text-align: center;
         }
 
+        /* Mejora para ver todo el texto sin scroll */
         .match-edit-input {
             width: 100%;
-            min-width: 150px;
             box-sizing: border-box;
+            white-space: normal;
+            word-wrap: break-word;
         }
 
         /* Botones */
@@ -458,8 +460,6 @@
     function updateMatch(index, newVal) {
         bets[index].partido = newVal;
         localStorage.setItem('apuestaSystemData', JSON.stringify(bets));
-        // No es necesario recalcular estadísticas ya que el nombre no afecta a la matemática,
-        // pero guardamos en local para persistencia.
     }
 
     function addBet() {
