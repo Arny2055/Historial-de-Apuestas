@@ -175,7 +175,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1150px; 
+            min-width: 1600px; /* Incrementado para acomodar la celda más grande */
         }
 
         th {
@@ -210,9 +210,10 @@
             text-align: center;
         }
 
-        /* Mejora para ver todo el texto sin scroll */
+        /* Mejora: Celda de equipos 4 veces más grande */
         .match-edit-input {
             width: 100%;
+            min-width: 600px; /* Tamaño ampliado significativamente */
             box-sizing: border-box;
             white-space: normal;
             word-wrap: break-word;
@@ -353,7 +354,6 @@
 </div>
 
 <script>
-    // Recuperar bank inicial de localStorage o usar 1000 por defecto
     let initialBank = parseFloat(localStorage.getItem('apuestaSystemInitialBank')) || 1000.00;
     document.getElementById('in-initial-bank').value = initialBank;
 
